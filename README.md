@@ -2,6 +2,8 @@
   <img src="icon.png" alt="Aether Icon" width="256" height="256">
 </p>
 
+https://github.com/user-attachments/assets/17d44fa0-1669-4ac7-8186-faed14a4e275
+
 # Aether
 
 Aether is a beautiful GTK/Libadwaita theming application for Omarchy. It provides real-time, visual control over your desktop aesthetic through pywal integration and template-based theme generation. Instead of editing text files, you sculpt your desktop's look and feel with interactive controls and see changes happen live.
