@@ -142,18 +142,18 @@ export const BlueprintManager = GObject.registerClass({
 
         const box = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
-            spacing: 8,
-            margin_start: 12,
-            margin_end: 12,
-            margin_top: 8,
-            margin_bottom: 8,
+            spacing: 4,
+            margin_start: 8,
+            margin_end: 8,
+            margin_top: 6,
+            margin_bottom: 6,
         });
 
         // Preview colors
         const colorBox = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 2,
-            height_request: 6,
+            spacing: 1,
+            height_request: 4,
         });
 
         if (blueprint.palette && blueprint.palette.colors) {
@@ -191,13 +191,13 @@ export const BlueprintManager = GObject.registerClass({
 
         const buttonBox = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 6,
-            margin_top: 6,
+            spacing: 4,
+            margin_top: 4,
         });
 
         const applyButton = new Gtk.Button({
             label: 'Apply',
-            css_classes: ['suggested-action', 'pill'],
+            css_classes: ['suggested-action'],
         });
 
         const deleteButton = new Gtk.Button({

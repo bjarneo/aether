@@ -35,29 +35,27 @@ export const PaletteGenerator = GObject.registerClass({
 
         // Preview and palette display
         this._previewBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 12,
-            margin_top: 12,
-            margin_bottom: 12,
-            height_request: 120,
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 8,
+            margin_top: 6,
+            margin_bottom: 6,
         });
 
         this._wallpaperPreview = new Gtk.Picture({
-            width_request: 140,
-            height_request: 90,
+            height_request: 120,
             can_shrink: true,
             css_classes: ['card'],
+            hexpand: true,
         });
 
         this._paletteFlow = new Gtk.FlowBox({
             selection_mode: Gtk.SelectionMode.NONE,
-            column_spacing: 6,
-            row_spacing: 6,
+            column_spacing: 4,
+            row_spacing: 4,
             homogeneous: true,
             max_children_per_line: 8,
             min_children_per_line: 8,
             hexpand: true,
-            vexpand: true,
         });
 
         this._previewBox.append(this._wallpaperPreview);
@@ -252,8 +250,8 @@ export const PaletteGenerator = GObject.registerClass({
         // Add new colors (16 ANSI colors)
         colors.forEach((color, index) => {
             const colorBox = new Gtk.Box({
-                width_request: 50,
-                height_request: 50,
+                width_request: 35,
+                height_request: 35,
                 css_classes: ['color-swatch'],
                 tooltip_text: this.getAnsiColorName(index),
             });
@@ -262,10 +260,10 @@ export const PaletteGenerator = GObject.registerClass({
             cssProvider.load_from_string(`
                 .color-swatch {
                     background-color: ${color};
-                    border-radius: 8px;
-                    border: 2px solid alpha(@borders, 0.5);
-                    min-width: 50px;
-                    min-height: 50px;
+                    border-radius: 6px;
+                    border: 1px solid alpha(@borders, 0.5);
+                    min-width: 35px;
+                    min-height: 35px;
                 }
                 .color-swatch:hover {
                     border: 2px solid alpha(@borders, 1.0);
@@ -320,18 +318,18 @@ export const PaletteGenerator = GObject.registerClass({
         // Create container for shades
         const contentBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            margin_top: 12,
-            margin_bottom: 12,
-            margin_start: 12,
-            margin_end: 12,
+            spacing: 8,
+            margin_top: 8,
+            margin_bottom: 8,
+            margin_start: 8,
+            margin_end: 8,
         });
 
         // Add shades flow box
         const shadesFlow = new Gtk.FlowBox({
             selection_mode: Gtk.SelectionMode.NONE,
-            column_spacing: 6,
-            row_spacing: 6,
+            column_spacing: 4,
+            row_spacing: 4,
             homogeneous: true,
             max_children_per_line: 5,
             min_children_per_line: 5,
@@ -341,26 +339,25 @@ export const PaletteGenerator = GObject.registerClass({
             const isActive = shadeIndex === closestShadeIndex;
 
             const shadeBox = new Gtk.Box({
-                width_request: 50,
-                height_request: 50,
+                width_request: 40,
+                height_request: 40,
                 css_classes: ['color-swatch'],
                 tooltip_text: shade + (isActive ? ' (current)' : ''),
             });
 
             const cssProvider = new Gtk.CssProvider();
             const borderStyle = isActive
-                ? 'border: 3px solid @accent_color;'
-                : 'border: 2px solid alpha(@borders, 0.5);';
+                ? 'border: 2px solid @accent_color;'
+                : 'border: 1px solid alpha(@borders, 0.5);';
 
             cssProvider.load_from_string(`
                 .color-swatch {
                     background-color: ${shade};
-                    border-radius: 8px;
+                    border-radius: 6px;
                     ${borderStyle}
                 }
                 .color-swatch:hover {
-                    border: 3px solid @accent_color;
-                    transform: scale(1.05);
+                    border: 2px solid @accent_color;
                 }
             `);
 
@@ -387,7 +384,7 @@ export const PaletteGenerator = GObject.registerClass({
         const pickerButton = new Gtk.Button({
             label: '+ Custom Color',
             css_classes: ['suggested-action'],
-            margin_top: 6,
+            margin_top: 4,
         });
 
         pickerButton.connect('clicked', () => {

@@ -100,11 +100,11 @@ const AetherWindow = GObject.registerClass(
 
         const mainBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
-            spacing: 24,
-            margin_top: 24,
-            margin_bottom: 24,
-            margin_start: 24,
-            margin_end: 24,
+            spacing: 12,
+            margin_top: 12,
+            margin_bottom: 12,
+            margin_start: 12,
+            margin_end: 12,
         });
 
         // Generative Palette Section
@@ -122,22 +122,21 @@ const AetherWindow = GObject.registerClass(
 
         // Action bar at bottom
         const actionBar = new Gtk.ActionBar({
-            margin_top: 12,
-            margin_bottom: 8,
-            margin_start: 12,
-            margin_end: 12,
+            margin_top: 6,
+            margin_bottom: 6,
+            margin_start: 6,
+            margin_end: 6,
         });
 
         const applyButton = new Gtk.Button({
             label: 'Apply Theme',
-            css_classes: ['suggested-action', 'pill'],
+            css_classes: ['suggested-action'],
         });
         applyButton.connect('clicked', () => this.applyCurrentTheme());
         actionBar.pack_end(applyButton);
 
         const saveButton = new Gtk.Button({
             label: 'Save Blueprint',
-            css_classes: ['pill'],
         });
         saveButton.connect('clicked', () => this.saveBlueprint());
         actionBar.pack_end(saveButton);
