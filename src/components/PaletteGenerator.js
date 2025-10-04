@@ -288,20 +288,114 @@ export const PaletteGenerator = GObject.registerClass({
             hexColor = '#' + hexColor;
         }
 
+        console.log(`Opening shade picker for index ${index}: ${hexColor}`);
+
+        // Create shade picker dialog
+        const dialog = new Gtk.Dialog({
+            title: `Select Shade - ${this.getAnsiColorName(index)}`,
+            modal: true,
+            transient_for: this.get_root(),
+            use_header_bar: true,
+        });
+
+        dialog.add_button('Cancel', Gtk.ResponseType.CANCEL);
+
+        // Generate shades
+        const shades = this.generateShades(hexColor, 15);
+
+        // Create container for shades
+        const contentBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 12,
+            margin_top: 12,
+            margin_bottom: 12,
+            margin_start: 12,
+            margin_end: 12,
+        });
+
+        // Add shades flow box
+        const shadesFlow = new Gtk.FlowBox({
+            selection_mode: Gtk.SelectionMode.NONE,
+            column_spacing: 6,
+            row_spacing: 6,
+            homogeneous: true,
+            max_children_per_line: 5,
+            min_children_per_line: 5,
+        });
+
+        shades.forEach(shade => {
+            const shadeBox = new Gtk.Box({
+                width_request: 50,
+                height_request: 50,
+                css_classes: ['color-swatch'],
+                tooltip_text: shade,
+            });
+
+            const cssProvider = new Gtk.CssProvider();
+            cssProvider.load_from_string(`
+                .color-swatch {
+                    background-color: ${shade};
+                    border-radius: 8px;
+                    border: 2px solid alpha(@borders, 0.5);
+                }
+                .color-swatch:hover {
+                    border: 2px solid alpha(@borders, 1.0);
+                    transform: scale(1.05);
+                }
+            `);
+
+            shadeBox.get_style_context().add_provider(
+                cssProvider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            );
+
+            shadeBox.set_cursor(Gdk.Cursor.new_from_name('pointer', null));
+
+            const gesture = new Gtk.GestureClick();
+            gesture.connect('pressed', () => {
+                this.applyColorToSwatch(index, shade, colorBox);
+                dialog.close();
+            });
+            shadeBox.add_controller(gesture);
+
+            shadesFlow.append(shadeBox);
+        });
+
+        contentBox.append(shadesFlow);
+
+        // Add + button to open full color picker
+        const pickerButton = new Gtk.Button({
+            label: '+ Custom Color',
+            css_classes: ['suggested-action'],
+            margin_top: 6,
+        });
+
+        pickerButton.connect('clicked', () => {
+            dialog.close();
+            this.openFullColorPicker(index, hexColor, colorBox);
+        });
+
+        contentBox.append(pickerButton);
+
+        const contentArea = dialog.get_content_area();
+        contentArea.append(contentBox);
+
+        dialog.present();
+    }
+
+    openFullColorPicker(index, currentColor, colorBox) {
         // Parse current color
         const rgba = new Gdk.RGBA();
-        const parsed = rgba.parse(hexColor);
+        const parsed = rgba.parse(currentColor);
 
         if (!parsed) {
-            console.error(`Failed to parse color: ${hexColor}`);
+            console.error(`Failed to parse color: ${currentColor}`);
             return;
         }
 
-        console.log(`Opening color picker for index ${index}: ${hexColor} -> RGBA(${rgba.red}, ${rgba.green}, ${rgba.blue})`);
-
         // Create custom dialog with ColorChooserWidget
         const dialog = new Gtk.Dialog({
-            title: `Edit ${this.getAnsiColorName(index)}`,
+            title: `Custom Color - ${this.getAnsiColorName(index)}`,
             modal: true,
             transient_for: this.get_root(),
             use_header_bar: true,
@@ -316,7 +410,6 @@ export const PaletteGenerator = GObject.registerClass({
             use_alpha: false,
         });
 
-        // Set current color
         colorChooser.set_rgba(rgba);
 
         // Add palette colors
@@ -328,47 +421,133 @@ export const PaletteGenerator = GObject.registerClass({
 
         colorChooser.add_palette(Gtk.Orientation.HORIZONTAL, 8, paletteColors);
 
-        // Add to dialog content
         const contentArea = dialog.get_content_area();
         contentArea.append(colorChooser);
 
-        // Handle response
         dialog.connect('response', (dlg, response) => {
             if (response === Gtk.ResponseType.OK) {
                 const newRgba = colorChooser.get_rgba();
                 const newHex = this.rgbaToHex(newRgba);
-
-                // Update palette
-                this._palette[index] = newHex;
-
-                // Update visual color box
-                const cssProvider = new Gtk.CssProvider();
-                cssProvider.load_from_string(`
-                    .color-swatch {
-                        background-color: ${newHex};
-                        border-radius: 8px;
-                        border: 2px solid alpha(@borders, 0.5);
-                        min-width: 50px;
-                        min-height: 50px;
-                    }
-                    .color-swatch:hover {
-                        border: 2px solid alpha(@borders, 1.0);
-                    }
-                `);
-
-                colorBox.get_style_context().add_provider(
-                    cssProvider,
-                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-                );
-
-                // Emit signal to update color synthesizer
-                this.emit('palette-generated', this._palette);
+                this.applyColorToSwatch(index, newHex, colorBox);
             }
-
             dialog.close();
         });
 
         dialog.present();
+    }
+
+    generateShades(hexColor, count) {
+        // Convert hex to HSL
+        const rgb = this.hexToRgb(hexColor);
+        const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+        const shades = [];
+
+        // Generate shades from dark to light
+        for (let i = 0; i < count; i++) {
+            const lightness = (i / (count - 1)) * 100; // 0% to 100%
+            const shade = this.hslToHex(hsl.h, hsl.s, lightness);
+            shades.push(shade);
+        }
+
+        return shades;
+    }
+
+    applyColorToSwatch(index, hexColor, colorBox) {
+        // Update palette
+        this._palette[index] = hexColor;
+
+        // Update visual color box
+        const cssProvider = new Gtk.CssProvider();
+        cssProvider.load_from_string(`
+            .color-swatch {
+                background-color: ${hexColor};
+                border-radius: 8px;
+                border: 2px solid alpha(@borders, 0.5);
+                min-width: 50px;
+                min-height: 50px;
+            }
+            .color-swatch:hover {
+                border: 2px solid alpha(@borders, 1.0);
+            }
+        `);
+
+        colorBox.get_style_context().add_provider(
+            cssProvider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
+
+        // Emit signal to update color synthesizer
+        this.emit('palette-generated', this._palette);
+    }
+
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 0, g: 0, b: 0 };
+    }
+
+    rgbToHsl(r, g, b) {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+            switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                case b: h = ((r - g) / d + 4) / 6; break;
+            }
+        }
+
+        return { h: h * 360, s: s * 100, l: l * 100 };
+    }
+
+    hslToHex(h, s, l) {
+        h /= 360;
+        s /= 100;
+        l /= 100;
+
+        let r, g, b;
+
+        if (s === 0) {
+            r = g = b = l;
+        } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+
+        const toHex = x => {
+            const hex = Math.round(x * 255).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     }
 
     rgbaToHex(rgba) {
