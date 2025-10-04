@@ -2,9 +2,9 @@
   <img src="icon.png" alt="Aether Icon" width="256" height="256">
 </p>
 
-# Aether - Universal Desktop Synthesizer
+# Aether
 
-Aether is a beautiful GTK/Libadwaita application that provides real-time, visual control over your entire desktop aesthetic in Hyprland environments. Instead of editing text files, you sculpt your desktop's look and feel with interactive controls and see changes happen live.
+Aether is a beautiful GTK/Libadwaita theming application for Omarchy. It provides real-time, visual control over your desktop aesthetic through pywal integration and template-based theme generation. Instead of editing text files, you sculpt your desktop's look and feel with interactive controls and see changes happen live.
 
 ## Features
 
@@ -37,9 +37,7 @@ Aether is a beautiful GTK/Libadwaita application that provides real-time, visual
 - GTK 4
 - Libadwaita 1
 - **pywal** - Color extraction from wallpapers
-- **Omarchy** - The beautiful opinionated Arch flavour
-- Hyprland (primary window manager)
-- Optional: Waybar, Kitty, Rofi, Wofi, Walker
+- **Omarchy** - Theme application backend
 
 ## Installation
 
@@ -51,24 +49,25 @@ sudo pacman -S gjs gtk4 libadwaita python-pywal
 
 2. Clone the repository:
 ```bash
-cd ~/Code
-git clone <your-repo-url> Aether
-cd Aether
+git clone https://github.com/bjarneo/aether.git
+cd aether
 ```
 
-3. Make the launcher executable:
-```bash
-chmod +x aether
-```
-
-4. Run Aether:
+3. Run Aether:
 ```bash
 ./aether
 ```
 
-5. (Optional) Install desktop entry:
+4. (Optional) Install desktop entry:
 ```bash
-cp com.aether.DesktopSynthesizer.desktop ~/.local/share/applications/
+cp li.oever.aether.desktop ~/.local/share/applications/
+```
+
+Or install via AUR:
+```bash
+yay -S aether
+# or
+paru -S aether
 ```
 
 ## Usage
@@ -199,7 +198,7 @@ Aether is designed to be extensible:
 
 > From Configuration to Creation
 
-Aether bridges the gap between pywal's automatic color extraction and manual config editing. It provides a visual interface to refine pywal's output and instantly apply coordinated themes across all your applications via omarchy.
+Aether is the visual theming interface for Omarchy. It bridges the gap between pywal's automatic color extraction and manual config editing, providing an intuitive GUI to refine colors and instantly apply coordinated themes across all your applications.
 
 The focus shifts from editing multiple config files to "Pick a wallpaper, tweak the colors, click apply."
 
