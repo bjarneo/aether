@@ -141,6 +141,12 @@ const AetherWindow = GObject.registerClass(
         saveButton.connect('clicked', () => this.saveBlueprint());
         actionBar.pack_end(saveButton);
 
+        const exportButton = new Gtk.Button({
+            label: 'Export Theme',
+        });
+        exportButton.connect('clicked', () => this.exportTheme());
+        actionBar.pack_start(exportButton);
+
         mainBox.append(paletteGroup);
 
         clamp.set_child(mainBox);
@@ -215,6 +221,96 @@ const AetherWindow = GObject.registerClass(
         };
 
         this.blueprintManager.saveBlueprint(blueprint);
+    }
+
+    exportTheme() {
+        // First, prompt for theme name
+        const nameDialog = new Adw.MessageDialog({
+            heading: 'Export Theme',
+            body: 'Enter a name for your theme',
+            transient_for: this,
+        });
+
+        nameDialog.add_response('cancel', 'Cancel');
+        nameDialog.add_response('continue', 'Continue');
+        nameDialog.set_response_appearance('continue', Adw.ResponseAppearance.SUGGESTED);
+
+        const nameEntry = new Gtk.Entry({
+            placeholder_text: 'my-theme',
+            margin_start: 12,
+            margin_end: 12,
+            margin_top: 6,
+            margin_bottom: 6,
+        });
+
+        nameDialog.set_extra_child(nameEntry);
+
+        nameDialog.connect('response', (dialog, response) => {
+            if (response === 'continue') {
+                const themeName = nameEntry.get_text().trim() || 'my-theme';
+                this.chooseExportDirectory(themeName);
+            }
+        });
+
+        nameDialog.present();
+    }
+
+    chooseExportDirectory(themeName) {
+        const fileDialog = new Gtk.FileDialog({
+            title: 'Choose Export Directory',
+            modal: true,
+        });
+
+        fileDialog.select_folder(this, null, (source, result) => {
+            try {
+                const folder = source.select_folder_finish(result);
+                if (folder) {
+                    const exportPath = folder.get_path();
+                    this.performExport(themeName, exportPath);
+                }
+            } catch (e) {
+                // User cancelled
+                console.log('Export cancelled');
+            }
+        });
+    }
+
+    performExport(themeName, exportPath) {
+        try {
+            const colors = this.colorSynthesizer.getColors();
+            const palette = this.paletteGenerator.getPalette();
+
+            // Create theme directory name
+            const themeDir = `omarchy-${themeName}-theme`;
+            const fullPath = GLib.build_filenamev([exportPath, themeDir]);
+
+            console.log(`Exporting theme to: ${fullPath}`);
+
+            // Export the theme
+            this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName);
+
+            // Show success message
+            const successDialog = new Adw.MessageDialog({
+                heading: 'Theme Exported',
+                body: `Theme exported successfully to:\n${fullPath}`,
+                transient_for: this,
+            });
+
+            successDialog.add_response('ok', 'OK');
+            successDialog.present();
+
+        } catch (e) {
+            console.error(`Error exporting theme: ${e.message}`);
+
+            const errorDialog = new Adw.MessageDialog({
+                heading: 'Export Failed',
+                body: `Failed to export theme: ${e.message}`,
+                transient_for: this,
+            });
+
+            errorDialog.add_response('ok', 'OK');
+            errorDialog.present();
+        }
     }
 });
 

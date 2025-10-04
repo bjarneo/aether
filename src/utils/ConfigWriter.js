@@ -194,6 +194,67 @@ export class ConfigWriter {
         return `${r},${g},${b}`;
     }
 
+    exportTheme(colorRoles, wallpaperPath, exportPath, themeName) {
+        try {
+            // Create export directory structure
+            GLib.mkdir_with_parents(exportPath, 0o755);
+
+            // Create backgrounds directory
+            const bgDir = GLib.build_filenamev([exportPath, 'backgrounds']);
+            GLib.mkdir_with_parents(bgDir, 0o755);
+
+            // Copy wallpaper if available
+            if (wallpaperPath) {
+                const fileName = GLib.path_get_basename(wallpaperPath);
+                const destPath = GLib.build_filenamev([bgDir, fileName]);
+
+                const sourceFile = Gio.File.new_for_path(wallpaperPath);
+                const destFile = Gio.File.new_for_path(destPath);
+
+                sourceFile.copy(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
+                console.log(`Copied wallpaper to: ${destPath}`);
+            }
+
+            // Build color variables
+            const variables = this.buildVariables(colorRoles);
+
+            // Process all templates to export directory
+            this.processTemplatesToDirectory(variables, exportPath);
+
+            console.log(`Theme exported successfully to: ${exportPath}`);
+            return true;
+
+        } catch (e) {
+            console.error('Error exporting theme:', e.message);
+            throw e;
+        }
+    }
+
+    processTemplatesToDirectory(variables, exportPath) {
+        const templatesDir = Gio.File.new_for_path(this.templatesDir);
+
+        try {
+            const enumerator = templatesDir.enumerate_children(
+                'standard::name,standard::type',
+                Gio.FileQueryInfoFlags.NONE,
+                null
+            );
+
+            let fileInfo;
+            while ((fileInfo = enumerator.next_file(null)) !== null) {
+                const fileName = fileInfo.get_name();
+                const templatePath = GLib.build_filenamev([this.templatesDir, fileName]);
+                const outputPath = GLib.build_filenamev([exportPath, fileName]);
+
+                this.processTemplate(templatePath, outputPath, variables);
+                console.log(`Processed template: ${fileName}`);
+            }
+        } catch (e) {
+            console.error('Error processing templates for export:', e.message);
+            throw e;
+        }
+    }
+
     applyOmarchyTheme() {
         try {
             GLib.spawn_command_line_async('omarchy-theme-set aether');
