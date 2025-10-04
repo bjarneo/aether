@@ -5,14 +5,12 @@ import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
-import Gdk from 'gi://Gdk?version=4.0';
 
 import { PaletteGenerator } from './components/PaletteGenerator.js';
 import { ColorSynthesizer } from './components/ColorSynthesizer.js';
 import { BlueprintManager } from './components/BlueprintManager.js';
 import { ConfigWriter } from './utils/ConfigWriter.js';
 
-// Initialize Adwaita
 Adw.init();
 
 const AetherApplication = GObject.registerClass(
@@ -44,252 +42,264 @@ const AetherWindow = GObject.registerClass(
                 default_height: 700,
             });
 
-            // Initialize config writer
             this.configWriter = new ConfigWriter();
-
-        // Create header bar
-        const headerBar = new Adw.HeaderBar();
-
-        // Menu button for blueprints
-        const menuButton = new Gtk.MenuButton({
-            icon_name: 'open-menu-symbolic',
-            tooltip_text: 'Main Menu',
-        });
-        headerBar.pack_end(menuButton);
-
-        // Main container
-        const toolbarView = new Adw.ToolbarView();
-        toolbarView.add_top_bar(headerBar);
-
-        // Create split view for compact layout
-        const splitView = new Adw.NavigationSplitView({
-            sidebar_width_fraction: 0.35,
-            max_sidebar_width: 350,
-        });
-
-        // Sidebar - Blueprint Browser
-        const sidebarPage = new Adw.NavigationPage({
-            title: 'Blueprints',
-        });
-
-        const sidebarToolbarView = new Adw.ToolbarView();
-        const sidebarHeader = new Adw.HeaderBar();
-        sidebarHeader.set_show_end_title_buttons(false);
-        sidebarToolbarView.add_top_bar(sidebarHeader);
-
-        this.blueprintManager = new BlueprintManager();
-        sidebarToolbarView.set_content(this.blueprintManager.widget);
-        sidebarPage.set_child(sidebarToolbarView);
-        splitView.set_sidebar(sidebarPage);
-
-        // Main content - Color controls
-        const contentPage = new Adw.NavigationPage({
-            title: 'Synthesizer',
-        });
-
-        const scrolledWindow = new Gtk.ScrolledWindow({
-            hscrollbar_policy: Gtk.PolicyType.NEVER,
-            vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-            vexpand: true,
-        });
-
-        const clamp = new Adw.Clamp({
-            maximum_size: 800,
-            tightening_threshold: 600,
-        });
-
-        const mainBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            margin_top: 12,
-            margin_bottom: 12,
-            margin_start: 12,
-            margin_end: 12,
-        });
-
-        // Generative Palette Section
-        const paletteGroup = new Adw.PreferencesGroup({
-            title: 'Generative Palette',
-            description: 'Extract colors from your wallpaper',
-            margin_bottom: 6,
-        });
-
-        this.paletteGenerator = new PaletteGenerator();
-        paletteGroup.add(this.paletteGenerator.widget);
-
-        // Color Synthesizer (hidden, only used for data storage)
-        this.colorSynthesizer = new ColorSynthesizer();
-
-        // Action bar at bottom
-        const actionBar = new Gtk.ActionBar({
-            margin_top: 6,
-            margin_bottom: 6,
-            margin_start: 6,
-            margin_end: 6,
-        });
-
-        const applyButton = new Gtk.Button({
-            label: 'Apply Theme',
-            css_classes: ['suggested-action'],
-        });
-        applyButton.connect('clicked', () => this.applyCurrentTheme());
-        actionBar.pack_end(applyButton);
-
-        const saveButton = new Gtk.Button({
-            label: 'Save Blueprint',
-        });
-        saveButton.connect('clicked', () => this.saveBlueprint());
-        actionBar.pack_end(saveButton);
-
-        const exportButton = new Gtk.Button({
-            label: 'Export Theme',
-        });
-        exportButton.connect('clicked', () => this.exportTheme());
-        actionBar.pack_start(exportButton);
-
-        mainBox.append(paletteGroup);
-
-        clamp.set_child(mainBox);
-        scrolledWindow.set_child(clamp);
-
-        const contentBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-        });
-        contentBox.append(scrolledWindow);
-        contentBox.append(actionBar);
-
-        contentPage.set_child(contentBox);
-        splitView.set_content(contentPage);
-
-        toolbarView.set_content(splitView);
-        this.set_content(toolbarView);
-
-        // Connect signals
-        this.paletteGenerator.connect('palette-generated', (_, colors) => {
-            this.colorSynthesizer.setPalette(colors);
-        });
-
-        this.colorSynthesizer.connect('color-changed', (_, role, color) => {
-            // Colors changed - user can click "Apply Theme" when ready
-        });
-
-        this.blueprintManager.connect('blueprint-applied', (_, blueprint) => {
-            this.loadBlueprint(blueprint);
-        });
-    }
-
-    loadBlueprint(blueprint) {
-        try {
-            console.log('Loading blueprint:', blueprint.name);
-
-            // Load wallpaper if available
-            if (blueprint.palette && blueprint.palette.wallpaper) {
-                this.paletteGenerator.loadWallpaper(blueprint.palette.wallpaper);
-            }
-
-            // Load colors
-            if (blueprint.palette && blueprint.palette.colors) {
-                this.paletteGenerator.setPalette(blueprint.palette.colors);
-                this.colorSynthesizer.setPalette(blueprint.palette.colors);
-            }
-
-            // Apply colors to synthesizer
-            if (blueprint.colors) {
-                this.colorSynthesizer.loadColors(blueprint.colors);
-            }
-        } catch (e) {
-            console.error(`Error loading blueprint: ${e.message}`);
+            this._initializeUI();
+            this._connectSignals();
         }
-    }
 
-    applyCurrentTheme() {
-        try {
-            const colors = this.colorSynthesizer.getColors();
-            const palette = this.paletteGenerator.getPalette();
+        _initializeUI() {
+            const headerBar = new Adw.HeaderBar();
 
-            this.configWriter.applyTheme(colors, palette.wallpaper);
-        } catch (e) {
-            console.error(`Error applying theme: ${e.message}`);
+            const menuButton = new Gtk.MenuButton({
+                icon_name: 'open-menu-symbolic',
+                tooltip_text: 'Main Menu',
+            });
+            headerBar.pack_end(menuButton);
+
+            const toolbarView = new Adw.ToolbarView();
+            toolbarView.add_top_bar(headerBar);
+
+            const splitView = this._createSplitView();
+            toolbarView.set_content(splitView);
+
+            this.set_content(toolbarView);
         }
-    }
 
-    saveBlueprint() {
-        const blueprint = {
-            palette: this.paletteGenerator.getPalette(),
-            colors: this.colorSynthesizer.getColors(),
-            timestamp: Date.now(),
-        };
+        _createSplitView() {
+            const splitView = new Adw.NavigationSplitView({
+                sidebar_width_fraction: 0.35,
+                max_sidebar_width: 350,
+            });
 
-        this.blueprintManager.saveBlueprint(blueprint);
-    }
+            splitView.set_sidebar(this._createSidebar());
+            splitView.set_content(this._createMainContent());
 
-    exportTheme() {
-        // First, prompt for theme name
-        const nameDialog = new Adw.MessageDialog({
-            heading: 'Export Theme',
-            body: 'Enter a name for your theme',
-            transient_for: this,
-        });
+            return splitView;
+        }
 
-        nameDialog.add_response('cancel', 'Cancel');
-        nameDialog.add_response('continue', 'Continue');
-        nameDialog.set_response_appearance('continue', Adw.ResponseAppearance.SUGGESTED);
+        _createSidebar() {
+            const sidebarPage = new Adw.NavigationPage({ title: 'Blueprints' });
 
-        const nameEntry = new Gtk.Entry({
-            placeholder_text: 'my-theme',
-            margin_start: 12,
-            margin_end: 12,
-            margin_top: 6,
-            margin_bottom: 6,
-        });
+            const sidebarToolbarView = new Adw.ToolbarView();
+            const sidebarHeader = new Adw.HeaderBar();
+            sidebarHeader.set_show_end_title_buttons(false);
+            sidebarToolbarView.add_top_bar(sidebarHeader);
 
-        nameDialog.set_extra_child(nameEntry);
+            this.blueprintManager = new BlueprintManager();
+            sidebarToolbarView.set_content(this.blueprintManager.widget);
+            sidebarPage.set_child(sidebarToolbarView);
 
-        nameDialog.connect('response', (dialog, response) => {
-            if (response === 'continue') {
-                const themeName = nameEntry.get_text().trim() || 'my-theme';
-                this.chooseExportDirectory(themeName);
-            }
-        });
+            return sidebarPage;
+        }
 
-        nameDialog.present();
-    }
+        _createMainContent() {
+            const contentPage = new Adw.NavigationPage({ title: 'Synthesizer' });
 
-    chooseExportDirectory(themeName) {
-        const fileDialog = new Gtk.FileDialog({
-            title: 'Choose Export Directory',
-            modal: true,
-        });
+            const scrolledWindow = new Gtk.ScrolledWindow({
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+                vexpand: true,
+            });
 
-        fileDialog.select_folder(this, null, (source, result) => {
+            const clamp = new Adw.Clamp({
+                maximum_size: 800,
+                tightening_threshold: 600,
+            });
+
+            const mainBox = this._createMainContentBox();
+            clamp.set_child(mainBox);
+            scrolledWindow.set_child(clamp);
+
+            const contentBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+            });
+            contentBox.append(scrolledWindow);
+            contentBox.append(this._createActionBar());
+
+            contentPage.set_child(contentBox);
+
+            return contentPage;
+        }
+
+        _createMainContentBox() {
+            const mainBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+                margin_start: 12,
+                margin_end: 12,
+            });
+
+            const paletteGroup = new Adw.PreferencesGroup({
+                title: 'Generative Palette',
+                description: 'Extract colors from your wallpaper',
+                margin_bottom: 6,
+            });
+
+            this.paletteGenerator = new PaletteGenerator();
+            paletteGroup.add(this.paletteGenerator.widget);
+
+            this.colorSynthesizer = new ColorSynthesizer();
+
+            mainBox.append(paletteGroup);
+
+            return mainBox;
+        }
+
+        _createActionBar() {
+            const actionBar = new Gtk.ActionBar({
+                margin_top: 6,
+                margin_bottom: 6,
+                margin_start: 6,
+                margin_end: 6,
+            });
+
+            const exportButton = new Gtk.Button({ label: 'Export Theme' });
+            exportButton.connect('clicked', () => this._exportTheme());
+            actionBar.pack_start(exportButton);
+
+            const saveButton = new Gtk.Button({ label: 'Save Blueprint' });
+            saveButton.connect('clicked', () => this._saveBlueprint());
+            actionBar.pack_end(saveButton);
+
+            const applyButton = new Gtk.Button({
+                label: 'Apply Theme',
+                css_classes: ['suggested-action'],
+            });
+            applyButton.connect('clicked', () => this._applyCurrentTheme());
+            actionBar.pack_end(applyButton);
+
+            return actionBar;
+        }
+
+        _connectSignals() {
+            this.paletteGenerator.connect('palette-generated', (_, colors) => {
+                this.colorSynthesizer.setPalette(colors);
+            });
+
+            this.colorSynthesizer.connect('color-changed', (_, role, color) => {
+                // Colors changed - user can click "Apply Theme" when ready
+            });
+
+            this.blueprintManager.connect('blueprint-applied', (_, blueprint) => {
+                this._loadBlueprint(blueprint);
+            });
+        }
+
+        _loadBlueprint(blueprint) {
             try {
-                const folder = source.select_folder_finish(result);
-                if (folder) {
-                    const exportPath = folder.get_path();
-                    this.performExport(themeName, exportPath);
+                console.log('Loading blueprint:', blueprint.name);
+
+                if (blueprint.palette?.wallpaper) {
+                    this.paletteGenerator.loadWallpaper(blueprint.palette.wallpaper);
+                }
+
+                if (blueprint.palette?.colors) {
+                    this.paletteGenerator.setPalette(blueprint.palette.colors);
+                    this.colorSynthesizer.setPalette(blueprint.palette.colors);
+                }
+
+                if (blueprint.colors) {
+                    this.colorSynthesizer.loadColors(blueprint.colors);
                 }
             } catch (e) {
-                // User cancelled
-                console.log('Export cancelled');
+                console.error(`Error loading blueprint: ${e.message}`);
             }
-        });
-    }
+        }
 
-    performExport(themeName, exportPath) {
-        try {
-            const colors = this.colorSynthesizer.getColors();
-            const palette = this.paletteGenerator.getPalette();
+        _applyCurrentTheme() {
+            try {
+                const colors = this.colorSynthesizer.getColors();
+                const palette = this.paletteGenerator.getPalette();
+                this.configWriter.applyTheme(colors, palette.wallpaper);
+            } catch (e) {
+                console.error(`Error applying theme: ${e.message}`);
+            }
+        }
 
-            // Create theme directory name
-            const themeDir = `omarchy-${themeName}-theme`;
-            const fullPath = GLib.build_filenamev([exportPath, themeDir]);
+        _saveBlueprint() {
+            const blueprint = {
+                palette: this.paletteGenerator.getPalette(),
+                colors: this.colorSynthesizer.getColors(),
+                timestamp: Date.now(),
+            };
 
-            console.log(`Exporting theme to: ${fullPath}`);
+            this.blueprintManager.saveBlueprint(blueprint);
+        }
 
-            // Export the theme
-            this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName);
+        _exportTheme() {
+            this._showThemeNameDialog();
+        }
 
-            // Show success message
+        _showThemeNameDialog() {
+            const nameDialog = new Adw.MessageDialog({
+                heading: 'Export Theme',
+                body: 'Enter a name for your theme',
+                transient_for: this,
+            });
+
+            nameDialog.add_response('cancel', 'Cancel');
+            nameDialog.add_response('continue', 'Continue');
+            nameDialog.set_response_appearance('continue', Adw.ResponseAppearance.SUGGESTED);
+
+            const nameEntry = new Gtk.Entry({
+                placeholder_text: 'my-theme',
+                margin_start: 12,
+                margin_end: 12,
+                margin_top: 6,
+                margin_bottom: 6,
+            });
+
+            nameDialog.set_extra_child(nameEntry);
+
+            nameDialog.connect('response', (dialog, response) => {
+                if (response === 'continue') {
+                    const themeName = nameEntry.get_text().trim() || 'my-theme';
+                    this._chooseExportDirectory(themeName);
+                }
+            });
+
+            nameDialog.present();
+        }
+
+        _chooseExportDirectory(themeName) {
+            const fileDialog = new Gtk.FileDialog({
+                title: 'Choose Export Directory',
+                modal: true,
+            });
+
+            fileDialog.select_folder(this, null, (source, result) => {
+                try {
+                    const folder = source.select_folder_finish(result);
+                    if (!folder) return;
+
+                    const exportPath = folder.get_path();
+                    this._performExport(themeName, exportPath);
+                } catch (e) {
+                    console.log('Export cancelled');
+                }
+            });
+        }
+
+        _performExport(themeName, exportPath) {
+            try {
+                const colors = this.colorSynthesizer.getColors();
+                const palette = this.paletteGenerator.getPalette();
+                const themeDir = `omarchy-${themeName}-theme`;
+                const fullPath = GLib.build_filenamev([exportPath, themeDir]);
+
+                console.log(`Exporting theme to: ${fullPath}`);
+
+                this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName);
+
+                this._showSuccessDialog(fullPath);
+            } catch (e) {
+                this._showErrorDialog(e.message);
+            }
+        }
+
+        _showSuccessDialog(fullPath) {
             const successDialog = new Adw.MessageDialog({
                 heading: 'Theme Exported',
                 body: `Theme exported successfully to:\n${fullPath}`,
@@ -298,13 +308,12 @@ const AetherWindow = GObject.registerClass(
 
             successDialog.add_response('ok', 'OK');
             successDialog.present();
+        }
 
-        } catch (e) {
-            console.error(`Error exporting theme: ${e.message}`);
-
+        _showErrorDialog(errorMessage) {
             const errorDialog = new Adw.MessageDialog({
                 heading: 'Export Failed',
-                body: `Failed to export theme: ${e.message}`,
+                body: `Failed to export theme: ${errorMessage}`,
                 transient_for: this,
             });
 
@@ -312,7 +321,7 @@ const AetherWindow = GObject.registerClass(
             errorDialog.present();
         }
     }
-});
+);
 
 // Run the application
 const app = new AetherApplication();

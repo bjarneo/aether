@@ -1,0 +1,190 @@
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+
+/**
+ * Reads file contents as text
+ * @param {string} path - File path
+ * @returns {string} File contents
+ * @throws {Error} If file cannot be read
+ */
+export function readFileAsText(path) {
+    const file = Gio.File.new_for_path(path);
+    const [success, contents] = file.load_contents(null);
+
+    if (!success) {
+        throw new Error(`Could not read file: ${path}`);
+    }
+
+    const decoder = new TextDecoder();
+    return decoder.decode(contents);
+}
+
+/**
+ * Writes text content to file
+ * @param {string} path - File path
+ * @param {string} content - Content to write
+ * @throws {Error} If file cannot be written
+ */
+export function writeTextToFile(path, content) {
+    const file = Gio.File.new_for_path(path);
+    const encoder = new TextEncoder();
+    const contentStr = content || '';
+    const bytes = encoder.encode(contentStr);
+
+    file.replace_contents(
+        bytes,
+        null,
+        false,
+        Gio.FileCreateFlags.REPLACE_DESTINATION,
+        null
+    );
+}
+
+/**
+ * Copies a file from source to destination
+ * @param {string} sourcePath - Source file path
+ * @param {string} destPath - Destination file path
+ * @param {boolean} overwrite - Whether to overwrite existing file
+ * @returns {boolean} Success status
+ */
+export function copyFile(sourcePath, destPath, overwrite = true) {
+    try {
+        const sourceFile = Gio.File.new_for_path(sourcePath);
+        const destFile = Gio.File.new_for_path(destPath);
+
+        const flags = overwrite ? Gio.FileCopyFlags.OVERWRITE : Gio.FileCopyFlags.NONE;
+        sourceFile.copy(destFile, flags, null, null);
+
+        return true;
+    } catch (e) {
+        console.error('Error copying file:', e.message);
+        return false;
+    }
+}
+
+/**
+ * Deletes a file
+ * @param {string} path - File path
+ * @returns {boolean} Success status
+ */
+export function deleteFile(path) {
+    try {
+        const file = Gio.File.new_for_path(path);
+        file.delete(null);
+        return true;
+    } catch (e) {
+        console.error('Error deleting file:', e.message);
+        return false;
+    }
+}
+
+/**
+ * Ensures a directory exists, creating it and parent directories if needed
+ * @param {string} path - Directory path
+ * @param {number} permissions - Directory permissions (default: 0o755)
+ */
+export function ensureDirectoryExists(path, permissions = 0o755) {
+    GLib.mkdir_with_parents(path, permissions);
+}
+
+/**
+ * Enumerates files in a directory
+ * @param {string} dirPath - Directory path
+ * @param {Function} callback - Callback function called for each file (fileInfo, filePath)
+ * @param {string} attributes - File attributes to query
+ */
+export function enumerateDirectory(dirPath, callback, attributes = 'standard::name,standard::type') {
+    try {
+        const dir = Gio.File.new_for_path(dirPath);
+        const enumerator = dir.enumerate_children(
+            attributes,
+            Gio.FileQueryInfoFlags.NONE,
+            null
+        );
+
+        let fileInfo;
+        while ((fileInfo = enumerator.next_file(null)) !== null) {
+            const fileName = fileInfo.get_name();
+            const filePath = GLib.build_filenamev([dirPath, fileName]);
+            callback(fileInfo, filePath, fileName);
+        }
+    } catch (e) {
+        console.error(`Error enumerating directory ${dirPath}:`, e.message);
+    }
+}
+
+/**
+ * Cleans all files in a directory
+ * @param {string} dirPath - Directory path
+ * @returns {boolean} Success status
+ */
+export function cleanDirectory(dirPath) {
+    try {
+        const dir = Gio.File.new_for_path(dirPath);
+
+        if (!dir.query_exists(null)) {
+            return true;
+        }
+
+        const enumerator = dir.enumerate_children(
+            'standard::name',
+            Gio.FileQueryInfoFlags.NONE,
+            null
+        );
+
+        let fileInfo;
+        while ((fileInfo = enumerator.next_file(null)) !== null) {
+            const fileName = fileInfo.get_name();
+            const filePath = GLib.build_filenamev([dirPath, fileName]);
+            deleteFile(filePath);
+        }
+
+        return true;
+    } catch (e) {
+        console.error('Error cleaning directory:', e.message);
+        return false;
+    }
+}
+
+/**
+ * Checks if a file exists
+ * @param {string} path - File path
+ * @returns {boolean} Whether file exists
+ */
+export function fileExists(path) {
+    const file = Gio.File.new_for_path(path);
+    return file.query_exists(null);
+}
+
+/**
+ * Loads JSON from a file
+ * @param {string} path - File path
+ * @returns {Object|null} Parsed JSON object or null if error
+ */
+export function loadJsonFile(path) {
+    try {
+        const content = readFileAsText(path);
+        return JSON.parse(content);
+    } catch (e) {
+        console.error(`Error loading JSON from ${path}:`, e.message);
+        return null;
+    }
+}
+
+/**
+ * Saves JSON to a file
+ * @param {string} path - File path
+ * @param {Object} data - Data to save
+ * @param {boolean} pretty - Whether to format JSON (default: true)
+ * @returns {boolean} Success status
+ */
+export function saveJsonFile(path, data, pretty = true) {
+    try {
+        const jsonStr = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
+        writeTextToFile(path, jsonStr);
+        return true;
+    } catch (e) {
+        console.error(`Error saving JSON to ${path}:`, e.message);
+        return false;
+    }
+}

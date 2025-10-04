@@ -4,6 +4,9 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
+import { enumerateDirectory, loadJsonFile, saveJsonFile, deleteFile } from '../utils/file-utils.js';
+import { applyCssToWidget, removeAllChildren } from '../utils/ui-helpers.js';
+
 export const BlueprintManager = GObject.registerClass({
     Signals: {
         'blueprint-applied': {
@@ -11,11 +14,11 @@ export const BlueprintManager = GObject.registerClass({
         },
     },
 }, class BlueprintManager extends Gtk.Box {
-        _init() {
-            super._init({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 0,
-            });
+    _init() {
+        super._init({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 0,
+        });
 
         this._blueprints = [];
         this._blueprintsDir = GLib.build_filenamev([
@@ -24,10 +27,13 @@ export const BlueprintManager = GObject.registerClass({
             'blueprints'
         ]);
 
-        // Ensure blueprints directory exists
         GLib.mkdir_with_parents(this._blueprintsDir, 0o755);
 
-        // Search bar
+        this._initializeUI();
+        this.loadBlueprints();
+    }
+
+    _initializeUI() {
         const searchEntry = new Gtk.SearchEntry({
             placeholder_text: 'Search blueprints...',
             margin_start: 12,
@@ -36,7 +42,10 @@ export const BlueprintManager = GObject.registerClass({
             margin_bottom: 12,
         });
 
-        // Blueprints list
+        searchEntry.connect('search-changed', () => {
+            this._filterBlueprints(searchEntry.get_text());
+        });
+
         this._scrolledWindow = new Gtk.ScrolledWindow({
             vexpand: true,
             hscrollbar_policy: Gtk.PolicyType.NEVER,
@@ -49,7 +58,6 @@ export const BlueprintManager = GObject.registerClass({
 
         this._scrolledWindow.set_child(this._listBox);
 
-        // Empty state
         this._emptyState = new Adw.StatusPage({
             icon_name: 'folder-symbolic',
             title: 'No Blueprints',
@@ -58,86 +66,48 @@ export const BlueprintManager = GObject.registerClass({
 
         this.append(searchEntry);
         this.append(this._scrolledWindow);
-
-        // Load existing blueprints
-        this.loadBlueprints();
-
-        // Connect search
-        searchEntry.connect('search-changed', () => {
-            this.filterBlueprints(searchEntry.get_text());
-        });
     }
 
     loadBlueprints() {
         this._blueprints = [];
 
-        try {
-            const dir = Gio.File.new_for_path(this._blueprintsDir);
-            const enumerator = dir.enumerate_children(
-                'standard::name,standard::type',
-                Gio.FileQueryInfoFlags.NONE,
-                null
-            );
+        enumerateDirectory(this._blueprintsDir, (fileInfo, filePath, fileName) => {
+            if (!fileName.endsWith('.json')) return;
 
-            let fileInfo;
-            while ((fileInfo = enumerator.next_file(null)) !== null) {
-                const name = fileInfo.get_name();
-                if (name.endsWith('.json')) {
-                    const blueprintPath = GLib.build_filenamev([this._blueprintsDir, name]);
-                    const blueprint = this.loadBlueprintFile(blueprintPath);
-                    if (blueprint) {
-                        this._blueprints.push(blueprint);
-                    }
-                }
+            const blueprint = this._loadBlueprintFromFile(filePath);
+            if (blueprint) {
+                this._blueprints.push(blueprint);
             }
-        } catch (e) {
-            console.log('No blueprints directory yet:', e.message);
-        }
+        });
 
-        this.updateUI();
+        this._updateUI();
     }
 
-    loadBlueprintFile(path) {
-        try {
-            const file = Gio.File.new_for_path(path);
-            const [success, contents] = file.load_contents(null);
+    _loadBlueprintFromFile(path) {
+        const data = loadJsonFile(path);
+        if (!data) return null;
 
-            if (success) {
-                const decoder = new TextDecoder();
-                const jsonStr = decoder.decode(contents);
-                const data = JSON.parse(jsonStr);
-                data.path = path;
-                data.name = data.name || GLib.path_get_basename(path).replace('.json', '');
-                return data;
-            }
-        } catch (e) {
-            console.error(`Error loading blueprint ${path}:`, e.message);
-        }
-        return null;
+        data.path = path;
+        data.name = data.name || GLib.path_get_basename(path).replace('.json', '');
+        return data;
     }
 
-    updateUI() {
-        // Clear list
-        let child = this._listBox.get_first_child();
-        while (child) {
-            const next = child.get_next_sibling();
-            this._listBox.remove(child);
-            child = next;
-        }
+    _updateUI() {
+        removeAllChildren(this._listBox);
 
         if (this._blueprints.length === 0) {
             this._scrolledWindow.set_child(this._emptyState);
-        } else {
-            this._scrolledWindow.set_child(this._listBox);
-
-            this._blueprints.forEach(blueprint => {
-                const row = this.createBlueprintRow(blueprint);
-                this._listBox.append(row);
-            });
+            return;
         }
+
+        this._scrolledWindow.set_child(this._listBox);
+        this._blueprints.forEach(blueprint => {
+            const row = this._createBlueprintRow(blueprint);
+            this._listBox.append(row);
+        });
     }
 
-    createBlueprintRow(blueprint) {
+    _createBlueprintRow(blueprint) {
         const row = new Gtk.ListBoxRow();
 
         const box = new Gtk.Box({
@@ -149,34 +119,7 @@ export const BlueprintManager = GObject.registerClass({
             margin_bottom: 6,
         });
 
-        // Preview colors
-        const colorBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 1,
-            height_request: 4,
-        });
-
-        if (blueprint.palette && blueprint.palette.colors) {
-            blueprint.palette.colors.slice(0, 6).forEach(color => {
-                const colorBar = new Gtk.Box({
-                    hexpand: true,
-                });
-
-                const cssProvider = new Gtk.CssProvider();
-                cssProvider.load_from_string(`
-                    * { background-color: ${color}; }
-                `);
-
-                colorBar.get_style_context().add_provider(
-                    cssProvider,
-                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-                );
-
-                colorBox.append(colorBar);
-            });
-        }
-
-        // Name and metadata
+        const colorPreview = this._createColorPreview(blueprint);
         const nameLabel = new Gtk.Label({
             label: blueprint.name,
             halign: Gtk.Align.START,
@@ -184,11 +127,44 @@ export const BlueprintManager = GObject.registerClass({
         });
 
         const dateLabel = new Gtk.Label({
-            label: this.formatDate(blueprint.timestamp),
+            label: this._formatDate(blueprint.timestamp),
             halign: Gtk.Align.START,
             css_classes: ['dim-label', 'caption'],
         });
 
+        const buttonBox = this._createButtonBox(blueprint);
+
+        box.append(colorPreview);
+        box.append(nameLabel);
+        box.append(dateLabel);
+        box.append(buttonBox);
+
+        row.set_child(box);
+        row._blueprint = blueprint;
+
+        return row;
+    }
+
+    _createColorPreview(blueprint) {
+        const colorBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 1,
+            height_request: 4,
+        });
+
+        if (!blueprint.palette?.colors) return colorBox;
+
+        blueprint.palette.colors.slice(0, 6).forEach(color => {
+            const colorBar = new Gtk.Box({ hexpand: true });
+            const css = `* { background-color: ${color}; }`;
+            applyCssToWidget(colorBar, css);
+            colorBox.append(colorBar);
+        });
+
+        return colorBox;
+    }
+
+    _createButtonBox(blueprint) {
         const buttonBox = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
             spacing: 4,
@@ -205,28 +181,13 @@ export const BlueprintManager = GObject.registerClass({
             css_classes: ['flat'],
         });
 
-        applyButton.connect('clicked', () => {
-            this.applyBlueprint(blueprint);
-        });
-
-        deleteButton.connect('clicked', () => {
-            this.deleteBlueprint(blueprint);
-        });
+        applyButton.connect('clicked', () => this._applyBlueprint(blueprint));
+        deleteButton.connect('clicked', () => this._deleteBlueprint(blueprint));
 
         buttonBox.append(applyButton);
         buttonBox.append(deleteButton);
 
-        box.append(colorBox);
-        box.append(nameLabel);
-        box.append(dateLabel);
-        box.append(buttonBox);
-
-        row.set_child(box);
-
-        // Store blueprint reference for search filtering
-        row._blueprint = blueprint;
-
-        return row;
+        return buttonBox;
     }
 
     saveBlueprint(blueprint) {
@@ -254,50 +215,35 @@ export const BlueprintManager = GObject.registerClass({
             if (response === 'save') {
                 const name = entry.get_text().trim() || `Blueprint ${Date.now()}`;
                 blueprint.name = name;
-                this.saveBlueprintToFile(blueprint);
+                this._saveBlueprintToFile(blueprint);
             }
         });
 
         dialog.present();
     }
 
-    saveBlueprintToFile(blueprint) {
-        try {
-            const filename = `${blueprint.name.toLowerCase().replace(/\s+/g, '-')}.json`;
-            const path = GLib.build_filenamev([this._blueprintsDir, filename]);
+    _saveBlueprintToFile(blueprint) {
+        const filename = `${blueprint.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+        const path = GLib.build_filenamev([this._blueprintsDir, filename]);
 
-            const file = Gio.File.new_for_path(path);
-            const jsonStr = JSON.stringify(blueprint, null, 2);
-
-            file.replace_contents(
-                jsonStr,
-                null,
-                false,
-                Gio.FileCreateFlags.REPLACE_DESTINATION,
-                null
-            );
-
+        const success = saveJsonFile(path, blueprint);
+        if (success) {
             this.loadBlueprints();
-        } catch (e) {
-            console.error('Error saving blueprint:', e.message);
         }
     }
 
-    applyBlueprint(blueprint) {
+    _applyBlueprint(blueprint) {
         this.emit('blueprint-applied', blueprint);
     }
 
-    deleteBlueprint(blueprint) {
-        try {
-            const file = Gio.File.new_for_path(blueprint.path);
-            file.delete(null);
+    _deleteBlueprint(blueprint) {
+        const success = deleteFile(blueprint.path);
+        if (success) {
             this.loadBlueprints();
-        } catch (e) {
-            console.error('Error deleting blueprint:', e.message);
         }
     }
 
-    filterBlueprints(query) {
+    _filterBlueprints(query) {
         const lowerQuery = query.toLowerCase();
 
         let child = this._listBox.get_first_child();
@@ -309,7 +255,7 @@ export const BlueprintManager = GObject.registerClass({
         }
     }
 
-    formatDate(timestamp) {
+    _formatDate(timestamp) {
         if (!timestamp) return 'Unknown date';
         const date = new Date(timestamp);
         return date.toLocaleDateString();
