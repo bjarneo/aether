@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=Aether
-Comment=Universal Desktop Synthesizer for Hyprland
-Exec=/home/bjarneo/Code/Aether/aether
-Icon=preferences-desktop-theme
-Terminal=false
-Type=Application
-Categories=GTK;Settings;DesktopSettings;
-Keywords=theme;color;hyprland;waybar;customization;
