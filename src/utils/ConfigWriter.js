@@ -9,7 +9,7 @@ import {
     cleanDirectory,
     enumerateDirectory
 } from './file-utils.js';
-import { hexToRgbString } from './color-utils.js';
+import { hexToRgbString, hexToYaruTheme } from './color-utils.js';
 import { DEFAULT_COLORS } from '../constants/colors.js';
 
 export class ConfigWriter {
@@ -112,6 +112,15 @@ export class ConfigWriter {
             result = result.replace(rgbRegex, rgbValue);
         } else {
             result = result.replace(rgbRegex, value);
+        }
+
+        // Replace {key.yaru} (maps color to Yaru icon theme variant)
+        const yaruRegex = new RegExp(`\\{${key}\\.yaru\\}`, 'g');
+        if (typeof value === 'string' && value.startsWith('#')) {
+            const yaruTheme = hexToYaruTheme(value);
+            result = result.replace(yaruRegex, yaruTheme);
+        } else {
+            result = result.replace(yaruRegex, value);
         }
 
         return result;
