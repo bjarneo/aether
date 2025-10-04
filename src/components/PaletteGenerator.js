@@ -33,6 +33,62 @@ export const PaletteGenerator = GObject.registerClass({
         selectButton.connect('clicked', () => this.selectWallpaper());
         wallpaperRow.add_suffix(selectButton);
 
+        // Color harmony generation row
+        const harmonyRow = new Adw.ActionRow({
+            title: 'Color Harmony',
+            subtitle: 'Generate color schemes from a base color',
+        });
+
+        const harmonyBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 6,
+            valign: Gtk.Align.CENTER,
+        });
+
+        // Color picker for base color
+        this._baseColorButton = new Gtk.ColorDialogButton({
+            valign: Gtk.Align.CENTER,
+            tooltip_text: 'Choose base color',
+        });
+
+        const baseColorDialog = new Gtk.ColorDialog({
+            with_alpha: false,
+        });
+        this._baseColorButton.set_dialog(baseColorDialog);
+
+        // Set initial color
+        const initialColor = new Gdk.RGBA();
+        initialColor.parse('#4a86e8');
+        this._baseColorButton.set_rgba(initialColor);
+
+        // Harmony type dropdown
+        const harmonyTypes = new Gtk.StringList();
+        harmonyTypes.append('Analogous');
+        harmonyTypes.append('Monochromatic');
+        harmonyTypes.append('Complementary');
+        harmonyTypes.append('Split Complementary');
+        harmonyTypes.append('Shades');
+        harmonyTypes.append('Squares');
+
+        this._harmonyDropdown = new Gtk.DropDown({
+            model: harmonyTypes,
+            valign: Gtk.Align.CENTER,
+        });
+
+        // Generate button
+        const generateButton = new Gtk.Button({
+            label: 'Generate',
+            valign: Gtk.Align.CENTER,
+            css_classes: ['suggested-action'],
+        });
+        generateButton.connect('clicked', () => this.generateHarmony());
+
+        harmonyBox.append(this._baseColorButton);
+        harmonyBox.append(this._harmonyDropdown);
+        harmonyBox.append(generateButton);
+
+        harmonyRow.add_suffix(harmonyBox);
+
         // Preview and palette display
         this._previewBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
@@ -72,6 +128,7 @@ export const PaletteGenerator = GObject.registerClass({
         });
 
         this.append(wallpaperRow);
+        this.append(harmonyRow);
         this.append(this._spinner);
         this.append(this._previewBox);
 
@@ -190,6 +247,197 @@ export const PaletteGenerator = GObject.registerClass({
             this._spinner.stop();
             this._spinner.set_visible(false);
         }
+    }
+
+    generateHarmony() {
+        // Get base color
+        const rgba = this._baseColorButton.get_rgba();
+        const baseColor = this.rgbaToHex(rgba);
+
+        // Get harmony type
+        const harmonyType = this._harmonyDropdown.get_selected();
+
+        const harmonyNames = ['analogous', 'monochromatic', 'complementary', 'split complementary', 'shades', 'squares'];
+        console.log(`Generating ${harmonyNames[harmonyType]} harmony from ${baseColor}`);
+
+        let colors = [];
+
+        switch (harmonyType) {
+            case 0: // Analogous
+                colors = this.generateAnalogous(baseColor);
+                break;
+            case 1: // Monochromatic
+                colors = this.generateMonochromatic(baseColor);
+                break;
+            case 2: // Complementary
+                colors = this.generateComplementary(baseColor);
+                break;
+            case 3: // Split Complementary
+                colors = this.generateSplitComplementary(baseColor);
+                break;
+            case 4: // Shades
+                colors = this.generateShades(baseColor, 16);
+                break;
+            case 5: // Squares
+                colors = this.generateSquares(baseColor);
+                break;
+        }
+
+        // Update palette
+        this.setPalette(colors);
+        this.emit('palette-generated', colors);
+    }
+
+    generateAnalogous(baseColor) {
+        const rgb = this.hexToRgb(baseColor);
+        const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+        const colors = [];
+
+        // ANSI order: Black, Red, Green, Yellow, Blue, Magenta, Cyan, White
+        // Generate analogous colors spread around base hue
+        const hueOffsets = [-30, -20, -10, 0, 10, 20, 30, 15]; // Analogous spread
+
+        // Color 0: Dark background
+        colors[0] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.3, 15), 8);
+
+        // Colors 1-7: Normal ANSI colors with analogous hues
+        for (let i = 1; i < 8; i++) {
+            const hue = (hsl.h + hueOffsets[i - 1] + 360) % 360;
+            const saturation = Math.max(50, hsl.s * 0.9);
+            const lightness = i === 7 ? 75 : 55; // White is lighter
+            colors[i] = this.hslToHex(hue, saturation, lightness);
+        }
+
+        // Color 8: Brighter background (for comments/secondary)
+        colors[8] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.4, 20), 25);
+
+        // Colors 9-15: Bright versions of 1-7
+        for (let i = 9; i < 16; i++) {
+            colors[i] = this.brightenColor(colors[i - 8], 20);
+        }
+
+        return colors;
+    }
+
+    generateMonochromatic(baseColor) {
+        const rgb = this.hexToRgb(baseColor);
+        const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+        const colors = [];
+
+        // Color 0: Dark background
+        colors[0] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.3, 15), 8);
+
+        // Colors 1-7: Progressive lightness, same hue
+        const baseLightness = [50, 55, 60, 65, 70, 75, 80];
+        for (let i = 1; i < 8; i++) {
+            const saturation = hsl.s * 0.85;
+            colors[i] = this.hslToHex(hsl.h, saturation, baseLightness[i - 1]);
+        }
+
+        // Color 8: Brighter background
+        colors[8] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.4, 20), 25);
+
+        // Colors 9-15: Bright versions
+        for (let i = 9; i < 16; i++) {
+            colors[i] = this.brightenColor(colors[i - 8], 20);
+        }
+
+        return colors;
+    }
+
+    generateComplementary(baseColor) {
+        const rgb = this.hexToRgb(baseColor);
+        const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+        const colors = [];
+        const complementHue = (hsl.h + 180) % 360;
+
+        // Color 0: Dark background using base hue
+        colors[0] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.3, 15), 8);
+
+        // Colors 1-7: Alternate between base and complement
+        const hues = [hsl.h, complementHue, hsl.h, complementHue, hsl.h, complementHue, hsl.h];
+        for (let i = 1; i < 8; i++) {
+            const saturation = Math.max(50, hsl.s * 0.85);
+            const lightness = i === 7 ? 75 : 55;
+            colors[i] = this.hslToHex(hues[i - 1], saturation, lightness);
+        }
+
+        // Color 8: Brighter background
+        colors[8] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.4, 20), 25);
+
+        // Colors 9-15: Bright versions
+        for (let i = 9; i < 16; i++) {
+            colors[i] = this.brightenColor(colors[i - 8], 20);
+        }
+
+        return colors;
+    }
+
+    generateSplitComplementary(baseColor) {
+        const rgb = this.hexToRgb(baseColor);
+        const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+        const colors = [];
+        const complement1 = (hsl.h + 150) % 360; // 30° before complement
+        const complement2 = (hsl.h + 210) % 360; // 30° after complement
+
+        // Color 0: Dark background
+        colors[0] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.3, 15), 8);
+
+        // Colors 1-7: Rotate through base and split complements
+        const hues = [hsl.h, complement1, complement2, hsl.h, complement1, complement2, hsl.h];
+        for (let i = 1; i < 8; i++) {
+            const saturation = Math.max(50, hsl.s * 0.85);
+            const lightness = i === 7 ? 75 : 55;
+            colors[i] = this.hslToHex(hues[i - 1], saturation, lightness);
+        }
+
+        // Color 8: Brighter background
+        colors[8] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.4, 20), 25);
+
+        // Colors 9-15: Bright versions
+        for (let i = 9; i < 16; i++) {
+            colors[i] = this.brightenColor(colors[i - 8], 20);
+        }
+
+        return colors;
+    }
+
+    generateSquares(baseColor) {
+        const rgb = this.hexToRgb(baseColor);
+        const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+        const colors = [];
+        const squareHues = [
+            hsl.h,
+            (hsl.h + 90) % 360,
+            (hsl.h + 180) % 360,
+            (hsl.h + 270) % 360
+        ];
+
+        // Color 0: Dark background
+        colors[0] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.3, 15), 8);
+
+        // Colors 1-7: Rotate through 4 square hues
+        for (let i = 1; i < 8; i++) {
+            const hue = squareHues[(i - 1) % 4];
+            const saturation = Math.max(50, hsl.s * 0.85);
+            const lightness = i === 7 ? 75 : 55;
+            colors[i] = this.hslToHex(hue, saturation, lightness);
+        }
+
+        // Color 8: Brighter background
+        colors[8] = this.hslToHex(hsl.h, Math.min(hsl.s * 0.4, 20), 25);
+
+        // Colors 9-15: Bright versions
+        for (let i = 9; i < 16; i++) {
+            colors[i] = this.brightenColor(colors[i - 8], 20);
+        }
+
+        return colors;
     }
 
     readWalColors() {
