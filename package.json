@@ -1,0 +1,17 @@
+{
+  "name": "aether",
+  "version": "1.0.0",
+  "description": "Universal Desktop Synthesizer for Hyprland environments",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "gjs -m src/main.js",
+    "dev": "gjs -m src/main.js"
+  },
+  "keywords": ["gtk", "libadwaita", "hyprland", "theming", "desktop"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "colorthief": "^2.4.0"
+  }
+}
