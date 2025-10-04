@@ -17,6 +17,7 @@ export const PaletteGenerator = GObject.registerClass({
         });
 
         this._palette = [];
+        this._originalPalette = []; // Store original colors from pywal for adjustments
         this._currentWallpaper = null;
 
         // Wallpaper selection row
@@ -98,7 +99,7 @@ export const PaletteGenerator = GObject.registerClass({
         });
 
         this._wallpaperPreview = new Gtk.Picture({
-            height_request: 120,
+            height_request: 200,
             can_shrink: true,
             css_classes: ['card'],
             hexpand: true,
@@ -117,6 +118,149 @@ export const PaletteGenerator = GObject.registerClass({
         this._previewBox.append(this._wallpaperPreview);
         this._previewBox.append(this._paletteFlow);
 
+        // Color adjustment controls (initially hidden)
+        this._adjustmentBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 2,
+            margin_top: 4,
+            margin_bottom: 4,
+            visible: false,
+        });
+
+        // Vibrance slider
+        const vibranceBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 8,
+            margin_start: 6,
+            margin_end: 6,
+            margin_top: 2,
+            margin_bottom: 2,
+        });
+        const vibranceLabel = new Gtk.Label({
+            label: 'Vibrance',
+            width_chars: 12,
+            xalign: 0,
+        });
+        this._vibranceScale = new Gtk.Scale({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            adjustment: new Gtk.Adjustment({
+                lower: -50,
+                upper: 50,
+                value: 0,
+                step_increment: 5,
+            }),
+            draw_value: true,
+            value_pos: Gtk.PositionType.RIGHT,
+            hexpand: true,
+        });
+        this._vibranceScale.connect('value-changed', () => this.applyAdjustments());
+        vibranceBox.append(vibranceLabel);
+        vibranceBox.append(this._vibranceScale);
+
+        // Contrast slider
+        const contrastBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 8,
+            margin_start: 6,
+            margin_end: 6,
+            margin_top: 2,
+            margin_bottom: 2,
+        });
+        const contrastLabel = new Gtk.Label({
+            label: 'Contrast',
+            width_chars: 12,
+            xalign: 0,
+        });
+        this._contrastScale = new Gtk.Scale({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            adjustment: new Gtk.Adjustment({
+                lower: -30,
+                upper: 30,
+                value: 0,
+                step_increment: 5,
+            }),
+            draw_value: true,
+            value_pos: Gtk.PositionType.RIGHT,
+            hexpand: true,
+        });
+        this._contrastScale.connect('value-changed', () => this.applyAdjustments());
+        contrastBox.append(contrastLabel);
+        contrastBox.append(this._contrastScale);
+
+        // Brightness slider
+        const brightnessBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 8,
+            margin_start: 6,
+            margin_end: 6,
+            margin_top: 2,
+            margin_bottom: 2,
+        });
+        const brightnessLabel = new Gtk.Label({
+            label: 'Brightness',
+            width_chars: 12,
+            xalign: 0,
+        });
+        this._brightnessScale = new Gtk.Scale({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            adjustment: new Gtk.Adjustment({
+                lower: -30,
+                upper: 30,
+                value: 0,
+                step_increment: 5,
+            }),
+            draw_value: true,
+            value_pos: Gtk.PositionType.RIGHT,
+            hexpand: true,
+        });
+        this._brightnessScale.connect('value-changed', () => this.applyAdjustments());
+        brightnessBox.append(brightnessLabel);
+        brightnessBox.append(this._brightnessScale);
+
+        // Hue shift slider
+        const hueBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 8,
+            margin_start: 6,
+            margin_end: 6,
+            margin_top: 2,
+            margin_bottom: 2,
+        });
+        const hueLabel = new Gtk.Label({
+            label: 'Hue Shift',
+            width_chars: 12,
+            xalign: 0,
+        });
+        this._hueScale = new Gtk.Scale({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            adjustment: new Gtk.Adjustment({
+                lower: -180,
+                upper: 180,
+                value: 0,
+                step_increment: 10,
+            }),
+            draw_value: true,
+            value_pos: Gtk.PositionType.RIGHT,
+            hexpand: true,
+        });
+        this._hueScale.connect('value-changed', () => this.applyAdjustments());
+        hueBox.append(hueLabel);
+        hueBox.append(this._hueScale);
+
+        // Reset button
+        const resetButton = new Gtk.Button({
+            label: 'Reset',
+            halign: Gtk.Align.CENTER,
+            margin_top: 4,
+        });
+        resetButton.connect('clicked', () => this.resetAdjustments());
+
+        this._adjustmentBox.append(vibranceBox);
+        this._adjustmentBox.append(contrastBox);
+        this._adjustmentBox.append(brightnessBox);
+        this._adjustmentBox.append(hueBox);
+        this._adjustmentBox.append(resetButton);
+
         // Spinner for loading state
         this._spinner = new Gtk.Spinner({
             margin_top: 12,
@@ -131,6 +275,7 @@ export const PaletteGenerator = GObject.registerClass({
         this.append(harmonyRow);
         this.append(this._spinner);
         this.append(this._previewBox);
+        this.append(this._adjustmentBox);
 
         // Setup drop target for wallpaper
         this.setupDropTarget(wallpaperRow);
@@ -227,8 +372,12 @@ export const PaletteGenerator = GObject.registerClass({
                     // Read generated colors from ~/.cache/wal/colors
                     const colors = this.readWalColors();
                     if (colors && colors.length === 16) {
+                        this._originalPalette = [...colors]; // Store original for adjustments
                         this.setPalette(colors);
                         this.emit('palette-generated', colors);
+
+                        // Show adjustment controls
+                        this._adjustmentBox.set_visible(true);
                     } else {
                         console.error('Failed to read colors from wal cache');
                     }
@@ -438,6 +587,56 @@ export const PaletteGenerator = GObject.registerClass({
         }
 
         return colors;
+    }
+
+    applyAdjustments() {
+        if (this._originalPalette.length === 0) return;
+
+        const vibrance = this._vibranceScale.get_value();
+        const contrast = this._contrastScale.get_value();
+        const brightness = this._brightnessScale.get_value();
+        const hueShift = this._hueScale.get_value();
+
+        const adjustedColors = this._originalPalette.map(color => {
+            return this.adjustColor(color, vibrance, contrast, brightness, hueShift);
+        });
+
+        this.setPalette(adjustedColors);
+        this.emit('palette-generated', adjustedColors);
+    }
+
+    adjustColor(hexColor, vibrance, contrast, brightness, hueShift) {
+        const rgb = this.hexToRgb(hexColor);
+        let hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+        // Apply hue shift
+        hsl.h = (hsl.h + hueShift + 360) % 360;
+
+        // Apply vibrance (saturation adjustment)
+        hsl.s = Math.max(0, Math.min(100, hsl.s + vibrance));
+
+        // Apply brightness
+        hsl.l = Math.max(0, Math.min(100, hsl.l + brightness));
+
+        // Apply contrast (expand or compress around 50% lightness)
+        const contrastFactor = contrast / 100;
+        const deviation = hsl.l - 50;
+        hsl.l = 50 + deviation * (1 + contrastFactor);
+        hsl.l = Math.max(0, Math.min(100, hsl.l));
+
+        return this.hslToHex(hsl.h, hsl.s, hsl.l);
+    }
+
+    resetAdjustments() {
+        this._vibranceScale.set_value(0);
+        this._contrastScale.set_value(0);
+        this._brightnessScale.set_value(0);
+        this._hueScale.set_value(0);
+
+        if (this._originalPalette.length > 0) {
+            this.setPalette([...this._originalPalette]);
+            this.emit('palette-generated', this._originalPalette);
+        }
     }
 
     readWalColors() {
