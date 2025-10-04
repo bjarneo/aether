@@ -37,7 +37,7 @@ Aether is a beautiful GTK/Libadwaita application that provides real-time, visual
 - GTK 4
 - Libadwaita 1
 - **pywal** - Color extraction from wallpapers
-- **omarchy** - Theme manager for applying configs
+- **Omarchy** - The beautiful opinionated Arch flavour
 - Hyprland (primary window manager)
 - Optional: Waybar, Kitty, Rofi, Wofi, Walker
 
@@ -72,41 +72,6 @@ cp com.aether.DesktopSynthesizer.desktop ~/.local/share/applications/
 ```
 
 ## Usage
-
-### Getting Started
-
-1. **Extract Colors**:
-   - Click the folder icon or drag a wallpaper into the Generative Palette section
-   - Aether uses pywal to extract 16 ANSI colors from the image
-   - Colors appear in a visual palette below the wallpaper preview
-
-2. **Customize Colors**:
-   - Click any color swatch in the palette to open the color picker
-   - The Color Palette section shows all 18 editable colors (background, foreground, color0-15)
-   - Fine-tune individual colors using the color dialog
-
-3. **Apply Theme**:
-   - Click "Apply Theme" to generate theme files and apply via omarchy
-   - Theme is created in `~/.config/omarchy/themes/aether/`
-   - All configured applications update instantly via `omarchy-theme-set aether`
-
-4. **Save & Share**:
-   - Click "Save Blueprint" to preserve your theme configuration
-   - Enter a name for your blueprint
-   - Browse saved blueprints in the sidebar
-   - Apply any blueprint with one click
-
-### Supported Applications
-
-Aether works via omarchy templates for:
-
-- **Hyprland**: Window borders, colors, and styling
-- **Waybar**: Status bar colors and styling
-- **Kitty**: Terminal colors (full 16 ANSI palette)
-- **Rofi**: Application launcher colors
-- **Wofi**: Application launcher colors
-- **Walker**: Application launcher colors
-- Any other app with templates in `templates/` directory
 
 ### Theme Files
 
@@ -242,8 +207,5 @@ The focus shifts from editing multiple config files to "Pick a wallpaper, tweak 
 
 MIT
 
----
-
-**Made with ❤️ for the Hyprland/Arch community**
-
-*Absolute control, made beautiful and intuitive.*
+## Creator
+[Bjarne Øverli](https://x.com/iamdothash)
