@@ -86,7 +86,7 @@ export const PaletteGenerator = GObject.registerClass({
     _createWallpaperRow() {
         const row = new Adw.ActionRow({
             title: 'Wallpaper',
-            subtitle: 'Drop or select an image to extract colors',
+            subtitle: 'Select an image to extract colors',
         });
 
         const selectButton = new Gtk.Button({
