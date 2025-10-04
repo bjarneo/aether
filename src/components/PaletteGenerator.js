@@ -210,6 +210,7 @@ export const PaletteGenerator = GObject.registerClass({
                 this._originalPalette = [...colors];
                 this.setPalette(colors);
                 this.emit('palette-generated', colors);
+                this._adjustmentControls.reset();
                 this._adjustmentControls.show();
                 this._showLoading(false);
             },
@@ -237,7 +238,15 @@ export const PaletteGenerator = GObject.registerClass({
         if (this._originalPalette.length === 0) return;
 
         const adjustedColors = this._originalPalette.map(color => {
-            return adjustColor(color, values.vibrance, values.contrast, values.brightness, values.hueShift);
+            return adjustColor(
+                color,
+                values.vibrance,
+                values.contrast,
+                values.brightness,
+                values.hueShift,
+                values.temperature,
+                values.gamma
+            );
         });
 
         this.setPalette(adjustedColors);
@@ -283,6 +292,10 @@ export const PaletteGenerator = GObject.registerClass({
     setPalette(colors) {
         this._palette = colors;
         this._swatchGrid.setPalette(colors);
+    }
+
+    resetAdjustments() {
+        this._adjustmentControls.reset();
     }
 
     _showLoading(visible) {

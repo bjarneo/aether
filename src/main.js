@@ -48,21 +48,8 @@ const AetherWindow = GObject.registerClass(
         }
 
         _initializeUI() {
-            const headerBar = new Adw.HeaderBar();
-
-            const menuButton = new Gtk.MenuButton({
-                icon_name: 'open-menu-symbolic',
-                tooltip_text: 'Main Menu',
-            });
-            headerBar.pack_end(menuButton);
-
-            const toolbarView = new Adw.ToolbarView();
-            toolbarView.add_top_bar(headerBar);
-
             const splitView = this._createSplitView();
-            toolbarView.set_content(splitView);
-
-            this.set_content(toolbarView);
+            this.set_content(splitView);
         }
 
         _createSplitView() {
@@ -80,14 +67,8 @@ const AetherWindow = GObject.registerClass(
         _createSidebar() {
             const sidebarPage = new Adw.NavigationPage({ title: 'Blueprints' });
 
-            const sidebarToolbarView = new Adw.ToolbarView();
-            const sidebarHeader = new Adw.HeaderBar();
-            sidebarHeader.set_show_end_title_buttons(false);
-            sidebarToolbarView.add_top_bar(sidebarHeader);
-
             this.blueprintManager = new BlueprintManager();
-            sidebarToolbarView.set_content(this.blueprintManager.widget);
-            sidebarPage.set_child(sidebarToolbarView);
+            sidebarPage.set_child(this.blueprintManager.widget);
 
             return sidebarPage;
         }
@@ -190,6 +171,9 @@ const AetherWindow = GObject.registerClass(
         _loadBlueprint(blueprint) {
             try {
                 console.log('Loading blueprint:', blueprint.name);
+
+                // Reset adjustment sliders when loading a blueprint
+                this.paletteGenerator.resetAdjustments();
 
                 if (blueprint.palette?.wallpaper) {
                     this.paletteGenerator.loadWallpaper(blueprint.palette.wallpaper);

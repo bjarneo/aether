@@ -70,6 +70,8 @@ export const ADJUSTMENT_LIMITS = {
     contrast: { min: -30, max: 30, step: 5, default: 0 },
     brightness: { min: -30, max: 30, step: 5, default: 0 },
     hue: { min: -180, max: 180, step: 10, default: 0 },
+    temperature: { min: -50, max: 50, step: 5, default: 0 },
+    gamma: { min: 0.5, max: 2.0, step: 0.1, default: 1.0 },
 };
 
 // Palette configuration

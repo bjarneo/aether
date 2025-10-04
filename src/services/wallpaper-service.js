@@ -79,7 +79,6 @@ export function readWalColors() {
             });
         }
 
-        console.log('Loaded colors from wal:', colors);
         return colors;
     } catch (e) {
         console.error('Error reading wal colors:', e.message);

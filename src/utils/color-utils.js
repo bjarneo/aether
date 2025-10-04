@@ -143,14 +143,29 @@ export function brightenColor(hexColor, amount = 20) {
  * @param {number} contrast - Contrast adjustment (-100 to 100)
  * @param {number} brightness - Brightness adjustment (-100 to 100)
  * @param {number} hueShift - Hue shift in degrees (-360 to 360)
+ * @param {number} temperature - Temperature shift (-100 to 100, warm to cool)
+ * @param {number} gamma - Gamma correction (0.1 to 3.0)
  * @returns {string} Adjusted hex color
  */
-export function adjustColor(hexColor, vibrance, contrast, brightness, hueShift) {
-    const rgb = hexToRgb(hexColor);
+export function adjustColor(hexColor, vibrance, contrast, brightness, hueShift, temperature = 0, gamma = 1.0) {
+    let rgb = hexToRgb(hexColor);
     let hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
     // Apply hue shift
     hsl.h = (hsl.h + hueShift + 360) % 360;
+
+    // Apply temperature (shift hue toward warm/cool)
+    if (temperature !== 0) {
+        // Warm = shift toward orange/red (30°), Cool = shift toward blue (210°)
+        const tempShift = temperature > 0 ? 30 : 210;
+        const tempAmount = Math.abs(temperature) / 100;
+        const currentHue = hsl.h;
+        const targetHue = tempShift;
+
+        // Blend current hue toward target
+        const hueDiff = ((targetHue - currentHue + 540) % 360) - 180;
+        hsl.h = (currentHue + hueDiff * tempAmount * 0.3 + 360) % 360;
+    }
 
     // Apply vibrance (saturation adjustment)
     hsl.s = Math.max(0, Math.min(100, hsl.s + vibrance));
@@ -164,7 +179,77 @@ export function adjustColor(hexColor, vibrance, contrast, brightness, hueShift) 
     hsl.l = 50 + deviation * (1 + contrastFactor);
     hsl.l = Math.max(0, Math.min(100, hsl.l));
 
+    // Apply gamma correction
+    if (gamma !== 1.0) {
+        // Convert back to RGB for gamma correction
+        rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+
+        // Apply gamma to each channel
+        rgb.r = Math.pow(rgb.r / 255, 1 / gamma) * 255;
+        rgb.g = Math.pow(rgb.g / 255, 1 / gamma) * 255;
+        rgb.b = Math.pow(rgb.b / 255, 1 / gamma) * 255;
+
+        // Clamp values
+        rgb.r = Math.max(0, Math.min(255, rgb.r));
+        rgb.g = Math.max(0, Math.min(255, rgb.g));
+        rgb.b = Math.max(0, Math.min(255, rgb.b));
+
+        // Convert back to hex directly from RGB
+        return rgbToHex(rgb.r, rgb.g, rgb.b);
+    }
+
     return hslToHex(hsl.h, hsl.s, hsl.l);
+}
+
+/**
+ * Converts RGB values to hex
+ * @param {number} r - Red (0-255)
+ * @param {number} g - Green (0-255)
+ * @param {number} b - Blue (0-255)
+ * @returns {string} Hex color
+ */
+function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(x => {
+        const hex = Math.round(x).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    }).join('');
+}
+
+/**
+ * Converts HSL to RGB
+ * @param {number} h - Hue (0-360)
+ * @param {number} s - Saturation (0-100)
+ * @param {number} l - Lightness (0-100)
+ * @returns {Object} RGB object with r, g, b (0-255)
+ */
+function hslToRgb(h, s, l) {
+    h /= 360;
+    s /= 100;
+    l /= 100;
+
+    let r, g, b;
+
+    if (s === 0) {
+        r = g = b = l;
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+
+    return { r: r * 255, g: g * 255, b: b * 255 };
 }
 
 /**

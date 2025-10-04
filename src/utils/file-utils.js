@@ -26,18 +26,34 @@ export function readFileAsText(path) {
  * @throws {Error} If file cannot be written
  */
 export function writeTextToFile(path, content) {
-    const file = Gio.File.new_for_path(path);
-    const encoder = new TextEncoder();
-    const contentStr = content || '';
-    const bytes = encoder.encode(contentStr);
+    try {
+        const file = Gio.File.new_for_path(path);
 
-    file.replace_contents(
-        bytes,
-        null,
-        false,
-        Gio.FileCreateFlags.REPLACE_DESTINATION,
-        null
-    );
+        // Ensure content is a string and not null/undefined
+        if (content === null || content === undefined) {
+            content = '';
+        }
+
+        const contentStr = String(content);
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(contentStr);
+
+        // GJS file.replace_contents expects bytes
+        const [success, etag] = file.replace_contents(
+            bytes,
+            null,
+            false,
+            Gio.FileCreateFlags.REPLACE_DESTINATION,
+            null
+        );
+
+        if (!success) {
+            throw new Error(`Failed to write file: ${path}`);
+        }
+    } catch (e) {
+        console.error(`Error writing to ${path}:`, e.message);
+        throw e;
+    }
 }
 
 /**
@@ -180,11 +196,20 @@ export function loadJsonFile(path) {
  */
 export function saveJsonFile(path, data, pretty = true) {
     try {
+        if (!data) {
+            console.error('Cannot save null/undefined data to JSON file');
+            return false;
+        }
         const jsonStr = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
+        if (!jsonStr) {
+            console.error('JSON.stringify returned empty result');
+            return false;
+        }
         writeTextToFile(path, jsonStr);
         return true;
     } catch (e) {
         console.error(`Error saving JSON to ${path}:`, e.message);
+        console.error(e.stack);
         return false;
     }
 }
