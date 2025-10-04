@@ -217,10 +217,10 @@ export const PaletteGenerator = GObject.registerClass({
                     return trimmed.startsWith('#') ? trimmed : '#' + trimmed;
                 });
 
-            // Make colors 8-15 brighter versions of colors 0-7
+            // Make colors 9-15 brighter versions of colors 1-7 (skip color 8)
             if (colors.length >= 16) {
                 colors = colors.map((color, index) => {
-                    if (index >= 8 && index <= 15) {
+                    if (index >= 9 && index <= 15) {
                         // Bright variant: brighten the corresponding base color (index - 8)
                         return this.brightenColor(colors[index - 8], 20);
                     }
