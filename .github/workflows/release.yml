@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            ### From AUR
+            ```bash
+            yay -S aether
+            # or
+            paru -S aether
+            ```
+
+            ### Manual Installation
+            1. Download the source archive below
+            2. Extract and run `./aether`
+
+            ## For AUR Maintainers
+
+            Update the PKGBUILD sha256sum with:
+            ```bash
+            wget https://github.com/bjarneo/aether/archive/${{ github.ref_name }}.tar.gz
+            sha256sum ${{ github.ref_name }}.tar.gz
+            ```
