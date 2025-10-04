@@ -303,6 +303,9 @@ export const PaletteGenerator = GObject.registerClass({
         // Generate shades
         const shades = this.generateShades(hexColor, 15);
 
+        // Find closest shade to current color
+        const closestShadeIndex = this.findClosestShade(hexColor, shades);
+
         // Create container for shades
         const contentBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
@@ -323,23 +326,29 @@ export const PaletteGenerator = GObject.registerClass({
             min_children_per_line: 5,
         });
 
-        shades.forEach(shade => {
+        shades.forEach((shade, shadeIndex) => {
+            const isActive = shadeIndex === closestShadeIndex;
+
             const shadeBox = new Gtk.Box({
                 width_request: 50,
                 height_request: 50,
                 css_classes: ['color-swatch'],
-                tooltip_text: shade,
+                tooltip_text: shade + (isActive ? ' (current)' : ''),
             });
 
             const cssProvider = new Gtk.CssProvider();
+            const borderStyle = isActive
+                ? 'border: 3px solid @accent_color;'
+                : 'border: 2px solid alpha(@borders, 0.5);';
+
             cssProvider.load_from_string(`
                 .color-swatch {
                     background-color: ${shade};
                     border-radius: 8px;
-                    border: 2px solid alpha(@borders, 0.5);
+                    ${borderStyle}
                 }
                 .color-swatch:hover {
-                    border: 2px solid alpha(@borders, 1.0);
+                    border: 3px solid @accent_color;
                     transform: scale(1.05);
                 }
             `);
@@ -379,6 +388,11 @@ export const PaletteGenerator = GObject.registerClass({
 
         const contentArea = dialog.get_content_area();
         contentArea.append(contentBox);
+
+        // Handle dialog response (Cancel button)
+        dialog.connect('response', (dlg, response) => {
+            dialog.close();
+        });
 
         dialog.present();
     }
@@ -451,6 +465,32 @@ export const PaletteGenerator = GObject.registerClass({
         }
 
         return shades;
+    }
+
+    findClosestShade(currentColor, shades) {
+        // Convert current color to RGB
+        const currentRgb = this.hexToRgb(currentColor);
+
+        let closestIndex = 0;
+        let minDistance = Infinity;
+
+        shades.forEach((shade, index) => {
+            const shadeRgb = this.hexToRgb(shade);
+
+            // Calculate Euclidean distance in RGB space
+            const distance = Math.sqrt(
+                Math.pow(currentRgb.r - shadeRgb.r, 2) +
+                Math.pow(currentRgb.g - shadeRgb.g, 2) +
+                Math.pow(currentRgb.b - shadeRgb.b, 2)
+            );
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestIndex = index;
+            }
+        });
+
+        return closestIndex;
     }
 
     applyColorToSwatch(index, hexColor, colorBox) {

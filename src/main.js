@@ -117,16 +117,8 @@ const AetherWindow = GObject.registerClass(
         this.paletteGenerator = new PaletteGenerator();
         paletteGroup.add(this.paletteGenerator.widget);
 
-        // Color Synthesizer Section
-        const synthesizerGroup = new Adw.PreferencesGroup({
-            title: 'Color Palette',
-            description: 'Customize your 16-color palette',
-            margin_top: 18,
-            margin_bottom: 24,
-        });
-
+        // Color Synthesizer (hidden, only used for data storage)
         this.colorSynthesizer = new ColorSynthesizer();
-        synthesizerGroup.add(this.colorSynthesizer.widget);
 
         // Action bar at bottom
         const actionBar = new Gtk.ActionBar({
@@ -151,7 +143,6 @@ const AetherWindow = GObject.registerClass(
         actionBar.pack_end(saveButton);
 
         mainBox.append(paletteGroup);
-        mainBox.append(synthesizerGroup);
 
         clamp.set_child(mainBox);
         scrolledWindow.set_child(clamp);
