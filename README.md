@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.png" alt="Aether Icon" width="128" height="128">
+  <img src="icon.png" alt="Aether Icon" width="256" height="256">
 </p>
 
 # Aether - Universal Desktop Synthesizer
