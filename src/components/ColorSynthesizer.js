@@ -166,6 +166,26 @@ export const ColorSynthesizer = GObject.registerClass({
         }
     }
 
+    loadColors(colorRoles) {
+        // Load saved color assignments
+        let childRow = this._listBox.get_first_child();
+        while (childRow) {
+            const roleId = childRow._roleId;
+            const colorButton = childRow._colorButton;
+
+            if (colorRoles[roleId]) {
+                const color = new Gdk.RGBA();
+                color.parse(colorRoles[roleId]);
+                colorButton.set_rgba(color);
+
+                this._colorRoles.set(roleId, colorRoles[roleId]);
+                this.updateColorButtonStyle(colorButton, colorRoles[roleId]);
+            }
+
+            childRow = childRow.get_next_sibling();
+        }
+    }
+
     initializeDefaults() {
         const defaults = {
             'background': '#1e1e2e',

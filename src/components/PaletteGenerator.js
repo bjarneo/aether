@@ -210,12 +210,23 @@ export const PaletteGenerator = GObject.registerClass({
             const text = decoder.decode(contents);
 
             // Parse colors (one per line), ensure they have # prefix
-            const colors = text.trim().split('\n')
+            let colors = text.trim().split('\n')
                 .filter(line => line.trim().length > 0)
                 .map(line => {
                     const trimmed = line.trim();
                     return trimmed.startsWith('#') ? trimmed : '#' + trimmed;
                 });
+
+            // Make colors 8-15 brighter versions of colors 0-7
+            if (colors.length >= 16) {
+                colors = colors.map((color, index) => {
+                    if (index >= 8 && index <= 15) {
+                        // Bright variant: brighten the corresponding base color (index - 8)
+                        return this.brightenColor(colors[index - 8], 20);
+                    }
+                    return color;
+                });
+            }
 
             console.log('Loaded colors from wal:', colors);
             return colors;
@@ -588,6 +599,20 @@ export const PaletteGenerator = GObject.registerClass({
         };
 
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    brightenColor(hexColor, amount = 20) {
+        // Convert hex to RGB
+        const rgb = this.hexToRgb(hexColor);
+
+        // Convert to HSL
+        const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+        // Increase lightness
+        const newLightness = Math.min(100, hsl.l + amount);
+
+        // Convert back to hex
+        return this.hslToHex(hsl.h, hsl.s, newLightness);
     }
 
     rgbaToHex(rgba) {

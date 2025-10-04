@@ -4,8 +4,13 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
-export const BlueprintManager = GObject.registerClass(
-    class BlueprintManager extends Gtk.Box {
+export const BlueprintManager = GObject.registerClass({
+    Signals: {
+        'blueprint-applied': {
+            param_types: [GObject.TYPE_JSOBJECT]
+        },
+    },
+}, class BlueprintManager extends Gtk.Box {
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
@@ -217,6 +222,10 @@ export const BlueprintManager = GObject.registerClass(
         box.append(buttonBox);
 
         row.set_child(box);
+
+        // Store blueprint reference for search filtering
+        row._blueprint = blueprint;
+
         return row;
     }
 

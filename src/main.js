@@ -167,6 +167,34 @@ const AetherWindow = GObject.registerClass(
         this.colorSynthesizer.connect('color-changed', (_, role, color) => {
             // Colors changed - user can click "Apply Theme" when ready
         });
+
+        this.blueprintManager.connect('blueprint-applied', (_, blueprint) => {
+            this.loadBlueprint(blueprint);
+        });
+    }
+
+    loadBlueprint(blueprint) {
+        try {
+            console.log('Loading blueprint:', blueprint.name);
+
+            // Load wallpaper if available
+            if (blueprint.palette && blueprint.palette.wallpaper) {
+                this.paletteGenerator.loadWallpaper(blueprint.palette.wallpaper);
+            }
+
+            // Load colors
+            if (blueprint.palette && blueprint.palette.colors) {
+                this.paletteGenerator.setPalette(blueprint.palette.colors);
+                this.colorSynthesizer.setPalette(blueprint.palette.colors);
+            }
+
+            // Apply colors to synthesizer
+            if (blueprint.colors) {
+                this.colorSynthesizer.loadColors(blueprint.colors);
+            }
+        } catch (e) {
+            console.error(`Error loading blueprint: ${e.message}`);
+        }
     }
 
     applyCurrentTheme() {
