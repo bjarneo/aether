@@ -1,11 +1,11 @@
 [Desktop Entry]
 Name=Aether
-Comment=Universal Desktop Synthesizer for Hyprland
+Comment=Omarchy theming application
 Exec=aether
 Icon=aether
 Terminal=false
 Type=Application
 Categories=GTK;Settings;DesktopSettings;Utility;
-Keywords=theme;color;hyprland;waybar;customization;desktop;palette;
+Keywords=theme;color;hyprland;waybar;customization;desktop;palette;omarchy;
 StartupNotify=true
 X-GNOME-UsesNotifications=true
