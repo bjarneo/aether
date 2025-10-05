@@ -18,6 +18,7 @@ export const SettingsSidebar = GObject.registerClass({
         'settings-changed': { param_types: [GObject.TYPE_JSOBJECT] },
         'preset-applied': { param_types: [GObject.TYPE_JSOBJECT] },
         'harmony-generated': { param_types: [GObject.TYPE_JSOBJECT] },
+        'gradient-generated': { param_types: [GObject.TYPE_JSOBJECT] },
     },
 }, class SettingsSidebar extends Gtk.Box {
     _init() {
@@ -53,6 +54,10 @@ export const SettingsSidebar = GObject.registerClass({
         // Color Harmony Section
         const harmonySection = this._createHarmonySection();
         contentBox.append(harmonySection);
+
+        // Gradient Generator Section
+        const gradientSection = this._createGradientSection();
+        contentBox.append(gradientSection);
 
         // Presets Section
         const presetsSection = this._createPresetsSection();
@@ -238,6 +243,179 @@ export const SettingsSidebar = GObject.registerClass({
 
         const colors = generateHarmony(baseColor, harmonyType);
         this.emit('harmony-generated', colors);
+    }
+
+    _createGradientSection() {
+        const expanderRow = new Adw.ExpanderRow({
+            title: 'Gradient Generator',
+            subtitle: 'Create smooth color gradients',
+        });
+
+        const controlsBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 12,
+            margin_start: 12,
+            margin_end: 12,
+            margin_top: 12,
+            margin_bottom: 12,
+        });
+
+        // Start color selection
+        const startColorRow = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 8,
+            halign: Gtk.Align.FILL,
+        });
+
+        const startColorLabel = new Gtk.Label({
+            label: 'Start Color',
+            xalign: 0,
+            hexpand: true,
+        });
+
+        this._gradientStartButton = new Gtk.ColorDialogButton({
+            valign: Gtk.Align.CENTER,
+            tooltip_text: 'Choose start color',
+            dialog: new Gtk.ColorDialog({ with_alpha: false }),
+        });
+
+        const startColor = new Gdk.RGBA();
+        startColor.parse('#1e1e2e');
+        this._gradientStartButton.set_rgba(startColor);
+
+        startColorRow.append(startColorLabel);
+        startColorRow.append(this._gradientStartButton);
+        controlsBox.append(startColorRow);
+
+        // End color selection
+        const endColorRow = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 8,
+            halign: Gtk.Align.FILL,
+        });
+
+        const endColorLabel = new Gtk.Label({
+            label: 'End Color',
+            xalign: 0,
+            hexpand: true,
+        });
+
+        this._gradientEndButton = new Gtk.ColorDialogButton({
+            valign: Gtk.Align.CENTER,
+            tooltip_text: 'Choose end color',
+            dialog: new Gtk.ColorDialog({ with_alpha: false }),
+        });
+
+        const endColor = new Gdk.RGBA();
+        endColor.parse('#cdd6f4');
+        this._gradientEndButton.set_rgba(endColor);
+
+        endColorRow.append(endColorLabel);
+        endColorRow.append(this._gradientEndButton);
+        controlsBox.append(endColorRow);
+
+        // Gradient preview
+        this._gradientPreviewBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 0,
+            margin_top: 12,
+            height_request: 40,
+            css_classes: ['card'],
+        });
+        controlsBox.append(this._gradientPreviewBox);
+
+        // Generate button
+        const generateButton = new Gtk.Button({
+            label: 'Generate Palette',
+            halign: Gtk.Align.CENTER,
+            margin_top: 6,
+            css_classes: ['suggested-action'],
+        });
+        generateButton.connect('clicked', () => this._generateGradient());
+
+        controlsBox.append(generateButton);
+
+        // Update preview when colors change
+        this._gradientStartButton.connect('notify::rgba', () => this._updateGradientPreview());
+        this._gradientEndButton.connect('notify::rgba', () => this._updateGradientPreview());
+
+        // Initialize preview
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._updateGradientPreview();
+            return GLib.SOURCE_REMOVE;
+        });
+
+        expanderRow.add_row(new Adw.ActionRow({ child: controlsBox }));
+
+        return expanderRow;
+    }
+
+    _updateGradientPreview() {
+        const startRgba = this._gradientStartButton.get_rgba();
+        const endRgba = this._gradientEndButton.get_rgba();
+
+        const startColor = rgbaToHex(startRgba);
+        const endColor = rgbaToHex(endRgba);
+
+        // Clear existing preview
+        let child = this._gradientPreviewBox.get_first_child();
+        while (child) {
+            const next = child.get_next_sibling();
+            this._gradientPreviewBox.remove(child);
+            child = next;
+        }
+
+        // Show gradient preview with 16 color steps
+        const colors = this._generateGradientColors(startColor, endColor);
+        colors.forEach(color => {
+            const colorBox = new Gtk.Box({
+                hexpand: true,
+            });
+            const css = `* { background-color: ${color}; }`;
+            applyCssToWidget(colorBox, css);
+            this._gradientPreviewBox.append(colorBox);
+        });
+    }
+
+    _generateGradientColors(startColor, endColor) {
+        // Parse hex colors to RGB
+        const start = {
+            r: parseInt(startColor.slice(1, 3), 16),
+            g: parseInt(startColor.slice(3, 5), 16),
+            b: parseInt(startColor.slice(5, 7), 16),
+        };
+
+        const end = {
+            r: parseInt(endColor.slice(1, 3), 16),
+            g: parseInt(endColor.slice(3, 5), 16),
+            b: parseInt(endColor.slice(5, 7), 16),
+        };
+
+        const colors = [];
+
+        // Generate 16 color steps
+        for (let i = 0; i < 16; i++) {
+            const ratio = i / 15;
+            const r = Math.round(start.r + (end.r - start.r) * ratio);
+            const g = Math.round(start.g + (end.g - start.g) * ratio);
+            const b = Math.round(start.b + (end.b - start.b) * ratio);
+
+            const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            colors.push(hex);
+        }
+
+        return colors;
+    }
+
+    _generateGradient() {
+        const startRgba = this._gradientStartButton.get_rgba();
+        const endRgba = this._gradientEndButton.get_rgba();
+
+        const startColor = rgbaToHex(startRgba);
+        const endColor = rgbaToHex(endRgba);
+
+        const colors = this._generateGradientColors(startColor, endColor);
+        this.emit('gradient-generated', colors);
     }
 
     _createPresetsSection() {
