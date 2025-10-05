@@ -23,7 +23,7 @@ export class ConfigWriter {
         this.wallpaperPath = null;
     }
 
-    applyTheme(colorRoles, wallpaperPath, settings = {}) {
+    applyTheme(colorRoles, wallpaperPath, settings = {}, lightMode = false) {
         try {
             this._createThemeDirectory();
 
@@ -33,6 +33,7 @@ export class ConfigWriter {
 
             const variables = this._buildVariables(colorRoles);
             this._processTemplates(variables, settings);
+            this._handleLightModeMarker(this.themeDir, lightMode);
             this._applyOmarchyTheme();
 
             return true;
@@ -131,7 +132,7 @@ export class ConfigWriter {
         return result;
     }
 
-    exportTheme(colorRoles, wallpaperPath, exportPath, themeName, settings = {}) {
+    exportTheme(colorRoles, wallpaperPath, exportPath, themeName, settings = {}, lightMode = false) {
         try {
             ensureDirectoryExists(exportPath);
 
@@ -147,6 +148,7 @@ export class ConfigWriter {
 
             const variables = this._buildVariables(colorRoles);
             this._processTemplatesToDirectory(variables, exportPath, settings);
+            this._handleLightModeMarker(exportPath, lightMode);
 
             console.log(`Theme exported successfully to: ${exportPath}`);
             return true;
@@ -168,6 +170,33 @@ export class ConfigWriter {
             this._processTemplate(templatePath, outputPath, variables);
             console.log(`Processed template: ${fileName}`);
         });
+    }
+
+    _handleLightModeMarker(themeDir, lightMode) {
+        const markerPath = GLib.build_filenamev([themeDir, 'light.mode']);
+        const file = Gio.File.new_for_path(markerPath);
+
+        if (lightMode) {
+            // Create empty light.mode file
+            try {
+                file.create(Gio.FileCreateFlags.NONE, null);
+                console.log('Created light.mode marker file');
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.EXISTS)) {
+                    console.error('Error creating light.mode file:', e.message);
+                }
+            }
+        } else {
+            // Remove light.mode file if it exists
+            try {
+                if (file.query_exists(null)) {
+                    file.delete(null);
+                    console.log('Removed light.mode marker file');
+                }
+            } catch (e) {
+                console.error('Error removing light.mode file:', e.message);
+            }
+        }
     }
 
     _applyOmarchyTheme() {

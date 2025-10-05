@@ -251,7 +251,7 @@ const AetherWindow = GObject.registerClass(
                 const colors = this.colorSynthesizer.getColors();
                 const palette = this.paletteGenerator.getPalette();
                 const settings = this.settingsSidebar.getSettings();
-                this.configWriter.applyTheme(colors, palette.wallpaper, settings);
+                this.configWriter.applyTheme(colors, palette.wallpaper, settings, palette.lightMode);
             } catch (e) {
                 console.error(`Error applying theme: ${e.message}`);
             }
@@ -364,7 +364,7 @@ const AetherWindow = GObject.registerClass(
 
                 console.log(`Exporting theme to: ${fullPath}`);
 
-                this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName, settings);
+                this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName, settings, palette.lightMode);
 
                 this._showSuccessDialog(fullPath);
             } catch (e) {

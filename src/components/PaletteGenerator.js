@@ -423,6 +423,7 @@ export const PaletteGenerator = GObject.registerClass({
         return {
             wallpaper: this._currentWallpaper,
             colors: this._palette,
+            lightMode: this._lightMode,
         };
     }
 
