@@ -195,6 +195,43 @@ export function generateShades(hexColor, count) {
 }
 
 /**
+ * Generates a triadic color harmony (3 evenly spaced colors)
+ * @param {string} baseColor - Base hex color
+ * @returns {string[]} Array of 16 colors
+ */
+export function generateTriadicHarmony(baseColor) {
+    const rgb = hexToRgb(baseColor);
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    const colors = [];
+    const triadHues = [
+        hsl.h,
+        (hsl.h + 120) % 360,
+        (hsl.h + 240) % 360
+    ];
+
+    // Color 0: Dark background
+    colors[0] = hslToHex(hsl.h, Math.min(hsl.s * 0.3, 15), 8);
+
+    // Colors 1-7: Rotate through 3 triadic hues
+    for (let i = 1; i < 8; i++) {
+        const hue = triadHues[(i - 1) % 3];
+        const saturation = Math.max(50, hsl.s * 0.85);
+        const lightness = i === 7 ? 75 : 55;
+        colors[i] = hslToHex(hue, saturation, lightness);
+    }
+
+    // Color 8: Brighter background
+    colors[8] = hslToHex(hsl.h, Math.min(hsl.s * 0.4, 20), 25);
+
+    // Colors 9-15: Bright versions
+    for (let i = 9; i < 16; i++) {
+        colors[i] = brightenColor(colors[i - 8], 20);
+    }
+
+    return colors;
+}
+
+/**
  * Generates a color harmony based on type
  * @param {string} baseColor - Base hex color
  * @param {number} harmonyType - Type index (0-5)
@@ -202,12 +239,12 @@ export function generateShades(hexColor, count) {
  */
 export function generateHarmony(baseColor, harmonyType) {
     switch (harmonyType) {
-        case 0: return generateAnalogousHarmony(baseColor);
-        case 1: return generateMonochromaticHarmony(baseColor);
-        case 2: return generateComplementaryHarmony(baseColor);
-        case 3: return generateSplitComplementaryHarmony(baseColor);
-        case 4: return generateShades(baseColor, 16);
-        case 5: return generateSquareHarmony(baseColor);
-        default: return generateAnalogousHarmony(baseColor);
+        case 0: return generateComplementaryHarmony(baseColor);      // Complementary
+        case 1: return generateAnalogousHarmony(baseColor);          // Analogous
+        case 2: return generateTriadicHarmony(baseColor);            // Triadic
+        case 3: return generateSplitComplementaryHarmony(baseColor); // Split Complementary
+        case 4: return generateSquareHarmony(baseColor);             // Tetradic (Square)
+        case 5: return generateMonochromaticHarmony(baseColor);      // Monochromatic
+        default: return generateComplementaryHarmony(baseColor);
     }
 }
