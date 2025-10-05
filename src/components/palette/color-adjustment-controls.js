@@ -22,14 +22,14 @@ export class ColorAdjustmentControls {
     }
 
     _createControls() {
-        // Create 2x3 grid for sliders
-        const grid = new Gtk.Grid({
-            row_spacing: 4,
-            column_spacing: 8,
-            column_homogeneous: true,
+        // Create vertical box for sliders
+        const slidersBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 8,
+            homogeneous: true,
         });
 
-        // Row 1: Vibrance & Contrast
+        // Vibrance
         const vibranceSlider = this._createCompactSlider({
             label: 'Vibrance',
             min: ADJUSTMENT_LIMITS.vibrance.min,
@@ -39,8 +39,9 @@ export class ColorAdjustmentControls {
             onChange: () => this._emitChange(),
         });
         this.vibranceScale = vibranceSlider.scale;
-        grid.attach(vibranceSlider.box, 0, 0, 1, 1);
+        slidersBox.append(vibranceSlider.box);
 
+        // Contrast
         const contrastSlider = this._createCompactSlider({
             label: 'Contrast',
             min: ADJUSTMENT_LIMITS.contrast.min,
@@ -50,9 +51,9 @@ export class ColorAdjustmentControls {
             onChange: () => this._emitChange(),
         });
         this.contrastScale = contrastSlider.scale;
-        grid.attach(contrastSlider.box, 1, 0, 1, 1);
+        slidersBox.append(contrastSlider.box);
 
-        // Row 2: Brightness & Hue Shift
+        // Brightness
         const brightnessSlider = this._createCompactSlider({
             label: 'Brightness',
             min: ADJUSTMENT_LIMITS.brightness.min,
@@ -62,8 +63,9 @@ export class ColorAdjustmentControls {
             onChange: () => this._emitChange(),
         });
         this.brightnessScale = brightnessSlider.scale;
-        grid.attach(brightnessSlider.box, 0, 1, 1, 1);
+        slidersBox.append(brightnessSlider.box);
 
+        // Hue Shift
         const hueSlider = this._createCompactSlider({
             label: 'Hue Shift',
             min: ADJUSTMENT_LIMITS.hue.min,
@@ -73,9 +75,9 @@ export class ColorAdjustmentControls {
             onChange: () => this._emitChange(),
         });
         this.hueScale = hueSlider.scale;
-        grid.attach(hueSlider.box, 1, 1, 1, 1);
+        slidersBox.append(hueSlider.box);
 
-        // Row 3: Temperature & Gamma
+        // Temperature
         const temperatureSlider = this._createCompactSlider({
             label: 'Temperature',
             min: ADJUSTMENT_LIMITS.temperature.min,
@@ -85,8 +87,9 @@ export class ColorAdjustmentControls {
             onChange: () => this._emitChange(),
         });
         this.temperatureScale = temperatureSlider.scale;
-        grid.attach(temperatureSlider.box, 0, 2, 1, 1);
+        slidersBox.append(temperatureSlider.box);
 
+        // Gamma
         const gammaSlider = this._createCompactSlider({
             label: 'Gamma',
             min: ADJUSTMENT_LIMITS.gamma.min,
@@ -96,9 +99,9 @@ export class ColorAdjustmentControls {
             onChange: () => this._emitChange(),
         });
         this.gammaScale = gammaSlider.scale;
-        grid.attach(gammaSlider.box, 1, 2, 1, 1);
+        slidersBox.append(gammaSlider.box);
 
-        this.widget.append(grid);
+        this.widget.append(slidersBox);
 
         // Reset button
         const resetButton = new Gtk.Button({
@@ -128,6 +131,7 @@ export class ColorAdjustmentControls {
         const box = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 2,
+            hexpand: true,
         });
 
         const labelWidget = new Gtk.Label({
@@ -146,6 +150,7 @@ export class ColorAdjustmentControls {
             }),
             draw_value: true,
             value_pos: Gtk.PositionType.RIGHT,
+            digits: 1,
             hexpand: true,
         });
 

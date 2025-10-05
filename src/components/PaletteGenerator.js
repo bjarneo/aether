@@ -11,13 +11,12 @@ import { rgbaToHex, adjustColor } from '../utils/color-utils.js';
 import { applyCssToWidget } from '../utils/ui-helpers.js';
 import { HARMONY_TYPES } from '../constants/colors.js';
 import { ColorSwatchGrid } from './palette/color-swatch-grid.js';
-import { ColorAdjustmentControls } from './palette/color-adjustment-controls.js';
 import { ColorPickerDialog } from './palette/color-picker-dialog.js';
-import { AccessibilityPanel } from './AccessibilityPanel.js';
 
 export const PaletteGenerator = GObject.registerClass({
     Signals: {
         'palette-generated': { param_types: [GObject.TYPE_JSOBJECT] },
+        'adjustments-applied': { param_types: [GObject.TYPE_JSOBJECT] },
     },
 }, class PaletteGenerator extends Gtk.Box {
     _init() {
@@ -29,7 +28,6 @@ export const PaletteGenerator = GObject.registerClass({
         this._palette = [];
         this._originalPalette = [];
         this._currentWallpaper = null;
-        this._includeNeovim = true;
 
         this._initializeUI();
     }
@@ -76,48 +74,6 @@ export const PaletteGenerator = GObject.registerClass({
         previewBox.append(this._swatchGrid.widget);
 
         this.append(previewBox);
-
-        // Color adjustment controls
-        this._adjustmentControls = new ColorAdjustmentControls(
-            (values) => this._applyAdjustments(values),
-            () => this._resetAdjustments()
-        );
-        this.append(this._adjustmentControls.widget);
-
-        // Accessibility panel
-        this._accessibilityPanel = new AccessibilityPanel();
-        this.append(this._accessibilityPanel);
-
-        // Optional settings
-        this.append(this._createOptionalSettings());
-    }
-
-    _createOptionalSettings() {
-        const expanderRow = new Adw.ExpanderRow({
-            title: 'Optional Settings',
-            subtitle: 'Configure template preferences',
-        });
-
-        const neovimRow = new Adw.ActionRow({
-            title: 'Include Neovim Template',
-            subtitle: 'Copy neovim.lua to theme directory',
-        });
-
-        const neovimSwitch = new Gtk.Switch({
-            active: this._includeNeovim,
-            valign: Gtk.Align.CENTER,
-        });
-
-        neovimSwitch.connect('notify::active', (sw) => {
-            this._includeNeovim = sw.get_active();
-        });
-
-        neovimRow.add_suffix(neovimSwitch);
-        neovimRow.set_activatable_widget(neovimSwitch);
-
-        expanderRow.add_row(neovimRow);
-
-        return expanderRow;
     }
 
     _createWallpaperRow() {
@@ -247,8 +203,6 @@ export const PaletteGenerator = GObject.registerClass({
                 this._originalPalette = [...colors];
                 this.setPalette(colors);
                 this.emit('palette-generated', colors);
-                this._adjustmentControls.reset();
-                this._adjustmentControls.show();
                 this._showLoading(false);
             },
             (error) => {
@@ -331,10 +285,6 @@ export const PaletteGenerator = GObject.registerClass({
         this._swatchGrid.setPalette(colors);
     }
 
-    resetAdjustments() {
-        this._adjustmentControls.reset();
-    }
-
     _showLoading(visible) {
         this._spinner.set_visible(visible);
         if (visible) {
@@ -349,16 +299,6 @@ export const PaletteGenerator = GObject.registerClass({
             wallpaper: this._currentWallpaper,
             colors: this._palette,
         };
-    }
-
-    getSettings() {
-        return {
-            includeNeovim: this._includeNeovim,
-        };
-    }
-
-    updateAccessibility(colors) {
-        this._accessibilityPanel.updateColors(colors);
     }
 
     get widget() {
