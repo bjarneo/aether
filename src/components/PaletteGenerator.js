@@ -6,10 +6,8 @@ import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 
 import { extractColorsFromWallpaper } from '../services/wallpaper-service.js';
-import { generateHarmony } from '../services/color-harmony.js';
-import { rgbaToHex, adjustColor } from '../utils/color-utils.js';
+import { adjustColor } from '../utils/color-utils.js';
 import { applyCssToWidget } from '../utils/ui-helpers.js';
-import { HARMONY_TYPES } from '../constants/colors.js';
 import { ColorSwatchGrid } from './palette/color-swatch-grid.js';
 import { ColorPickerDialog } from './palette/color-picker-dialog.js';
 
@@ -28,7 +26,6 @@ export const PaletteGenerator = GObject.registerClass({
         this._palette = [];
         this._originalPalette = [];
         this._currentWallpaper = null;
-        this._harmonyWallpaper = null;
 
         this._initializeUI();
     }
@@ -42,10 +39,10 @@ export const PaletteGenerator = GObject.registerClass({
         const wallpaperPage = this._viewStack.add_titled(wallpaperView, 'wallpaper', 'From Wallpaper');
         wallpaperPage.set_icon_name('image-x-generic-symbolic');
 
-        // Tab 2: Color Harmony
-        const harmonyView = this._createHarmonyView();
-        const harmonyPage = this._viewStack.add_titled(harmonyView, 'harmony', 'Color Harmony');
-        harmonyPage.set_icon_name('applications-graphics-symbolic');
+        // Tab 2: Custom Palette
+        const customView = this._createCustomView();
+        const customPage = this._viewStack.add_titled(customView, 'custom', 'Custom');
+        customPage.set_icon_name('preferences-color-symbolic');
 
         // View switcher title for tabs at the top
         const viewSwitcherTitle = new Adw.ViewSwitcherTitle();
@@ -55,7 +52,7 @@ export const PaletteGenerator = GObject.registerClass({
         this.append(viewSwitcherTitle);
         this.append(this._viewStack);
 
-        // Shared preview container (used by both tabs)
+        // Color preview container
         const previewBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 8,
@@ -70,6 +67,12 @@ export const PaletteGenerator = GObject.registerClass({
         previewBox.append(this._swatchGrid.widget);
 
         this.append(previewBox);
+
+        // Load default colors for custom tab after UI is ready
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._loadDefaultCustomColors();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _createWallpaperView() {
@@ -105,17 +108,17 @@ export const PaletteGenerator = GObject.registerClass({
         return viewBox;
     }
 
-    _createHarmonyView() {
+    _createCustomView() {
         const viewBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 12,
             margin_top: 12,
         });
 
-        // Wallpaper for background
+        // Wallpaper for reference
         const wallpaperReferenceRow = new Adw.ActionRow({
             title: 'Add Wallpaper',
-            subtitle: 'Select wallpaper for background image',
+            subtitle: 'Select wallpaper for visual reference',
         });
 
         const selectRefButton = new Gtk.Button({
@@ -123,123 +126,77 @@ export const PaletteGenerator = GObject.registerClass({
             valign: Gtk.Align.CENTER,
             tooltip_text: 'Select wallpaper',
         });
-        selectRefButton.connect('clicked', () => this._selectHarmonyWallpaper());
+        selectRefButton.connect('clicked', () => this._selectCustomWallpaper());
         wallpaperReferenceRow.add_suffix(selectRefButton);
 
         viewBox.append(wallpaperReferenceRow);
 
-        // Harmony wallpaper preview
-        this._harmonyWallpaperPreview = new Gtk.Picture({
-            height_request: 150,
+        // Custom wallpaper preview
+        this._customWallpaperPreview = new Gtk.Picture({
+            height_request: 200,
             can_shrink: true,
             css_classes: ['card'],
             hexpand: true,
             visible: false,
         });
-        viewBox.append(this._harmonyWallpaperPreview);
-
-        // Color harmony controls
-        viewBox.append(this._createHarmonyControls());
+        viewBox.append(this._customWallpaperPreview);
 
         return viewBox;
     }
 
-    _createHarmonyControls() {
-        const controlsBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            margin_start: 12,
-            margin_end: 12,
-        });
-
-        // Base color selection
-        const baseColorRow = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 8,
-            halign: Gtk.Align.FILL,
-        });
-
-        const baseColorLabel = new Gtk.Label({
-            label: 'Base Color',
-            xalign: 0,
-            hexpand: true,
-        });
-
-        this._baseColorButton = new Gtk.ColorDialogButton({
-            valign: Gtk.Align.CENTER,
-            tooltip_text: 'Choose base color',
-            dialog: new Gtk.ColorDialog({ with_alpha: false }),
-        });
-
-        const initialColor = new Gdk.RGBA();
-        initialColor.parse('#4a86e8');
-        this._baseColorButton.set_rgba(initialColor);
-
-        baseColorRow.append(baseColorLabel);
-        baseColorRow.append(this._baseColorButton);
-        controlsBox.append(baseColorRow);
-
-        // Harmony type selection
-        const harmonyTypeLabel = new Gtk.Label({
-            label: 'Harmony Type',
-            xalign: 0,
-            margin_top: 6,
-            css_classes: ['heading'],
-        });
-        controlsBox.append(harmonyTypeLabel);
-
-        const harmonyDescriptions = [
-            'Complementary - Opposite colors on color wheel',
-            'Analogous - Adjacent colors on color wheel',
-            'Triadic - Three evenly spaced colors',
-            'Split Complementary - Base + two adjacent to complement',
-            'Tetradic - Four colors in two complementary pairs',
-            'Monochromatic - Variations of single hue'
+    _loadDefaultCustomColors() {
+        // Default custom palette - modern neutral theme
+        const defaultColors = [
+            '#1e1e2e', // background - dark blue-gray
+            '#f38ba8', // red
+            '#a6e3a1', // green
+            '#f9e2af', // yellow
+            '#89b4fa', // blue
+            '#cba6f7', // magenta
+            '#94e2d5', // cyan
+            '#cdd6f4', // foreground - light gray
+            '#45475a', // bright black
+            '#f38ba8', // bright red
+            '#a6e3a1', // bright green
+            '#f9e2af', // bright yellow
+            '#89b4fa', // bright blue
+            '#cba6f7', // bright magenta
+            '#94e2d5', // bright cyan
+            '#ffffff', // bright white
         ];
 
-        const harmonyTypes = new Gtk.StringList();
-        harmonyDescriptions.forEach(desc => harmonyTypes.append(desc));
+        this._originalPalette = [...defaultColors];
+        this.setPalette(defaultColors);
+        this.emit('palette-generated', defaultColors);
+    }
 
-        this._harmonyDropdown = new Gtk.DropDown({
-            model: harmonyTypes,
-            valign: Gtk.Align.CENTER,
-            hexpand: true,
+    _selectCustomWallpaper() {
+        const dialog = new Gtk.FileDialog({ title: 'Select Wallpaper Reference' });
+
+        const filter = new Gtk.FileFilter();
+        filter.add_mime_type('image/png');
+        filter.add_mime_type('image/jpeg');
+        filter.add_mime_type('image/webp');
+        filter.set_name('Images');
+
+        const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
+        filterList.append(filter);
+        dialog.set_filters(filterList);
+
+        dialog.open(this.get_root(), null, (source, result) => {
+            try {
+                const file = dialog.open_finish(result);
+                if (file) {
+                    this._currentWallpaper = file.get_path();
+                    this._customWallpaperPreview.set_file(file);
+                    this._customWallpaperPreview.set_visible(true);
+                }
+            } catch (e) {
+                if (!e.matches(Gtk.DialogError, Gtk.DialogError.DISMISSED)) {
+                    console.error('Error selecting file:', e.message);
+                }
+            }
         });
-
-        controlsBox.append(this._harmonyDropdown);
-
-        // Preview colors box
-        this._harmonyPreviewBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 4,
-            margin_top: 12,
-            height_request: 40,
-            homogeneous: true,
-        });
-        controlsBox.append(this._harmonyPreviewBox);
-
-        // Generate button
-        const generateButton = new Gtk.Button({
-            label: 'Generate Palette',
-            halign: Gtk.Align.CENTER,
-            margin_top: 6,
-            css_classes: ['suggested-action'],
-        });
-        generateButton.connect('clicked', () => this._generateHarmony());
-
-        controlsBox.append(generateButton);
-
-        // Update preview when base color or harmony type changes
-        this._baseColorButton.connect('notify::rgba', () => this._updateHarmonyPreview());
-        this._harmonyDropdown.connect('notify::selected', () => this._updateHarmonyPreview());
-
-        // Initialize preview
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            this._updateHarmonyPreview();
-            return GLib.SOURCE_REMOVE;
-        });
-
-        return controlsBox;
     }
 
     _createWallpaperRow() {
@@ -261,34 +218,6 @@ export const PaletteGenerator = GObject.registerClass({
         return row;
     }
 
-    _selectHarmonyWallpaper() {
-        const dialog = new Gtk.FileDialog({ title: 'Select Wallpaper Reference' });
-
-        const filter = new Gtk.FileFilter();
-        filter.add_mime_type('image/png');
-        filter.add_mime_type('image/jpeg');
-        filter.add_mime_type('image/webp');
-        filter.set_name('Images');
-
-        const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
-        filterList.append(filter);
-        dialog.set_filters(filterList);
-
-        dialog.open(this.get_root(), null, (source, result) => {
-            try {
-                const file = dialog.open_finish(result);
-                if (file) {
-                    this._harmonyWallpaper = file.get_path();
-                    this._harmonyWallpaperPreview.set_file(file);
-                    this._harmonyWallpaperPreview.set_visible(true);
-                }
-            } catch (e) {
-                if (!e.matches(Gtk.DialogError, Gtk.DialogError.DISMISSED)) {
-                    console.error('Error selecting file:', e.message);
-                }
-            }
-        });
-    }
 
     _setupDropTarget(widget) {
         const dropTarget = Gtk.DropTarget.new(Gio.File.$gtype, Gdk.DragAction.COPY);
@@ -358,52 +287,18 @@ export const PaletteGenerator = GObject.registerClass({
         );
     }
 
-    _updateHarmonyPreview() {
-        const rgba = this._baseColorButton.get_rgba();
-        const baseColor = rgbaToHex(rgba);
-        const harmonyType = this._harmonyDropdown.get_selected();
-
-        // Clear existing preview
-        let child = this._harmonyPreviewBox.get_first_child();
-        while (child) {
-            const next = child.get_next_sibling();
-            this._harmonyPreviewBox.remove(child);
-            child = next;
-        }
-
-        // Generate preview colors
-        const colors = generateHarmony(baseColor, harmonyType);
-
-        // Show first 6 colors as preview
-        colors.slice(0, 6).forEach(color => {
-            const colorBox = new Gtk.Box({
-                css_classes: ['card'],
-                hexpand: true,
-            });
-            const css = `* { background-color: ${color}; border-radius: 6px; }`;
-            applyCssToWidget(colorBox, css);
-            this._harmonyPreviewBox.append(colorBox);
-        });
-    }
-
-    _generateHarmony() {
-        const rgba = this._baseColorButton.get_rgba();
-        const baseColor = rgbaToHex(rgba);
-        const harmonyType = this._harmonyDropdown.get_selected();
-
-        console.log(`Generating ${HARMONY_TYPES[harmonyType]} harmony from ${baseColor}`);
-
-        const colors = generateHarmony(baseColor, harmonyType);
-        this._originalPalette = [...colors];
-        this.setPalette(colors);
-        this.emit('palette-generated', colors);
-    }
 
     applyPreset(preset) {
         this._originalPalette = [...preset.colors];
         this.setPalette(preset.colors);
         this.emit('palette-generated', preset.colors);
         console.log(`Applied preset: ${preset.name}`);
+    }
+
+    applyHarmony(colors) {
+        this._originalPalette = [...colors];
+        this.setPalette(colors);
+        this.emit('palette-generated', colors);
     }
 
     _applyAdjustments(values) {
@@ -479,27 +374,18 @@ export const PaletteGenerator = GObject.registerClass({
         this._palette = [];
         this._originalPalette = [];
         this._currentWallpaper = null;
-        this._harmonyWallpaper = null;
         this._wallpaperPreview.set_file(null);
-        this._harmonyWallpaperPreview.set_visible(false);
+        if (this._customWallpaperPreview) {
+            this._customWallpaperPreview.set_file(null);
+            this._customWallpaperPreview.set_visible(false);
+        }
         this._swatchGrid.setPalette([]);
         this._showLoading(false);
     }
 
     getPalette() {
-        // Check which tab is active to determine which wallpaper to use
-        const activeTab = this._viewStack.get_visible_child_name();
-        let wallpaper = null;
-
-        if (activeTab === 'wallpaper') {
-            wallpaper = this._currentWallpaper;
-        } else if (activeTab === 'harmony') {
-            wallpaper = this._harmonyWallpaper;
-        }
-        // presets tab has no wallpaper by default
-
         return {
-            wallpaper: wallpaper,
+            wallpaper: this._currentWallpaper,
             colors: this._palette,
         };
     }

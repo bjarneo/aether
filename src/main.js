@@ -115,8 +115,6 @@ const AetherWindow = GObject.registerClass(
             });
 
             const paletteGroup = new Adw.PreferencesGroup({
-                title: 'Generative Palette',
-                description: 'Extract colors from your wallpaper',
                 margin_bottom: 6,
             });
 
@@ -206,6 +204,10 @@ const AetherWindow = GObject.registerClass(
 
             this.settingsSidebar.connect('preset-applied', (_, preset) => {
                 this.paletteGenerator.applyPreset(preset);
+            });
+
+            this.settingsSidebar.connect('harmony-generated', (_, colors) => {
+                this.paletteGenerator.applyHarmony(colors);
             });
         }
 
