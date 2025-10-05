@@ -10,28 +10,101 @@ Aether is a beautiful GTK/Libadwaita theming application for Omarchy. It provide
 
 ## Features
 
-### 🎨 Palette Generation (via pywal)
-- Drop a wallpaper and Aether extracts 16 ANSI colors using pywal
-- Automatic color analysis optimized for terminal and desktop themes
-- Click any color swatch to fine-tune individual colors
+### 🎨 Dual Palette Generation Modes
 
-### 🎛️ Color Palette Editor
-- Edit all 16 ANSI terminal colors (0-15)
+#### From Wallpaper (Automatic Extraction)
+- Drag-and-drop wallpaper or use file picker
+- Automatic extraction of 16 ANSI colors using pywal
+- Intelligent color analysis optimized for terminals and desktop themes
+- Real-time wallpaper preview
+
+#### Custom Palette
+- Start with beautiful predefined color scheme
+- Upload wallpaper for visual reference (optional)
+- Manually craft your perfect palette
+- Click any color swatch to fine-tune individual colors with advanced color picker
+
+### 🌈 Color Harmony Generator
+- Generate professional color palettes based on color theory
+- 6 harmony types:
+  - **Complementary** - Opposite colors on the color wheel
+  - **Analogous** - Adjacent colors for smooth gradients
+  - **Triadic** - Three evenly spaced colors
+  - **Split Complementary** - Base color + two adjacent to its complement
+  - **Tetradic** - Four colors in two complementary pairs
+  - **Monochromatic** - Variations of a single hue
+- Live preview of harmony colors
+- Pick any base color to start
+
+### 🎨 Color Presets Library
+10 popular hand-picked themes ready to use:
+- **Dracula** - Dark theme with vibrant colors
+- **Nord** - Arctic, north-bluish color palette
+- **Gruvbox Dark** - Retro groove with warm tones
+- **Solarized Dark** - Precision colors for machines and people
+- **Tokyo Night** - Clean, dark theme inspired by Tokyo's night
+- **Catppuccin Mocha** - Soothing pastel theme
+- **One Dark** - Atom's iconic One Dark theme
+- **Monokai Pro** - Sublime's classic colorful theme
+- **Palenight** - Elegant Material theme variant
+- **Rose Pine** - All natural pine, faux fur and a bit of soho vibes
+
+### 🎛️ Advanced Color Adjustments
+Fine-tune your entire palette with real-time sliders:
+- **Vibrance** - Boost or reduce color intensity
+- **Contrast** - Adjust difference between light and dark
+- **Brightness** - Overall lightness/darkness
+- **Hue Shift** - Rotate colors on the color wheel
+- **Temperature** - Make colors warmer (red) or cooler (blue)
+- **Gamma** - Adjust mid-tone brightness
+- Debounced updates prevent UI freezing
+- One-click reset to original palette
+
+### 🎯 Color Role Management
+- Edit all 16 ANSI terminal colors (color0-15)
 - Customize background and foreground colors
-- Live color picker with palette preview
+- Visual color picker for each role
+- Real-time preview across the interface
 - Colors sync across all applications via omarchy templates
 
+### ♿ WCAG Accessibility Checker
+- Real-time contrast ratio calculations
+- AA and AAA compliance indicators
+- Foreground vs Background contrast testing
+- Ensures your themes are readable and accessible
+
 ### 📦 Blueprint System
-- Save your themes as shareable blueprints (JSON files)
+- Save themes as shareable JSON blueprints
 - Quick theme switching with one click
-- Browse and manage your collection in the sidebar
-- Blueprints stored in `~/.config/aether/blueprints/`
+- Modal dialog for easy browsing and management
+- Blueprints preserve wallpaper paths and all color customizations
+- Stored in `~/.config/aether/blueprints/`
+
+### 🎨 Lightroom-Style Interface
+- Collapsible right sidebar with all settings
+- Clean, focused main workspace
+- Organized sections:
+  - Color Adjustments
+  - Color Harmony Generator
+  - Preset Library
+  - Template Settings
+  - Accessibility Checker
+- Toggle sidebar visibility with one click
 
 ### 🔄 Omarchy Integration
 - Template-based theme generation
 - One-click apply updates all applications instantly
+- Export themes with custom names and directories
 - Non-destructive (doesn't modify your personal configs)
 - Supports Hyprland, Waybar, Kitty, Rofi, Wofi, Walker, and more
+- Optional Neovim template inclusion
+
+### ⚡ Quality of Life Features
+- **Reset Button** - Instantly return to launch state
+- **Drag-and-Drop** - Drop wallpapers directly onto the interface
+- **Tab Navigation** - Switch between wallpaper and custom modes
+- **Live Previews** - See colors before applying
+- **Persistent Settings** - Your preferences are remembered
 
 ## Requirements
 
@@ -88,20 +161,35 @@ Aether uses a template-based system:
 ```
 Aether/
 ├── src/
-│   ├── main.js                 # Main application window
+│   ├── main.js                          # Main application window
 │   ├── components/
-│   │   ├── PaletteGenerator.js # Wallpaper selection & pywal integration
-│   │   ├── ColorSynthesizer.js # 18-color palette editor
-│   │   └── BlueprintManager.js # Theme save/load/apply
+│   │   ├── PaletteGenerator.js          # Dual-mode palette generation (wallpaper/custom)
+│   │   ├── ColorSynthesizer.js          # 18-color role editor
+│   │   ├── BlueprintManager.js          # Theme save/load/apply
+│   │   ├── SettingsSidebar.js           # Collapsible settings sidebar
+│   │   ├── AccessibilityPanel.js        # WCAG contrast checker
+│   │   └── palette/
+│   │       ├── color-swatch-grid.js     # 16-color grid display
+│   │       ├── color-picker-dialog.js   # Advanced color picker
+│   │       └── color-adjustment-controls.js # Vibrance, contrast, etc.
+│   ├── services/
+│   │   ├── wallpaper-service.js         # Pywal integration
+│   │   └── color-harmony.js             # Color theory algorithms
+│   ├── constants/
+│   │   ├── colors.js                    # Color roles and defaults
+│   │   └── presets.js                   # 10 popular theme presets
 │   └── utils/
-│       └── ConfigWriter.js     # Template processor & omarchy integration
-├── templates/                  # Config templates with {variable} placeholders
+│       ├── ConfigWriter.js              # Template processor & omarchy integration
+│       ├── color-utils.js               # HSL/RGB/Hex conversions
+│       ├── ui-helpers.js                # GTK helper functions
+│       └── file-utils.js                # File I/O wrappers
+├── templates/                           # Config templates with {variable} placeholders
 │   ├── hyprland.conf
 │   ├── kitty.conf
 │   ├── waybar.css
 │   └── ...
 ├── icon.png
-├── aether                      # Launcher script
+├── aether                               # Launcher script
 └── README.md
 ```
 
@@ -124,17 +212,32 @@ The app uses:
 
 ### Theme Application Flow
 
-1. User selects wallpaper
+#### From Wallpaper Mode
+1. User selects wallpaper via file picker or drag-and-drop
 2. Aether runs `wal -n -s -t -e -i <image>` to generate colors
 3. Reads 16 colors from `~/.cache/wal/colors`
-4. User customizes colors in the palette editor
-5. Click "Apply Theme" triggers:
-   - Create `~/.config/omarchy/themes/aether/` directory
-   - Copy wallpaper to theme's `backgrounds/` folder
-   - Process all templates in `templates/` directory
-   - Replace `{variable}` placeholders with actual colors
-   - Write processed configs to theme directory
-   - Run `omarchy-theme-set aether` to apply
+4. User optionally customizes colors with:
+   - Direct swatch editing
+   - Color adjustment sliders (vibrance, contrast, etc.)
+5. Click "Apply Theme" to deploy
+
+#### Custom Palette Mode
+1. Starts with predefined Catppuccin-inspired palette
+2. User optionally uploads wallpaper for visual reference
+3. User customizes palette via:
+   - Preset selection (Dracula, Nord, Gruvbox, etc.)
+   - Color Harmony generator (complementary, triadic, etc.)
+   - Direct swatch editing
+   - Color adjustment sliders
+4. Click "Apply Theme" to deploy
+
+#### Apply Process (Both Modes)
+- Create `~/.config/omarchy/themes/aether/` directory
+- Copy wallpaper to theme's `backgrounds/` folder (if provided)
+- Process all templates in `templates/` directory
+- Replace `{variable}` placeholders with actual colors
+- Write processed configs to theme directory
+- Run `omarchy-theme-set aether` to apply across all applications
 
 ### Template System
 
@@ -192,17 +295,28 @@ Blueprints are JSON files in `~/.config/aether/blueprints/`:
 Aether is designed to be extensible:
 
 1. **Add New Apps**: Create new template files in `templates/` directory
-2. **Modify Color Mappings**: Edit `ColorSynthesizer.js` roles array
-3. **Enhance UI**: Add new widgets to `main.js` or component files
-4. **Template Variables**: Add new variable processing in `ConfigWriter.js`
+2. **Add Color Presets**: Add themes to `src/constants/presets.js` (16-color arrays)
+3. **Modify Color Mappings**: Edit `ColorSynthesizer.js` roles array
+4. **Enhance UI**: Add new widgets to `main.js` or component files
+5. **Template Variables**: Add new variable processing in `ConfigWriter.js`
+6. **Color Algorithms**: Add harmony types in `src/services/color-harmony.js`
+7. **Adjustment Controls**: Extend color adjustments in `color-adjustment-controls.js`
 
 ## Philosophy
 
 > From Configuration to Creation
 
-Aether is the visual theming interface for Omarchy. It bridges the gap between pywal's automatic color extraction and manual config editing, providing an intuitive GUI to refine colors and instantly apply coordinated themes across all your applications.
+Aether is the visual theming interface for Omarchy. It bridges the gap between automated color extraction and manual config editing, providing an intuitive, Lightroom-inspired interface to craft beautiful desktop themes.
 
-The focus shifts from editing multiple config files to "Pick a wallpaper, tweak the colors, click apply."
+Whether you want to:
+- Extract colors from your favorite wallpaper
+- Generate palettes using color theory
+- Pick from popular presets like Dracula or Nord
+- Start from scratch with a custom palette
+
+Aether gives you professional-grade tools with a friendly interface. The focus shifts from editing multiple config files to creative exploration: "Pick a source, refine the colors, click apply."
+
+Every interaction is immediate, visual, and reversible. Real-time previews, accessibility checking, and one-click resets make theme creation both powerful and approachable.
 
 ## License
 
