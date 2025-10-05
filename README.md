@@ -10,11 +10,12 @@ Aether is a beautiful GTK/Libadwaita theming application for Omarchy. It provide
 
 ## Features
 
-### 🎨 Dual Palette Generation Modes
+### 🎨 Triple Palette Generation Modes
 
 #### From Wallpaper (Automatic Extraction)
 - Drag-and-drop wallpaper or use file picker
 - Automatic extraction of 16 ANSI colors using pywal
+- Light/Dark mode toggle for generating light or dark color schemes
 - Intelligent color analysis optimized for terminals and desktop themes
 - Real-time wallpaper preview
 
@@ -23,6 +24,17 @@ Aether is a beautiful GTK/Libadwaita theming application for Omarchy. It provide
 - Upload wallpaper for visual reference (optional)
 - Manually craft your perfect palette
 - Click any color swatch to fine-tune individual colors with advanced color picker
+
+#### Find Wallpaper (Wallhaven Integration)
+- Browse thousands of wallpapers from [wallhaven.cc](https://wallhaven.cc)
+- Advanced search by tags, colors, and keywords
+- Filter by categories (General, Anime, People)
+- Sort options: Latest, Relevance, Random, Views, Favorites, Top List
+- Thumbnail grid view with pagination
+- One-click download and automatic color extraction
+- Smart caching system for thumbnails and wallpapers
+- Optional API key support for NSFW content and higher rate limits
+- Settings dialog for easy API key configuration
 
 ### 🌈 Color Harmony Generator
 - Generate professional color palettes based on color theory
@@ -93,7 +105,7 @@ Fine-tune your entire palette with real-time sliders:
 - Quick theme switching with one click
 - Modal dialog for easy browsing and management
 - Import/Export blueprints for sharing with others
-- Blueprints preserve wallpaper paths and palette colors
+- Blueprints preserve wallpaper paths, palette colors, and light/dark mode
 - Auto-assigns color roles when loading blueprints
 - Stored in `~/.config/aether/blueprints/`
 
@@ -131,6 +143,7 @@ Fine-tune your entire palette with real-time sliders:
 - GJS (GNOME JavaScript bindings)
 - GTK 4
 - Libadwaita 1
+- libsoup3 - HTTP client library for wallhaven API
 - **pywal** - Color extraction from wallpapers
 - **Omarchy** - Theme application backend
 
@@ -138,7 +151,7 @@ Fine-tune your entire palette with real-time sliders:
 
 1. Install system dependencies:
 ```bash
-sudo pacman -S gjs gtk4 libadwaita python-pywal
+sudo pacman -S gjs gtk4 libadwaita libsoup3 python-pywal
 # Install omarchy theme manager from AUR or your preferred method
 ```
 
@@ -183,7 +196,8 @@ Aether/
 ├── src/
 │   ├── main.js                          # Main application window
 │   ├── components/
-│   │   ├── PaletteGenerator.js          # Dual-mode palette generation (wallpaper/custom)
+│   │   ├── PaletteGenerator.js          # Triple-mode palette generation (wallpaper/custom/browser)
+│   │   ├── WallpaperBrowser.js          # Wallhaven.cc browser with search/filters
 │   │   ├── ColorSynthesizer.js          # 18-color role editor
 │   │   ├── BlueprintManager.js          # Theme save/load/apply
 │   │   ├── SettingsSidebar.js           # Collapsible settings sidebar
@@ -194,6 +208,7 @@ Aether/
 │   │       └── color-adjustment-controls.js # Vibrance, contrast, etc.
 │   ├── services/
 │   │   ├── wallpaper-service.js         # Pywal integration
+│   │   ├── wallhaven-service.js         # Wallhaven.cc API client
 │   │   └── color-harmony.js             # Color theory algorithms
 │   ├── constants/
 │   │   ├── colors.js                    # Color roles and defaults
@@ -234,12 +249,22 @@ The app uses:
 
 #### From Wallpaper Mode
 1. User selects wallpaper via file picker or drag-and-drop
-2. Aether runs `wal -n -s -t -e -i <image>` to generate colors
-3. Reads 16 colors from `~/.cache/wal/colors`
-4. User optionally customizes colors with:
+2. Optionally toggle Light Mode for light color schemes
+3. Aether runs `wal -n -s -t -e -i <image>` to generate colors
+4. Reads 16 colors from `~/.cache/wal/colors`
+5. User optionally customizes colors with:
    - Direct swatch editing (with color lock protection)
    - Color adjustment sliders (vibrance, contrast, etc.)
-5. Click "Apply Theme" to deploy
+6. Click "Apply Theme" to deploy
+
+#### Find Wallpaper Mode
+1. Browse wallpapers from wallhaven.cc
+2. Search by tags, colors, or keywords
+3. Filter by categories (General, Anime, People)
+4. Sort by Latest, Relevance, Random, Views, Favorites, or Top List
+5. Click a wallpaper thumbnail to download
+6. Automatically switches to "From Wallpaper" tab and extracts colors
+7. Continue with customization as in From Wallpaper mode
 
 #### Custom Palette Mode
 1. Starts with predefined Catppuccin-inspired palette
@@ -277,6 +302,7 @@ Blueprints are JSON files in `~/.config/aether/blueprints/`:
   "timestamp": 1234567890,
   "palette": {
     "wallpaper": "/path/to/wallpaper.png",
+    "lightMode": false,
     "colors": [
       "#1e1e2e",
       "#f38ba8",
@@ -304,7 +330,7 @@ Color roles (background, foreground, color0-15) are automatically assigned from 
 ## Troubleshooting
 
 **App won't start:**
-- Ensure GJS is installed: `pacman -S gjs gtk4 libadwaita`
+- Ensure GJS is installed: `pacman -S gjs gtk4 libadwaita libsoup3`
 - Check for GJS errors: `gjs -m src/main.js`
 
 **pywal not found:**
@@ -323,6 +349,13 @@ Color roles (background, foreground, color0-15) are automatically assigned from 
 **Templates not processing:**
 - Ensure `templates/` directory exists in Aether project folder
 - Check template files have `{variable}` placeholders
+
+**Wallhaven wallpapers not loading:**
+- Check internet connection
+- Verify libsoup3 is installed: `pacman -S libsoup3`
+- Check API rate limits (45 requests/minute without API key)
+- Add API key in settings for higher limits and NSFW access
+- Clear cache if needed: `rm -rf ~/.cache/aether/wallhaven-*`
 
 ## Contributing
 
@@ -345,6 +378,7 @@ Aether is designed to be extensible:
 Aether is the visual theming interface for Omarchy. It bridges the gap between automated color extraction and manual config editing, providing an intuitive, Lightroom-inspired interface to craft beautiful desktop themes.
 
 Whether you want to:
+- Browse and download wallpapers from wallhaven.cc
 - Extract colors from your favorite wallpaper
 - Generate palettes using color theory (harmonies)
 - Create smooth gradients between two colors
