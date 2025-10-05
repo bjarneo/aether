@@ -122,12 +122,12 @@ export const PaletteGenerator = GObject.registerClass({
             subtitle: 'Generate light color scheme',
         });
 
-        const modeSwitch = new Gtk.Switch({
+        this._modeSwitch = new Gtk.Switch({
             active: this._lightMode,
             valign: Gtk.Align.CENTER,
         });
 
-        modeSwitch.connect('notify::active', (sw) => {
+        this._modeSwitch.connect('notify::active', (sw) => {
             this._lightMode = sw.get_active();
             // Re-extract colors if wallpaper is already loaded
             if (this._currentWallpaper) {
@@ -135,8 +135,8 @@ export const PaletteGenerator = GObject.registerClass({
             }
         });
 
-        modeRow.add_suffix(modeSwitch);
-        modeRow.set_activatable_widget(modeSwitch);
+        modeRow.add_suffix(this._modeSwitch);
+        modeRow.set_activatable_widget(this._modeSwitch);
         viewBox.append(modeRow);
 
         // Loading spinner
@@ -481,6 +481,15 @@ export const PaletteGenerator = GObject.registerClass({
         // Load wallpaper without extraction
         if (palette.wallpaper) {
             this.loadWallpaperWithoutExtraction(palette.wallpaper);
+        }
+
+        // Load light mode setting
+        if (palette.lightMode !== undefined) {
+            this._lightMode = palette.lightMode;
+            // Update the switch UI if it exists
+            if (this._modeSwitch) {
+                this._modeSwitch.set_active(palette.lightMode);
+            }
         }
 
         // Reset all locks when loading blueprint
