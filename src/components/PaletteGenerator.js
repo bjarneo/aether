@@ -28,6 +28,7 @@ export const PaletteGenerator = GObject.registerClass({
         this._palette = [];
         this._originalPalette = [];
         this._currentWallpaper = null;
+        this._includeNeovim = true;
 
         this._initializeUI();
     }
@@ -81,6 +82,37 @@ export const PaletteGenerator = GObject.registerClass({
             () => this._resetAdjustments()
         );
         this.append(this._adjustmentControls.widget);
+
+        // Optional settings
+        this.append(this._createOptionalSettings());
+    }
+
+    _createOptionalSettings() {
+        const expanderRow = new Adw.ExpanderRow({
+            title: 'Optional Settings',
+            subtitle: 'Configure template preferences',
+        });
+
+        const neovimRow = new Adw.ActionRow({
+            title: 'Include Neovim Template',
+            subtitle: 'Copy neovim.lua to theme directory',
+        });
+
+        const neovimSwitch = new Gtk.Switch({
+            active: this._includeNeovim,
+            valign: Gtk.Align.CENTER,
+        });
+
+        neovimSwitch.connect('notify::active', (sw) => {
+            this._includeNeovim = sw.get_active();
+        });
+
+        neovimRow.add_suffix(neovimSwitch);
+        neovimRow.set_activatable_widget(neovimSwitch);
+
+        expanderRow.add_row(neovimRow);
+
+        return expanderRow;
     }
 
     _createWallpaperRow() {
@@ -311,6 +343,12 @@ export const PaletteGenerator = GObject.registerClass({
         return {
             wallpaper: this._currentWallpaper,
             colors: this._palette,
+        };
+    }
+
+    getSettings() {
+        return {
+            includeNeovim: this._includeNeovim,
         };
     }
 

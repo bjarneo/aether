@@ -23,7 +23,7 @@ export class ConfigWriter {
         this.wallpaperPath = null;
     }
 
-    applyTheme(colorRoles, wallpaperPath) {
+    applyTheme(colorRoles, wallpaperPath, settings = {}) {
         try {
             this._createThemeDirectory();
 
@@ -32,7 +32,7 @@ export class ConfigWriter {
             }
 
             const variables = this._buildVariables(colorRoles);
-            this._processTemplates(variables);
+            this._processTemplates(variables, settings);
             this._applyOmarchyTheme();
 
             return true;
@@ -73,8 +73,13 @@ export class ConfigWriter {
         return variables;
     }
 
-    _processTemplates(variables) {
+    _processTemplates(variables, settings = {}) {
         enumerateDirectory(this.templatesDir, (fileInfo, templatePath, fileName) => {
+            // Skip neovim.lua if includeNeovim is false
+            if (fileName === 'neovim.lua' && settings.includeNeovim === false) {
+                return;
+            }
+
             const outputPath = GLib.build_filenamev([this.themeDir, fileName]);
             this._processTemplate(templatePath, outputPath, variables);
         });
@@ -126,7 +131,7 @@ export class ConfigWriter {
         return result;
     }
 
-    exportTheme(colorRoles, wallpaperPath, exportPath, themeName) {
+    exportTheme(colorRoles, wallpaperPath, exportPath, themeName, settings = {}) {
         try {
             ensureDirectoryExists(exportPath);
 
@@ -141,7 +146,7 @@ export class ConfigWriter {
             }
 
             const variables = this._buildVariables(colorRoles);
-            this._processTemplatesToDirectory(variables, exportPath);
+            this._processTemplatesToDirectory(variables, exportPath, settings);
 
             console.log(`Theme exported successfully to: ${exportPath}`);
             return true;
@@ -152,8 +157,13 @@ export class ConfigWriter {
         }
     }
 
-    _processTemplatesToDirectory(variables, exportPath) {
+    _processTemplatesToDirectory(variables, exportPath, settings = {}) {
         enumerateDirectory(this.templatesDir, (fileInfo, templatePath, fileName) => {
+            // Skip neovim.lua if includeNeovim is false
+            if (fileName === 'neovim.lua' && settings.includeNeovim === false) {
+                return;
+            }
+
             const outputPath = GLib.build_filenamev([exportPath, fileName]);
             this._processTemplate(templatePath, outputPath, variables);
             console.log(`Processed template: ${fileName}`);

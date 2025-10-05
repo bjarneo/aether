@@ -211,7 +211,8 @@ const AetherWindow = GObject.registerClass(
             try {
                 const colors = this.colorSynthesizer.getColors();
                 const palette = this.paletteGenerator.getPalette();
-                this.configWriter.applyTheme(colors, palette.wallpaper);
+                const settings = this.paletteGenerator.getSettings();
+                this.configWriter.applyTheme(colors, palette.wallpaper, settings);
             } catch (e) {
                 console.error(`Error applying theme: ${e.message}`);
             }
@@ -285,12 +286,13 @@ const AetherWindow = GObject.registerClass(
             try {
                 const colors = this.colorSynthesizer.getColors();
                 const palette = this.paletteGenerator.getPalette();
+                const settings = this.paletteGenerator.getSettings();
                 const themeDir = `omarchy-${themeName}-theme`;
                 const fullPath = GLib.build_filenamev([exportPath, themeDir]);
 
                 console.log(`Exporting theme to: ${fullPath}`);
 
-                this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName);
+                this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName, settings);
 
                 this._showSuccessDialog(fullPath);
             } catch (e) {
