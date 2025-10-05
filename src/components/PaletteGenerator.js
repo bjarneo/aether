@@ -13,6 +13,7 @@ import { HARMONY_TYPES } from '../constants/colors.js';
 import { ColorSwatchGrid } from './palette/color-swatch-grid.js';
 import { ColorAdjustmentControls } from './palette/color-adjustment-controls.js';
 import { ColorPickerDialog } from './palette/color-picker-dialog.js';
+import { AccessibilityPanel } from './AccessibilityPanel.js';
 
 export const PaletteGenerator = GObject.registerClass({
     Signals: {
@@ -82,6 +83,10 @@ export const PaletteGenerator = GObject.registerClass({
             () => this._resetAdjustments()
         );
         this.append(this._adjustmentControls.widget);
+
+        // Accessibility panel
+        this._accessibilityPanel = new AccessibilityPanel();
+        this.append(this._accessibilityPanel);
 
         // Optional settings
         this.append(this._createOptionalSettings());
@@ -350,6 +355,10 @@ export const PaletteGenerator = GObject.registerClass({
         return {
             includeNeovim: this._includeNeovim,
         };
+    }
+
+    updateAccessibility(colors) {
+        this._accessibilityPanel.updateColors(colors);
     }
 
     get widget() {

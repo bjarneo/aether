@@ -172,15 +172,21 @@ const AetherWindow = GObject.registerClass(
         _connectSignals() {
             this.paletteGenerator.connect('palette-generated', (_, colors) => {
                 this.colorSynthesizer.setPalette(colors);
+                this._updateAccessibility();
             });
 
             this.colorSynthesizer.connect('color-changed', (_, role, color) => {
-                // Colors changed - user can click "Apply Theme" when ready
+                this._updateAccessibility();
             });
 
             this.blueprintManager.connect('blueprint-applied', (_, blueprint) => {
                 this._loadBlueprint(blueprint);
             });
+        }
+
+        _updateAccessibility() {
+            const colors = this.colorSynthesizer.getColors();
+            this.paletteGenerator.updateAccessibility(colors);
         }
 
         _loadBlueprint(blueprint) {
@@ -202,6 +208,8 @@ const AetherWindow = GObject.registerClass(
                 if (blueprint.colors) {
                     this.colorSynthesizer.loadColors(blueprint.colors);
                 }
+
+                this._updateAccessibility();
             } catch (e) {
                 console.error(`Error loading blueprint: ${e.message}`);
             }
