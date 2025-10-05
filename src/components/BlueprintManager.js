@@ -281,7 +281,6 @@ export const BlueprintManager = GObject.registerClass({
                     name: blueprint.name,
                     timestamp: blueprint.timestamp,
                     palette: blueprint.palette,
-                    colors: blueprint.colors,
                 };
 
                 const success = saveJsonFile(exportPath, exportData);

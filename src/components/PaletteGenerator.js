@@ -398,7 +398,6 @@ export const PaletteGenerator = GObject.registerClass({
         return {
             wallpaper: this._currentWallpaper,
             colors: this._palette,
-            lockedColors: this._swatchGrid.getLockedColors(),
         };
     }
 
@@ -420,13 +419,8 @@ export const PaletteGenerator = GObject.registerClass({
             this.loadWallpaperWithoutExtraction(palette.wallpaper);
         }
 
-        // Load locked colors
-        if (palette.lockedColors) {
-            this._swatchGrid.setLockedColors(palette.lockedColors);
-        } else {
-            // Reset locks if not present in blueprint (backward compatibility)
-            this._swatchGrid.setLockedColors(new Array(16).fill(false));
-        }
+        // Reset all locks when loading blueprint
+        this._swatchGrid.setLockedColors(new Array(16).fill(false));
     }
 
     get widget() {

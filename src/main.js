@@ -233,14 +233,11 @@ const AetherWindow = GObject.registerClass(
                 // Load palette (colors, wallpaper, locks)
                 if (blueprint.palette) {
                     this.paletteGenerator.loadBlueprintPalette(blueprint.palette);
+
+                    // Auto-assign color roles from palette
                     if (blueprint.palette.colors) {
                         this.colorSynthesizer.setPalette(blueprint.palette.colors);
                     }
-                }
-
-                // Load color role assignments
-                if (blueprint.colors) {
-                    this.colorSynthesizer.loadColors(blueprint.colors);
                 }
 
                 this._updateAccessibility();
@@ -297,7 +294,6 @@ const AetherWindow = GObject.registerClass(
         _saveBlueprint() {
             const blueprint = {
                 palette: this.paletteGenerator.getPalette(),
-                colors: this.colorSynthesizer.getColors(),
                 timestamp: Date.now(),
             };
 
