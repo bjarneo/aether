@@ -26,6 +26,7 @@ export const PaletteGenerator = GObject.registerClass({
         this._palette = [];
         this._originalPalette = [];
         this._currentWallpaper = null;
+        this._lightMode = false;
 
         this._initializeUI();
     }
@@ -84,6 +85,29 @@ export const PaletteGenerator = GObject.registerClass({
 
         // Wallpaper selection row
         viewBox.append(this._createWallpaperRow());
+
+        // Light/Dark mode toggle
+        const modeRow = new Adw.ActionRow({
+            title: 'Light Mode',
+            subtitle: 'Generate light color scheme',
+        });
+
+        const modeSwitch = new Gtk.Switch({
+            active: this._lightMode,
+            valign: Gtk.Align.CENTER,
+        });
+
+        modeSwitch.connect('notify::active', (sw) => {
+            this._lightMode = sw.get_active();
+            // Re-extract colors if wallpaper is already loaded
+            if (this._currentWallpaper) {
+                this._extractColors(this._currentWallpaper);
+            }
+        });
+
+        modeRow.add_suffix(modeSwitch);
+        modeRow.set_activatable_widget(modeSwitch);
+        viewBox.append(modeRow);
 
         // Loading spinner
         this._spinner = new Gtk.Spinner({
@@ -292,6 +316,7 @@ export const PaletteGenerator = GObject.registerClass({
 
         extractColorsFromWallpaper(
             imagePath,
+            this._lightMode,
             (colors) => {
                 this._originalPalette = [...colors];
                 this.setPalette(colors);

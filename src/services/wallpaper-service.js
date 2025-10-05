@@ -10,12 +10,17 @@ import { brightenColor, ensureHashPrefix } from '../utils/color-utils.js';
 /**
  * Extracts colors from a wallpaper image using pywal
  * @param {string} imagePath - Path to the wallpaper image
+ * @param {boolean} lightMode - Whether to generate light mode colors
  * @param {Function} onSuccess - Callback when colors are extracted (colors)
  * @param {Function} onError - Callback when extraction fails (error)
  */
-export function extractColorsFromWallpaper(imagePath, onSuccess, onError) {
+export function extractColorsFromWallpaper(imagePath, lightMode, onSuccess, onError) {
     try {
-        const argv = ['wal', '-n', '-s', '-t', '-e', '-i', imagePath];
+        const argv = ['wal', '-n', '-s', '-t', '-e'];
+        if (lightMode) {
+            argv.push('-l');
+        }
+        argv.push('-i', imagePath);
         const proc = Gio.Subprocess.new(
             argv,
             Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
