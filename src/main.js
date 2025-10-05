@@ -48,14 +48,16 @@ const AetherWindow = GObject.registerClass(
         }
 
         _initializeUI() {
-            const splitView = this._createSplitView();
-            this.set_content(splitView);
+            this.splitView = this._createSplitView();
+            this.set_content(this.splitView);
         }
 
         _createSplitView() {
             const splitView = new Adw.NavigationSplitView({
-                sidebar_width_fraction: 0.35,
-                max_sidebar_width: 350,
+                sidebar_width_fraction: 0.25,
+                max_sidebar_width: 250,
+                show_content: true,
+                collapsed: true,
             });
 
             splitView.set_sidebar(this._createSidebar());
@@ -135,6 +137,19 @@ const AetherWindow = GObject.registerClass(
                 margin_start: 6,
                 margin_end: 6,
             });
+
+            const toggleButton = new Gtk.ToggleButton({
+                icon_name: 'sidebar-show-symbolic',
+                tooltip_text: 'Toggle Blueprints',
+            });
+            toggleButton.connect('toggled', (btn) => {
+                if (btn.get_active()) {
+                    this.splitView.collapsed = false;
+                } else {
+                    this.splitView.collapsed = true;
+                }
+            });
+            actionBar.pack_start(toggleButton);
 
             const exportButton = new Gtk.Button({ label: 'Export Theme' });
             exportButton.connect('clicked', () => this._exportTheme());
