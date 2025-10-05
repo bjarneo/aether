@@ -10,6 +10,7 @@ import { adjustColor } from '../utils/color-utils.js';
 import { applyCssToWidget } from '../utils/ui-helpers.js';
 import { ColorSwatchGrid } from './palette/color-swatch-grid.js';
 import { ColorPickerDialog } from './palette/color-picker-dialog.js';
+import { WallpaperBrowser } from './WallpaperBrowser.js';
 
 export const PaletteGenerator = GObject.registerClass({
     Signals: {
@@ -32,7 +33,7 @@ export const PaletteGenerator = GObject.registerClass({
     }
 
     _initializeUI() {
-        // View stack for the two modes
+        // View stack for the modes
         this._viewStack = new Adw.ViewStack();
 
         // Tab 1: Wallpaper Extraction
@@ -45,12 +46,41 @@ export const PaletteGenerator = GObject.registerClass({
         const customPage = this._viewStack.add_titled(customView, 'custom', 'Custom');
         customPage.set_icon_name('preferences-color-symbolic');
 
+        // Tab 3: Find Wallpaper
+        this._wallpaperBrowser = new WallpaperBrowser();
+        this._wallpaperBrowser.connect('wallpaper-selected', (_, path) => {
+            this._onWallpaperBrowserSelected(path);
+        });
+        const browserPage = this._viewStack.add_titled(this._wallpaperBrowser, 'browser', 'Find Wallpaper');
+        browserPage.set_icon_name('network-workgroup-symbolic');
+
+        // Header box with view switcher and settings button
+        const headerBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 6,
+        });
+
         // View switcher title for tabs at the top
         const viewSwitcherTitle = new Adw.ViewSwitcherTitle();
         viewSwitcherTitle.set_stack(this._viewStack);
         viewSwitcherTitle.set_title('Palette Source');
+        viewSwitcherTitle.set_hexpand(true);
 
-        this.append(viewSwitcherTitle);
+        // Settings button for wallhaven
+        this._wallhavenSettingsButton = new Gtk.Button({
+            icon_name: 'preferences-system-symbolic',
+            tooltip_text: 'Wallhaven Settings',
+            css_classes: ['flat', 'circular'],
+            valign: Gtk.Align.CENTER,
+        });
+        this._wallhavenSettingsButton.connect('clicked', () => {
+            this._wallpaperBrowser._showSettingsDialog();
+        });
+
+        headerBox.append(viewSwitcherTitle);
+        headerBox.append(this._wallhavenSettingsButton);
+
+        this.append(headerBox);
         this.append(this._viewStack);
 
         // Color preview container
@@ -297,6 +327,14 @@ export const PaletteGenerator = GObject.registerClass({
         }
 
         this._extractColors(path);
+    }
+
+    _onWallpaperBrowserSelected(path) {
+        // Switch to wallpaper extraction tab
+        this._viewStack.set_visible_child_name('wallpaper');
+
+        // Load the wallpaper and extract colors
+        this.loadWallpaper(path);
     }
 
     loadWallpaperWithoutExtraction(path) {
