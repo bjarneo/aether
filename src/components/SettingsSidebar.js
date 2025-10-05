@@ -63,10 +63,6 @@ export const SettingsSidebar = GObject.registerClass({
 
         contentBox.append(this._adjustmentControls.widget);
 
-        // Accessibility Section
-        this._accessibilityPanel = new AccessibilityPanel();
-        contentBox.append(this._accessibilityPanel);
-
         // Color Harmony Section
         const harmonySection = this._createHarmonySection();
         contentBox.append(harmonySection);
@@ -78,6 +74,10 @@ export const SettingsSidebar = GObject.registerClass({
         // Template Settings Section
         const templateSettings = this._createTemplateSettings();
         contentBox.append(templateSettings);
+
+        // Accessibility Section (at bottom)
+        this._accessibilityPanel = new AccessibilityPanel();
+        contentBox.append(this._accessibilityPanel);
 
         scrolled.set_child(contentBox);
         this.append(scrolled);
