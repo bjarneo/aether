@@ -14,10 +14,8 @@ export class ColorAdjustmentControls {
 
         this.widget = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
-            spacing: 6,
-            margin_top: 4,
-            margin_bottom: 4,
-            visible: false,
+            spacing: 0,
+            visible: true,
         });
 
         this._createControls();
@@ -27,7 +25,7 @@ export class ColorAdjustmentControls {
         // Create vertical box for sliders
         const slidersBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
-            spacing: 8,
+            spacing: 4,
             homogeneous: true,
         });
 
@@ -109,7 +107,7 @@ export class ColorAdjustmentControls {
         const resetButton = new Gtk.Button({
             label: 'Reset Adjustments',
             halign: Gtk.Align.CENTER,
-            margin_top: 4,
+            margin_top: 8,
         });
         resetButton.connect('clicked', () => {
             this.reset();
@@ -132,7 +130,7 @@ export class ColorAdjustmentControls {
 
         const box = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
-            spacing: 2,
+            spacing: 0,
             hexpand: true,
         });
 
@@ -199,13 +197,5 @@ export class ColorAdjustmentControls {
         this.hueScale.set_value(ADJUSTMENT_LIMITS.hue.default);
         this.temperatureScale.set_value(ADJUSTMENT_LIMITS.temperature.default);
         this.gammaScale.set_value(ADJUSTMENT_LIMITS.gamma.default);
-    }
-
-    show() {
-        this.widget.set_visible(true);
-    }
-
-    hide() {
-        this.widget.set_visible(false);
     }
 }

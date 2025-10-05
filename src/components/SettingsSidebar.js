@@ -46,22 +46,9 @@ export const SettingsSidebar = GObject.registerClass({
             margin_end: 12,
         });
 
-        // Color Adjustments Section
-        const adjustmentsLabel = new Gtk.Label({
-            label: 'Color Adjustments',
-            halign: Gtk.Align.START,
-            css_classes: ['heading'],
-            margin_bottom: 6,
-        });
-        contentBox.append(adjustmentsLabel);
-
-        this._adjustmentControls = new ColorAdjustmentControls(
-            (values) => this.emit('adjustments-changed', values),
-            () => this.emit('adjustments-reset')
-        );
-        this._adjustmentControls.show(); // Make sliders visible
-
-        contentBox.append(this._adjustmentControls.widget);
+        // Color Adjustments Section (Collapsible)
+        const adjustmentsExpander = this._createAdjustmentsSection();
+        contentBox.append(adjustmentsExpander);
 
         // Color Harmony Section
         const harmonySection = this._createHarmonySection();
@@ -81,6 +68,32 @@ export const SettingsSidebar = GObject.registerClass({
 
         scrolled.set_child(contentBox);
         this.append(scrolled);
+    }
+
+    _createAdjustmentsSection() {
+        const expanderRow = new Adw.ExpanderRow({
+            title: 'Color Adjustments',
+            subtitle: 'Fine-tune your palette',
+            expanded: true, // Open by default
+        });
+
+        this._adjustmentControls = new ColorAdjustmentControls(
+            (values) => this.emit('adjustments-changed', values),
+            () => this.emit('adjustments-reset')
+        );
+
+        const controlsWrapper = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            margin_start: 12,
+            margin_end: 12,
+            margin_top: 6,
+            margin_bottom: 6,
+        });
+        controlsWrapper.append(this._adjustmentControls.widget);
+
+        expanderRow.add_row(new Adw.ActionRow({ child: controlsWrapper }));
+
+        return expanderRow;
     }
 
     _createHarmonySection() {
@@ -300,10 +313,6 @@ export const SettingsSidebar = GObject.registerClass({
 
     resetAdjustments() {
         this._adjustmentControls.reset();
-    }
-
-    showAdjustments() {
-        this._adjustmentControls.show();
     }
 
     updateAccessibility(colors) {
