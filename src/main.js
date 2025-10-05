@@ -164,6 +164,13 @@ const AetherWindow = GObject.registerClass(
             saveButton.connect('clicked', () => this._saveBlueprint());
             actionBar.pack_end(saveButton);
 
+            const resetButton = new Gtk.Button({
+                label: 'Reset',
+                css_classes: ['destructive-action'],
+            });
+            resetButton.connect('clicked', () => this._resetApplication());
+            actionBar.pack_end(resetButton);
+
             const applyButton = new Gtk.Button({
                 label: 'Apply Theme',
                 css_classes: ['suggested-action'],
@@ -195,6 +202,10 @@ const AetherWindow = GObject.registerClass(
 
             this.settingsSidebar.connect('adjustments-reset', () => {
                 this.paletteGenerator._resetAdjustments();
+            });
+
+            this.settingsSidebar.connect('preset-applied', (_, preset) => {
+                this.paletteGenerator.applyPreset(preset);
             });
         }
 

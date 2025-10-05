@@ -10,7 +10,6 @@ import { generateHarmony } from '../services/color-harmony.js';
 import { rgbaToHex, adjustColor } from '../utils/color-utils.js';
 import { applyCssToWidget } from '../utils/ui-helpers.js';
 import { HARMONY_TYPES } from '../constants/colors.js';
-import { COLOR_PRESETS } from '../constants/presets.js';
 import { ColorSwatchGrid } from './palette/color-swatch-grid.js';
 import { ColorPickerDialog } from './palette/color-picker-dialog.js';
 
@@ -47,11 +46,6 @@ export const PaletteGenerator = GObject.registerClass({
         const harmonyView = this._createHarmonyView();
         const harmonyPage = this._viewStack.add_titled(harmonyView, 'harmony', 'Color Harmony');
         harmonyPage.set_icon_name('applications-graphics-symbolic');
-
-        // Tab 3: Presets
-        const presetsView = this._createPresetsView();
-        const presetsPage = this._viewStack.add_titled(presetsView, 'presets', 'Presets');
-        presetsPage.set_icon_name('starred-symbolic');
 
         // View switcher title for tabs at the top
         const viewSwitcherTitle = new Adw.ViewSwitcherTitle();
@@ -148,99 +142,6 @@ export const PaletteGenerator = GObject.registerClass({
         viewBox.append(this._createHarmonyControls());
 
         return viewBox;
-    }
-
-    _createPresetsView() {
-        const viewBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            margin_top: 12,
-        });
-
-        const scrolledWindow = new Gtk.ScrolledWindow({
-            hscrollbar_policy: Gtk.PolicyType.NEVER,
-            vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-            vexpand: true,
-        });
-
-        const presetsListBox = new Gtk.ListBox({
-            selection_mode: Gtk.SelectionMode.NONE,
-            css_classes: ['boxed-list'],
-            margin_start: 12,
-            margin_end: 12,
-        });
-
-        COLOR_PRESETS.forEach((preset, index) => {
-            const row = this._createPresetRow(preset, index);
-            presetsListBox.append(row);
-        });
-
-        scrolledWindow.set_child(presetsListBox);
-        viewBox.append(scrolledWindow);
-
-        return viewBox;
-    }
-
-    _createPresetRow(preset, index) {
-        const row = new Adw.ExpanderRow({
-            title: preset.name,
-            subtitle: preset.author,
-        });
-
-        // Preview colors in expander
-        const previewBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 2,
-            height_request: 30,
-            margin_start: 12,
-            margin_end: 12,
-            margin_top: 8,
-            margin_bottom: 8,
-        });
-
-        preset.colors.slice(0, 8).forEach(color => {
-            const colorBox = new Gtk.Box({
-                hexpand: true,
-                css_classes: ['card'],
-            });
-            const css = `* { background-color: ${color}; border-radius: 4px; }`;
-            applyCssToWidget(colorBox, css);
-            previewBox.append(colorBox);
-        });
-
-        const previewRow = new Adw.PreferencesRow();
-        previewRow.set_child(previewBox);
-        row.add_row(previewRow);
-
-        // Apply button
-        const applyButtonBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            halign: Gtk.Align.CENTER,
-            margin_start: 12,
-            margin_end: 12,
-            margin_bottom: 8,
-        });
-
-        const applyButton = new Gtk.Button({
-            label: 'Apply Preset',
-            css_classes: ['suggested-action'],
-        });
-        applyButton.connect('clicked', () => this._applyPreset(preset));
-
-        applyButtonBox.append(applyButton);
-
-        const applyRow = new Adw.PreferencesRow();
-        applyRow.set_child(applyButtonBox);
-        row.add_row(applyRow);
-
-        return row;
-    }
-
-    _applyPreset(preset) {
-        this._originalPalette = [...preset.colors];
-        this.setPalette(preset.colors);
-        this.emit('palette-generated', preset.colors);
-        console.log(`Applied preset: ${preset.name}`);
     }
 
     _createHarmonyControls() {
@@ -496,6 +397,13 @@ export const PaletteGenerator = GObject.registerClass({
         this._originalPalette = [...colors];
         this.setPalette(colors);
         this.emit('palette-generated', colors);
+    }
+
+    applyPreset(preset) {
+        this._originalPalette = [...preset.colors];
+        this.setPalette(preset.colors);
+        this.emit('palette-generated', preset.colors);
+        console.log(`Applied preset: ${preset.name}`);
     }
 
     _applyAdjustments(values) {
