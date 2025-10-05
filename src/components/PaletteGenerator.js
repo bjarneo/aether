@@ -266,7 +266,25 @@ export const PaletteGenerator = GObject.registerClass({
         const file = Gio.File.new_for_path(path);
         this._wallpaperPreview.set_file(file);
 
+        // Also set custom wallpaper preview if it exists
+        if (this._customWallpaperPreview) {
+            this._customWallpaperPreview.set_file(file);
+            this._customWallpaperPreview.set_visible(true);
+        }
+
         this._extractColors(path);
+    }
+
+    loadWallpaperWithoutExtraction(path) {
+        // For blueprints loaded in custom tab - just set wallpaper preview, don't extract
+        this._currentWallpaper = path;
+
+        const file = Gio.File.new_for_path(path);
+
+        if (this._customWallpaperPreview) {
+            this._customWallpaperPreview.set_file(file);
+            this._customWallpaperPreview.set_visible(true);
+        }
     }
 
     _extractColors(imagePath) {
@@ -345,21 +363,6 @@ export const PaletteGenerator = GObject.registerClass({
     _applyColorToSwatch(index, hexColor, colorBox) {
         this._palette[index] = hexColor;
         this._swatchGrid.updateSwatchColor(index, hexColor);
-
-        const css = `
-            .color-swatch {
-                background-color: ${hexColor};
-                border-radius: 8px;
-                border: 2px solid alpha(@borders, 0.5);
-                min-width: 50px;
-                min-height: 50px;
-            }
-            .color-swatch:hover {
-                border: 2px solid alpha(@borders, 1.0);
-            }
-        `;
-
-        applyCssToWidget(colorBox, css);
         this.emit('palette-generated', this._palette);
     }
 
@@ -395,7 +398,35 @@ export const PaletteGenerator = GObject.registerClass({
         return {
             wallpaper: this._currentWallpaper,
             colors: this._palette,
+            lockedColors: this._swatchGrid.getLockedColors(),
         };
+    }
+
+    switchToCustomTab() {
+        if (this._viewStack) {
+            this._viewStack.set_visible_child_name('custom');
+        }
+    }
+
+    loadBlueprintPalette(palette) {
+        // Load colors
+        if (palette.colors) {
+            this._originalPalette = [...palette.colors]; // Save as original for adjustments
+            this.setPalette(palette.colors);
+        }
+
+        // Load wallpaper without extraction
+        if (palette.wallpaper) {
+            this.loadWallpaperWithoutExtraction(palette.wallpaper);
+        }
+
+        // Load locked colors
+        if (palette.lockedColors) {
+            this._swatchGrid.setLockedColors(palette.lockedColors);
+        } else {
+            // Reset locks if not present in blueprint (backward compatibility)
+            this._swatchGrid.setLockedColors(new Array(16).fill(false));
+        }
     }
 
     get widget() {

@@ -227,15 +227,18 @@ const AetherWindow = GObject.registerClass(
                 // Reset adjustment sliders when loading a blueprint
                 this.settingsSidebar.resetAdjustments();
 
-                if (blueprint.palette?.wallpaper) {
-                    this.paletteGenerator.loadWallpaper(blueprint.palette.wallpaper);
+                // Switch to custom tab for blueprint editing
+                this.paletteGenerator.switchToCustomTab();
+
+                // Load palette (colors, wallpaper, locks)
+                if (blueprint.palette) {
+                    this.paletteGenerator.loadBlueprintPalette(blueprint.palette);
+                    if (blueprint.palette.colors) {
+                        this.colorSynthesizer.setPalette(blueprint.palette.colors);
+                    }
                 }
 
-                if (blueprint.palette?.colors) {
-                    this.paletteGenerator.setPalette(blueprint.palette.colors);
-                    this.colorSynthesizer.setPalette(blueprint.palette.colors);
-                }
-
+                // Load color role assignments
                 if (blueprint.colors) {
                     this.colorSynthesizer.loadColors(blueprint.colors);
                 }
