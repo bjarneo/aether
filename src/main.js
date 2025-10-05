@@ -251,6 +251,13 @@ const AetherWindow = GObject.registerClass(
             }
         }
 
+        _resetApplication() {
+            this.paletteGenerator.reset();
+            this.colorSynthesizer.reset();
+            this.settingsSidebar.resetAdjustments();
+            console.log('Application reset to launch state');
+        }
+
         _showBlueprintsDialog() {
             const dialog = new Adw.Dialog({
                 title: 'Blueprints',

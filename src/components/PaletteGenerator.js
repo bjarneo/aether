@@ -475,6 +475,17 @@ export const PaletteGenerator = GObject.registerClass({
         }
     }
 
+    reset() {
+        this._palette = [];
+        this._originalPalette = [];
+        this._currentWallpaper = null;
+        this._harmonyWallpaper = null;
+        this._wallpaperPreview.set_file(null);
+        this._harmonyWallpaperPreview.set_visible(false);
+        this._swatchGrid.setPalette([]);
+        this._showLoading(false);
+    }
+
     getPalette() {
         // Check which tab is active to determine which wallpaper to use
         const activeTab = this._viewStack.get_visible_child_name();

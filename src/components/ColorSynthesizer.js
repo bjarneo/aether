@@ -161,6 +161,26 @@ export const ColorSynthesizer = GObject.registerClass({
         return Object.fromEntries(this._colorRoles);
     }
 
+    reset() {
+        this._palette = [];
+        this._colorRoles.clear();
+        this._initializeDefaults();
+
+        // Reset all color buttons to default colors
+        forEachChild(this._listBox, (childRow) => {
+            const roleId = childRow._roleId;
+            const colorButton = childRow._colorButton;
+            const defaultColor = DEFAULT_COLORS[roleId];
+
+            if (defaultColor) {
+                const color = new Gdk.RGBA();
+                color.parse(defaultColor);
+                colorButton.set_rgba(color);
+                this._updateColorButtonStyle(colorButton, defaultColor);
+            }
+        });
+    }
+
     get widget() {
         return this;
     }
