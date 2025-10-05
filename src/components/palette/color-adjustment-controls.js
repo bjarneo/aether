@@ -1,3 +1,4 @@
+import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=4.0';
 
 import { ADJUSTMENT_LIMITS } from '../../constants/colors.js';
@@ -9,6 +10,7 @@ export class ColorAdjustmentControls {
     constructor(onAdjustmentChange, onReset) {
         this.onAdjustmentChange = onAdjustmentChange;
         this.onReset = onReset;
+        this._debounceTimeout = null;
 
         this.widget = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
@@ -165,9 +167,18 @@ export class ColorAdjustmentControls {
     }
 
     _emitChange() {
-        if (this.onAdjustmentChange) {
-            this.onAdjustmentChange(this.getValues());
+        // Debounce: wait 150ms after user stops dragging before applying changes
+        if (this._debounceTimeout) {
+            GLib.source_remove(this._debounceTimeout);
         }
+
+        this._debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+            if (this.onAdjustmentChange) {
+                this.onAdjustmentChange(this.getValues());
+            }
+            this._debounceTimeout = null;
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     getValues() {
