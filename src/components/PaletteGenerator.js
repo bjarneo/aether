@@ -304,7 +304,14 @@ export const PaletteGenerator = GObject.registerClass({
     _applyAdjustments(values) {
         if (this._originalPalette.length === 0) return;
 
-        const adjustedColors = this._originalPalette.map(color => {
+        const lockedColors = this._swatchGrid.getLockedColors();
+
+        const adjustedColors = this._originalPalette.map((color, index) => {
+            // Skip adjustment for locked colors
+            if (lockedColors[index]) {
+                return this._palette[index]; // Keep current locked color
+            }
+
             return adjustColor(
                 color,
                 values.vibrance,
@@ -380,6 +387,7 @@ export const PaletteGenerator = GObject.registerClass({
             this._customWallpaperPreview.set_visible(false);
         }
         this._swatchGrid.setPalette([]);
+        this._swatchGrid.setLockedColors(new Array(16).fill(false)); // Reset all locks
         this._showLoading(false);
     }
 
