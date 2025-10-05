@@ -49,6 +49,13 @@ Aether is a beautiful GTK/Libadwaita theming application for Omarchy. It provide
 - **Palenight** - Elegant Material theme variant
 - **Rose Pine** - All natural pine, faux fur and a bit of soho vibes
 
+### 🌈 Gradient Generator
+- Create smooth color transitions between two colors
+- Real-time gradient preview with 16 color steps
+- Linear RGB interpolation for natural-looking gradients
+- Perfect for creating cohesive color schemes
+- Live preview updates as you adjust start/end colors
+
 ### 🎛️ Advanced Color Adjustments
 Fine-tune your entire palette with real-time sliders:
 - **Vibrance** - Boost or reduce color intensity
@@ -67,6 +74,14 @@ Fine-tune your entire palette with real-time sliders:
 - Real-time preview across the interface
 - Colors sync across all applications via omarchy templates
 
+### 🔒 Color Lock System
+- Lock individual colors to protect them from changes
+- Locked colors exempt from adjustment sliders
+- Visual indicators: accent border shows locked state
+- Hover-to-reveal lock button on each swatch
+- Click lock icon to toggle protection
+- Perfect for preserving specific colors while experimenting
+
 ### ♿ WCAG Accessibility Checker
 - Real-time contrast ratio calculations
 - AA and AAA compliance indicators
@@ -77,7 +92,9 @@ Fine-tune your entire palette with real-time sliders:
 - Save themes as shareable JSON blueprints
 - Quick theme switching with one click
 - Modal dialog for easy browsing and management
-- Blueprints preserve wallpaper paths and all color customizations
+- Import/Export blueprints for sharing with others
+- Blueprints preserve wallpaper paths and palette colors
+- Auto-assigns color roles when loading blueprints
 - Stored in `~/.config/aether/blueprints/`
 
 ### 🎨 Lightroom-Style Interface
@@ -86,6 +103,7 @@ Fine-tune your entire palette with real-time sliders:
 - Organized sections:
   - Color Adjustments
   - Color Harmony Generator
+  - Gradient Generator
   - Preset Library
   - Template Settings
   - Accessibility Checker
@@ -103,8 +121,10 @@ Fine-tune your entire palette with real-time sliders:
 - **Reset Button** - Instantly return to launch state
 - **Drag-and-Drop** - Drop wallpapers directly onto the interface
 - **Tab Navigation** - Switch between wallpaper and custom modes
+- **Color Locking** - Protect specific colors while experimenting
 - **Live Previews** - See colors before applying
 - **Persistent Settings** - Your preferences are remembered
+- **Blueprint Sharing** - Import/Export themes as JSON files
 
 ## Requirements
 
@@ -169,7 +189,7 @@ Aether/
 │   │   ├── SettingsSidebar.js           # Collapsible settings sidebar
 │   │   ├── AccessibilityPanel.js        # WCAG contrast checker
 │   │   └── palette/
-│   │       ├── color-swatch-grid.js     # 16-color grid display
+│   │       ├── color-swatch-grid.js     # 16-color grid with lock feature
 │   │       ├── color-picker-dialog.js   # Advanced color picker
 │   │       └── color-adjustment-controls.js # Vibrance, contrast, etc.
 │   ├── services/
@@ -217,7 +237,7 @@ The app uses:
 2. Aether runs `wal -n -s -t -e -i <image>` to generate colors
 3. Reads 16 colors from `~/.cache/wal/colors`
 4. User optionally customizes colors with:
-   - Direct swatch editing
+   - Direct swatch editing (with color lock protection)
    - Color adjustment sliders (vibrance, contrast, etc.)
 5. Click "Apply Theme" to deploy
 
@@ -227,8 +247,9 @@ The app uses:
 3. User customizes palette via:
    - Preset selection (Dracula, Nord, Gruvbox, etc.)
    - Color Harmony generator (complementary, triadic, etc.)
+   - Gradient generator (smooth color transitions)
    - Direct swatch editing
-   - Color adjustment sliders
+   - Color adjustment sliders (with color lock protection)
 4. Click "Apply Theme" to deploy
 
 #### Apply Process (Both Modes)
@@ -256,16 +277,29 @@ Blueprints are JSON files in `~/.config/aether/blueprints/`:
   "timestamp": 1234567890,
   "palette": {
     "wallpaper": "/path/to/wallpaper.png",
-    "colors": ["#color0", "#color1", ...]
-  },
-  "colors": {
-    "background": "#1e1e2e",
-    "foreground": "#cdd6f4",
-    "color0": "#45475a",
-    ...
+    "colors": [
+      "#1e1e2e",
+      "#f38ba8",
+      "#a6e3a1",
+      "#f9e2af",
+      "#89b4fa",
+      "#cba6f7",
+      "#94e2d5",
+      "#cdd6f4",
+      "#45475a",
+      "#f38ba8",
+      "#a6e3a1",
+      "#f9e2af",
+      "#89b4fa",
+      "#cba6f7",
+      "#94e2d5",
+      "#ffffff"
+    ]
   }
 }
 ```
+
+Color roles (background, foreground, color0-15) are automatically assigned from the palette when loading.
 
 ## Troubleshooting
 
@@ -301,6 +335,8 @@ Aether is designed to be extensible:
 5. **Template Variables**: Add new variable processing in `ConfigWriter.js`
 6. **Color Algorithms**: Add harmony types in `src/services/color-harmony.js`
 7. **Adjustment Controls**: Extend color adjustments in `color-adjustment-controls.js`
+8. **Gradient Algorithms**: Enhance gradient generation in `SettingsSidebar.js`
+9. **Blueprint Features**: Extend import/export in `BlueprintManager.js`
 
 ## Philosophy
 
@@ -310,11 +346,12 @@ Aether is the visual theming interface for Omarchy. It bridges the gap between a
 
 Whether you want to:
 - Extract colors from your favorite wallpaper
-- Generate palettes using color theory
+- Generate palettes using color theory (harmonies)
+- Create smooth gradients between two colors
 - Pick from popular presets like Dracula or Nord
 - Start from scratch with a custom palette
 
-Aether gives you professional-grade tools with a friendly interface. The focus shifts from editing multiple config files to creative exploration: "Pick a source, refine the colors, click apply."
+Aether gives you professional-grade tools with a friendly interface. The focus shifts from editing multiple config files to creative exploration: "Pick a source, refine the colors, lock your favorites, click apply."
 
 Every interaction is immediate, visual, and reversible. Real-time previews, accessibility checking, and one-click resets make theme creation both powerful and approachable.
 
