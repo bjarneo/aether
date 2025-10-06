@@ -1,0 +1,28 @@
+/* Synthwave 84 Theme for Aether */
+
+:root {
+    --aether-button-bg: #241b2f;
+    --aether-button-hover-bg: #2a2139;
+    --aether-button-active-bg: #332842;
+    --aether-button-border: #495495;
+    --aether-button-hover-border: #ff7edb;
+    
+    --aether-window-bg: #241b2f;
+    --aether-view-bg: #1a1525;
+    --aether-card-bg: #2a2139;
+    --aether-headerbar-bg: #1a1525;
+    --aether-sidebar-bg: #1a1525;
+    --aether-actionbar-bg: #1a1525;
+    
+    /* Slider colors */
+    --aether-slider-bg: #ff7edb;
+    --aether-slider-trough-bg: alpha(#495495, 0.3);
+    
+    --aether-suggested-button-bg: #72f1b8;
+    --aether-suggested-button-hover-bg: #88f5c5;
+    --aether-suggested-button-fg: #241b2f;
+    
+    --aether-destructive-button-bg: #fe4450;
+    --aether-destructive-button-hover-bg: #ff5c67;
+    --aether-destructive-button-fg: #f7f7f7;
+}

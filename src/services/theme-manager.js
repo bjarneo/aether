@@ -61,6 +61,12 @@ export class ThemeManager {
     --aether-view-bg: @view_bg_color;
     --aether-card-bg: @card_bg_color;
     --aether-headerbar-bg: @headerbar_bg_color;
+    --aether-sidebar-bg: @view_bg_color;
+    --aether-actionbar-bg: @headerbar_bg_color;
+    
+    /* Slider/Scale colors */
+    --aether-slider-bg: @accent_bg_color;
+    --aether-slider-trough-bg: alpha(@borders, 0.3);
     
     /* Suggested action buttons (Apply, OK, etc) */
     --aether-suggested-button-bg: @accent_bg_color;
@@ -112,6 +118,99 @@ button.destructive-action:hover {
     border-color: var(--aether-destructive-button-hover-bg);
 }
 
+/* Use suggested button color for all accent elements */
+/* Checkboxes - all possible selectors */
+checkbutton {
+    background-color: transparent;
+}
+
+checkbutton check {
+    background-color: transparent;
+    border-color: currentColor;
+}
+
+checkbutton:checked,
+checkbutton:active,
+checkbutton:checked check,
+checkbutton check:checked,
+check:checked {
+    background-color: var(--aether-suggested-button-bg);
+    border-color: var(--aether-suggested-button-bg);
+    color: var(--aether-suggested-button-fg);
+    -gtk-icon-palette: success var(--aether-suggested-button-fg);
+}
+
+checkbutton:checked:hover,
+checkbutton:checked:hover check {
+    background-color: var(--aether-suggested-button-hover-bg);
+    border-color: var(--aether-suggested-button-hover-bg);
+}
+
+/* Switches (Light mode toggle, etc) */
+switch:checked,
+switch:active {
+    background-color: var(--aether-suggested-button-bg);
+    border-color: var(--aether-suggested-button-bg);
+}
+
+switch:checked:hover {
+    background-color: var(--aether-suggested-button-hover-bg);
+}
+
+switch slider:checked {
+    background-color: var(--aether-suggested-button-fg);
+}
+
+/* Expander arrows - comprehensive selectors for Adwaita */
+row.expander:checked image.expander-row-arrow,
+row.expander:checked .expander-row-arrow,
+expander-row:checked image.expander-row-arrow,
+expander-row:checked .expander-row-arrow,
+expander-row:checked > box > image,
+expander:checked > box > image,
+.expander-row-arrow:checked,
+image.expander-row-arrow {
+    color: inherit;
+}
+
+row.expander:checked image.expander-row-arrow,
+row.expander:checked .expander-row-arrow,
+expander-row:checked image.expander-row-arrow,
+expander-row:checked .expander-row-arrow {
+    color: var(--aether-suggested-button-bg);
+    -gtk-icon-palette: success var(--aether-suggested-button-bg);
+}
+
+/* Links */
+link {
+    color: var(--aether-suggested-button-bg);
+}
+
+link:hover {
+    color: var(--aether-suggested-button-hover-bg);
+}
+
+/* Selection/highlighting */
+selection {
+    background-color: var(--aether-suggested-button-bg);
+    color: var(--aether-suggested-button-fg);
+}
+
+*:selected {
+    background-color: var(--aether-suggested-button-bg);
+    color: var(--aether-suggested-button-fg);
+}
+
+/* Progress bars */
+progressbar progress {
+    background-color: var(--aether-suggested-button-bg);
+}
+
+/* Spinners */
+spinner {
+    color: var(--aether-suggested-button-bg);
+}
+
 /* Background colors */
 window {
     background-color: var(--aether-window-bg);
@@ -127,6 +226,42 @@ window {
 
 headerbar {
     background-color: var(--aether-headerbar-bg);
+}
+
+/* Sidebar background */
+.navigation-sidebar,
+.sidebar,
+sidebar,
+navigation-view .sidebar,
+splitview .sidebar {
+    background-color: var(--aether-sidebar-bg);
+}
+
+/* Action bar background */
+actionbar,
+.action-bar {
+    background-color: var(--aether-actionbar-bg);
+}
+
+/* Slider/Scale colors */
+scale {
+    background-color: transparent;
+}
+
+scale slider {
+    background-color: var(--aether-slider-bg);
+    min-width: 20px;
+    min-height: 20px;
+}
+
+scale trough {
+    background-color: var(--aether-slider-trough-bg);
+    min-height: 6px;
+}
+
+scale highlight,
+scale trough highlight {
+    background-color: var(--aether-slider-bg);
 }
 
 /* Load user overrides */
@@ -166,6 +301,12 @@ headerbar {
  *   --aether-view-bg                      Content area background
  *   --aether-card-bg                      Card/panel background
  *   --aether-headerbar-bg                 Header bar background
+ *   --aether-sidebar-bg                   Sidebar background
+ *   --aether-actionbar-bg                 Action bar (button wrapper) background
+ * 
+ * SLIDER COLORS:
+ *   --aether-slider-bg                    Slider handle color
+ *   --aether-slider-trough-bg             Slider track/trough background
  * 
  * SUGGESTED ACTION BUTTONS (Save, Apply, OK):
  *   --aether-suggested-button-bg          Background color

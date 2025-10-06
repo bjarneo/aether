@@ -1,0 +1,28 @@
+/* Dracula Theme for Aether */
+
+:root {
+    --aether-button-bg: #282a36;
+    --aether-button-hover-bg: #44475a;
+    --aether-button-active-bg: #6272a4;
+    --aether-button-border: #6272a4;
+    --aether-button-hover-border: #bd93f9;
+    
+    --aether-window-bg: #282a36;
+    --aether-view-bg: #21222c;
+    --aether-card-bg: #44475a;
+    --aether-headerbar-bg: #21222c;
+    --aether-sidebar-bg: #21222c;
+    --aether-actionbar-bg: #21222c;
+    
+    /* Slider colors */
+    --aether-slider-bg: #bd93f9;
+    --aether-slider-trough-bg: alpha(#6272a4, 0.3);
+    
+    --aether-suggested-button-bg: #50fa7b;
+    --aether-suggested-button-hover-bg: #69ff94;
+    --aether-suggested-button-fg: #282a36;
+    
+    --aether-destructive-button-bg: #ff5555;
+    --aether-destructive-button-hover-bg: #ff6e6e;
+    --aether-destructive-button-fg: #f8f8f2;
+}

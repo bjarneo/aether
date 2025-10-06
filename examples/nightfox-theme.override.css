@@ -1,0 +1,28 @@
+/* Nightfox Theme for Aether */
+
+:root {
+    --aether-button-bg: #192330;
+    --aether-button-hover-bg: #212e3f;
+    --aether-button-active-bg: #29394f;
+    --aether-button-border: #526176;
+    --aether-button-hover-border: #719cd6;
+    
+    --aether-window-bg: #192330;
+    --aether-view-bg: #131a24;
+    --aether-card-bg: #212e3f;
+    --aether-headerbar-bg: #131a24;
+    --aether-sidebar-bg: #131a24;
+    --aether-actionbar-bg: #131a24;
+    
+    /* Slider colors */
+    --aether-slider-bg: #719cd6;
+    --aether-slider-trough-bg: alpha(#526176, 0.3);
+    
+    --aether-suggested-button-bg: #81b29a;
+    --aether-suggested-button-hover-bg: #93c2ab;
+    --aether-suggested-button-fg: #192330;
+    
+    --aether-destructive-button-bg: #c94f6d;
+    --aether-destructive-button-hover-bg: #d7667e;
+    --aether-destructive-button-fg: #cdcecf;
+}

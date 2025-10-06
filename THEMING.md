@@ -6,8 +6,22 @@ Aether includes a powerful theming system with live reload capabilities that all
 
 1. **Launch Aether** - Theme files are automatically created on first launch
 2. **Click the Theme Button** (🎨 icon in the action bar) to open `theme.override.css`
-3. **Edit the CSS** - Make your changes and save
+3. **Edit the CSS** - Make your changes and save, OR copy one of the example themes
 4. **Watch it apply** - Changes are automatically applied when you save the file
+
+### Using Example Themes
+
+Aether includes 19 pre-made theme examples in the `examples/` directory. To use one:
+
+```bash
+# Example: Apply Gruvbox Dark theme
+cp examples/gruvbox-dark-theme.override.css ~/.config/aether/theme.override.css
+
+# Example: Apply Tokyo Night theme
+cp examples/tokyo-night-theme.override.css ~/.config/aether/theme.override.css
+```
+
+See the `examples/README.md` file for a complete list of available themes.
 
 ## Theme File Structure
 
@@ -59,6 +73,17 @@ The `theme.override.css` file includes comprehensive comments listing all availa
     --aether-view-bg: @view_bg_color;
     --aether-card-bg: @card_bg_color;
     --aether-headerbar-bg: @headerbar_bg_color;
+    --aether-sidebar-bg: @view_bg_color;
+    --aether-actionbar-bg: @headerbar_bg_color;
+}
+```
+
+### Slider Colors
+
+```css
+:root {
+    --aether-slider-bg: @accent_bg_color;
+    --aether-slider-trough-bg: alpha(@borders, 0.3);
 }
 ```
 
@@ -121,42 +146,110 @@ mix(@accent_bg_color, @window_bg_color, 0.5)  /* 50/50 mix */
 
 All examples below should be added to `~/.config/aether/theme.override.css`:
 
-### Hyprland-Style Dark Theme
+### Pre-made Themes
+
+Aether includes **19 ready-to-use themes** in the `examples/` directory:
+
+**Popular Dark Themes:**
+- Gruvbox Dark, Dracula, Nord, Tokyo Night, Catppuccin Mocha
+- One Dark, Monokai Pro, Solarized Dark, Rose Pine
+- Everforest, Kanagawa, Palenight, Nightfox
+- Ayu Mirage, Oceanic Next, Horizon, Andromeda
+- Synthwave 84, GitHub Dark
+
+**To use a pre-made theme:**
+```bash
+cp examples/gruvbox-dark-theme.override.css ~/.config/aether/theme.override.css
+```
+
+See `examples/README.md` for the complete list with descriptions.
+
+### Custom Examples
+
+#### Gruvbox Dark Theme
 ```css
 :root {
-    --aether-button-bg: #1e1e2e;
-    --aether-button-hover-bg: #313244;
-    --aether-button-active-bg: #45475a;
-    --aether-button-border: #6c7086;
-    --aether-button-hover-border: #89b4fa;
+    --aether-button-bg: #282828;
+    --aether-button-hover-bg: #3c3836;
+    --aether-button-active-bg: #504945;
+    --aether-button-border: #665c54;
+    --aether-button-hover-border: #83a598;
     
-    --aether-window-bg: #11111b;
-    --aether-card-bg: #1e1e2e;
+    --aether-window-bg: #282828;
+    --aether-view-bg: #1d2021;
+    --aether-card-bg: #3c3836;
+    --aether-headerbar-bg: #1d2021;
+    --aether-sidebar-bg: #1d2021;
+    --aether-actionbar-bg: #1d2021;
+    
+    --aether-slider-bg: #83a598;
+    --aether-slider-trough-bg: alpha(#665c54, 0.3);
+    
+    --aether-suggested-button-bg: #98971a;
+    --aether-suggested-button-hover-bg: #b8bb26;
+    --aether-suggested-button-fg: #282828;
+    
+    --aether-destructive-button-bg: #cc241d;
+    --aether-destructive-button-hover-bg: #fb4934;
+    --aether-destructive-button-fg: #fbf1c7;
 }
 ```
 
-### Minimal Transparent Buttons
+#### Tokyo Night Theme
 ```css
 :root {
-    --aether-button-bg: transparent;
-    --aether-button-hover-bg: alpha(@accent_bg_color, 0.05);
-    --aether-button-active-bg: alpha(@accent_bg_color, 0.15);
-    --aether-button-border: transparent;
-    --aether-button-hover-border: alpha(@borders, 0.5);
+    --aether-button-bg: #1a1b26;
+    --aether-button-hover-bg: #24283b;
+    --aether-button-active-bg: #414868;
+    --aether-button-border: #414868;
+    --aether-button-hover-border: #7aa2f7;
+    
+    --aether-window-bg: #1a1b26;
+    --aether-view-bg: #16161e;
+    --aether-card-bg: #24283b;
+    --aether-headerbar-bg: #16161e;
+    --aether-sidebar-bg: #16161e;
+    --aether-actionbar-bg: #16161e;
+    
+    --aether-slider-bg: #7aa2f7;
+    --aether-slider-trough-bg: alpha(#414868, 0.3);
+    
+    --aether-suggested-button-bg: #9ece6a;
+    --aether-suggested-button-hover-bg: #b3e380;
+    --aether-suggested-button-fg: #1a1b26;
+    
+    --aether-destructive-button-bg: #f7768e;
+    --aether-destructive-button-hover-bg: #ff8fa3;
+    --aether-destructive-button-fg: #1a1b26;
 }
 ```
 
-### High Contrast
+#### Dracula Theme
 ```css
 :root {
-    --aether-button-bg: #000000;
-    --aether-button-hover-bg: #ffffff;
-    --aether-button-border: #ffffff;
-    --aether-button-hover-border: #000000;
-}
-
-button:hover {
-    color: #000000;
+    --aether-button-bg: #282a36;
+    --aether-button-hover-bg: #44475a;
+    --aether-button-active-bg: #6272a4;
+    --aether-button-border: #6272a4;
+    --aether-button-hover-border: #bd93f9;
+    
+    --aether-window-bg: #282a36;
+    --aether-view-bg: #21222c;
+    --aether-card-bg: #44475a;
+    --aether-headerbar-bg: #21222c;
+    --aether-sidebar-bg: #21222c;
+    --aether-actionbar-bg: #21222c;
+    
+    --aether-slider-bg: #bd93f9;
+    --aether-slider-trough-bg: alpha(#6272a4, 0.3);
+    
+    --aether-suggested-button-bg: #50fa7b;
+    --aether-suggested-button-hover-bg: #69ff94;
+    --aether-suggested-button-fg: #282a36;
+    
+    --aether-destructive-button-bg: #ff5555;
+    --aether-destructive-button-hover-bg: #ff6e6e;
+    --aether-destructive-button-fg: #f8f8f2;
 }
 ```
 

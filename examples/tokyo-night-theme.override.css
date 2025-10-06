@@ -1,0 +1,28 @@
+/* Tokyo Night Theme for Aether */
+
+:root {
+    --aether-button-bg: #1a1b26;
+    --aether-button-hover-bg: #24283b;
+    --aether-button-active-bg: #414868;
+    --aether-button-border: #414868;
+    --aether-button-hover-border: #7aa2f7;
+    
+    --aether-window-bg: #1a1b26;
+    --aether-view-bg: #16161e;
+    --aether-card-bg: #24283b;
+    --aether-headerbar-bg: #16161e;
+    --aether-sidebar-bg: #16161e;
+    --aether-actionbar-bg: #16161e;
+    
+    /* Slider colors */
+    --aether-slider-bg: #7aa2f7;
+    --aether-slider-trough-bg: alpha(#414868, 0.3);
+    
+    --aether-suggested-button-bg: #9ece6a;
+    --aether-suggested-button-hover-bg: #b3e380;
+    --aether-suggested-button-fg: #1a1b26;
+    
+    --aether-destructive-button-bg: #f7768e;
+    --aether-destructive-button-hover-bg: #ff8fa3;
+    --aether-destructive-button-fg: #1a1b26;
+}

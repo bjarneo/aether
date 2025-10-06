@@ -181,3 +181,178 @@ SettingsSidebar → 'harmony-generated' → PaletteGenerator.applyHarmony()
 **Theme output:**
 - Generated configs: `~/.config/omarchy/themes/aether/`
 - Wallpaper copy: `~/.config/omarchy/themes/aether/backgrounds/`
+
+## Theming System
+
+**IMPORTANT:** Aether has a comprehensive theming system that must be considered when adding new UI elements.
+
+### Theme Manager (`src/services/theme-manager.js`)
+
+The theme system uses CSS variables to allow user customization with live reload. When adding new UI elements, ensure they use the appropriate theme variables.
+
+### Available CSS Variables (19 total)
+
+**Buttons (5 variables):**
+- `--aether-button-bg` - Normal button background
+- `--aether-button-hover-bg` - Button hover background
+- `--aether-button-active-bg` - Button pressed background
+- `--aether-button-border` - Button border color
+- `--aether-button-hover-border` - Button hover border color
+
+**Backgrounds (6 variables):**
+- `--aether-window-bg` - Main window background
+- `--aether-view-bg` - Content area background
+- `--aether-card-bg` - Card/panel background
+- `--aether-headerbar-bg` - Header bar background
+- `--aether-sidebar-bg` - Sidebar background
+- `--aether-actionbar-bg` - Action bar (button wrapper) background
+
+**Sliders (2 variables):**
+- `--aether-slider-bg` - Slider handle/knob color
+- `--aether-slider-trough-bg` - Slider track background
+
+**Suggested Buttons (3 variables):**
+- `--aether-suggested-button-bg` - Apply/Save button background
+- `--aether-suggested-button-hover-bg` - Hover state
+- `--aether-suggested-button-fg` - Text color
+
+**Destructive Buttons (3 variables):**
+- `--aether-destructive-button-bg` - Delete/Remove button background
+- `--aether-destructive-button-hover-bg` - Hover state
+- `--aether-destructive-button-fg` - Text color
+
+### Unified Accent Color System
+
+**CRITICAL:** All accent/interactive elements MUST use the suggested button color variables, NOT hardcoded blue colors.
+
+Elements that use `--aether-suggested-button-bg` for consistency:
+- Checkboxes (when checked)
+- Switches/toggles (when active)
+- Expander arrows (when expanded)
+- Links
+- Selections (highlighted text/items)
+- Progress bars
+- Spinners
+- Any other "active" or "selected" state indicators
+
+### When Adding New UI Elements
+
+**1. For buttons:**
+```javascript
+// Use css_classes for proper theming
+const myButton = new Gtk.Button({
+    label: 'My Action',
+    css_classes: ['suggested-action'], // or ['destructive-action']
+});
+```
+
+**2. For custom backgrounds:**
+```javascript
+// Use theme variables, not hardcoded colors
+const css = `
+    * {
+        background-color: var(--aether-card-bg);
+        border-radius: 0px; /* Sharp corners for Hyprland style */
+    }
+`;
+```
+
+**3. For interactive elements (checkboxes, switches, etc.):**
+- DO NOT hardcode blue colors (#89b4fa, etc.)
+- Let the theme system handle colors via CSS in theme-manager.js
+- If adding new interactive elements, add CSS rules to theme-manager.js
+
+**4. For accent colors:**
+```css
+/* WRONG - hardcoded blue */
+.my-element:active {
+    color: #89b4fa;
+}
+
+/* RIGHT - uses theme accent */
+.my-element:active {
+    color: var(--aether-suggested-button-bg);
+}
+```
+
+### Adding New CSS Rules
+
+When adding new UI components that need theming, add CSS rules to `src/services/theme-manager.js` in the `_createBaseTheme()` method:
+
+```javascript
+// Example: Adding a new component
+/* My New Component */
+.my-component {
+    background-color: var(--aether-card-bg);
+}
+
+.my-component:active {
+    background-color: var(--aether-suggested-button-bg);
+    color: var(--aether-suggested-button-fg);
+}
+```
+
+### Design Principles
+
+1. **Sharp Corners:** All UI elements use `border-radius: 0px` for Hyprland aesthetic
+2. **Unified Accents:** All interactive/active states use suggested button color
+3. **High Contrast:** Proper contrast between background and foreground colors
+4. **Live Reload:** Changes to theme files apply instantly without restart
+5. **No Hardcoded Colors:** Always use CSS variables from the theme system
+
+### Testing New Components
+
+After adding new UI elements:
+1. Test with multiple themes (Gruvbox, Tokyo Night, Dracula, etc.)
+2. Verify all interactive states use the correct theme colors
+3. Check that accent colors match the suggested button color (not default blue)
+4. Ensure sharp corners are maintained
+5. Test with both light and dark system themes
+
+### Theme Files Location
+
+- **Base theme:** `~/.config/aether/theme.css` (auto-generated, do not edit)
+- **User overrides:** `~/.config/aether/theme.override.css` (user editable)
+- **Examples:** `examples/*-theme.override.css` (19 pre-made themes)
+- **Documentation:** `THEMING.md` (complete theming guide)
+
+### Common Mistakes to Avoid
+
+❌ Hardcoding blue accent colors
+❌ Using rounded corners (border-radius > 0)
+❌ Not testing with different themes
+❌ Forgetting to add CSS rules for new interactive elements
+❌ Using inline styles instead of CSS variables
+❌ Not documenting new theme variables
+
+✅ Use theme variables for all colors
+✅ Maintain sharp corners everywhere
+✅ Test with multiple themes
+✅ Add CSS rules to theme-manager.js
+✅ Use suggested button color for all accents
+✅ Document any new variables in override template
+
+## Quick Reference: Adding New UI Elements
+
+**Checklist when adding any new UI component:**
+
+- [ ] Use appropriate CSS variable for background colors
+- [ ] Set `border-radius: 0px` for all visual elements
+- [ ] For buttons, use `css_classes: ['suggested-action']` or `['destructive-action']`
+- [ ] For interactive elements (checkboxes, switches), add CSS rules in theme-manager.js
+- [ ] Use `var(--aether-suggested-button-bg)` for all accent/active states
+- [ ] Avoid hardcoded colors (especially blues like #89b4fa)
+- [ ] Test with at least 3 different themes (Gruvbox, Tokyo Night, Dracula)
+- [ ] Verify live reload works with your changes
+- [ ] Check both light and dark mode compatibility
+- [ ] Update theme variable documentation if adding new variables
+- [ ] Add example CSS to theme examples if needed
+
+**Quick Theme Variable Reference:**
+```
+Backgrounds: --aether-window-bg, --aether-view-bg, --aether-card-bg, --aether-sidebar-bg
+Buttons: --aether-button-bg, --aether-button-hover-bg, --aether-button-border
+Accents: --aether-suggested-button-bg (USE THIS FOR ALL BLUE/ACTIVE STATES)
+Sliders: --aether-slider-bg, --aether-slider-trough-bg
+Destructive: --aether-destructive-button-bg
+```

@@ -263,8 +263,15 @@ export const SettingsSidebar = GObject.registerClass({
             const colorBox = new Gtk.Box({
                 css_classes: ['card'],
                 hexpand: true,
+                height_request: 30,
             });
-            const css = `* { background-color: ${color}; border-radius: 0px; }`;
+            const css = `
+                * { 
+                    background-color: ${color} !important; 
+                    border-radius: 0px;
+                    min-height: 30px;
+                }
+            `;
             applyCssToWidget(colorBox, css);
             this._harmonyPreviewBox.append(colorBox);
         });
@@ -477,7 +484,7 @@ export const SettingsSidebar = GObject.registerClass({
                     height_request: 20,
                     css_classes: ['card'],
                 });
-                const css = `* { background-color: ${color}; border-radius: 0px; }`;
+                const css = `* { background-color: ${color} !important; border-radius: 0px; min-width: 20px; min-height: 20px; }`;
                 applyCssToWidget(colorBox, css);
                 previewBox.append(colorBox);
             });

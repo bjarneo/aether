@@ -1,0 +1,28 @@
+/* Andromeda Theme for Aether */
+
+:root {
+    --aether-button-bg: #23262e;
+    --aether-button-hover-bg: #2b2e38;
+    --aether-button-active-bg: #363943;
+    --aether-button-border: #666b81;
+    --aether-button-hover-border: #00a9f9;
+    
+    --aether-window-bg: #23262e;
+    --aether-view-bg: #1b1e24;
+    --aether-card-bg: #2b2e38;
+    --aether-headerbar-bg: #1b1e24;
+    --aether-sidebar-bg: #1b1e24;
+    --aether-actionbar-bg: #1b1e24;
+    
+    /* Slider colors */
+    --aether-slider-bg: #00a9f9;
+    --aether-slider-trough-bg: alpha(#666b81, 0.3);
+    
+    --aether-suggested-button-bg: #96e072;
+    --aether-suggested-button-hover-bg: #a7e885;
+    --aether-suggested-button-fg: #23262e;
+    
+    --aether-destructive-button-bg: #ee5d43;
+    --aether-destructive-button-hover-bg: #f27056;
+    --aether-destructive-button-fg: #d5ced9;
+}

@@ -1,0 +1,39 @@
+/* Gruvbox Dark Theme for Aether
+ * Based on the Gruvbox color scheme by Pavel Pertsev (morhetz)
+ * 
+ * To use this theme:
+ * 1. Copy this file to ~/.config/aether/theme.override.css
+ * 2. Save and watch the theme apply instantly!
+ */
+
+:root {
+    /* Button colors */
+    --aether-button-bg: #282828;
+    --aether-button-hover-bg: #3c3836;
+    --aether-button-active-bg: #504945;
+    --aether-button-border: #665c54;
+    --aether-button-hover-border: #83a598;
+    
+    /* Background colors */
+    --aether-window-bg: #282828;
+    --aether-view-bg: #1d2021;
+    --aether-card-bg: #3c3836;
+    --aether-headerbar-bg: #1d2021;
+    --aether-sidebar-bg: #1d2021;
+    --aether-actionbar-bg: #1d2021;
+    
+    /* Slider colors */
+    --aether-slider-bg: #83a598;
+    --aether-slider-trough-bg: alpha(#665c54, 0.3);
+    
+    /* Suggested action buttons (Apply, OK, etc) */
+    --aether-suggested-button-bg: #98971a;
+    --aether-suggested-button-hover-bg: #b8bb26;
+    --aether-suggested-button-fg: #282828;
+    
+    /* Destructive action buttons (Delete, Remove, etc) */
+    --aether-destructive-button-bg: #cc241d;
+    --aether-destructive-button-hover-bg: #fb4934;
+    --aether-destructive-button-fg: #fbf1c7;
+}
+

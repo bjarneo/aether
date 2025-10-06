@@ -1,0 +1,28 @@
+/* Ayu Mirage Theme for Aether */
+
+:root {
+    --aether-button-bg: #1f2430;
+    --aether-button-hover-bg: #272d38;
+    --aether-button-active-bg: #34404f;
+    --aether-button-border: #707a8c;
+    --aether-button-hover-border: #73d0ff;
+    
+    --aether-window-bg: #1f2430;
+    --aether-view-bg: #171b24;
+    --aether-card-bg: #272d38;
+    --aether-headerbar-bg: #171b24;
+    --aether-sidebar-bg: #171b24;
+    --aether-actionbar-bg: #171b24;
+    
+    /* Slider colors */
+    --aether-slider-bg: #73d0ff;
+    --aether-slider-trough-bg: alpha(#707a8c, 0.3);
+    
+    --aether-suggested-button-bg: #d5ff80;
+    --aether-suggested-button-hover-bg: #deff99;
+    --aether-suggested-button-fg: #1f2430;
+    
+    --aether-destructive-button-bg: #f28779;
+    --aether-destructive-button-hover-bg: #f59c8d;
+    --aether-destructive-button-fg: #cbccc6;
+}

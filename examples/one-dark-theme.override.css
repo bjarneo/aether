@@ -1,0 +1,28 @@
+/* One Dark Theme for Aether */
+
+:root {
+    --aether-button-bg: #282c34;
+    --aether-button-hover-bg: #2c313a;
+    --aether-button-active-bg: #3e4451;
+    --aether-button-border: #5c6370;
+    --aether-button-hover-border: #61afef;
+    
+    --aether-window-bg: #282c34;
+    --aether-view-bg: #21252b;
+    --aether-card-bg: #2c313a;
+    --aether-headerbar-bg: #21252b;
+    --aether-sidebar-bg: #21252b;
+    --aether-actionbar-bg: #21252b;
+    
+    /* Slider colors */
+    --aether-slider-bg: #61afef;
+    --aether-slider-trough-bg: alpha(#5c6370, 0.3);
+    
+    --aether-suggested-button-bg: #98c379;
+    --aether-suggested-button-hover-bg: #a9d38c;
+    --aether-suggested-button-fg: #282c34;
+    
+    --aether-destructive-button-bg: #e06c75;
+    --aether-destructive-button-hover-bg: #e88388;
+    --aether-destructive-button-fg: #ffffff;
+}

@@ -1,0 +1,28 @@
+/* Kanagawa Theme for Aether */
+
+:root {
+    --aether-button-bg: #1f1f28;
+    --aether-button-hover-bg: #2a2a37;
+    --aether-button-active-bg: #363646;
+    --aether-button-border: #363646;
+    --aether-button-hover-border: #7e9cd8;
+    
+    --aether-window-bg: #1f1f28;
+    --aether-view-bg: #16161d;
+    --aether-card-bg: #2a2a37;
+    --aether-headerbar-bg: #16161d;
+    --aether-sidebar-bg: #16161d;
+    --aether-actionbar-bg: #16161d;
+    
+    /* Slider colors */
+    --aether-slider-bg: #7e9cd8;
+    --aether-slider-trough-bg: alpha(#363646, 0.3);
+    
+    --aether-suggested-button-bg: #76946a;
+    --aether-suggested-button-hover-bg: #98bb6c;
+    --aether-suggested-button-fg: #dcd7ba;
+    
+    --aether-destructive-button-bg: #c34043;
+    --aether-destructive-button-hover-bg: #e82424;
+    --aether-destructive-button-fg: #dcd7ba;
+}
