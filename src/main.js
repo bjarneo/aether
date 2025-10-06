@@ -12,6 +12,7 @@ import { ColorSynthesizer } from './components/ColorSynthesizer.js';
 import { BlueprintManager } from './components/BlueprintManager.js';
 import { SettingsSidebar } from './components/SettingsSidebar.js';
 import { ConfigWriter } from './utils/ConfigWriter.js';
+import { ThemeManager } from './services/theme-manager.js';
 
 Adw.init();
 
@@ -83,6 +84,11 @@ const applyGlobalSharpCorners = () => {
 
 applyGlobalSharpCorners();
 
+// Initialize theme manager with live reload
+const themeManager = new ThemeManager();
+console.log(`Base theme: ${themeManager.getThemePath()}`);
+console.log(`Override theme: ${themeManager.getOverridePath()} (edit this file)`);
+
 const AetherApplication = GObject.registerClass(
     class AetherApplication extends Adw.Application {
         _init() {
@@ -90,6 +96,7 @@ const AetherApplication = GObject.registerClass(
                 application_id: 'com.aether.DesktopSynthesizer',
                 flags: Gio.ApplicationFlags.FLAGS_NONE,
             });
+            this.themeManager = themeManager;
         }
 
         vfunc_activate() {
@@ -98,6 +105,13 @@ const AetherApplication = GObject.registerClass(
                 window = new AetherWindow(this);
             }
             window.present();
+        }
+        
+        vfunc_shutdown() {
+            if (this.themeManager) {
+                this.themeManager.destroy();
+            }
+            super.vfunc_shutdown();
         }
     }
 );
@@ -222,6 +236,15 @@ const AetherWindow = GObject.registerClass(
             });
             blueprintsButton.connect('clicked', () => this._showBlueprintsDialog());
             actionBar.pack_start(blueprintsButton);
+            
+            const themeButton = new Gtk.Button({
+                icon_name: 'preferences-color-symbolic',
+                tooltip_text: 'Edit Theme (Live Reload)',
+            });
+            themeButton.connect('clicked', () => {
+                this.application.themeManager.openThemeFile();
+            });
+            actionBar.pack_start(themeButton);
 
             const exportButton = new Gtk.Button({ label: 'Export Theme' });
             exportButton.connect('clicked', () => this._exportTheme());
