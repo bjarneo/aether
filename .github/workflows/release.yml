@@ -14,12 +14,40 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n 1)
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, showing all commits"
+            PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
+          
+          # Generate changelog with commit title, author, and link
+          CHANGELOG=$(git log $PREVIOUS_TAG..${{ github.ref_name }} --pretty=format:"- %s by @%an ([%h](https://github.com/${{ github.repository }}/commit/%H))" --no-merges)
+          
+          # Save to file and environment variable
+          echo "$CHANGELOG" > changelog.md
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          generate_release_notes: true
+          generate_release_notes: false
           body: |
+            ## What's Changed
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
             ## Installation
 
             ### From AUR
