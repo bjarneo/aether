@@ -65,7 +65,7 @@ export const PaletteGenerator = GObject.registerClass({
         this._wallhavenSettingsButton = new Gtk.Button({
             icon_name: 'preferences-system-symbolic',
             tooltip_text: 'Wallhaven Settings',
-            css_classes: ['flat', 'circular'],
+            css_classes: ['flat'],
             valign: Gtk.Align.CENTER,
         });
         this._wallhavenSettingsButton.connect('clicked', () => {

@@ -58,7 +58,7 @@ export class ColorSwatchGrid {
         const css = `
             .color-swatch {
                 background-color: ${color};
-                border-radius: 6px;
+                border-radius: 0px;
                 border: ${borderStyle};
                 min-width: ${SWATCH_DIMENSIONS.default.width}px;
                 min-height: ${SWATCH_DIMENSIONS.default.height}px;
@@ -81,14 +81,14 @@ export class ColorSwatchGrid {
             margin_top: 2,
             margin_end: 2,
             opacity: isLocked ? 1.0 : 0.0,
-            css_classes: ['lock-button', 'flat', 'circular'],
+            css_classes: ['lock-button', 'flat'],
             tooltip_text: isLocked ? 'Click to unlock' : 'Click to lock',
         });
 
         const iconCss = `
             .lock-button {
                 background-color: alpha(@window_bg_color, 0.9);
-                border-radius: 6px;
+                border-radius: 0px;
                 padding: 2px;
                 min-width: 20px;
                 min-height: 20px;

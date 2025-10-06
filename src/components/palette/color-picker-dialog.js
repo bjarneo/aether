@@ -98,7 +98,7 @@ export class ColorPickerDialog {
         const css = `
             .color-swatch {
                 background-color: ${shade};
-                border-radius: 6px;
+                border-radius: 0px;
                 ${borderStyle}
             }
             .color-swatch:hover {

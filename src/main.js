@@ -4,6 +4,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
+import Gdk from 'gi://Gdk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
 import { PaletteGenerator } from './components/PaletteGenerator.js';
@@ -13,6 +14,74 @@ import { SettingsSidebar } from './components/SettingsSidebar.js';
 import { ConfigWriter } from './utils/ConfigWriter.js';
 
 Adw.init();
+
+// Apply global CSS to remove all rounded corners (Hyprland style)
+const applyGlobalSharpCorners = () => {
+    const cssProvider = new Gtk.CssProvider();
+    const css = `
+        /* Remove all rounded corners for sharp Hyprland aesthetic */
+        * {
+            border-radius: 0px;
+        }
+        
+        .card {
+            border-radius: 0px;
+        }
+        
+        button {
+            border-radius: 0px;
+        }
+        
+        .boxed-list {
+            border-radius: 0px;
+        }
+        
+        .boxed-list > row {
+            border-radius: 0px;
+        }
+        
+        entry {
+            border-radius: 0px;
+        }
+        
+        .toolbar {
+            border-radius: 0px;
+        }
+        
+        headerbar {
+            border-radius: 0px;
+        }
+        
+        popover {
+            border-radius: 0px;
+        }
+        
+        dialog {
+            border-radius: 0px;
+        }
+        
+        menu {
+            border-radius: 0px;
+        }
+        
+        menubutton {
+            border-radius: 0px;
+        }
+        
+        .background {
+            border-radius: 0px;
+        }
+    `;
+    
+    cssProvider.load_from_string(css);
+    Gtk.StyleContext.add_provider_for_display(
+        Gdk.Display.get_default(),
+        cssProvider,
+        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+    );
+};
+
+applyGlobalSharpCorners();
 
 const AetherApplication = GObject.registerClass(
     class AetherApplication extends Adw.Application {

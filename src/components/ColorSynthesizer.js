@@ -81,7 +81,7 @@ export const ColorSynthesizer = GObject.registerClass({
                 background-color: ${hexColor};
                 min-width: 48px;
                 min-height: 32px;
-                border-radius: 6px;
+                border-radius: 0px;
             }
         `;
         applyCssToWidget(button, css);

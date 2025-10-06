@@ -264,7 +264,7 @@ export const SettingsSidebar = GObject.registerClass({
                 css_classes: ['card'],
                 hexpand: true,
             });
-            const css = `* { background-color: ${color}; border-radius: 6px; }`;
+            const css = `* { background-color: ${color}; border-radius: 0px; }`;
             applyCssToWidget(colorBox, css);
             this._harmonyPreviewBox.append(colorBox);
         });
@@ -477,7 +477,7 @@ export const SettingsSidebar = GObject.registerClass({
                     height_request: 20,
                     css_classes: ['card'],
                 });
-                const css = `* { background-color: ${color}; border-radius: 3px; }`;
+                const css = `* { background-color: ${color}; border-radius: 0px; }`;
                 applyCssToWidget(colorBox, css);
                 previewBox.append(colorBox);
             });
