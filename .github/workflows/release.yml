@@ -31,7 +31,7 @@ jobs:
           echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
           
           # Generate changelog with commit title, author, and link
-          CHANGELOG=$(git log $PREVIOUS_TAG..${{ github.ref_name }} --pretty=format:"- %s by @%an ([%h](https://github.com/${{ github.repository }}/commit/%H))" --no-merges)
+          CHANGELOG=$(git log $PREVIOUS_TAG..${{ github.ref_name }} --pretty=format:"- %s by %an ([%h](https://github.com/${{ github.repository }}/commit/%H))" --no-merges)
           
           # Save to file and environment variable
           echo "$CHANGELOG" > changelog.md
