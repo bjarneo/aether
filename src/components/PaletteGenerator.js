@@ -36,17 +36,12 @@ export const PaletteGenerator = GObject.registerClass({
         // View stack for the modes
         this._viewStack = new Adw.ViewStack();
 
-        // Tab 1: Wallpaper Extraction
-        const wallpaperView = this._createWallpaperView();
-        const wallpaperPage = this._viewStack.add_titled(wallpaperView, 'wallpaper', 'From Wallpaper');
-        wallpaperPage.set_icon_name('image-x-generic-symbolic');
+        // Tab 1: Unified Palette Editor (combines wallpaper + custom)
+        const paletteView = this._createPaletteEditorView();
+        const palettePage = this._viewStack.add_titled(paletteView, 'editor', 'Palette Editor');
+        palettePage.set_icon_name('preferences-color-symbolic');
 
-        // Tab 2: Custom Palette
-        const customView = this._createCustomView();
-        const customPage = this._viewStack.add_titled(customView, 'custom', 'Custom');
-        customPage.set_icon_name('preferences-color-symbolic');
-
-        // Tab 3: Find Wallpaper
+        // Tab 2: Find Wallpaper
         this._wallpaperBrowser = new WallpaperBrowser();
         this._wallpaperBrowser.connect('wallpaper-selected', (_, path) => {
             this._onWallpaperBrowserSelected(path);
@@ -83,30 +78,14 @@ export const PaletteGenerator = GObject.registerClass({
         this.append(headerBox);
         this.append(this._viewStack);
 
-        // Color preview container
-        const previewBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 8,
-            margin_top: 6,
-            margin_bottom: 6,
-        });
-
-        // Color swatch grid
-        this._swatchGrid = new ColorSwatchGrid((index, color, swatch) => {
-            this._openColorPicker(index, color, swatch);
-        });
-        previewBox.append(this._swatchGrid.widget);
-
-        this.append(previewBox);
-
-        // Load default colors for custom tab after UI is ready
+        // Load default colors after UI is ready
         GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             this._loadDefaultCustomColors();
             return GLib.SOURCE_REMOVE;
         });
     }
 
-    _createWallpaperView() {
+    _createPaletteEditorView() {
         const viewBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 12,
@@ -114,18 +93,86 @@ export const PaletteGenerator = GObject.registerClass({
         });
 
         // Wallpaper selection row
-        viewBox.append(this._createWallpaperRow());
+        const wallpaperRow = new Adw.ActionRow({
+            title: 'Wallpaper',
+            subtitle: 'Select an image for reference or extraction',
+        });
 
-        // Loading spinner
-        this._spinner = new Gtk.Spinner({
+        const selectButton = new Gtk.Button({
+            icon_name: 'document-open-symbolic',
+            valign: Gtk.Align.CENTER,
+            tooltip_text: 'Select wallpaper',
+        });
+        selectButton.connect('clicked', () => this._selectWallpaper());
+        wallpaperRow.add_suffix(selectButton);
+
+        this._setupDropTarget(wallpaperRow);
+        viewBox.append(wallpaperRow);
+
+        // Extract colors section (only visible when wallpaper is loaded)
+        this._extractSection = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 6,
+            halign: Gtk.Align.START,
             margin_top: 12,
-            margin_bottom: 12,
-            width_request: 32,
-            height_request: 32,
-            halign: Gtk.Align.CENTER,
             visible: false,
         });
-        viewBox.append(this._spinner);
+
+        // Button and spinner row
+        const extractActionRow = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 12,
+            halign: Gtk.Align.START,
+        });
+
+        const extractButtonBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 6,
+        });
+
+        const extractIcon = new Gtk.Image({
+            icon_name: 'color-select-symbolic',
+        });
+
+        const extractLabel = new Gtk.Label({
+            label: 'Extract',
+        });
+
+        extractButtonBox.append(extractIcon);
+        extractButtonBox.append(extractLabel);
+
+        this._extractButton = new Gtk.Button({
+            child: extractButtonBox,
+            css_classes: ['suggested-action'],
+        });
+        this._extractButton.connect('clicked', () => {
+            if (this._currentWallpaper) {
+                this._extractColors(this._currentWallpaper);
+            }
+        });
+
+        // Loading spinner (on same line as button)
+        this._spinner = new Gtk.Spinner({
+            width_request: 24,
+            height_request: 24,
+            valign: Gtk.Align.CENTER,
+            visible: false,
+        });
+
+        extractActionRow.append(this._extractButton);
+        extractActionRow.append(this._spinner);
+
+        // Helper text below button
+        const extractHelperText = new Gtk.Label({
+            label: 'Extract colors from the wallpaper using pywal',
+            css_classes: ['dim-label', 'caption'],
+            wrap: true,
+            xalign: 0,
+        });
+
+        this._extractSection.append(extractActionRow);
+        this._extractSection.append(extractHelperText);
+        viewBox.append(this._extractSection);
 
         // Wallpaper preview
         this._wallpaperPreview = new Gtk.Picture({
@@ -133,44 +180,32 @@ export const PaletteGenerator = GObject.registerClass({
             can_shrink: true,
             css_classes: ['card'],
             hexpand: true,
+            visible: false,
         });
         viewBox.append(this._wallpaperPreview);
 
-        return viewBox;
-    }
-
-    _createCustomView() {
-        const viewBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
+        // Color swatch grid section
+        const colorsLabel = new Gtk.Label({
+            label: 'Color Palette',
+            xalign: 0,
             margin_top: 12,
+            css_classes: ['title-4'],
         });
+        viewBox.append(colorsLabel);
 
-        // Wallpaper for reference
-        const wallpaperReferenceRow = new Adw.ActionRow({
-            title: 'Add Wallpaper',
-            subtitle: 'Select wallpaper for visual reference',
+        const colorsSubtitle = new Gtk.Label({
+            label: 'Click any color to manually edit',
+            xalign: 0,
+            margin_bottom: 6,
+            css_classes: ['dim-label', 'caption'],
         });
+        viewBox.append(colorsSubtitle);
 
-        const selectRefButton = new Gtk.Button({
-            icon_name: 'document-open-symbolic',
-            valign: Gtk.Align.CENTER,
-            tooltip_text: 'Select wallpaper',
+        // Color swatch grid
+        this._swatchGrid = new ColorSwatchGrid((index, color, swatch) => {
+            this._openColorPicker(index, color, swatch);
         });
-        selectRefButton.connect('clicked', () => this._selectCustomWallpaper());
-        wallpaperReferenceRow.add_suffix(selectRefButton);
-
-        viewBox.append(wallpaperReferenceRow);
-
-        // Custom wallpaper preview
-        this._customWallpaperPreview = new Gtk.Picture({
-            height_request: 200,
-            can_shrink: true,
-            css_classes: ['card'],
-            hexpand: true,
-            visible: false,
-        });
-        viewBox.append(this._customWallpaperPreview);
+        viewBox.append(this._swatchGrid.widget);
 
         return viewBox;
     }
@@ -201,61 +236,12 @@ export const PaletteGenerator = GObject.registerClass({
         this.emit('palette-generated', defaultColors);
     }
 
-    _selectCustomWallpaper() {
-        const dialog = new Gtk.FileDialog({ title: 'Select Wallpaper Reference' });
-
-        const filter = new Gtk.FileFilter();
-        filter.add_mime_type('image/png');
-        filter.add_mime_type('image/jpeg');
-        filter.add_mime_type('image/webp');
-        filter.set_name('Images');
-
-        const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
-        filterList.append(filter);
-        dialog.set_filters(filterList);
-
-        dialog.open(this.get_root(), null, (source, result) => {
-            try {
-                const file = dialog.open_finish(result);
-                if (file) {
-                    this._currentWallpaper = file.get_path();
-                    this._customWallpaperPreview.set_file(file);
-                    this._customWallpaperPreview.set_visible(true);
-                }
-            } catch (e) {
-                if (!e.matches(Gtk.DialogError, Gtk.DialogError.DISMISSED)) {
-                    console.error('Error selecting file:', e.message);
-                }
-            }
-        });
-    }
-
-    _createWallpaperRow() {
-        const row = new Adw.ActionRow({
-            title: 'Wallpaper',
-            subtitle: 'Select an image to extract colors',
-        });
-
-        const selectButton = new Gtk.Button({
-            icon_name: 'document-open-symbolic',
-            valign: Gtk.Align.CENTER,
-            tooltip_text: 'Select wallpaper',
-        });
-        selectButton.connect('clicked', () => this._selectWallpaper());
-        row.add_suffix(selectButton);
-
-        this._setupDropTarget(row);
-
-        return row;
-    }
-
-
     _setupDropTarget(widget) {
         const dropTarget = Gtk.DropTarget.new(Gio.File.$gtype, Gdk.DragAction.COPY);
 
         dropTarget.connect('drop', (target, value) => {
             if (value instanceof Gio.File) {
-                this.loadWallpaper(value.get_path());
+                this.loadWallpaperWithoutExtraction(value.get_path());
                 return true;
             }
             return false;
@@ -281,7 +267,7 @@ export const PaletteGenerator = GObject.registerClass({
             try {
                 const file = dialog.open_finish(result);
                 if (file) {
-                    this.loadWallpaper(file.get_path());
+                    this.loadWallpaperWithoutExtraction(file.get_path());
                 }
             } catch (e) {
                 if (!e.matches(Gtk.DialogError, Gtk.DialogError.DISMISSED)) {
@@ -292,38 +278,31 @@ export const PaletteGenerator = GObject.registerClass({
     }
 
     loadWallpaper(path) {
+        // Load wallpaper without extraction - user must click extract button
         this._currentWallpaper = path;
 
         const file = Gio.File.new_for_path(path);
         this._wallpaperPreview.set_file(file);
-
-        // Also set custom wallpaper preview if it exists
-        if (this._customWallpaperPreview) {
-            this._customWallpaperPreview.set_file(file);
-            this._customWallpaperPreview.set_visible(true);
-        }
-
-        this._extractColors(path);
+        this._wallpaperPreview.set_visible(true);
+        this._extractSection.set_visible(true);
     }
 
     _onWallpaperBrowserSelected(path) {
-        // Switch to wallpaper extraction tab
-        this._viewStack.set_visible_child_name('wallpaper');
+        // Switch to editor tab
+        this._viewStack.set_visible_child_name('editor');
 
-        // Load the wallpaper and extract colors
+        // Load the wallpaper without auto-extraction
         this.loadWallpaper(path);
     }
 
     loadWallpaperWithoutExtraction(path) {
-        // For blueprints loaded in custom tab - just set wallpaper preview, don't extract
+        // For manual selection - just show wallpaper and extract button, don't auto-extract
         this._currentWallpaper = path;
 
         const file = Gio.File.new_for_path(path);
-
-        if (this._customWallpaperPreview) {
-            this._customWallpaperPreview.set_file(file);
-            this._customWallpaperPreview.set_visible(true);
-        }
+        this._wallpaperPreview.set_file(file);
+        this._wallpaperPreview.set_visible(true);
+        this._extractSection.set_visible(true);
     }
 
     _extractColors(imagePath) {
@@ -442,10 +421,15 @@ export const PaletteGenerator = GObject.registerClass({
         };
     }
 
-    switchToCustomTab() {
+    switchToEditorTab() {
         if (this._viewStack) {
-            this._viewStack.set_visible_child_name('custom');
+            this._viewStack.set_visible_child_name('editor');
         }
+    }
+
+    // Kept for backwards compatibility
+    switchToCustomTab() {
+        this.switchToEditorTab();
     }
 
     loadBlueprintPalette(palette) {
@@ -471,10 +455,7 @@ export const PaletteGenerator = GObject.registerClass({
 
     setLightMode(lightMode) {
         this._lightMode = lightMode;
-        // Re-extract colors if wallpaper is already loaded
-        if (this._currentWallpaper) {
-            this._extractColors(this._currentWallpaper);
-        }
+        // Don't re-extract automatically - user must click the extract button
     }
 
     getLightMode() {
