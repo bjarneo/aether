@@ -213,6 +213,10 @@ const AetherWindow = GObject.registerClass(
             this.settingsSidebar.connect('gradient-generated', (_, colors) => {
                 this.paletteGenerator.applyHarmony(colors);
             });
+
+            this.settingsSidebar.connect('light-mode-changed', (_, lightMode) => {
+                this.paletteGenerator.setLightMode(lightMode);
+            });
         }
 
         _updateAccessibility() {
@@ -234,6 +238,11 @@ const AetherWindow = GObject.registerClass(
                 if (blueprint.palette) {
                     this.paletteGenerator.loadBlueprintPalette(blueprint.palette);
 
+                    // Sync light mode to sidebar
+                    if (blueprint.palette.lightMode !== undefined) {
+                        this.settingsSidebar.setLightMode(blueprint.palette.lightMode);
+                    }
+
                     // Auto-assign color roles from palette
                     if (blueprint.palette.colors) {
                         this.colorSynthesizer.setPalette(blueprint.palette.colors);
@@ -251,7 +260,8 @@ const AetherWindow = GObject.registerClass(
                 const colors = this.colorSynthesizer.getColors();
                 const palette = this.paletteGenerator.getPalette();
                 const settings = this.settingsSidebar.getSettings();
-                this.configWriter.applyTheme(colors, palette.wallpaper, settings, palette.lightMode);
+                const lightMode = this.settingsSidebar.getLightMode();
+                this.configWriter.applyTheme(colors, palette.wallpaper, settings, lightMode);
             } catch (e) {
                 console.error(`Error applying theme: ${e.message}`);
             }
@@ -292,8 +302,11 @@ const AetherWindow = GObject.registerClass(
         }
 
         _saveBlueprint() {
+            const palette = this.paletteGenerator.getPalette();
+            palette.lightMode = this.settingsSidebar.getLightMode();
+            
             const blueprint = {
-                palette: this.paletteGenerator.getPalette(),
+                palette: palette,
                 timestamp: Date.now(),
             };
 
@@ -359,12 +372,13 @@ const AetherWindow = GObject.registerClass(
                 const colors = this.colorSynthesizer.getColors();
                 const palette = this.paletteGenerator.getPalette();
                 const settings = this.settingsSidebar.getSettings();
+                const lightMode = this.settingsSidebar.getLightMode();
                 const themeDir = `omarchy-${themeName}-theme`;
                 const fullPath = GLib.build_filenamev([exportPath, themeDir]);
 
                 console.log(`Exporting theme to: ${fullPath}`);
 
-                this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName, settings, palette.lightMode);
+                this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName, settings, lightMode);
 
                 this._showSuccessDialog(fullPath);
             } catch (e) {

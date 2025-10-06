@@ -116,29 +116,6 @@ export const PaletteGenerator = GObject.registerClass({
         // Wallpaper selection row
         viewBox.append(this._createWallpaperRow());
 
-        // Light/Dark mode toggle
-        const modeRow = new Adw.ActionRow({
-            title: 'Light Mode',
-            subtitle: 'Generate light color scheme',
-        });
-
-        this._modeSwitch = new Gtk.Switch({
-            active: this._lightMode,
-            valign: Gtk.Align.CENTER,
-        });
-
-        this._modeSwitch.connect('notify::active', (sw) => {
-            this._lightMode = sw.get_active();
-            // Re-extract colors if wallpaper is already loaded
-            if (this._currentWallpaper) {
-                this._extractColors(this._currentWallpaper);
-            }
-        });
-
-        modeRow.add_suffix(this._modeSwitch);
-        modeRow.set_activatable_widget(this._modeSwitch);
-        viewBox.append(modeRow);
-
         // Loading spinner
         this._spinner = new Gtk.Spinner({
             margin_top: 12,
@@ -486,14 +463,22 @@ export const PaletteGenerator = GObject.registerClass({
         // Load light mode setting
         if (palette.lightMode !== undefined) {
             this._lightMode = palette.lightMode;
-            // Update the switch UI if it exists
-            if (this._modeSwitch) {
-                this._modeSwitch.set_active(palette.lightMode);
-            }
         }
 
         // Reset all locks when loading blueprint
         this._swatchGrid.setLockedColors(new Array(16).fill(false));
+    }
+
+    setLightMode(lightMode) {
+        this._lightMode = lightMode;
+        // Re-extract colors if wallpaper is already loaded
+        if (this._currentWallpaper) {
+            this._extractColors(this._currentWallpaper);
+        }
+    }
+
+    getLightMode() {
+        return this._lightMode;
     }
 
     get widget() {

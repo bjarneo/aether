@@ -19,6 +19,7 @@ export const SettingsSidebar = GObject.registerClass({
         'preset-applied': { param_types: [GObject.TYPE_JSOBJECT] },
         'harmony-generated': { param_types: [GObject.TYPE_JSOBJECT] },
         'gradient-generated': { param_types: [GObject.TYPE_JSOBJECT] },
+        'light-mode-changed': { param_types: [GObject.TYPE_BOOLEAN] },
     },
 }, class SettingsSidebar extends Gtk.Box {
     _init() {
@@ -28,6 +29,7 @@ export const SettingsSidebar = GObject.registerClass({
         });
 
         this._includeNeovim = true;
+        this._lightMode = false;
         this._initializeUI();
     }
 
@@ -46,6 +48,10 @@ export const SettingsSidebar = GObject.registerClass({
             margin_start: 12,
             margin_end: 12,
         });
+
+        // Light Mode Section
+        const lightModeGroup = this._createLightModeSection();
+        contentBox.append(lightModeGroup);
 
         // Color Adjustments Section (Collapsible)
         const adjustmentsExpander = this._createAdjustmentsSection();
@@ -73,6 +79,34 @@ export const SettingsSidebar = GObject.registerClass({
 
         scrolled.set_child(contentBox);
         this.append(scrolled);
+    }
+
+    _createLightModeSection() {
+        const group = new Adw.PreferencesGroup({
+            title: 'Theme Mode',
+        });
+
+        const lightModeRow = new Adw.ActionRow({
+            title: 'Light Mode',
+            subtitle: 'Generate light color scheme',
+        });
+
+        this._lightModeSwitch = new Gtk.Switch({
+            active: this._lightMode,
+            valign: Gtk.Align.CENTER,
+        });
+
+        this._lightModeSwitch.connect('notify::active', (sw) => {
+            this._lightMode = sw.get_active();
+            this.emit('light-mode-changed', this._lightMode);
+        });
+
+        lightModeRow.add_suffix(this._lightModeSwitch);
+        lightModeRow.set_activatable_widget(this._lightModeSwitch);
+
+        group.add(lightModeRow);
+
+        return group;
     }
 
     _createAdjustmentsSection() {
@@ -500,7 +534,17 @@ export const SettingsSidebar = GObject.registerClass({
     getSettings() {
         return {
             includeNeovim: this._includeNeovim,
+            lightMode: this._lightMode,
         };
+    }
+
+    setLightMode(lightMode) {
+        this._lightMode = lightMode;
+        this._lightModeSwitch.set_active(lightMode);
+    }
+
+    getLightMode() {
+        return this._lightMode;
     }
 
     get widget() {
