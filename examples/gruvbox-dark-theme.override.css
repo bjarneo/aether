@@ -24,7 +24,7 @@
     
     /* Slider colors */
     --aether-slider-bg: #83a598;
-    --aether-slider-trough-bg: alpha(#665c54, 0.3);
+    --aether-slider-trough-bg: rgba(102, 92, 84, 0.3);
     
     /* Suggested action buttons (Apply, OK, etc) */
     --aether-suggested-button-bg: #98971a;

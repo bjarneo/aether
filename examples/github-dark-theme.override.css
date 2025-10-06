@@ -16,7 +16,7 @@
     
     /* Slider colors */
     --aether-slider-bg: #58a6ff;
-    --aether-slider-trough-bg: alpha(#484f58, 0.3);
+    --aether-slider-trough-bg: rgba(72, 79, 88, 0.3);
     
     --aether-suggested-button-bg: #3fb950;
     --aether-suggested-button-hover-bg: #56d364;
