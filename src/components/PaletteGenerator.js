@@ -90,9 +90,12 @@ export const PaletteGenerator = GObject.registerClass({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 12,
             margin_top: 12,
+            hexpand: true,
         });
 
-        // Wallpaper selection row
+        // Wallpaper selection row - wrapped in PreferencesGroup for full width
+        const wallpaperGroup = new Adw.PreferencesGroup();
+        
         const wallpaperRow = new Adw.ActionRow({
             title: 'Wallpaper',
             subtitle: 'Select an image for reference or extraction',
@@ -107,13 +110,15 @@ export const PaletteGenerator = GObject.registerClass({
         wallpaperRow.add_suffix(selectButton);
 
         this._setupDropTarget(wallpaperRow);
-        viewBox.append(wallpaperRow);
+        wallpaperGroup.add(wallpaperRow);
+        viewBox.append(wallpaperGroup);
 
         // Extract colors section (only visible when wallpaper is loaded)
         this._extractSection = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 6,
-            halign: Gtk.Align.START,
+            halign: Gtk.Align.FILL,
+            hexpand: true,
             margin_top: 12,
             visible: false,
         });
