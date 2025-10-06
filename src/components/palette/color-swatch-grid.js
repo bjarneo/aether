@@ -53,7 +53,7 @@ export class ColorSwatchGrid {
         });
 
         const isLocked = this._lockedColors[index];
-        const borderStyle = isLocked ? '2px solid alpha(@accent_bg_color, 0.8)' : '1px solid alpha(@borders, 0.5)';
+        const borderStyle = isLocked ? '2px solid alpha(@accent_bg_color, 0.8)' : '2px solid alpha(@borders, 0.3)';
 
         const css = `
             .color-swatch {

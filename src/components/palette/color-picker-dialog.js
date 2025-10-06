@@ -93,7 +93,7 @@ export class ColorPickerDialog {
 
         const borderStyle = isActive
             ? 'border: 2px solid @accent_color;'
-            : 'border: 1px solid alpha(@borders, 0.5);';
+            : 'border: 2px solid alpha(@borders, 0.3);';
 
         const css = `
             .color-swatch {
