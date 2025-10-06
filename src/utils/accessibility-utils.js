@@ -60,6 +60,24 @@ export function getWCAGCompliance(ratio, largeText = false) {
 }
 
 /**
+ * Convert sRGB to linear RGB (gamma expansion)
+ * @param {number} c - sRGB color component (0-1)
+ * @returns {number} Linear RGB component (0-1)
+ */
+function sRGBtoLinear(c) {
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+/**
+ * Convert linear RGB to sRGB (gamma compression)
+ * @param {number} c - Linear RGB component (0-1)
+ * @returns {number} sRGB component (0-1)
+ */
+function linearToSRGB(c) {
+    return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+}
+
+/**
  * Simulate color blindness
  * @param {string} hexColor - Hex color string
  * @param {string} type - Type of color blindness (protanopia, deuteranopia, tritanopia)
@@ -71,7 +89,13 @@ export function simulateColorBlindness(hexColor, type) {
     let g = rgb.g / 255;
     let b = rgb.b / 255;
 
+    // Convert sRGB to linear RGB for accurate transformation
+    r = sRGBtoLinear(r);
+    g = sRGBtoLinear(g);
+    b = sRGBtoLinear(b);
+
     // Transformation matrices for different types of color blindness
+    // Based on Viénot, Brettel & Mollon (1999)
     const matrices = {
         protanopia: [
             [0.567, 0.433, 0.0],
@@ -92,9 +116,15 @@ export function simulateColorBlindness(hexColor, type) {
 
     const matrix = matrices[type] || matrices.protanopia;
 
-    const newR = matrix[0][0] * r + matrix[0][1] * g + matrix[0][2] * b;
-    const newG = matrix[1][0] * r + matrix[1][1] * g + matrix[1][2] * b;
-    const newB = matrix[2][0] * r + matrix[2][1] * g + matrix[2][2] * b;
+    // Apply transformation in linear RGB space
+    let newR = matrix[0][0] * r + matrix[0][1] * g + matrix[0][2] * b;
+    let newG = matrix[1][0] * r + matrix[1][1] * g + matrix[1][2] * b;
+    let newB = matrix[2][0] * r + matrix[2][1] * g + matrix[2][2] * b;
+
+    // Convert back to sRGB
+    newR = linearToSRGB(newR);
+    newG = linearToSRGB(newG);
+    newB = linearToSRGB(newB);
 
     // Clamp values and convert back to hex
     const rHex = Math.round(Math.max(0, Math.min(1, newR)) * 255).toString(16).padStart(2, '0');
