@@ -8,13 +8,14 @@ import Gtk from 'gi://Gtk?version=4.0';
  * Creates a CSS provider and applies styles to a widget
  * @param {Gtk.Widget} widget - Widget to style
  * @param {string} css - CSS string
+ * @param {number} priority - Optional priority level (default: APPLICATION)
  */
-export function applyCssToWidget(widget, css) {
+export function applyCssToWidget(widget, css, priority = Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION) {
     const cssProvider = new Gtk.CssProvider();
     cssProvider.load_from_string(css);
     widget.get_style_context().add_provider(
         cssProvider,
-        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        priority
     );
 }
 

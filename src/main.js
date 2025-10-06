@@ -298,10 +298,6 @@ const AetherWindow = GObject.registerClass(
                 this.paletteGenerator.applyPreset(preset);
             });
 
-            this.settingsSidebar.connect('harmony-generated', (_, colors) => {
-                this.paletteGenerator.applyHarmony(colors);
-            });
-
             this.settingsSidebar.connect('gradient-generated', (_, colors) => {
                 this.paletteGenerator.applyHarmony(colors);
             });

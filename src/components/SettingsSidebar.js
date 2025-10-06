@@ -8,7 +8,6 @@ import { ColorAdjustmentControls } from './palette/color-adjustment-controls.js'
 import { AccessibilityPanel } from './AccessibilityPanel.js';
 import { COLOR_PRESETS } from '../constants/presets.js';
 import { applyCssToWidget } from '../utils/ui-helpers.js';
-import { generateHarmony } from '../services/color-harmony.js';
 import { rgbaToHex } from '../utils/color-utils.js';
 
 export const SettingsSidebar = GObject.registerClass({
@@ -17,7 +16,6 @@ export const SettingsSidebar = GObject.registerClass({
         'adjustments-reset': {},
         'settings-changed': { param_types: [GObject.TYPE_JSOBJECT] },
         'preset-applied': { param_types: [GObject.TYPE_JSOBJECT] },
-        'harmony-generated': { param_types: [GObject.TYPE_JSOBJECT] },
         'gradient-generated': { param_types: [GObject.TYPE_JSOBJECT] },
         'light-mode-changed': { param_types: [GObject.TYPE_BOOLEAN] },
     },
@@ -56,10 +54,6 @@ export const SettingsSidebar = GObject.registerClass({
         // Color Adjustments Section (Collapsible)
         const adjustmentsExpander = this._createAdjustmentsSection();
         contentBox.append(adjustmentsExpander);
-
-        // Color Harmony Section
-        const harmonySection = this._createHarmonySection();
-        contentBox.append(harmonySection);
 
         // Gradient Generator Section
         const gradientSection = this._createGradientSection();
@@ -133,157 +127,6 @@ export const SettingsSidebar = GObject.registerClass({
         expanderRow.add_row(new Adw.ActionRow({ child: controlsWrapper }));
 
         return expanderRow;
-    }
-
-    _createHarmonySection() {
-        const expanderRow = new Adw.ExpanderRow({
-            title: 'Color Harmony',
-            subtitle: 'Generate palette from color theory',
-        });
-
-        const controlsBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            margin_start: 12,
-            margin_end: 12,
-            margin_top: 12,
-            margin_bottom: 12,
-        });
-
-        // Base color selection
-        const baseColorRow = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 8,
-            halign: Gtk.Align.FILL,
-        });
-
-        const baseColorLabel = new Gtk.Label({
-            label: 'Base Color',
-            xalign: 0,
-            hexpand: true,
-        });
-
-        this._baseColorButton = new Gtk.ColorDialogButton({
-            valign: Gtk.Align.CENTER,
-            tooltip_text: 'Choose base color',
-            dialog: new Gtk.ColorDialog({ with_alpha: false }),
-        });
-
-        const initialColor = new Gdk.RGBA();
-        initialColor.parse('#4a86e8');
-        this._baseColorButton.set_rgba(initialColor);
-
-        baseColorRow.append(baseColorLabel);
-        baseColorRow.append(this._baseColorButton);
-        controlsBox.append(baseColorRow);
-
-        // Harmony type selection
-        const harmonyTypeLabel = new Gtk.Label({
-            label: 'Harmony Type',
-            xalign: 0,
-            margin_top: 6,
-            css_classes: ['heading'],
-        });
-        controlsBox.append(harmonyTypeLabel);
-
-        const harmonyDescriptions = [
-            'Complementary - Opposite colors on color wheel',
-            'Analogous - Adjacent colors on color wheel',
-            'Triadic - Three evenly spaced colors',
-            'Split Complementary - Base + two adjacent to complement',
-            'Tetradic - Four colors in two complementary pairs',
-            'Monochromatic - Variations of single hue'
-        ];
-
-        const harmonyTypes = new Gtk.StringList();
-        harmonyDescriptions.forEach(desc => harmonyTypes.append(desc));
-
-        this._harmonyDropdown = new Gtk.DropDown({
-            model: harmonyTypes,
-            valign: Gtk.Align.CENTER,
-            hexpand: true,
-        });
-
-        controlsBox.append(this._harmonyDropdown);
-
-        // Preview colors box
-        this._harmonyPreviewBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 4,
-            margin_top: 12,
-            height_request: 40,
-            homogeneous: true,
-        });
-        controlsBox.append(this._harmonyPreviewBox);
-
-        // Generate button
-        const generateButton = new Gtk.Button({
-            label: 'Generate Palette',
-            halign: Gtk.Align.CENTER,
-            margin_top: 6,
-            css_classes: ['suggested-action'],
-        });
-        generateButton.connect('clicked', () => this._generateHarmony());
-
-        controlsBox.append(generateButton);
-
-        // Update preview when base color or harmony type changes
-        this._baseColorButton.connect('notify::rgba', () => this._updateHarmonyPreview());
-        this._harmonyDropdown.connect('notify::selected', () => this._updateHarmonyPreview());
-
-        // Initialize preview
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-            this._updateHarmonyPreview();
-            return GLib.SOURCE_REMOVE;
-        });
-
-        expanderRow.add_row(new Adw.ActionRow({ child: controlsBox }));
-
-        return expanderRow;
-    }
-
-    _updateHarmonyPreview() {
-        const rgba = this._baseColorButton.get_rgba();
-        const baseColor = rgbaToHex(rgba);
-        const harmonyType = this._harmonyDropdown.get_selected();
-
-        // Clear existing preview
-        let child = this._harmonyPreviewBox.get_first_child();
-        while (child) {
-            const next = child.get_next_sibling();
-            this._harmonyPreviewBox.remove(child);
-            child = next;
-        }
-
-        // Generate preview colors
-        const colors = generateHarmony(baseColor, harmonyType);
-
-        // Show first 6 colors as preview
-        colors.slice(0, 6).forEach(color => {
-            const colorBox = new Gtk.Box({
-                css_classes: ['card'],
-                hexpand: true,
-                height_request: 30,
-            });
-            const css = `
-                * { 
-                    background-color: ${color} !important; 
-                    border-radius: 0px;
-                    min-height: 30px;
-                }
-            `;
-            applyCssToWidget(colorBox, css);
-            this._harmonyPreviewBox.append(colorBox);
-        });
-    }
-
-    _generateHarmony() {
-        const rgba = this._baseColorButton.get_rgba();
-        const baseColor = rgbaToHex(rgba);
-        const harmonyType = this._harmonyDropdown.get_selected();
-
-        const colors = generateHarmony(baseColor, harmonyType);
-        this.emit('harmony-generated', colors);
     }
 
     _createGradientSection() {
@@ -465,7 +308,10 @@ export const SettingsSidebar = GObject.registerClass({
             subtitle: 'Popular color palettes',
         });
 
-        COLOR_PRESETS.forEach((preset) => {
+        // Create a CSS provider for all preset colors at display level
+        this._presetColorProviders = [];
+
+        COLOR_PRESETS.forEach((preset, presetIndex) => {
             const presetRow = new Adw.ActionRow({
                 title: preset.name,
                 subtitle: preset.author,
@@ -478,14 +324,27 @@ export const SettingsSidebar = GObject.registerClass({
                 valign: Gtk.Align.CENTER,
             });
 
-            preset.colors.slice(0, 6).forEach(color => {
+            preset.colors.slice(0, 6).forEach((color, colorIndex) => {
+                const uniqueClass = `preset-color-${presetIndex}-${colorIndex}`;
                 const colorBox = new Gtk.Box({
                     width_request: 20,
                     height_request: 20,
-                    css_classes: ['card'],
+                    css_classes: [uniqueClass],
                 });
-                const css = `* { background-color: ${color} !important; border-radius: 0px; min-width: 20px; min-height: 20px; }`;
-                applyCssToWidget(colorBox, css);
+                
+                // Create CSS provider and add at display level with high priority
+                const cssProvider = new Gtk.CssProvider();
+                const css = `.${uniqueClass} { background-color: ${color}; border-radius: 0px; min-width: 20px; min-height: 20px; border: 1px solid alpha(currentColor, 0.1); }`;
+                cssProvider.load_from_string(css);
+                
+                // Add at display level with priority higher than theme
+                Gtk.StyleContext.add_provider_for_display(
+                    Gdk.Display.get_default(),
+                    cssProvider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_USER + 1
+                );
+                
+                this._presetColorProviders.push(cssProvider);
                 previewBox.append(colorBox);
             });
 
@@ -552,6 +411,20 @@ export const SettingsSidebar = GObject.registerClass({
 
     getLightMode() {
         return this._lightMode;
+    }
+
+    vfunc_unroot() {
+        // Cleanup preset color CSS providers when widget is destroyed
+        if (this._presetColorProviders) {
+            this._presetColorProviders.forEach(provider => {
+                Gtk.StyleContext.remove_provider_for_display(
+                    Gdk.Display.get_default(),
+                    provider
+                );
+            });
+            this._presetColorProviders = [];
+        }
+        super.vfunc_unroot();
     }
 
     get widget() {
