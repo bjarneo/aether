@@ -81,6 +81,11 @@ export class ConfigWriter {
                 return;
             }
 
+            // Skip vencord.theme.css if includeVencord is false
+            if (fileName === 'vencord.theme.css' && settings.includeVencord === false) {
+                return;
+            }
+
             const outputPath = GLib.build_filenamev([this.themeDir, fileName]);
             this._processTemplate(templatePath, outputPath, variables);
         });
@@ -163,6 +168,11 @@ export class ConfigWriter {
         enumerateDirectory(this.templatesDir, (fileInfo, templatePath, fileName) => {
             // Skip neovim.lua if includeNeovim is false
             if (fileName === 'neovim.lua' && settings.includeNeovim === false) {
+                return;
+            }
+
+            // Skip vencord.theme.css if includeVencord is false
+            if (fileName === 'vencord.theme.css' && settings.includeVencord === false) {
                 return;
             }
 
