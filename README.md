@@ -62,6 +62,20 @@ Aether is a beautiful GTK/Libadwaita theming application for Omarchy. It provide
 - **Palenight** - Elegant Material theme variant
 - **Rose Pine** - All natural pine, faux fur and a bit of soho vibes
 
+### 💻 Neovim Theme Integration
+37 LazyVim-compatible Neovim themes with perfect color preset matching:
+- **One-click selection** - Choose your Neovim theme from the Settings sidebar
+- **Visual feedback** - Checkmark indicator shows selected theme
+- **Blueprint integration** - Themes saved and restored with blueprints
+- **100% coverage** - Every color preset has a matching Neovim theme
+- **Light & dark variants** - All theme variations included
+- **LazyVim format** - Ready-to-use plugin configurations
+- **Deferred writing** - Theme applied only when you click "Apply Theme"
+
+Select a color preset like "Gruvbox Dark" for your desktop, then choose the matching "Gruvbox" Neovim theme for perfect visual consistency across your entire workspace!
+
+**Available themes include**: Catppuccin (Mocha & Latte), Tokyo Night, Gruvbox (Dark & Light), Rose Pine (Main & Dawn), Nord, Dracula, One Dark, Kanagawa, Nightfox, Everforest, Solarized (Dark & Light), GitHub (Dark & Light), and many more.
+
 ### 🌈 Gradient Generator
 - Create smooth color transitions between two colors
 - Real-time gradient preview with 16 color steps
@@ -119,6 +133,7 @@ Fine-tune your entire palette with real-time sliders:
   - Color Harmony Generator
   - Gradient Generator
   - Preset Library
+  - Neovim Themes (37 LazyVim configurations)
   - Template Settings (Neovim, Vencord)
   - Accessibility Checker
 - Toggle sidebar visibility with one click
@@ -244,7 +259,8 @@ Aether/
 │   │   └── theme-manager.js             # CSS theming system with live reload
 │   ├── constants/
 │   │   ├── colors.js                    # Color roles and defaults
-│   │   └── presets.js                   # 10 popular theme presets
+│   │   ├── presets.js                   # 29 popular color presets
+│   │   └── neovim-presets.js            # 37 LazyVim Neovim themes
 │   └── utils/
 │       ├── ConfigWriter.js              # Template processor & omarchy integration
 │       ├── color-utils.js               # HSL/RGB/Hex conversions

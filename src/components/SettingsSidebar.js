@@ -7,6 +7,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import { ColorAdjustmentControls } from './palette/color-adjustment-controls.js';
 import { AccessibilityPanel } from './AccessibilityPanel.js';
 import { COLOR_PRESETS } from '../constants/presets.js';
+import { NEOVIM_PRESETS } from '../constants/neovim-presets.js';
 import { applyCssToWidget } from '../utils/ui-helpers.js';
 import { rgbaToHex } from '../utils/color-utils.js';
 
@@ -29,6 +30,8 @@ export const SettingsSidebar = GObject.registerClass({
         this._includeNeovim = true;
         this._includeVencord = false;
         this._lightMode = false;
+        this._selectedNeovimConfig = null;
+        this._neovimPresetRows = []; // Store references to preset rows for visual feedback
         this._initializeUI();
     }
 
@@ -63,6 +66,10 @@ export const SettingsSidebar = GObject.registerClass({
         // Presets Section
         const presetsSection = this._createPresetsSection();
         contentBox.append(presetsSection);
+
+        // Neovim Themes Section
+        const neovimSection = this._createNeovimPresetsSection();
+        contentBox.append(neovimSection);
 
         // Template Settings Section
         const templateSettings = this._createTemplateSettings();
@@ -361,6 +368,67 @@ export const SettingsSidebar = GObject.registerClass({
         return expanderRow;
     }
 
+    _createNeovimPresetsSection() {
+        const expanderRow = new Adw.ExpanderRow({
+            title: 'Neovim Themes',
+            subtitle: 'LazyVim colorscheme presets',
+        });
+
+        NEOVIM_PRESETS.forEach((preset, index) => {
+            const presetRow = new Adw.ActionRow({
+                title: preset.name,
+                subtitle: preset.author,
+            });
+
+            // Create checkmark icon (initially hidden)
+            const checkIcon = new Gtk.Image({
+                icon_name: 'object-select-symbolic',
+                visible: false,
+                valign: Gtk.Align.CENTER,
+            });
+
+            presetRow.add_suffix(checkIcon);
+            presetRow.set_activatable(true);
+            
+            // Store row and icon reference
+            this._neovimPresetRows.push({ row: presetRow, icon: checkIcon, preset: preset });
+            
+            presetRow.connect('activated', () => {
+                this._selectedNeovimConfig = preset.config;
+                
+                // Clear all checkmarks
+                this._neovimPresetRows.forEach(item => {
+                    item.icon.set_visible(false);
+                });
+                
+                // Show checkmark on selected theme
+                checkIcon.set_visible(true);
+                
+                this.emit('settings-changed', this.getSettings());
+                
+                // Visual feedback toast
+                const toast = new Adw.Toast({
+                    title: `${preset.name} theme selected`,
+                    timeout: 2,
+                });
+                
+                // Try to show toast if parent window has overlay
+                let widget = this;
+                while (widget) {
+                    if (widget._toastOverlay) {
+                        widget._toastOverlay.add_toast(toast);
+                        break;
+                    }
+                    widget = widget.get_parent();
+                }
+            });
+
+            expanderRow.add_row(presetRow);
+        });
+
+        return expanderRow;
+    }
+
     _createTemplateSettings() {
         const expanderRow = new Adw.ExpanderRow({
             title: 'Template Settings',
@@ -423,6 +491,7 @@ export const SettingsSidebar = GObject.registerClass({
             includeNeovim: this._includeNeovim,
             includeVencord: this._includeVencord,
             lightMode: this._lightMode,
+            selectedNeovimConfig: this._selectedNeovimConfig,
         };
     }
 
@@ -433,6 +502,27 @@ export const SettingsSidebar = GObject.registerClass({
 
     getLightMode() {
         return this._lightMode;
+    }
+
+    setNeovimTheme(config) {
+        // Set the selected neovim config and update visual feedback
+        this._selectedNeovimConfig = config;
+        
+        // Find and mark the matching theme
+        if (config && this._neovimPresetRows) {
+            this._neovimPresetRows.forEach(item => {
+                if (item.preset.config === config) {
+                    item.icon.set_visible(true);
+                } else {
+                    item.icon.set_visible(false);
+                }
+            });
+        } else {
+            // Clear all selections
+            this._neovimPresetRows?.forEach(item => {
+                item.icon.set_visible(false);
+            });
+        }
     }
 
     vfunc_unroot() {

@@ -337,6 +337,13 @@ const AetherWindow = GObject.registerClass(
                     }
                 }
 
+                // Load settings (including Neovim theme selection)
+                if (blueprint.settings) {
+                    if (blueprint.settings.selectedNeovimConfig !== undefined) {
+                        this.settingsSidebar.setNeovimTheme(blueprint.settings.selectedNeovimConfig);
+                    }
+                }
+
                 this._updateAccessibility();
             } catch (e) {
                 console.error(`Error loading blueprint: ${e.message}`);
@@ -359,6 +366,7 @@ const AetherWindow = GObject.registerClass(
             this.paletteGenerator.reset();
             this.colorSynthesizer.reset();
             this.settingsSidebar.resetAdjustments();
+            this.settingsSidebar.setNeovimTheme(null); // Clear Neovim theme selection
             console.log('Application reset to launch state');
         }
 
@@ -396,6 +404,7 @@ const AetherWindow = GObject.registerClass(
             const blueprint = {
                 palette: palette,
                 timestamp: Date.now(),
+                settings: this.settingsSidebar.getSettings(), // Include all settings including selectedNeovimConfig
             };
 
             this.blueprintManager.saveBlueprint(blueprint);

@@ -87,6 +87,18 @@ export class ConfigWriter {
             }
 
             const outputPath = GLib.build_filenamev([this.themeDir, fileName]);
+            
+            // If this is neovim.lua and a custom config is selected, write it directly
+            if (fileName === 'neovim.lua' && settings.selectedNeovimConfig) {
+                try {
+                    writeTextToFile(outputPath, settings.selectedNeovimConfig);
+                    console.log(`Applied selected Neovim theme to ${outputPath}`);
+                } catch (e) {
+                    console.error(`Error writing custom neovim.lua:`, e.message);
+                }
+                return;
+            }
+            
             this._processTemplate(templatePath, outputPath, variables);
         });
     }
@@ -177,6 +189,18 @@ export class ConfigWriter {
             }
 
             const outputPath = GLib.build_filenamev([exportPath, fileName]);
+            
+            // If this is neovim.lua and a custom config is selected, write it directly
+            if (fileName === 'neovim.lua' && settings.selectedNeovimConfig) {
+                try {
+                    writeTextToFile(outputPath, settings.selectedNeovimConfig);
+                    console.log(`Exported selected Neovim theme to ${outputPath}`);
+                } catch (e) {
+                    console.error(`Error writing custom neovim.lua:`, e.message);
+                }
+                return;
+            }
+            
             this._processTemplate(templatePath, outputPath, variables);
             console.log(`Processed template: ${fileName}`);
         });
