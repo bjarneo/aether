@@ -7,7 +7,7 @@ const WALLHAVEN_BASE_URL = 'https://wallhaven.cc/api/v1';
 export class WallhavenService {
     constructor() {
         this.session = new Soup.Session();
-        this.apiKey = null; // Optional API key for NSFW content
+        this.apiKey = null; // Optional API key for additional content
     }
 
     setApiKey(key) {

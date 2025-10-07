@@ -541,7 +541,7 @@ export const WallpaperBrowser = GObject.registerClass({
 
         const prefsGroup = new Adw.PreferencesGroup({
             title: 'API Configuration',
-            description: 'Configure your wallhaven.cc API key for access to NSFW content and higher rate limits',
+            description: 'Configure your wallhaven.cc API key for access to additional content and higher rate limits',
         });
 
         // API Key entry

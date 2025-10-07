@@ -34,7 +34,7 @@ Aether is a beautiful GTK/Libadwaita theming application for Omarchy. It provide
 - Thumbnail grid view with pagination
 - One-click download and automatic color extraction
 - Smart caching system for thumbnails and wallpapers
-- Optional API key support for NSFW content and higher rate limits
+- Optional API key support for additional content and higher rate limits
 - Settings dialog for easy API key configuration
 
 ### 🌈 Color Harmony Generator
@@ -355,7 +355,7 @@ Color roles (background, foreground, color0-15) are automatically assigned from 
 - Check internet connection
 - Verify libsoup3 is installed: `pacman -S libsoup3`
 - Check API rate limits (45 requests/minute without API key)
-- Add API key in settings for higher limits and NSFW access
+- Add API key in settings for higher limits and additional content access
 - Clear cache if needed: `rm -rf ~/.cache/aether/wallhaven-*`
 
 ## Contributing
