@@ -94,6 +94,7 @@ Fine-tune your entire palette with real-time sliders:
 - Hover-to-reveal lock button on each swatch
 - Click lock icon to toggle protection
 - Perfect for preserving specific colors while experimenting
+- Lock state resets when loading blueprints (not saved to blueprints)
 
 ### ♿ WCAG Accessibility Checker
 - Real-time contrast ratio calculations
@@ -122,12 +123,22 @@ Fine-tune your entire palette with real-time sliders:
   - Accessibility Checker
 - Toggle sidebar visibility with one click
 
+### 🎨 Customizable UI Theming
+- Comprehensive CSS variable system for UI customization
+- 19 theme variables covering buttons, backgrounds, sliders, and accent colors
+- Live theme reload without restart
+- User-editable override file: `~/.config/aether/theme.override.css`
+- 20 pre-made theme examples (Gruvbox, Tokyo Night, Dracula, Nord, and more)
+- Sharp corners throughout for Hyprland aesthetic
+- Unified accent color system (no hardcoded blues)
+- Complete theming documentation in `THEMING.md`
+
 ### 🔄 Omarchy Integration
 - Template-based theme generation
 - One-click apply updates all applications instantly
 - Export themes with custom names and directories
 - Non-destructive (doesn't modify your personal configs)
-- Supports Hyprland, Waybar, Kitty, Rofi, Wofi, Walker, and more
+- Supports 15+ applications: Hyprland, Waybar, Kitty, Wofi, Walker, Alacritty, Ghostty, btop, Mako, SwayOSD, Hyprlock, and more
 - Optional template inclusion:
   - **Neovim** - Lua theme file for Neovim editors
   - **Vencord** - Discord client theme (vencord.theme.css)
@@ -183,6 +194,17 @@ paru -S aether
 
 ## Usage
 
+### Customizing Aether's UI
+
+Aether includes a powerful theming system to customize the application's own appearance (not to be confused with desktop theme generation). See `THEMING.md` for complete documentation, or:
+
+**Quick start:**
+1. Copy an example theme: `cp examples/gruvbox-theme.override.css ~/.config/aether/theme.override.css`
+2. Changes apply instantly - no restart needed
+3. Edit `~/.config/aether/theme.override.css` to create your own theme
+
+20 pre-made themes available in `examples/` directory.
+
 ### Theme Files
 
 Aether uses a template-based system:
@@ -207,7 +229,7 @@ Aether/
 │   ├── components/
 │   │   ├── PaletteGenerator.js          # Triple-mode palette generation (wallpaper/custom/browser)
 │   │   ├── WallpaperBrowser.js          # Wallhaven.cc browser with search/filters
-│   │   ├── ColorSynthesizer.js          # 18-color role editor
+│   │   ├── ColorSynthesizer.js          # Color role editor (background, foreground, color0-15)
 │   │   ├── BlueprintManager.js          # Theme save/load/apply
 │   │   ├── SettingsSidebar.js           # Collapsible settings sidebar
 │   │   ├── AccessibilityPanel.js        # WCAG contrast checker
@@ -218,24 +240,38 @@ Aether/
 │   ├── services/
 │   │   ├── wallpaper-service.js         # Pywal integration
 │   │   ├── wallhaven-service.js         # Wallhaven.cc API client
-│   │   └── color-harmony.js             # Color theory algorithms
+│   │   ├── color-harmony.js             # Color theory algorithms
+│   │   └── theme-manager.js             # CSS theming system with live reload
 │   ├── constants/
 │   │   ├── colors.js                    # Color roles and defaults
 │   │   └── presets.js                   # 10 popular theme presets
 │   └── utils/
 │       ├── ConfigWriter.js              # Template processor & omarchy integration
 │       ├── color-utils.js               # HSL/RGB/Hex conversions
+│       ├── accessibility-utils.js       # WCAG contrast calculations
 │       ├── ui-helpers.js                # GTK helper functions
 │       └── file-utils.js                # File I/O wrappers
 ├── templates/                           # Config templates with {variable} placeholders
+│   ├── alacritty.toml
+│   ├── btop.theme
+│   ├── chromium.theme
+│   ├── ghostty.conf
 │   ├── hyprland.conf
+│   ├── hyprlock.conf
+│   ├── icons.theme
 │   ├── kitty.conf
-│   ├── waybar.css
+│   ├── mako.ini
 │   ├── neovim.lua                       # Optional Neovim theme
+│   ├── swayosd.css
 │   ├── vencord.theme.css                # Optional Discord/Vencord theme
-│   └── ...
+│   ├── walker.css
+│   ├── waybar.css
+│   └── wofi.css
+├── examples/                            # 20 pre-made UI theme examples
 ├── icon.png
 ├── aether                               # Launcher script
+├── li.oever.aether.desktop              # Desktop entry file
+├── THEMING.md                           # Complete theming documentation
 └── README.md
 ```
 
@@ -381,6 +417,7 @@ Aether is designed to be extensible:
 7. **Adjustment Controls**: Extend color adjustments in `color-adjustment-controls.js`
 8. **Gradient Algorithms**: Enhance gradient generation in `SettingsSidebar.js`
 9. **Blueprint Features**: Extend import/export in `BlueprintManager.js`
+10. **UI Theming**: Add new CSS variables in `theme-manager.js` for customizable UI elements
 
 ## Philosophy
 
