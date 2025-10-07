@@ -5,7 +5,7 @@
 export const NEOVIM_PRESETS = [
     {
         name: 'Catppuccin',
-        author: 'Soothing Pastel',
+        author: 'catppuccin',
         config: `return {
 \t{
 \t\t"catppuccin/nvim",
@@ -25,7 +25,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Tokyo Night',
-        author: 'Night Coding',
+        author: 'folke',
         config: `return {
 \t{
 \t\t"folke/tokyonight.nvim",
@@ -44,7 +44,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Gruvbox',
-        author: 'Retro Groove',
+        author: 'ellisonleao',
         config: `return {
 \t{
 \t\t"ellisonleao/gruvbox.nvim",
@@ -63,7 +63,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Rose Pine',
-        author: 'Rosé Pine',
+        author: 'rose-pine',
         config: `return {
 \t{
 \t\t"rose-pine/neovim",
@@ -83,7 +83,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Nord',
-        author: 'Arctic Bluish',
+        author: 'shaunsingh',
         config: `return {
 \t{
 \t\t"shaunsingh/nord.nvim",
@@ -99,7 +99,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Kanagawa',
-        author: 'The Great Wave',
+        author: 'rebelot',
         config: `return {
 \t{
 \t\t"rebelot/kanagawa.nvim",
@@ -118,7 +118,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Nightfox',
-        author: 'Night Coding',
+        author: 'EdenEast',
         config: `return {
 \t{
 \t\t"EdenEast/nightfox.nvim",
@@ -134,7 +134,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Dracula',
-        author: 'Dracula Theme',
+        author: 'Mofiqul',
         config: `return {
 \t{
 \t\t"Mofiqul/dracula.nvim",
@@ -150,7 +150,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'One Dark',
-        author: 'Atom Inspired',
+        author: 'navarasu',
         config: `return {
 \t{
 \t\t"navarasu/onedark.nvim",
@@ -169,7 +169,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Everforest',
-        author: 'Nature Inspired',
+        author: 'neanias',
         config: `return {
 \t{
 \t\t"neanias/everforest-nvim",
@@ -188,7 +188,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Sonokai',
-        author: 'High Contrast',
+        author: 'sainnhe',
         config: `return {
 \t{
 \t\t"sainnhe/sonokai",
@@ -207,7 +207,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Moonfly',
-        author: 'Dark Sky',
+        author: 'bluz71',
         config: `return {
 \t{
 \t\t"bluz71/vim-moonfly-colors",
@@ -224,7 +224,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Nightfly',
-        author: 'Dark Blue',
+        author: 'bluz71',
         config: `return {
 \t{
 \t\t"bluz71/vim-nightfly-colors",
@@ -241,7 +241,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Material',
-        author: 'Material Design',
+        author: 'marko-cerovac',
         config: `return {
 \t{
 \t\t"marko-cerovac/material.nvim",
@@ -260,7 +260,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Cyberdream',
-        author: 'Cyberpunk',
+        author: 'scottmckendry',
         config: `return {
 \t{
 \t\t"scottmckendry/cyberdream.nvim",
@@ -279,7 +279,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Flexoki',
-        author: 'Organic Palette',
+        author: 'kepano',
         config: `return {
 \t{
 \t\t"kepano/flexoki-neovim",
@@ -296,7 +296,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'GitHub Dark',
-        author: 'GitHub',
+        author: 'projekt0n',
         config: `return {
 \t{
 \t\t"projekt0n/github-nvim-theme",
@@ -313,7 +313,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Monokai Pro',
-        author: 'Sublime Classic',
+        author: 'loctvl842',
         config: `return {
 \t{
 \t\t"loctvl842/monokai-pro.nvim",
@@ -332,7 +332,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Oxocarbon',
-        author: 'IBM Carbon',
+        author: 'nyoom-engineering',
         config: `return {
 \t{
 \t\t"nyoom-engineering/oxocarbon.nvim",
@@ -348,7 +348,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Modus Vivendi',
-        author: 'Emacs Port',
+        author: 'miikanissi',
         config: `return {
 \t{
 \t\t"miikanissi/modus-themes.nvim",
@@ -364,7 +364,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Solarized Dark',
-        author: 'Precision Colors',
+        author: 'maxmx03',
         config: `return {
 \t{
 \t\t"maxmx03/solarized.nvim",
@@ -383,7 +383,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Solarized Light',
-        author: 'Precision Colors',
+        author: 'maxmx03',
         config: `return {
 \t{
 \t\t"maxmx03/solarized.nvim",
@@ -402,7 +402,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Gruvbox Light',
-        author: 'Retro Groove',
+        author: 'ellisonleao',
         config: `return {
 \t{
 \t\t"ellisonleao/gruvbox.nvim",
@@ -424,7 +424,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Catppuccin Latte',
-        author: 'Soothing Pastel',
+        author: 'catppuccin',
         config: `return {
 \t{
 \t\t"catppuccin/nvim",
@@ -444,7 +444,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'One Light',
-        author: 'Atom Inspired',
+        author: 'navarasu',
         config: `return {
 \t{
 \t\t"navarasu/onedark.nvim",
@@ -463,7 +463,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Rose Pine Dawn',
-        author: 'Rosé Pine',
+        author: 'rose-pine',
         config: `return {
 \t{
 \t\t"rose-pine/neovim",
@@ -483,7 +483,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Everforest Light',
-        author: 'Nature Inspired',
+        author: 'neanias',
         config: `return {
 \t{
 \t\t"neanias/everforest-nvim",
@@ -505,7 +505,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Tokyo Night Day',
-        author: 'Day Coding',
+        author: 'folke',
         config: `return {
 \t{
 \t\t"folke/tokyonight.nvim",
@@ -524,7 +524,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'GitHub Light',
-        author: 'GitHub',
+        author: 'projekt0n',
         config: `return {
 \t{
 \t\t"projekt0n/github-nvim-theme",
@@ -541,7 +541,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Ayu Mirage',
-        author: 'Modern Elegance',
+        author: 'Shatur',
         config: `return {
 \t{
 \t\t"Shatur/neovim-ayu",
@@ -560,7 +560,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Oceanic Next',
-        author: 'Ocean Inspired',
+        author: 'mhartington',
         config: `return {
 \t{
 \t\t"mhartington/oceanic-next",
@@ -576,7 +576,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Horizon',
-        author: 'Red Sunset',
+        author: 'akinsho',
         config: `return {
 \t{
 \t\t"akinsho/horizon.nvim",
@@ -592,7 +592,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Andromeda',
-        author: 'Sci-Fi Dreams',
+        author: 'safv12',
         config: `return {
 \t{
 \t\t"safv12/andromeda.vim",
@@ -608,7 +608,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Synthwave 84',
-        author: 'Retro Neon',
+        author: 'artanikin',
         config: `return {
 \t{
 \t\t"artanikin/vim-synthwave84",
@@ -624,7 +624,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Palenight',
-        author: 'Material Theme',
+        author: 'drewtempelmeyer',
         config: `return {
 \t{
 \t\t"drewtempelmeyer/palenight.vim",
@@ -640,7 +640,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Monochrome Dark',
-        author: 'Pure Minimalism',
+        author: 'kdheepak',
         config: `return {
 \t{
 \t\t"kdheepak/monochrome.nvim",
@@ -656,7 +656,7 @@ export const NEOVIM_PRESETS = [
     },
     {
         name: 'Monochrome Light',
-        author: 'Pure Minimalism',
+        author: 'kdheepak',
         config: `return {
 \t{
 \t\t"kdheepak/monochrome.nvim",
