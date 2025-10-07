@@ -394,32 +394,60 @@ export const SettingsSidebar = GObject.registerClass({
             this._neovimPresetRows.push({ row: presetRow, icon: checkIcon, preset: preset });
             
             presetRow.connect('activated', () => {
-                this._selectedNeovimConfig = preset.config;
+                // Toggle selection: if already selected, deselect it
+                const isCurrentlySelected = this._selectedNeovimConfig === preset.config;
                 
-                // Clear all checkmarks
-                this._neovimPresetRows.forEach(item => {
-                    item.icon.set_visible(false);
-                });
-                
-                // Show checkmark on selected theme
-                checkIcon.set_visible(true);
-                
-                this.emit('settings-changed', this.getSettings());
-                
-                // Visual feedback toast
-                const toast = new Adw.Toast({
-                    title: `${preset.name} theme selected`,
-                    timeout: 2,
-                });
-                
-                // Try to show toast if parent window has overlay
-                let widget = this;
-                while (widget) {
-                    if (widget._toastOverlay) {
-                        widget._toastOverlay.add_toast(toast);
-                        break;
+                if (isCurrentlySelected) {
+                    // Deselect
+                    this._selectedNeovimConfig = null;
+                    checkIcon.set_visible(false);
+                    
+                    this.emit('settings-changed', this.getSettings());
+                    
+                    // Visual feedback toast
+                    const toast = new Adw.Toast({
+                        title: `${preset.name} theme deselected`,
+                        timeout: 2,
+                    });
+                    
+                    // Try to show toast if parent window has overlay
+                    let widget = this;
+                    while (widget) {
+                        if (widget._toastOverlay) {
+                            widget._toastOverlay.add_toast(toast);
+                            break;
+                        }
+                        widget = widget.get_parent();
                     }
-                    widget = widget.get_parent();
+                } else {
+                    // Select
+                    this._selectedNeovimConfig = preset.config;
+                    
+                    // Clear all checkmarks
+                    this._neovimPresetRows.forEach(item => {
+                        item.icon.set_visible(false);
+                    });
+                    
+                    // Show checkmark on selected theme
+                    checkIcon.set_visible(true);
+                    
+                    this.emit('settings-changed', this.getSettings());
+                    
+                    // Visual feedback toast
+                    const toast = new Adw.Toast({
+                        title: `${preset.name} theme selected`,
+                        timeout: 2,
+                    });
+                    
+                    // Try to show toast if parent window has overlay
+                    let widget = this;
+                    while (widget) {
+                        if (widget._toastOverlay) {
+                            widget._toastOverlay.add_toast(toast);
+                            break;
+                        }
+                        widget = widget.get_parent();
+                    }
                 }
             });
 
