@@ -37,18 +37,6 @@ Aether is a beautiful GTK/Libadwaita theming application for Omarchy. It provide
 - Optional API key support for additional content and higher rate limits
 - Settings dialog for easy API key configuration
 
-### 🌈 Color Harmony Generator
-- Generate professional color palettes based on color theory
-- 6 harmony types:
-  - **Complementary** - Opposite colors on the color wheel
-  - **Analogous** - Adjacent colors for smooth gradients
-  - **Triadic** - Three evenly spaced colors
-  - **Split Complementary** - Base color + two adjacent to its complement
-  - **Tetradic** - Four colors in two complementary pairs
-  - **Monochromatic** - Variations of a single hue
-- Live preview of harmony colors
-- Pick any base color to start
-
 ### 🎨 Color Presets Library
 10 popular hand-picked themes ready to use:
 - **Dracula** - Dark theme with vibrant colors
