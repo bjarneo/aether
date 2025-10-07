@@ -27,6 +27,7 @@ export const SettingsSidebar = GObject.registerClass({
         });
 
         this._includeNeovim = true;
+        this._includeVencord = false;
         this._lightMode = false;
         this._initializeUI();
     }
@@ -386,6 +387,26 @@ export const SettingsSidebar = GObject.registerClass({
 
         expanderRow.add_row(neovimRow);
 
+        const vencordRow = new Adw.ActionRow({
+            title: 'Include Vencord Theme',
+            subtitle: 'Copy vencord.theme.css to theme directory',
+        });
+
+        const vencordSwitch = new Gtk.Switch({
+            active: this._includeVencord,
+            valign: Gtk.Align.CENTER,
+        });
+
+        vencordSwitch.connect('notify::active', (sw) => {
+            this._includeVencord = sw.get_active();
+            this.emit('settings-changed', this.getSettings());
+        });
+
+        vencordRow.add_suffix(vencordSwitch);
+        vencordRow.set_activatable_widget(vencordSwitch);
+
+        expanderRow.add_row(vencordRow);
+
         return expanderRow;
     }
 
@@ -400,6 +421,7 @@ export const SettingsSidebar = GObject.registerClass({
     getSettings() {
         return {
             includeNeovim: this._includeNeovim,
+            includeVencord: this._includeVencord,
             lightMode: this._lightMode,
         };
     }

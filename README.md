@@ -118,7 +118,7 @@ Fine-tune your entire palette with real-time sliders:
   - Color Harmony Generator
   - Gradient Generator
   - Preset Library
-  - Template Settings
+  - Template Settings (Neovim, Vencord)
   - Accessibility Checker
 - Toggle sidebar visibility with one click
 
@@ -128,7 +128,9 @@ Fine-tune your entire palette with real-time sliders:
 - Export themes with custom names and directories
 - Non-destructive (doesn't modify your personal configs)
 - Supports Hyprland, Waybar, Kitty, Rofi, Wofi, Walker, and more
-- Optional Neovim template inclusion
+- Optional template inclusion:
+  - **Neovim** - Lua theme file for Neovim editors
+  - **Vencord** - Discord client theme (vencord.theme.css)
 
 ### ⚡ Quality of Life Features
 - **Reset Button** - Instantly return to launch state
@@ -190,6 +192,12 @@ Aether uses a template-based system:
 - Wallpaper: Copied to `~/.config/omarchy/themes/aether/backgrounds/`
 - Your personal configs remain untouched
 
+**Optional Templates:**
+- **neovim.lua** - Neovim color scheme (enabled by default)
+- **vencord.theme.css** - Discord client theme via Vencord (disabled by default)
+
+Toggle these in Template Settings sidebar to include/exclude them when applying themes.
+
 ## Project Structure
 
 ```
@@ -223,6 +231,8 @@ Aether/
 │   ├── hyprland.conf
 │   ├── kitty.conf
 │   ├── waybar.css
+│   ├── neovim.lua                       # Optional Neovim theme
+│   ├── vencord.theme.css                # Optional Discord/Vencord theme
 │   └── ...
 ├── icon.png
 ├── aether                               # Launcher script
