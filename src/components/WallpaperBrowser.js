@@ -507,15 +507,14 @@ export const WallpaperBrowser = GObject.registerClass(
             const mainBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 6,
+                width_request: 280,
             });
-
-            // Overlay for thumbnail and favorite button
-            const overlay = new Gtk.Overlay();
 
             // Create a clickable area for the image without hover effect
             const imageButton = new Gtk.Button({
                 css_classes: ['flat'],
                 overflow: Gtk.Overflow.HIDDEN,
+                hexpand: true,
             });
 
             // Add CSS to remove hover/active states from the button
@@ -544,9 +543,10 @@ export const WallpaperBrowser = GObject.registerClass(
 
             // Thumbnail image
             const picture = new Gtk.Picture({
-                width_request: 280,
                 height_request: 180,
                 can_shrink: true,
+                hexpand: true,
+                content_fit: Gtk.ContentFit.COVER,
             });
 
             // Load thumbnail asynchronously
@@ -558,28 +558,41 @@ export const WallpaperBrowser = GObject.registerClass(
                 this._downloadAndUseWallpaper(wallpaper);
             });
 
-            overlay.set_child(imageButton);
+            mainBox.append(imageButton);
 
-            // Favorite button overlay - positioned at top-right with no margin
+            // Info row with resolution, file size, and favorite button
+            const infoRow = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 8,
+            });
+
+            // Info label with resolution and file size
+            const infoLabel = new Gtk.Label({
+                label: `${wallpaper.resolution} • ${this._formatFileSize(wallpaper.file_size)}`,
+                css_classes: ['caption', 'dim-label'],
+                xalign: 0,
+                hexpand: true,
+                ellipsize: 3, // PANGO_ELLIPSIZE_END
+            });
+
+            // Favorite button
             const favButton = new Gtk.Button({
                 icon_name: 'emblem-favorite-symbolic',
                 css_classes: this._isFavorite(wallpaper)
-                    ? ['circular', 'favorite-active']
-                    : ['circular', 'favorite-inactive'],
+                    ? ['flat', 'favorite-active']
+                    : ['flat', 'favorite-inactive'],
                 halign: Gtk.Align.END,
-                valign: Gtk.Align.START,
-                margin_top: 0,
-                margin_end: 0,
             });
 
             // Add custom CSS for favorite button
             const css = `
             .favorite-active {
-                background-color: alpha(@accent_bg_color, 0.9);
-                color: @accent_fg_color;
+                color: @accent_bg_color;
             }
             .favorite-inactive {
-                background-color: alpha(@window_bg_color, 0.7);
+                color: alpha(@window_fg_color, 0.5);
+            }
+            .favorite-inactive:hover {
                 color: @window_fg_color;
             }
         `;
@@ -596,17 +609,9 @@ export const WallpaperBrowser = GObject.registerClass(
                 this._toggleFavorite(wallpaper, favButton);
             });
 
-            overlay.add_overlay(favButton);
-            mainBox.append(overlay);
-
-            // Info label
-            const infoLabel = new Gtk.Label({
-                label: `${wallpaper.resolution} • ${this._formatFileSize(wallpaper.file_size)}`,
-                css_classes: ['caption', 'dim-label'],
-                xalign: 0,
-            });
-
-            mainBox.append(infoLabel);
+            infoRow.append(infoLabel);
+            infoRow.append(favButton);
+            mainBox.append(infoRow);
 
             return mainBox;
         }
