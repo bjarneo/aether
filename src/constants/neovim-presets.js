@@ -21,7 +21,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "catppuccin",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Tokyo Night',
@@ -40,7 +40,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "tokyonight",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Gruvbox',
@@ -59,7 +59,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "gruvbox",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Rose Pine',
@@ -79,7 +79,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "rose-pine",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Nord',
@@ -95,7 +95,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "nord",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Kanagawa',
@@ -114,7 +114,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "kanagawa",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Nightfox',
@@ -130,7 +130,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "nightfox",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Dracula',
@@ -146,7 +146,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "dracula",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'One Dark',
@@ -165,7 +165,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "onedark",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Everforest',
@@ -184,7 +184,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "everforest",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Sonokai',
@@ -203,7 +203,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "sonokai",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Moonfly',
@@ -220,7 +220,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "moonfly",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Nightfly',
@@ -237,7 +237,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "nightfly",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Material',
@@ -256,7 +256,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "material",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Cyberdream',
@@ -275,7 +275,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "cyberdream",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Flexoki',
@@ -292,7 +292,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "flexoki-dark",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'GitHub Dark',
@@ -309,7 +309,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "github_dark",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Monokai Pro',
@@ -328,7 +328,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "monokai-pro",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Oxocarbon',
@@ -344,7 +344,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "oxocarbon",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Modus Vivendi',
@@ -360,7 +360,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "modus_vivendi",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Solarized Dark',
@@ -379,7 +379,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "solarized",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Solarized Light',
@@ -398,7 +398,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "solarized",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Gruvbox Light',
@@ -420,7 +420,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "gruvbox",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Catppuccin Latte',
@@ -440,7 +440,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "catppuccin",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'One Light',
@@ -459,7 +459,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "onedark",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Rose Pine Dawn',
@@ -479,7 +479,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "rose-pine",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Everforest Light',
@@ -501,7 +501,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "everforest",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Tokyo Night Day',
@@ -520,7 +520,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "tokyonight",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'GitHub Light',
@@ -537,7 +537,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "github_light",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Ayu Mirage',
@@ -556,7 +556,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "ayu",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Oceanic Next',
@@ -572,7 +572,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "OceanicNext",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Horizon',
@@ -588,7 +588,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "horizon",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Andromeda',
@@ -604,7 +604,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "andromeda",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Synthwave 84',
@@ -620,7 +620,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "synthwave84",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Palenight',
@@ -636,7 +636,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "palenight",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Monochrome Dark',
@@ -652,7 +652,7 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "monochrome",
 \t\t},
 \t},
-}`
+}`,
     },
     {
         name: 'Monochrome Light',
@@ -671,6 +671,6 @@ export const NEOVIM_PRESETS = [
 \t\t\tcolorscheme = "monochrome",
 \t\t},
 \t},
-}`
+}`,
     },
 ];

@@ -13,27 +13,33 @@ export class ThemeManager {
         this.overrideFileMonitor = null;
         this.themeFile = null;
         this.overrideFile = null;
-        
+
         this._initializeThemeFiles();
         this._applyTheme();
         this._setupFileMonitors();
     }
 
     _initializeThemeFiles() {
-        const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether']);
+        const configDir = GLib.build_filenamev([
+            GLib.get_user_config_dir(),
+            'aether',
+        ]);
         GLib.mkdir_with_parents(configDir, 0o755);
-        
+
         const themePath = GLib.build_filenamev([configDir, 'theme.css']);
-        const overridePath = GLib.build_filenamev([configDir, 'theme.override.css']);
-        
+        const overridePath = GLib.build_filenamev([
+            configDir,
+            'theme.override.css',
+        ]);
+
         this.themeFile = Gio.File.new_for_path(themePath);
         this.overrideFile = Gio.File.new_for_path(overridePath);
-        
+
         // Create base theme if it doesn't exist
         if (!this.themeFile.query_exists(null)) {
             this._createBaseTheme();
         }
-        
+
         // Create empty override file if it doesn't exist
         if (!this.overrideFile.query_exists(null)) {
             this._createOverrideTheme();
@@ -145,7 +151,9 @@ export class ThemeManager {
                 Gio.FileCreateFlags.REPLACE_DESTINATION,
                 null
             );
-            console.log(`Created override theme at: ${this.overrideFile.get_path()}`);
+            console.log(
+                `Created override theme at: ${this.overrideFile.get_path()}`
+            );
         } catch (e) {
             console.error(`Failed to create override theme: ${e.message}`);
         }
@@ -186,16 +194,21 @@ export class ThemeManager {
                 null
             );
 
-            this.fileMonitor.connect('changed', (monitor, file, otherFile, eventType) => {
-                if (eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT ||
-                    eventType === Gio.FileMonitorEvent.CHANGED) {
-                    console.log('Base theme file changed, reloading...');
-                    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-                        this._applyTheme();
-                        return GLib.SOURCE_REMOVE;
-                    });
+            this.fileMonitor.connect(
+                'changed',
+                (monitor, file, otherFile, eventType) => {
+                    if (
+                        eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT ||
+                        eventType === Gio.FileMonitorEvent.CHANGED
+                    ) {
+                        console.log('Base theme file changed, reloading...');
+                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+                            this._applyTheme();
+                            return GLib.SOURCE_REMOVE;
+                        });
+                    }
                 }
-            });
+            );
 
             console.log('File monitor setup for base theme');
         } catch (e) {
@@ -209,20 +222,31 @@ export class ThemeManager {
                 null
             );
 
-            this.overrideFileMonitor.connect('changed', (monitor, file, otherFile, eventType) => {
-                if (eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT ||
-                    eventType === Gio.FileMonitorEvent.CHANGED) {
-                    console.log('Override theme file changed, reloading...');
-                    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-                        this._applyTheme();
-                        return GLib.SOURCE_REMOVE;
-                    });
+            this.overrideFileMonitor.connect(
+                'changed',
+                (monitor, file, otherFile, eventType) => {
+                    if (
+                        eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT ||
+                        eventType === Gio.FileMonitorEvent.CHANGED
+                    ) {
+                        console.log(
+                            'Override theme file changed, reloading...'
+                        );
+                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+                            this._applyTheme();
+                            return GLib.SOURCE_REMOVE;
+                        });
+                    }
                 }
-            });
+            );
 
-            console.log('File monitor setup for override theme (live reload enabled)');
+            console.log(
+                'File monitor setup for override theme (live reload enabled)'
+            );
         } catch (e) {
-            console.error(`Failed to setup override theme monitor: ${e.message}`);
+            console.error(
+                `Failed to setup override theme monitor: ${e.message}`
+            );
         }
     }
 

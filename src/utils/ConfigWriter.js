@@ -7,19 +7,33 @@ import {
     copyFile,
     ensureDirectoryExists,
     cleanDirectory,
-    enumerateDirectory
+    enumerateDirectory,
 } from './file-utils.js';
-import { hexToRgbString, hexToYaruTheme } from './color-utils.js';
-import { DEFAULT_COLORS } from '../constants/colors.js';
+import {hexToRgbString, hexToYaruTheme} from './color-utils.js';
+import {DEFAULT_COLORS} from '../constants/colors.js';
 
 export class ConfigWriter {
     constructor() {
         this.configDir = GLib.get_user_config_dir();
-        this.projectDir = GLib.path_get_dirname(GLib.path_get_dirname(GLib.path_get_dirname(
-            Gio.File.new_for_path(import.meta.url.replace('file://', '')).get_path()
-        )));
-        this.templatesDir = GLib.build_filenamev([this.projectDir, 'templates']);
-        this.themeDir = GLib.build_filenamev([this.configDir, 'omarchy', 'themes', 'aether']);
+        this.projectDir = GLib.path_get_dirname(
+            GLib.path_get_dirname(
+                GLib.path_get_dirname(
+                    Gio.File.new_for_path(
+                        import.meta.url.replace('file://', '')
+                    ).get_path()
+                )
+            )
+        );
+        this.templatesDir = GLib.build_filenamev([
+            this.projectDir,
+            'templates',
+        ]);
+        this.themeDir = GLib.build_filenamev([
+            this.configDir,
+            'omarchy',
+            'themes',
+            'aether',
+        ]);
         this.wallpaperPath = null;
     }
 
@@ -76,32 +90,55 @@ export class ConfigWriter {
     }
 
     _processTemplates(variables, settings = {}) {
-        enumerateDirectory(this.templatesDir, (fileInfo, templatePath, fileName) => {
-            // Skip neovim.lua if includeNeovim is false
-            if (fileName === 'neovim.lua' && settings.includeNeovim === false) {
-                return;
-            }
-
-            // Skip vencord.theme.css if includeVencord is false
-            if (fileName === 'vencord.theme.css' && settings.includeVencord === false) {
-                return;
-            }
-
-            const outputPath = GLib.build_filenamev([this.themeDir, fileName]);
-            
-            // If this is neovim.lua and a custom config is selected, write it directly
-            if (fileName === 'neovim.lua' && settings.selectedNeovimConfig) {
-                try {
-                    writeTextToFile(outputPath, settings.selectedNeovimConfig);
-                    console.log(`Applied selected Neovim theme to ${outputPath}`);
-                } catch (e) {
-                    console.error(`Error writing custom neovim.lua:`, e.message);
+        enumerateDirectory(
+            this.templatesDir,
+            (fileInfo, templatePath, fileName) => {
+                // Skip neovim.lua if includeNeovim is false
+                if (
+                    fileName === 'neovim.lua' &&
+                    settings.includeNeovim === false
+                ) {
+                    return;
                 }
-                return;
+
+                // Skip vencord.theme.css if includeVencord is false
+                if (
+                    fileName === 'vencord.theme.css' &&
+                    settings.includeVencord === false
+                ) {
+                    return;
+                }
+
+                const outputPath = GLib.build_filenamev([
+                    this.themeDir,
+                    fileName,
+                ]);
+
+                // If this is neovim.lua and a custom config is selected, write it directly
+                if (
+                    fileName === 'neovim.lua' &&
+                    settings.selectedNeovimConfig
+                ) {
+                    try {
+                        writeTextToFile(
+                            outputPath,
+                            settings.selectedNeovimConfig
+                        );
+                        console.log(
+                            `Applied selected Neovim theme to ${outputPath}`
+                        );
+                    } catch (e) {
+                        console.error(
+                            `Error writing custom neovim.lua:`,
+                            e.message
+                        );
+                    }
+                    return;
+                }
+
+                this._processTemplate(templatePath, outputPath, variables);
             }
-            
-            this._processTemplate(templatePath, outputPath, variables);
-        });
+        );
     }
 
     _processTemplate(templatePath, outputPath, variables) {
@@ -115,7 +152,10 @@ export class ConfigWriter {
 
             writeTextToFile(outputPath, processed);
         } catch (e) {
-            console.error(`Error processing template ${templatePath}:`, e.message);
+            console.error(
+                `Error processing template ${templatePath}:`,
+                e.message
+            );
         }
     }
 
@@ -126,7 +166,8 @@ export class ConfigWriter {
 
         // Replace {key.strip} (removes # from hex colors)
         const stripRegex = new RegExp(`\\{${key}\\.strip\\}`, 'g');
-        const strippedValue = typeof value === 'string' ? value.replace('#', '') : value;
+        const strippedValue =
+            typeof value === 'string' ? value.replace('#', '') : value;
         result = result.replace(stripRegex, strippedValue);
 
         // Replace {key.rgb} (converts hex to decimal RGB: r,g,b)
@@ -150,7 +191,14 @@ export class ConfigWriter {
         return result;
     }
 
-    exportTheme(colorRoles, wallpaperPath, exportPath, themeName, settings = {}, lightMode = false) {
+    exportTheme(
+        colorRoles,
+        wallpaperPath,
+        exportPath,
+        themeName,
+        settings = {},
+        lightMode = false
+    ) {
         try {
             ensureDirectoryExists(exportPath);
 
@@ -170,7 +218,6 @@ export class ConfigWriter {
 
             console.log(`Theme exported successfully to: ${exportPath}`);
             return true;
-
         } catch (e) {
             console.error('Error exporting theme:', e.message);
             throw e;
@@ -178,33 +225,53 @@ export class ConfigWriter {
     }
 
     _processTemplatesToDirectory(variables, exportPath, settings = {}) {
-        enumerateDirectory(this.templatesDir, (fileInfo, templatePath, fileName) => {
-            // Skip neovim.lua if includeNeovim is false
-            if (fileName === 'neovim.lua' && settings.includeNeovim === false) {
-                return;
-            }
-
-            // Skip vencord.theme.css if includeVencord is false
-            if (fileName === 'vencord.theme.css' && settings.includeVencord === false) {
-                return;
-            }
-
-            const outputPath = GLib.build_filenamev([exportPath, fileName]);
-            
-            // If this is neovim.lua and a custom config is selected, write it directly
-            if (fileName === 'neovim.lua' && settings.selectedNeovimConfig) {
-                try {
-                    writeTextToFile(outputPath, settings.selectedNeovimConfig);
-                    console.log(`Exported selected Neovim theme to ${outputPath}`);
-                } catch (e) {
-                    console.error(`Error writing custom neovim.lua:`, e.message);
+        enumerateDirectory(
+            this.templatesDir,
+            (fileInfo, templatePath, fileName) => {
+                // Skip neovim.lua if includeNeovim is false
+                if (
+                    fileName === 'neovim.lua' &&
+                    settings.includeNeovim === false
+                ) {
+                    return;
                 }
-                return;
+
+                // Skip vencord.theme.css if includeVencord is false
+                if (
+                    fileName === 'vencord.theme.css' &&
+                    settings.includeVencord === false
+                ) {
+                    return;
+                }
+
+                const outputPath = GLib.build_filenamev([exportPath, fileName]);
+
+                // If this is neovim.lua and a custom config is selected, write it directly
+                if (
+                    fileName === 'neovim.lua' &&
+                    settings.selectedNeovimConfig
+                ) {
+                    try {
+                        writeTextToFile(
+                            outputPath,
+                            settings.selectedNeovimConfig
+                        );
+                        console.log(
+                            `Exported selected Neovim theme to ${outputPath}`
+                        );
+                    } catch (e) {
+                        console.error(
+                            `Error writing custom neovim.lua:`,
+                            e.message
+                        );
+                    }
+                    return;
+                }
+
+                this._processTemplate(templatePath, outputPath, variables);
+                console.log(`Processed template: ${fileName}`);
             }
-            
-            this._processTemplate(templatePath, outputPath, variables);
-            console.log(`Processed template: ${fileName}`);
-        });
+        );
     }
 
     _handleLightModeMarker(themeDir, lightMode) {
@@ -237,44 +304,63 @@ export class ConfigWriter {
     _applyAetherThemeOverride(variables) {
         try {
             // Process the aether.override.css template
-            const templatePath = GLib.build_filenamev([this.templatesDir, 'aether.override.css']);
-            
+            const templatePath = GLib.build_filenamev([
+                this.templatesDir,
+                'aether.override.css',
+            ]);
+
             // Write to omarchy themes folder (with other config files)
-            const themeOverridePath = GLib.build_filenamev([this.themeDir, 'aether.override.css']);
-            
+            const themeOverridePath = GLib.build_filenamev([
+                this.themeDir,
+                'aether.override.css',
+            ]);
+
             // Process the template with color variables
             this._processTemplate(templatePath, themeOverridePath, variables);
-            
+
             // Create symlink from ~/.config/aether/theme.override.css to the generated file
-            const aetherConfigDir = GLib.build_filenamev([this.configDir, 'aether']);
-            const symlinkPath = GLib.build_filenamev([aetherConfigDir, 'theme.override.css']);
-            
+            const aetherConfigDir = GLib.build_filenamev([
+                this.configDir,
+                'aether',
+            ]);
+            const symlinkPath = GLib.build_filenamev([
+                aetherConfigDir,
+                'theme.override.css',
+            ]);
+
             // Ensure aether config directory exists
             ensureDirectoryExists(aetherConfigDir);
-            
+
             // Remove existing symlink or file if it exists
             const symlinkFile = Gio.File.new_for_path(symlinkPath);
             if (symlinkFile.query_exists(null)) {
                 try {
                     symlinkFile.delete(null);
                 } catch (e) {
-                    console.error('Error removing existing theme.override.css:', e.message);
+                    console.error(
+                        'Error removing existing theme.override.css:',
+                        e.message
+                    );
                 }
             }
-            
+
             // Create symlink
             try {
                 const symlinkGFile = Gio.File.new_for_path(symlinkPath);
                 symlinkGFile.make_symbolic_link(themeOverridePath, null);
-                console.log(`Created symlink: ${symlinkPath} -> ${themeOverridePath}`);
+                console.log(
+                    `Created symlink: ${symlinkPath} -> ${themeOverridePath}`
+                );
             } catch (e) {
                 console.error('Error creating symlink:', e.message);
                 // Fallback: copy the file if symlink fails
                 copyFile(themeOverridePath, symlinkPath);
                 console.log(`Fallback: Copied file to ${symlinkPath}`);
             }
-            
-            console.log(`Applied Aether theme override to ${themeOverridePath}`);
+
+            console.log(
+                `Applied Aether theme override to ${themeOverridePath}`
+            );
         } catch (e) {
             console.error('Error applying Aether theme override:', e.message);
         }

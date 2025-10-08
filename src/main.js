@@ -7,12 +7,12 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
-import { PaletteGenerator } from './components/PaletteGenerator.js';
-import { ColorSynthesizer } from './components/ColorSynthesizer.js';
-import { BlueprintManager } from './components/BlueprintManager.js';
-import { SettingsSidebar } from './components/SettingsSidebar.js';
-import { ConfigWriter } from './utils/ConfigWriter.js';
-import { ThemeManager } from './services/theme-manager.js';
+import {PaletteGenerator} from './components/PaletteGenerator.js';
+import {ColorSynthesizer} from './components/ColorSynthesizer.js';
+import {BlueprintManager} from './components/BlueprintManager.js';
+import {SettingsSidebar} from './components/SettingsSidebar.js';
+import {ConfigWriter} from './utils/ConfigWriter.js';
+import {ThemeManager} from './services/theme-manager.js';
 
 Adw.init();
 
@@ -73,7 +73,7 @@ const applyGlobalSharpCorners = () => {
             border-radius: 0px;
         }
     `;
-    
+
     cssProvider.load_from_string(css);
     Gtk.StyleContext.add_provider_for_display(
         Gdk.Display.get_default(),
@@ -87,7 +87,9 @@ applyGlobalSharpCorners();
 // Initialize theme manager with live reload
 const themeManager = new ThemeManager();
 console.log(`Base theme: ${themeManager.getThemePath()}`);
-console.log(`Override theme: ${themeManager.getOverridePath()} (edit this file)`);
+console.log(
+    `Override theme: ${themeManager.getOverridePath()} (edit this file)`
+);
 
 const AetherApplication = GObject.registerClass(
     class AetherApplication extends Adw.Application {
@@ -106,7 +108,7 @@ const AetherApplication = GObject.registerClass(
             }
             window.present();
         }
-        
+
         vfunc_shutdown() {
             if (this.themeManager) {
                 this.themeManager.destroy();
@@ -138,10 +140,10 @@ const AetherWindow = GObject.registerClass(
         }
 
         _createMainContent() {
-            const contentPage = new Adw.NavigationPage({ title: 'Synthesizer' });
+            const contentPage = new Adw.NavigationPage({title: 'Synthesizer'});
 
             // Create main content with action bar
-            const mainContent = new Adw.NavigationPage({ title: 'Content' });
+            const mainContent = new Adw.NavigationPage({title: 'Content'});
 
             const scrolledWindow = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
@@ -167,7 +169,9 @@ const AetherWindow = GObject.registerClass(
             mainContent.set_child(contentBox);
 
             // Create settings sidebar navigation page
-            const settingsSidebarPage = new Adw.NavigationPage({ title: 'Settings' });
+            const settingsSidebarPage = new Adw.NavigationPage({
+                title: 'Settings',
+            });
             this.settingsSidebar = new SettingsSidebar();
             settingsSidebarPage.set_child(this.settingsSidebar.widget);
 
@@ -224,9 +228,11 @@ const AetherWindow = GObject.registerClass(
                 tooltip_text: 'Hide Settings',
                 active: true,
             });
-            this._toggleSettingsButton.connect('toggled', (btn) => {
+            this._toggleSettingsButton.connect('toggled', btn => {
                 this.settingsSplitView.collapsed = !btn.get_active();
-                btn.set_tooltip_text(btn.get_active() ? 'Hide Settings' : 'Show Settings');
+                btn.set_tooltip_text(
+                    btn.get_active() ? 'Hide Settings' : 'Show Settings'
+                );
             });
             actionBar.pack_start(this._toggleSettingsButton);
 
@@ -234,14 +240,16 @@ const AetherWindow = GObject.registerClass(
                 icon_name: 'view-list-symbolic',
                 tooltip_text: 'Open Blueprints',
             });
-            blueprintsButton.connect('clicked', () => this._showBlueprintsDialog());
+            blueprintsButton.connect('clicked', () =>
+                this._showBlueprintsDialog()
+            );
             actionBar.pack_start(blueprintsButton);
 
-            const exportButton = new Gtk.Button({ label: 'Export Theme' });
+            const exportButton = new Gtk.Button({label: 'Export Theme'});
             exportButton.connect('clicked', () => this._exportTheme());
             actionBar.pack_start(exportButton);
 
-            const saveButton = new Gtk.Button({ label: 'Save Blueprint' });
+            const saveButton = new Gtk.Button({label: 'Save Blueprint'});
             saveButton.connect('clicked', () => this._saveBlueprint());
             actionBar.pack_end(saveButton);
 
@@ -272,9 +280,12 @@ const AetherWindow = GObject.registerClass(
                 this._updateAccessibility();
             });
 
-            this.blueprintManager.connect('blueprint-applied', (_, blueprint) => {
-                this._loadBlueprint(blueprint);
-            });
+            this.blueprintManager.connect(
+                'blueprint-applied',
+                (_, blueprint) => {
+                    this._loadBlueprint(blueprint);
+                }
+            );
 
             // Connect settings sidebar signals
             this.settingsSidebar.connect('adjustments-changed', (_, values) => {
@@ -293,9 +304,12 @@ const AetherWindow = GObject.registerClass(
                 this.paletteGenerator.applyHarmony(colors);
             });
 
-            this.settingsSidebar.connect('light-mode-changed', (_, lightMode) => {
-                this.paletteGenerator.setLightMode(lightMode);
-            });
+            this.settingsSidebar.connect(
+                'light-mode-changed',
+                (_, lightMode) => {
+                    this.paletteGenerator.setLightMode(lightMode);
+                }
+            );
         }
 
         _updateAccessibility() {
@@ -315,23 +329,31 @@ const AetherWindow = GObject.registerClass(
 
                 // Load palette (colors, wallpaper, locks)
                 if (blueprint.palette) {
-                    this.paletteGenerator.loadBlueprintPalette(blueprint.palette);
+                    this.paletteGenerator.loadBlueprintPalette(
+                        blueprint.palette
+                    );
 
                     // Sync light mode to sidebar
                     if (blueprint.palette.lightMode !== undefined) {
-                        this.settingsSidebar.setLightMode(blueprint.palette.lightMode);
+                        this.settingsSidebar.setLightMode(
+                            blueprint.palette.lightMode
+                        );
                     }
 
                     // Auto-assign color roles from palette
                     if (blueprint.palette.colors) {
-                        this.colorSynthesizer.setPalette(blueprint.palette.colors);
+                        this.colorSynthesizer.setPalette(
+                            blueprint.palette.colors
+                        );
                     }
                 }
 
                 // Load settings (including Neovim theme selection)
                 if (blueprint.settings) {
                     if (blueprint.settings.selectedNeovimConfig !== undefined) {
-                        this.settingsSidebar.setNeovimTheme(blueprint.settings.selectedNeovimConfig);
+                        this.settingsSidebar.setNeovimTheme(
+                            blueprint.settings.selectedNeovimConfig
+                        );
                     }
                 }
 
@@ -347,7 +369,12 @@ const AetherWindow = GObject.registerClass(
                 const palette = this.paletteGenerator.getPalette();
                 const settings = this.settingsSidebar.getSettings();
                 const lightMode = this.settingsSidebar.getLightMode();
-                this.configWriter.applyTheme(colors, palette.wallpaper, settings, lightMode);
+                this.configWriter.applyTheme(
+                    colors,
+                    palette.wallpaper,
+                    settings,
+                    lightMode
+                );
             } catch (e) {
                 console.error(`Error applying theme: ${e.message}`);
             }
@@ -391,7 +418,7 @@ const AetherWindow = GObject.registerClass(
         _saveBlueprint() {
             const palette = this.paletteGenerator.getPalette();
             palette.lightMode = this.settingsSidebar.getLightMode();
-            
+
             const blueprint = {
                 palette: palette,
                 timestamp: Date.now(),
@@ -414,7 +441,10 @@ const AetherWindow = GObject.registerClass(
 
             nameDialog.add_response('cancel', 'Cancel');
             nameDialog.add_response('continue', 'Continue');
-            nameDialog.set_response_appearance('continue', Adw.ResponseAppearance.SUGGESTED);
+            nameDialog.set_response_appearance(
+                'continue',
+                Adw.ResponseAppearance.SUGGESTED
+            );
 
             const nameEntry = new Gtk.Entry({
                 placeholder_text: 'my-theme',
@@ -466,7 +496,14 @@ const AetherWindow = GObject.registerClass(
 
                 console.log(`Exporting theme to: ${fullPath}`);
 
-                this.configWriter.exportTheme(colors, palette.wallpaper, fullPath, themeName, settings, lightMode);
+                this.configWriter.exportTheme(
+                    colors,
+                    palette.wallpaper,
+                    fullPath,
+                    themeName,
+                    settings,
+                    lightMode
+                );
 
                 this._showSuccessDialog(fullPath);
             } catch (e) {

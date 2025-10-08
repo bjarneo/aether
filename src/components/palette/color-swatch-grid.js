@@ -1,8 +1,12 @@
 import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
 
-import { applyCssToWidget, removeAllChildren } from '../../utils/ui-helpers.js';
-import { ANSI_COLOR_NAMES, PALETTE_CONFIG, SWATCH_DIMENSIONS } from '../../constants/colors.js';
+import {applyCssToWidget, removeAllChildren} from '../../utils/ui-helpers.js';
+import {
+    ANSI_COLOR_NAMES,
+    PALETTE_CONFIG,
+    SWATCH_DIMENSIONS,
+} from '../../constants/colors.js';
 
 /**
  * Creates and manages a grid of color swatches
@@ -53,7 +57,9 @@ export class ColorSwatchGrid {
         });
 
         const isLocked = this._lockedColors[index];
-        const borderStyle = isLocked ? '2px solid alpha(@accent_bg_color, 0.8)' : '2px solid alpha(@borders, 0.3)';
+        const borderStyle = isLocked
+            ? '2px solid alpha(@accent_bg_color, 0.8)'
+            : '2px solid alpha(@borders, 0.3)';
 
         const css = `
             .color-swatch {
@@ -75,7 +81,9 @@ export class ColorSwatchGrid {
 
         // Lock icon button overlay
         const lockButton = new Gtk.Button({
-            icon_name: isLocked ? 'changes-prevent-symbolic' : 'changes-allow-symbolic',
+            icon_name: isLocked
+                ? 'changes-prevent-symbolic'
+                : 'changes-allow-symbolic',
             halign: Gtk.Align.END,
             valign: Gtk.Align.START,
             margin_top: 2,

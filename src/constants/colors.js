@@ -4,24 +4,28 @@
 
 // ANSI color role definitions
 export const ANSI_COLOR_ROLES = [
-    { id: 'background', label: 'Background', description: 'Primary background color' },
-    { id: 'foreground', label: 'Foreground', description: 'Primary text color' },
-    { id: 'color0', label: 'Black (0)', description: 'ANSI color 0' },
-    { id: 'color1', label: 'Red (1)', description: 'ANSI color 1' },
-    { id: 'color2', label: 'Green (2)', description: 'ANSI color 2' },
-    { id: 'color3', label: 'Yellow (3)', description: 'ANSI color 3' },
-    { id: 'color4', label: 'Blue (4)', description: 'ANSI color 4' },
-    { id: 'color5', label: 'Magenta (5)', description: 'ANSI color 5' },
-    { id: 'color6', label: 'Cyan (6)', description: 'ANSI color 6' },
-    { id: 'color7', label: 'White (7)', description: 'ANSI color 7' },
-    { id: 'color8', label: 'Bright Black (8)', description: 'ANSI color 8' },
-    { id: 'color9', label: 'Bright Red (9)', description: 'ANSI color 9' },
-    { id: 'color10', label: 'Bright Green (10)', description: 'ANSI color 10' },
-    { id: 'color11', label: 'Bright Yellow (11)', description: 'ANSI color 11' },
-    { id: 'color12', label: 'Bright Blue (12)', description: 'ANSI color 12' },
-    { id: 'color13', label: 'Bright Magenta (13)', description: 'ANSI color 13' },
-    { id: 'color14', label: 'Bright Cyan (14)', description: 'ANSI color 14' },
-    { id: 'color15', label: 'Bright White (15)', description: 'ANSI color 15' },
+    {
+        id: 'background',
+        label: 'Background',
+        description: 'Primary background color',
+    },
+    {id: 'foreground', label: 'Foreground', description: 'Primary text color'},
+    {id: 'color0', label: 'Black (0)', description: 'ANSI color 0'},
+    {id: 'color1', label: 'Red (1)', description: 'ANSI color 1'},
+    {id: 'color2', label: 'Green (2)', description: 'ANSI color 2'},
+    {id: 'color3', label: 'Yellow (3)', description: 'ANSI color 3'},
+    {id: 'color4', label: 'Blue (4)', description: 'ANSI color 4'},
+    {id: 'color5', label: 'Magenta (5)', description: 'ANSI color 5'},
+    {id: 'color6', label: 'Cyan (6)', description: 'ANSI color 6'},
+    {id: 'color7', label: 'White (7)', description: 'ANSI color 7'},
+    {id: 'color8', label: 'Bright Black (8)', description: 'ANSI color 8'},
+    {id: 'color9', label: 'Bright Red (9)', description: 'ANSI color 9'},
+    {id: 'color10', label: 'Bright Green (10)', description: 'ANSI color 10'},
+    {id: 'color11', label: 'Bright Yellow (11)', description: 'ANSI color 11'},
+    {id: 'color12', label: 'Bright Blue (12)', description: 'ANSI color 12'},
+    {id: 'color13', label: 'Bright Magenta (13)', description: 'ANSI color 13'},
+    {id: 'color14', label: 'Bright Cyan (14)', description: 'ANSI color 14'},
+    {id: 'color15', label: 'Bright White (15)', description: 'ANSI color 15'},
 ];
 
 // Default color scheme (Catppuccin-inspired)
@@ -48,10 +52,22 @@ export const DEFAULT_COLORS = {
 
 // ANSI color names for tooltips
 export const ANSI_COLOR_NAMES = [
-    'Black (0)', 'Red (1)', 'Green (2)', 'Yellow (3)',
-    'Blue (4)', 'Magenta (5)', 'Cyan (6)', 'White (7)',
-    'Bright Black (8)', 'Bright Red (9)', 'Bright Green (10)', 'Bright Yellow (11)',
-    'Bright Blue (12)', 'Bright Magenta (13)', 'Bright Cyan (14)', 'Bright White (15)'
+    'Black (0)',
+    'Red (1)',
+    'Green (2)',
+    'Yellow (3)',
+    'Blue (4)',
+    'Magenta (5)',
+    'Cyan (6)',
+    'White (7)',
+    'Bright Black (8)',
+    'Bright Red (9)',
+    'Bright Green (10)',
+    'Bright Yellow (11)',
+    'Bright Blue (12)',
+    'Bright Magenta (13)',
+    'Bright Cyan (14)',
+    'Bright White (15)',
 ];
 
 // Color harmony types
@@ -61,17 +77,17 @@ export const HARMONY_TYPES = [
     'Complementary',
     'Split Complementary',
     'Shades',
-    'Squares'
+    'Squares',
 ];
 
 // Color adjustment limits
 export const ADJUSTMENT_LIMITS = {
-    vibrance: { min: -50, max: 50, step: 5, default: 0 },
-    contrast: { min: -30, max: 30, step: 5, default: 0 },
-    brightness: { min: -30, max: 30, step: 5, default: 0 },
-    hue: { min: -180, max: 180, step: 10, default: 0 },
-    temperature: { min: -50, max: 50, step: 5, default: 0 },
-    gamma: { min: 0.5, max: 2.0, step: 0.1, default: 1.0 },
+    vibrance: {min: -50, max: 50, step: 5, default: 0},
+    contrast: {min: -30, max: 30, step: 5, default: 0},
+    brightness: {min: -30, max: 30, step: 5, default: 0},
+    hue: {min: -180, max: 180, step: 10, default: 0},
+    temperature: {min: -50, max: 50, step: 5, default: 0},
+    gamma: {min: 0.5, max: 2.0, step: 0.1, default: 1.0},
 };
 
 // Palette configuration
@@ -85,6 +101,6 @@ export const PALETTE_CONFIG = {
 
 // Color swatch dimensions
 export const SWATCH_DIMENSIONS = {
-    default: { width: 35, height: 35 },
-    large: { width: 40, height: 40 },
+    default: {width: 35, height: 35},
+    large: {width: 40, height: 40},
 };

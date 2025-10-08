@@ -306,6 +306,30 @@ The app uses:
 - **Libadwaita**: GNOME's adaptive widgets
 - **ES Modules**: Modern JavaScript
 
+### Code Formatting
+
+Aether uses Prettier for consistent code formatting:
+
+```bash
+# Format all JavaScript files
+npm run format
+
+# Check formatting without making changes
+npm run format:check
+```
+
+**Configuration** (`.prettierrc`):
+- 4 spaces for indentation
+- Single quotes
+- Semicolons enabled
+- ES5 trailing commas
+- No bracket spacing
+- Arrow functions without parentheses when possible
+
+For automatic formatting on save:
+- **VSCode**: Install the Prettier extension
+- **Other editors**: Configure to run `prettier --write` on save
+
 ## Architecture
 
 ### Theme Application Flow

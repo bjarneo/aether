@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=4.0';
 
-import { ADJUSTMENT_LIMITS } from '../../constants/colors.js';
+import {ADJUSTMENT_LIMITS} from '../../constants/colors.js';
 
 /**
  * Creates color adjustment controls (sliders for vibrance, contrast, etc.)
@@ -119,14 +119,7 @@ export class ColorAdjustmentControls {
     }
 
     _createCompactSlider(config) {
-        const {
-            label,
-            min,
-            max,
-            defaultValue,
-            step,
-            onChange
-        } = config;
+        const {label, min, max, defaultValue, step, onChange} = config;
 
         const box = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
@@ -161,7 +154,7 @@ export class ColorAdjustmentControls {
         box.append(labelWidget);
         box.append(scale);
 
-        return { box, scale };
+        return {box, scale};
     }
 
     _emitChange() {
@@ -170,13 +163,17 @@ export class ColorAdjustmentControls {
             GLib.source_remove(this._debounceTimeout);
         }
 
-        this._debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
-            if (this.onAdjustmentChange) {
-                this.onAdjustmentChange(this.getValues());
+        this._debounceTimeout = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            150,
+            () => {
+                if (this.onAdjustmentChange) {
+                    this.onAdjustmentChange(this.getValues());
+                }
+                this._debounceTimeout = null;
+                return GLib.SOURCE_REMOVE;
             }
-            this._debounceTimeout = null;
-            return GLib.SOURCE_REMOVE;
-        });
+        );
     }
 
     getValues() {

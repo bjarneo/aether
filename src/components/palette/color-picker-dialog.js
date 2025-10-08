@@ -1,10 +1,18 @@
 import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
 
-import { applyCssToWidget } from '../../utils/ui-helpers.js';
-import { generateShades } from '../../services/color-harmony.js';
-import { findClosestShade, rgbaToHex, ensureHashPrefix } from '../../utils/color-utils.js';
-import { ANSI_COLOR_NAMES, PALETTE_CONFIG, SWATCH_DIMENSIONS } from '../../constants/colors.js';
+import {applyCssToWidget} from '../../utils/ui-helpers.js';
+import {generateShades} from '../../services/color-harmony.js';
+import {
+    findClosestShade,
+    rgbaToHex,
+    ensureHashPrefix,
+} from '../../utils/color-utils.js';
+import {
+    ANSI_COLOR_NAMES,
+    PALETTE_CONFIG,
+    SWATCH_DIMENSIONS,
+} from '../../constants/colors.js';
 
 /**
  * Handles color picker dialogs for palette swatches
@@ -38,10 +46,14 @@ export class ColorPickerDialog {
             margin_end: 8,
         });
 
-        const shadesFlow = this._createShadesFlow(shades, closestShadeIndex, (shade) => {
-            onColorSelected(shade);
-            dialog.close();
-        });
+        const shadesFlow = this._createShadesFlow(
+            shades,
+            closestShadeIndex,
+            shade => {
+                onColorSelected(shade);
+                dialog.close();
+            }
+        );
 
         contentBox.append(shadesFlow);
 
@@ -76,7 +88,11 @@ export class ColorPickerDialog {
         });
 
         shades.forEach((shade, index) => {
-            const shadeBox = this._createShadeBox(shade, index === activeIndex, onShadeClick);
+            const shadeBox = this._createShadeBox(
+                shade,
+                index === activeIndex,
+                onShadeClick
+            );
             shadesFlow.append(shadeBox);
         });
 

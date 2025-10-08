@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import { readFileAsText } from '../utils/file-utils.js';
-import { brightenColor, ensureHashPrefix } from '../utils/color-utils.js';
+import {readFileAsText} from '../utils/file-utils.js';
+import {brightenColor, ensureHashPrefix} from '../utils/color-utils.js';
 
 /**
  * Service for wallpaper color extraction using pywal
@@ -14,7 +14,12 @@ import { brightenColor, ensureHashPrefix } from '../utils/color-utils.js';
  * @param {Function} onSuccess - Callback when colors are extracted (colors)
  * @param {Function} onError - Callback when extraction fails (error)
  */
-export function extractColorsFromWallpaper(imagePath, lightMode, onSuccess, onError) {
+export function extractColorsFromWallpaper(
+    imagePath,
+    lightMode,
+    onSuccess,
+    onError
+) {
     try {
         const argv = ['wal', '-n', '-s', '-t', '-e'];
         if (lightMode) {
@@ -34,7 +39,9 @@ export function extractColorsFromWallpaper(imagePath, lightMode, onSuccess, onEr
                 if (!success || exitCode !== 0) {
                     const stderr = source.get_stderr_pipe();
                     if (stderr) {
-                        const stream = new Gio.DataInputStream({ base_stream: stderr });
+                        const stream = new Gio.DataInputStream({
+                            base_stream: stderr,
+                        });
                         const [line] = stream.read_line_utf8(null);
                         onError(new Error(`pywal error: ${line}`));
                         return;
@@ -65,12 +72,19 @@ export function extractColorsFromWallpaper(imagePath, lightMode, onSuccess, onEr
 export function readWalColors() {
     try {
         const homeDir = GLib.get_home_dir();
-        const colorsPath = GLib.build_filenamev([homeDir, '.cache', 'wal', 'colors']);
+        const colorsPath = GLib.build_filenamev([
+            homeDir,
+            '.cache',
+            'wal',
+            'colors',
+        ]);
 
         const text = readFileAsText(colorsPath);
 
         // Parse colors (one per line), ensure they have # prefix
-        let colors = text.trim().split('\n')
+        let colors = text
+            .trim()
+            .split('\n')
             .filter(line => line.trim().length > 0)
             .map(line => ensureHashPrefix(line.trim()));
 

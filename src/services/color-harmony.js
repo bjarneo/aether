@@ -1,4 +1,9 @@
-import { hexToRgb, rgbToHsl, hslToHex, brightenColor } from '../utils/color-utils.js';
+import {
+    hexToRgb,
+    rgbToHsl,
+    hslToHex,
+    brightenColor,
+} from '../utils/color-utils.js';
 
 /**
  * Service for generating color harmonies from a base color
@@ -84,7 +89,15 @@ export function generateComplementaryHarmony(baseColor) {
     colors[0] = hslToHex(hsl.h, Math.min(hsl.s * 0.3, 15), 8);
 
     // Colors 1-7: Alternate between base and complement
-    const hues = [hsl.h, complementHue, hsl.h, complementHue, hsl.h, complementHue, hsl.h];
+    const hues = [
+        hsl.h,
+        complementHue,
+        hsl.h,
+        complementHue,
+        hsl.h,
+        complementHue,
+        hsl.h,
+    ];
     for (let i = 1; i < 8; i++) {
         const saturation = Math.max(50, hsl.s * 0.85);
         const lightness = i === 7 ? 75 : 55;
@@ -118,7 +131,15 @@ export function generateSplitComplementaryHarmony(baseColor) {
     colors[0] = hslToHex(hsl.h, Math.min(hsl.s * 0.3, 15), 8);
 
     // Colors 1-7: Rotate through base and split complements
-    const hues = [hsl.h, complement1, complement2, hsl.h, complement1, complement2, hsl.h];
+    const hues = [
+        hsl.h,
+        complement1,
+        complement2,
+        hsl.h,
+        complement1,
+        complement2,
+        hsl.h,
+    ];
     for (let i = 1; i < 8; i++) {
         const saturation = Math.max(50, hsl.s * 0.85);
         const lightness = i === 7 ? 75 : 55;
@@ -149,7 +170,7 @@ export function generateSquareHarmony(baseColor) {
         hsl.h,
         (hsl.h + 90) % 360,
         (hsl.h + 180) % 360,
-        (hsl.h + 270) % 360
+        (hsl.h + 270) % 360,
     ];
 
     // Color 0: Dark background
@@ -203,11 +224,7 @@ export function generateTriadicHarmony(baseColor) {
     const rgb = hexToRgb(baseColor);
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
     const colors = [];
-    const triadHues = [
-        hsl.h,
-        (hsl.h + 120) % 360,
-        (hsl.h + 240) % 360
-    ];
+    const triadHues = [hsl.h, (hsl.h + 120) % 360, (hsl.h + 240) % 360];
 
     // Color 0: Dark background
     colors[0] = hslToHex(hsl.h, Math.min(hsl.s * 0.3, 15), 8);
@@ -239,12 +256,19 @@ export function generateTriadicHarmony(baseColor) {
  */
 export function generateHarmony(baseColor, harmonyType) {
     switch (harmonyType) {
-        case 0: return generateComplementaryHarmony(baseColor);      // Complementary
-        case 1: return generateAnalogousHarmony(baseColor);          // Analogous
-        case 2: return generateTriadicHarmony(baseColor);            // Triadic
-        case 3: return generateSplitComplementaryHarmony(baseColor); // Split Complementary
-        case 4: return generateSquareHarmony(baseColor);             // Tetradic (Square)
-        case 5: return generateMonochromaticHarmony(baseColor);      // Monochromatic
-        default: return generateComplementaryHarmony(baseColor);
+        case 0:
+            return generateComplementaryHarmony(baseColor); // Complementary
+        case 1:
+            return generateAnalogousHarmony(baseColor); // Analogous
+        case 2:
+            return generateTriadicHarmony(baseColor); // Triadic
+        case 3:
+            return generateSplitComplementaryHarmony(baseColor); // Split Complementary
+        case 4:
+            return generateSquareHarmony(baseColor); // Tetradic (Square)
+        case 5:
+            return generateMonochromaticHarmony(baseColor); // Monochromatic
+        default:
+            return generateComplementaryHarmony(baseColor);
     }
 }

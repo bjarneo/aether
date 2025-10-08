@@ -23,7 +23,7 @@ export const COLOR_PRESETS = [
             '#ff92df', // bright pink
             '#a4ffff', // bright cyan
             '#ffffff', // bright white
-        ]
+        ],
     },
     {
         name: 'Nord',
@@ -45,7 +45,7 @@ export const COLOR_PRESETS = [
             '#b48ead', // bright magenta
             '#8fbcbb', // bright cyan
             '#eceff4', // bright white
-        ]
+        ],
     },
     {
         name: 'Gruvbox Dark',
@@ -67,7 +67,7 @@ export const COLOR_PRESETS = [
             '#d3869b', // bright magenta
             '#8ec07c', // bright cyan
             '#fbf1c7', // bright white
-        ]
+        ],
     },
     {
         name: 'Solarized Dark',
@@ -89,7 +89,7 @@ export const COLOR_PRESETS = [
             '#6c71c4', // bright magenta
             '#93a1a1', // bright cyan
             '#fdf6e3', // bright white
-        ]
+        ],
     },
     {
         name: 'Tokyo Night',
@@ -111,7 +111,7 @@ export const COLOR_PRESETS = [
             '#bb9af7', // bright magenta
             '#7dcfff', // bright cyan
             '#c0caf5', // bright white
-        ]
+        ],
     },
     {
         name: 'Catppuccin Mocha',
@@ -133,7 +133,7 @@ export const COLOR_PRESETS = [
             '#cba6f7', // bright magenta
             '#94e2d5', // bright cyan
             '#bac2de', // bright white
-        ]
+        ],
     },
     {
         name: 'One Dark',
@@ -155,7 +155,7 @@ export const COLOR_PRESETS = [
             '#c678dd', // bright magenta
             '#56b6c2', // bright cyan
             '#ffffff', // bright white
-        ]
+        ],
     },
     {
         name: 'Monokai Pro',
@@ -177,7 +177,7 @@ export const COLOR_PRESETS = [
             '#ab9df2', // bright purple
             '#78dce8', // bright cyan
             '#fcfcfa', // bright white
-        ]
+        ],
     },
     {
         name: 'Palenight',
@@ -199,7 +199,7 @@ export const COLOR_PRESETS = [
             '#c792ea', // bright magenta
             '#89ddff', // bright cyan
             '#ffffff', // bright white
-        ]
+        ],
     },
     {
         name: 'Rose Pine',
@@ -221,7 +221,7 @@ export const COLOR_PRESETS = [
             '#c4a7e7', // bright magenta
             '#ebbcba', // bright cyan
             '#e0def4', // bright white
-        ]
+        ],
     },
     {
         name: 'Everforest',
@@ -243,7 +243,7 @@ export const COLOR_PRESETS = [
             '#d699b6', // bright magenta
             '#83c092', // bright cyan
             '#d3c6aa', // bright white
-        ]
+        ],
     },
     {
         name: 'Kanagawa',
@@ -265,7 +265,7 @@ export const COLOR_PRESETS = [
             '#938aa9', // bright magenta
             '#7aa89f', // bright cyan
             '#c8c093', // bright white
-        ]
+        ],
     },
     {
         name: 'Nightfox',
@@ -287,7 +287,7 @@ export const COLOR_PRESETS = [
             '#9d79d6', // bright magenta
             '#63cdcf', // bright cyan
             '#cdcecf', // bright white
-        ]
+        ],
     },
     {
         name: 'Ayu Mirage',
@@ -309,7 +309,7 @@ export const COLOR_PRESETS = [
             '#dfbfff', // bright magenta
             '#95e6cb', // bright cyan
             '#cbccc6', // bright white
-        ]
+        ],
     },
     {
         name: 'Oceanic Next',
@@ -331,7 +331,7 @@ export const COLOR_PRESETS = [
             '#c594c5', // bright magenta
             '#5fb3b3', // bright cyan
             '#d8dee9', // bright white
-        ]
+        ],
     },
     {
         name: 'Horizon',
@@ -353,7 +353,7 @@ export const COLOR_PRESETS = [
             '#f075b5', // bright magenta
             '#6be4e6', // bright cyan
             '#fadad1', // bright white
-        ]
+        ],
     },
     {
         name: 'Andromeda',
@@ -375,7 +375,7 @@ export const COLOR_PRESETS = [
             '#f92aad', // bright magenta
             '#4dd9d7', // bright cyan
             '#d5ced9', // bright white
-        ]
+        ],
     },
     {
         name: 'Synthwave 84',
@@ -397,7 +397,7 @@ export const COLOR_PRESETS = [
             '#ff7edb', // bright magenta
             '#36f9f6', // bright cyan
             '#ffffff', // bright white
-        ]
+        ],
     },
     // Light Themes
     {
@@ -420,7 +420,7 @@ export const COLOR_PRESETS = [
             '#6c71c4', // bright magenta
             '#586e75', // bright cyan
             '#073642', // bright white
-        ]
+        ],
     },
     {
         name: 'Gruvbox Light',
@@ -442,7 +442,7 @@ export const COLOR_PRESETS = [
             '#8f3f71', // bright magenta
             '#427b58', // bright cyan
             '#282828', // bright white
-        ]
+        ],
     },
     {
         name: 'Catppuccin Latte',
@@ -464,7 +464,7 @@ export const COLOR_PRESETS = [
             '#ea76cb', // bright magenta
             '#179299', // bright cyan
             '#5c5f77', // bright white
-        ]
+        ],
     },
     {
         name: 'One Light',
@@ -486,7 +486,7 @@ export const COLOR_PRESETS = [
             '#a626a4', // bright magenta
             '#0184bc', // bright cyan
             '#090a0b', // bright white
-        ]
+        ],
     },
     {
         name: 'Rose Pine Dawn',
@@ -508,7 +508,7 @@ export const COLOR_PRESETS = [
             '#907aa9', // bright magenta
             '#d7827e', // bright cyan
             '#575279', // bright white
-        ]
+        ],
     },
     {
         name: 'Everforest Light',
@@ -530,7 +530,7 @@ export const COLOR_PRESETS = [
             '#df69ba', // bright magenta
             '#35a77c', // bright cyan
             '#5c6a72', // bright white
-        ]
+        ],
     },
     {
         name: 'Tokyo Night Day',
@@ -552,7 +552,7 @@ export const COLOR_PRESETS = [
             '#9854f1', // bright magenta
             '#007197', // bright cyan
             '#3760bf', // bright white
-        ]
+        ],
     },
     {
         name: 'GitHub Dark',
@@ -574,7 +574,7 @@ export const COLOR_PRESETS = [
             '#d2a8ff', // bright magenta
             '#56d4dd', // bright cyan
             '#f0f6fc', // bright white
-        ]
+        ],
     },
     {
         name: 'GitHub Light',
@@ -596,7 +596,7 @@ export const COLOR_PRESETS = [
             '#8250df', // bright magenta
             '#1b7c83', // bright cyan
             '#1f2328', // bright white
-        ]
+        ],
     },
     {
         name: 'Monochrome Dark',
@@ -618,7 +618,7 @@ export const COLOR_PRESETS = [
             '#747474', // bright magenta
             '#868686', // bright cyan
             '#ffffff', // bright white
-        ]
+        ],
     },
     {
         name: 'Monochrome Light',
@@ -640,6 +640,6 @@ export const COLOR_PRESETS = [
             '#5e5e5e', // bright magenta
             '#707070', // bright cyan
             '#000000', // bright white (black)
-        ]
+        ],
     },
 ];

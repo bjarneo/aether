@@ -5,521 +5,552 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 
-import { wallhavenService } from '../services/wallhaven-service.js';
+import {wallhavenService} from '../services/wallhaven-service.js';
 
-export const WallpaperBrowser = GObject.registerClass({
-    Signals: {
-        'wallpaper-selected': { param_types: [GObject.TYPE_STRING] },
+export const WallpaperBrowser = GObject.registerClass(
+    {
+        Signals: {
+            'wallpaper-selected': {param_types: [GObject.TYPE_STRING]},
+        },
     },
-}, class WallpaperBrowser extends Gtk.Box {
-    _init() {
-        super._init({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-        });
+    class WallpaperBrowser extends Gtk.Box {
+        _init() {
+            super._init({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 12,
+            });
 
-        this._currentPage = 1;
-        this._totalPages = 1;
-        this._searchParams = {
-            q: '',
-            categories: '111', // All categories
-            purity: '100', // SFW only
-            sorting: 'date_added',
-            order: 'desc',
-            resolutions: '', // Resolution filter
-        };
-        this._favorites = new Set();
-        this._showingFavorites = false;
-
-        this._loadConfig();
-        this._loadFavorites();
-        this._initializeUI();
-        this._loadInitialWallpapers();
-    }
-
-    _initializeUI() {
-        // Toolbar/Header section
-        const toolbar = this._createToolbar();
-        this.append(toolbar);
-
-        // Main content box with loading state
-        this._contentStack = new Gtk.Stack({
-            vexpand: true,
-            transition_type: Gtk.StackTransitionType.CROSSFADE,
-        });
-
-        // Loading spinner
-        const loadingBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            valign: Gtk.Align.CENTER,
-            halign: Gtk.Align.CENTER,
-            spacing: 12,
-        });
-        const spinner = new Gtk.Spinner({
-            width_request: 48,
-            height_request: 48,
-        });
-        spinner.start();
-        const loadingLabel = new Gtk.Label({
-            label: 'Loading wallpapers...',
-            css_classes: ['dim-label'],
-        });
-        loadingBox.append(spinner);
-        loadingBox.append(loadingLabel);
-        this._contentStack.add_named(loadingBox, 'loading');
-
-        // Error state
-        const errorBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            valign: Gtk.Align.CENTER,
-            halign: Gtk.Align.CENTER,
-            spacing: 12,
-        });
-        this._errorLabel = new Gtk.Label({
-            label: 'Failed to load wallpapers',
-            css_classes: ['error'],
-        });
-        const retryButton = new Gtk.Button({
-            label: 'Retry',
-        });
-        retryButton.connect('clicked', () => this._performSearch());
-        errorBox.append(this._errorLabel);
-        errorBox.append(retryButton);
-        this._contentStack.add_named(errorBox, 'error');
-
-        // Scrolled window for wallpaper grid
-        this._scrolledWindow = new Gtk.ScrolledWindow({
-            vexpand: true,
-            hscrollbar_policy: Gtk.PolicyType.NEVER,
-            vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-        });
-
-        // Wallpaper grid
-        this._gridFlow = new Gtk.FlowBox({
-            valign: Gtk.Align.START,
-            max_children_per_line: 3,
-            min_children_per_line: 2,
-            selection_mode: Gtk.SelectionMode.NONE,
-            column_spacing: 12,
-            row_spacing: 12,
-            margin_top: 12,
-            margin_bottom: 12,
-            margin_start: 12,
-            margin_end: 12,
-            homogeneous: true,
-        });
-
-        this._scrolledWindow.set_child(this._gridFlow);
-        this._contentStack.add_named(this._scrolledWindow, 'content');
-
-        this._contentStack.set_visible_child_name('loading');
-        this.append(this._contentStack);
-
-        // Pagination controls
-        const paginationBox = this._createPaginationControls();
-        this.append(paginationBox);
-    }
-
-    _createToolbar() {
-        const toolbarBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 0,
-        });
-
-        // Top action bar with search and buttons
-        const actionBar = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 6,
-            margin_top: 6,
-            margin_bottom: 6,
-            margin_start: 6,
-            margin_end: 6,
-        });
-
-        // Search entry
-        this._searchEntry = new Gtk.SearchEntry({
-            placeholder_text: 'Search by tags, colors...',
-            hexpand: true,
-        });
-
-        this._searchEntry.connect('activate', () => {
-            this._searchParams.q = this._searchEntry.get_text();
             this._currentPage = 1;
+            this._totalPages = 1;
+            this._searchParams = {
+                q: '',
+                categories: '111', // All categories
+                purity: '100', // SFW only
+                sorting: 'date_added',
+                order: 'desc',
+                resolutions: '', // Resolution filter
+            };
+            this._favorites = new Set();
             this._showingFavorites = false;
-            this._performSearch();
-        });
 
-        // Search button
-        const searchButton = new Gtk.Button({
-            icon_name: 'system-search-symbolic',
-            tooltip_text: 'Search',
-        });
-        searchButton.connect('clicked', () => {
-            this._searchParams.q = this._searchEntry.get_text();
-            this._currentPage = 1;
-            this._showingFavorites = false;
-            this._performSearch();
-        });
-
-        // Favorites button
-        this._favoritesButton = new Gtk.ToggleButton({
-            icon_name: 'emblem-favorite-symbolic',
-            tooltip_text: 'View Favorites',
-        });
-        
-        this._favoritesCountLabel = new Gtk.Label({
-            label: '0',
-            css_classes: ['caption'],
-        });
-
-        const favBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 4,
-        });
-        favBox.append(new Gtk.Image({ icon_name: 'emblem-favorite-symbolic' }));
-        favBox.append(this._favoritesCountLabel);
-        this._favoritesButton.set_child(favBox);
-
-        this._favoritesButton.connect('toggled', () => {
-            this._toggleFavoritesView();
-        });
-
-        // Filters button (toggle)
-        this._filtersButton = new Gtk.ToggleButton({
-            icon_name: 'preferences-other-symbolic',
-            tooltip_text: 'Show Filters',
-        });
-
-        this._filtersButton.connect('toggled', () => {
-            this._filtersRevealer.set_reveal_child(this._filtersButton.get_active());
-        });
-
-        // Settings button
-        const settingsButton = new Gtk.Button({
-            icon_name: 'emblem-system-symbolic',
-            tooltip_text: 'Settings',
-        });
-        settingsButton.connect('clicked', () => {
-            this._showSettingsDialog();
-        });
-
-        actionBar.append(this._searchEntry);
-        actionBar.append(searchButton);
-        actionBar.append(new Gtk.Separator({ orientation: Gtk.Orientation.VERTICAL }));
-        actionBar.append(this._favoritesButton);
-        actionBar.append(this._filtersButton);
-        actionBar.append(settingsButton);
-
-        toolbarBox.append(actionBar);
-
-        // Filters section (collapsible)
-        this._filtersRevealer = new Gtk.Revealer({
-            transition_type: Gtk.RevealerTransitionType.SLIDE_DOWN,
-            reveal_child: false,
-        });
-
-        const filtersBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 12,
-            margin_top: 6,
-            margin_bottom: 6,
-            margin_start: 12,
-            margin_end: 12,
-        });
-
-        // Sort dropdown
-        const sortBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 3,
-        });
-
-        const sortLabel = new Gtk.Label({
-            label: 'Sort',
-            xalign: 0,
-            css_classes: ['caption', 'dim-label'],
-        });
-
-        this._sortDropdown = new Gtk.DropDown({
-            model: new Gtk.StringList(),
-        });
-        
-        const sortModel = this._sortDropdown.get_model();
-        ['Latest', 'Relevance', 'Random', 'Views', 'Favorites', 'Top List'].forEach(item => {
-            sortModel.append(item);
-        });
-
-        this._sortDropdown.connect('notify::selected', () => {
-            const sortMethods = ['date_added', 'relevance', 'random', 'views', 'favorites', 'toplist'];
-            this._searchParams.sorting = sortMethods[this._sortDropdown.get_selected()];
-            this._currentPage = 1;
-            if (!this._showingFavorites) {
-                this._performSearch();
-            }
-        });
-
-        sortBox.append(sortLabel);
-        sortBox.append(this._sortDropdown);
-
-        // Categories
-        const categoriesBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 3,
-        });
-
-        const categoriesLabel = new Gtk.Label({
-            label: 'Categories',
-            xalign: 0,
-            css_classes: ['caption', 'dim-label'],
-        });
-
-        const categoriesCheckBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 6,
-        });
-
-        this._generalCheck = new Gtk.CheckButton({
-            label: 'General',
-            active: true,
-        });
-        this._animeCheck = new Gtk.CheckButton({
-            label: 'Anime',
-            active: true,
-        });
-        this._peopleCheck = new Gtk.CheckButton({
-            label: 'People',
-            active: true,
-        });
-
-        const updateCategories = () => {
-            const cats = [
-                this._generalCheck.get_active() ? '1' : '0',
-                this._animeCheck.get_active() ? '1' : '0',
-                this._peopleCheck.get_active() ? '1' : '0',
-            ].join('');
-            this._searchParams.categories = cats;
-            this._currentPage = 1;
-            if (!this._showingFavorites) {
-                this._performSearch();
-            }
-        };
-
-        this._generalCheck.connect('toggled', updateCategories);
-        this._animeCheck.connect('toggled', updateCategories);
-        this._peopleCheck.connect('toggled', updateCategories);
-
-        categoriesCheckBox.append(this._generalCheck);
-        categoriesCheckBox.append(this._animeCheck);
-        categoriesCheckBox.append(this._peopleCheck);
-
-        categoriesBox.append(categoriesLabel);
-        categoriesBox.append(categoriesCheckBox);
-
-        filtersBox.append(sortBox);
-        filtersBox.append(new Gtk.Separator({ orientation: Gtk.Orientation.VERTICAL }));
-        filtersBox.append(categoriesBox);
-
-        this._filtersRevealer.set_child(filtersBox);
-        toolbarBox.append(this._filtersRevealer);
-
-        // Separator
-        toolbarBox.append(new Gtk.Separator({ orientation: Gtk.Orientation.HORIZONTAL }));
-
-        this._updateFavoritesCount();
-
-        return toolbarBox;
-    }
-
-    _createPaginationControls() {
-        this._paginationBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            halign: Gtk.Align.CENTER,
-            spacing: 12,
-            margin_top: 6,
-            margin_bottom: 6,
-        });
-
-        this._prevButton = new Gtk.Button({
-            icon_name: 'go-previous-symbolic',
-            sensitive: false,
-        });
-        this._prevButton.connect('clicked', () => {
-            if (this._currentPage > 1) {
-                this._currentPage--;
-                this._performSearch();
-                this._scrollToTop();
-            }
-        });
-
-        this._pageLabel = new Gtk.Label({
-            label: 'Page 1 of 1',
-        });
-
-        this._nextButton = new Gtk.Button({
-            icon_name: 'go-next-symbolic',
-            sensitive: false,
-        });
-        this._nextButton.connect('clicked', () => {
-            if (this._currentPage < this._totalPages) {
-                this._currentPage++;
-                this._performSearch();
-                this._scrollToTop();
-            }
-        });
-
-        this._paginationBox.append(this._prevButton);
-        this._paginationBox.append(this._pageLabel);
-        this._paginationBox.append(this._nextButton);
-
-        return this._paginationBox;
-    }
-
-    _loadInitialWallpapers() {
-        this._performSearch();
-    }
-
-    _scrollToTop() {
-        // Scroll back to top when changing pages
-        const adjustment = this._scrolledWindow.get_vadjustment();
-        if (adjustment) {
-            adjustment.set_value(0);
-        }
-    }
-
-    _toggleFavoritesView() {
-        this._showingFavorites = this._favoritesButton.get_active();
-        
-        if (this._showingFavorites) {
-            this._displayFavorites();
-            this._paginationBox.set_visible(false);
-            this._searchEntry.set_sensitive(false);
-            this._filtersButton.set_sensitive(false);
-        } else {
-            this._currentPage = 1;
-            this._performSearch();
-            this._paginationBox.set_visible(true);
-            this._searchEntry.set_sensitive(true);
-            this._filtersButton.set_sensitive(true);
-        }
-    }
-
-    _displayFavorites() {
-        this._contentStack.set_visible_child_name('loading');
-
-        // Clear existing items
-        let child = this._gridFlow.get_first_child();
-        while (child) {
-            const next = child.get_next_sibling();
-            this._gridFlow.remove(child);
-            child = next;
+            this._loadConfig();
+            this._loadFavorites();
+            this._initializeUI();
+            this._loadInitialWallpapers();
         }
 
-        if (this._favorites.size === 0) {
-            this._showError('No favorites yet. Click the heart icon on wallpapers to add them.');
-            return;
+        _initializeUI() {
+            // Toolbar/Header section
+            const toolbar = this._createToolbar();
+            this.append(toolbar);
+
+            // Main content box with loading state
+            this._contentStack = new Gtk.Stack({
+                vexpand: true,
+                transition_type: Gtk.StackTransitionType.CROSSFADE,
+            });
+
+            // Loading spinner
+            const loadingBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                valign: Gtk.Align.CENTER,
+                halign: Gtk.Align.CENTER,
+                spacing: 12,
+            });
+            const spinner = new Gtk.Spinner({
+                width_request: 48,
+                height_request: 48,
+            });
+            spinner.start();
+            const loadingLabel = new Gtk.Label({
+                label: 'Loading wallpapers...',
+                css_classes: ['dim-label'],
+            });
+            loadingBox.append(spinner);
+            loadingBox.append(loadingLabel);
+            this._contentStack.add_named(loadingBox, 'loading');
+
+            // Error state
+            const errorBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                valign: Gtk.Align.CENTER,
+                halign: Gtk.Align.CENTER,
+                spacing: 12,
+            });
+            this._errorLabel = new Gtk.Label({
+                label: 'Failed to load wallpapers',
+                css_classes: ['error'],
+            });
+            const retryButton = new Gtk.Button({
+                label: 'Retry',
+            });
+            retryButton.connect('clicked', () => this._performSearch());
+            errorBox.append(this._errorLabel);
+            errorBox.append(retryButton);
+            this._contentStack.add_named(errorBox, 'error');
+
+            // Scrolled window for wallpaper grid
+            this._scrolledWindow = new Gtk.ScrolledWindow({
+                vexpand: true,
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+            });
+
+            // Wallpaper grid
+            this._gridFlow = new Gtk.FlowBox({
+                valign: Gtk.Align.START,
+                max_children_per_line: 3,
+                min_children_per_line: 2,
+                selection_mode: Gtk.SelectionMode.NONE,
+                column_spacing: 12,
+                row_spacing: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+                margin_start: 12,
+                margin_end: 12,
+                homogeneous: true,
+            });
+
+            this._scrolledWindow.set_child(this._gridFlow);
+            this._contentStack.add_named(this._scrolledWindow, 'content');
+
+            this._contentStack.set_visible_child_name('loading');
+            this.append(this._contentStack);
+
+            // Pagination controls
+            const paginationBox = this._createPaginationControls();
+            this.append(paginationBox);
         }
 
-        // Convert favorites to array and display
-        const favArray = Array.from(this._favorites);
-        favArray.forEach(favData => {
-            const wallpaper = JSON.parse(favData);
-            const item = this._createWallpaperItem(wallpaper, true);
-            this._gridFlow.append(item);
-        });
+        _createToolbar() {
+            const toolbarBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 0,
+            });
 
-        this._contentStack.set_visible_child_name('content');
-    }
+            // Top action bar with search and buttons
+            const actionBar = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                margin_top: 6,
+                margin_bottom: 6,
+                margin_start: 6,
+                margin_end: 6,
+            });
 
-    async _performSearch() {
-        this._contentStack.set_visible_child_name('loading');
+            // Search entry
+            this._searchEntry = new Gtk.SearchEntry({
+                placeholder_text: 'Search by tags, colors...',
+                hexpand: true,
+            });
 
-        try {
-            const params = {
-                ...this._searchParams,
-                page: this._currentPage,
+            this._searchEntry.connect('activate', () => {
+                this._searchParams.q = this._searchEntry.get_text();
+                this._currentPage = 1;
+                this._showingFavorites = false;
+                this._performSearch();
+            });
+
+            // Search button
+            const searchButton = new Gtk.Button({
+                icon_name: 'system-search-symbolic',
+                tooltip_text: 'Search',
+            });
+            searchButton.connect('clicked', () => {
+                this._searchParams.q = this._searchEntry.get_text();
+                this._currentPage = 1;
+                this._showingFavorites = false;
+                this._performSearch();
+            });
+
+            // Favorites button
+            this._favoritesButton = new Gtk.ToggleButton({
+                icon_name: 'emblem-favorite-symbolic',
+                tooltip_text: 'View Favorites',
+            });
+
+            this._favoritesCountLabel = new Gtk.Label({
+                label: '0',
+                css_classes: ['caption'],
+            });
+
+            const favBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 4,
+            });
+            favBox.append(
+                new Gtk.Image({icon_name: 'emblem-favorite-symbolic'})
+            );
+            favBox.append(this._favoritesCountLabel);
+            this._favoritesButton.set_child(favBox);
+
+            this._favoritesButton.connect('toggled', () => {
+                this._toggleFavoritesView();
+            });
+
+            // Filters button (toggle)
+            this._filtersButton = new Gtk.ToggleButton({
+                icon_name: 'preferences-other-symbolic',
+                tooltip_text: 'Show Filters',
+            });
+
+            this._filtersButton.connect('toggled', () => {
+                this._filtersRevealer.set_reveal_child(
+                    this._filtersButton.get_active()
+                );
+            });
+
+            // Settings button
+            const settingsButton = new Gtk.Button({
+                icon_name: 'emblem-system-symbolic',
+                tooltip_text: 'Settings',
+            });
+            settingsButton.connect('clicked', () => {
+                this._showSettingsDialog();
+            });
+
+            actionBar.append(this._searchEntry);
+            actionBar.append(searchButton);
+            actionBar.append(
+                new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
+            );
+            actionBar.append(this._favoritesButton);
+            actionBar.append(this._filtersButton);
+            actionBar.append(settingsButton);
+
+            toolbarBox.append(actionBar);
+
+            // Filters section (collapsible)
+            this._filtersRevealer = new Gtk.Revealer({
+                transition_type: Gtk.RevealerTransitionType.SLIDE_DOWN,
+                reveal_child: false,
+            });
+
+            const filtersBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 12,
+                margin_top: 6,
+                margin_bottom: 6,
+                margin_start: 12,
+                margin_end: 12,
+            });
+
+            // Sort dropdown
+            const sortBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 3,
+            });
+
+            const sortLabel = new Gtk.Label({
+                label: 'Sort',
+                xalign: 0,
+                css_classes: ['caption', 'dim-label'],
+            });
+
+            this._sortDropdown = new Gtk.DropDown({
+                model: new Gtk.StringList(),
+            });
+
+            const sortModel = this._sortDropdown.get_model();
+            [
+                'Latest',
+                'Relevance',
+                'Random',
+                'Views',
+                'Favorites',
+                'Top List',
+            ].forEach(item => {
+                sortModel.append(item);
+            });
+
+            this._sortDropdown.connect('notify::selected', () => {
+                const sortMethods = [
+                    'date_added',
+                    'relevance',
+                    'random',
+                    'views',
+                    'favorites',
+                    'toplist',
+                ];
+                this._searchParams.sorting =
+                    sortMethods[this._sortDropdown.get_selected()];
+                this._currentPage = 1;
+                if (!this._showingFavorites) {
+                    this._performSearch();
+                }
+            });
+
+            sortBox.append(sortLabel);
+            sortBox.append(this._sortDropdown);
+
+            // Categories
+            const categoriesBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 3,
+            });
+
+            const categoriesLabel = new Gtk.Label({
+                label: 'Categories',
+                xalign: 0,
+                css_classes: ['caption', 'dim-label'],
+            });
+
+            const categoriesCheckBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+            });
+
+            this._generalCheck = new Gtk.CheckButton({
+                label: 'General',
+                active: true,
+            });
+            this._animeCheck = new Gtk.CheckButton({
+                label: 'Anime',
+                active: true,
+            });
+            this._peopleCheck = new Gtk.CheckButton({
+                label: 'People',
+                active: true,
+            });
+
+            const updateCategories = () => {
+                const cats = [
+                    this._generalCheck.get_active() ? '1' : '0',
+                    this._animeCheck.get_active() ? '1' : '0',
+                    this._peopleCheck.get_active() ? '1' : '0',
+                ].join('');
+                this._searchParams.categories = cats;
+                this._currentPage = 1;
+                if (!this._showingFavorites) {
+                    this._performSearch();
+                }
             };
 
-            // Only include resolutions if set
-            if (this._searchParams.resolutions) {
-                params.resolutions = this._searchParams.resolutions;
+            this._generalCheck.connect('toggled', updateCategories);
+            this._animeCheck.connect('toggled', updateCategories);
+            this._peopleCheck.connect('toggled', updateCategories);
+
+            categoriesCheckBox.append(this._generalCheck);
+            categoriesCheckBox.append(this._animeCheck);
+            categoriesCheckBox.append(this._peopleCheck);
+
+            categoriesBox.append(categoriesLabel);
+            categoriesBox.append(categoriesCheckBox);
+
+            filtersBox.append(sortBox);
+            filtersBox.append(
+                new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
+            );
+            filtersBox.append(categoriesBox);
+
+            this._filtersRevealer.set_child(filtersBox);
+            toolbarBox.append(this._filtersRevealer);
+
+            // Separator
+            toolbarBox.append(
+                new Gtk.Separator({orientation: Gtk.Orientation.HORIZONTAL})
+            );
+
+            this._updateFavoritesCount();
+
+            return toolbarBox;
+        }
+
+        _createPaginationControls() {
+            this._paginationBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                halign: Gtk.Align.CENTER,
+                spacing: 12,
+                margin_top: 6,
+                margin_bottom: 6,
+            });
+
+            this._prevButton = new Gtk.Button({
+                icon_name: 'go-previous-symbolic',
+                sensitive: false,
+            });
+            this._prevButton.connect('clicked', () => {
+                if (this._currentPage > 1) {
+                    this._currentPage--;
+                    this._performSearch();
+                    this._scrollToTop();
+                }
+            });
+
+            this._pageLabel = new Gtk.Label({
+                label: 'Page 1 of 1',
+            });
+
+            this._nextButton = new Gtk.Button({
+                icon_name: 'go-next-symbolic',
+                sensitive: false,
+            });
+            this._nextButton.connect('clicked', () => {
+                if (this._currentPage < this._totalPages) {
+                    this._currentPage++;
+                    this._performSearch();
+                    this._scrollToTop();
+                }
+            });
+
+            this._paginationBox.append(this._prevButton);
+            this._paginationBox.append(this._pageLabel);
+            this._paginationBox.append(this._nextButton);
+
+            return this._paginationBox;
+        }
+
+        _loadInitialWallpapers() {
+            this._performSearch();
+        }
+
+        _scrollToTop() {
+            // Scroll back to top when changing pages
+            const adjustment = this._scrolledWindow.get_vadjustment();
+            if (adjustment) {
+                adjustment.set_value(0);
             }
+        }
 
-            const result = await wallhavenService.search(params);
+        _toggleFavoritesView() {
+            this._showingFavorites = this._favoritesButton.get_active();
 
-            if (result.data && result.data.length > 0) {
-                this._displayWallpapers(result.data);
-                this._updatePagination(result.meta);
-                this._contentStack.set_visible_child_name('content');
+            if (this._showingFavorites) {
+                this._displayFavorites();
+                this._paginationBox.set_visible(false);
+                this._searchEntry.set_sensitive(false);
+                this._filtersButton.set_sensitive(false);
             } else {
-                this._showError('No wallpapers found');
+                this._currentPage = 1;
+                this._performSearch();
+                this._paginationBox.set_visible(true);
+                this._searchEntry.set_sensitive(true);
+                this._filtersButton.set_sensitive(true);
             }
-        } catch (e) {
-            console.error('Search failed:', e.message);
-            this._showError(`Failed to load wallpapers: ${e.message}`);
-        }
-    }
-
-    _displayWallpapers(wallpapers) {
-        // Clear existing items
-        let child = this._gridFlow.get_first_child();
-        while (child) {
-            const next = child.get_next_sibling();
-            this._gridFlow.remove(child);
-            child = next;
         }
 
-        // Add wallpaper thumbnails
-        wallpapers.forEach(wallpaper => {
-            const item = this._createWallpaperItem(wallpaper, false);
-            this._gridFlow.append(item);
-        });
-    }
+        _displayFavorites() {
+            this._contentStack.set_visible_child_name('loading');
 
-    _createWallpaperItem(wallpaper, isFavorite) {
-        const mainBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 6,
-        });
+            // Clear existing items
+            let child = this._gridFlow.get_first_child();
+            while (child) {
+                const next = child.get_next_sibling();
+                this._gridFlow.remove(child);
+                child = next;
+            }
 
-        // Overlay for thumbnail and favorite button
-        const overlay = new Gtk.Overlay();
+            if (this._favorites.size === 0) {
+                this._showError(
+                    'No favorites yet. Click the heart icon on wallpapers to add them.'
+                );
+                return;
+            }
 
-        // Create a button for the image
-        const imageButton = new Gtk.Button({
-            css_classes: ['flat'],
-            overflow: Gtk.Overflow.HIDDEN,
-        });
+            // Convert favorites to array and display
+            const favArray = Array.from(this._favorites);
+            favArray.forEach(favData => {
+                const wallpaper = JSON.parse(favData);
+                const item = this._createWallpaperItem(wallpaper, true);
+                this._gridFlow.append(item);
+            });
 
-        // Thumbnail image
-        const picture = new Gtk.Picture({
-            width_request: 280,
-            height_request: 180,
-            can_shrink: true,
-            css_classes: ['card'],
-        });
+            this._contentStack.set_visible_child_name('content');
+        }
 
-        // Load thumbnail asynchronously
-        this._loadThumbnail(wallpaper.thumbs.small, picture);
-        imageButton.set_child(picture);
+        async _performSearch() {
+            this._contentStack.set_visible_child_name('loading');
 
-        // Click handler to download and use wallpaper
-        imageButton.connect('clicked', () => {
-            this._downloadAndUseWallpaper(wallpaper);
-        });
+            try {
+                const params = {
+                    ...this._searchParams,
+                    page: this._currentPage,
+                };
 
-        overlay.set_child(imageButton);
+                // Only include resolutions if set
+                if (this._searchParams.resolutions) {
+                    params.resolutions = this._searchParams.resolutions;
+                }
 
-        // Favorite button overlay
-        const favButton = new Gtk.Button({
-            icon_name: 'emblem-favorite-symbolic',
-            css_classes: this._isFavorite(wallpaper) ? ['circular', 'favorite-active'] : ['circular', 'favorite-inactive'],
-            halign: Gtk.Align.END,
-            valign: Gtk.Align.START,
-            margin_top: 6,
-            margin_end: 6,
-        });
+                const result = await wallhavenService.search(params);
 
-        // Add custom CSS for favorite button
-        const css = `
+                if (result.data && result.data.length > 0) {
+                    this._displayWallpapers(result.data);
+                    this._updatePagination(result.meta);
+                    this._contentStack.set_visible_child_name('content');
+                } else {
+                    this._showError('No wallpapers found');
+                }
+            } catch (e) {
+                console.error('Search failed:', e.message);
+                this._showError(`Failed to load wallpapers: ${e.message}`);
+            }
+        }
+
+        _displayWallpapers(wallpapers) {
+            // Clear existing items
+            let child = this._gridFlow.get_first_child();
+            while (child) {
+                const next = child.get_next_sibling();
+                this._gridFlow.remove(child);
+                child = next;
+            }
+
+            // Add wallpaper thumbnails
+            wallpapers.forEach(wallpaper => {
+                const item = this._createWallpaperItem(wallpaper, false);
+                this._gridFlow.append(item);
+            });
+        }
+
+        _createWallpaperItem(wallpaper, isFavorite) {
+            const mainBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 6,
+            });
+
+            // Overlay for thumbnail and favorite button
+            const overlay = new Gtk.Overlay();
+
+            // Create a button for the image
+            const imageButton = new Gtk.Button({
+                css_classes: ['flat'],
+                overflow: Gtk.Overflow.HIDDEN,
+            });
+
+            // Thumbnail image
+            const picture = new Gtk.Picture({
+                width_request: 280,
+                height_request: 180,
+                can_shrink: true,
+                css_classes: ['card'],
+            });
+
+            // Load thumbnail asynchronously
+            this._loadThumbnail(wallpaper.thumbs.small, picture);
+            imageButton.set_child(picture);
+
+            // Click handler to download and use wallpaper
+            imageButton.connect('clicked', () => {
+                this._downloadAndUseWallpaper(wallpaper);
+            });
+
+            overlay.set_child(imageButton);
+
+            // Favorite button overlay
+            const favButton = new Gtk.Button({
+                icon_name: 'emblem-favorite-symbolic',
+                css_classes: this._isFavorite(wallpaper)
+                    ? ['circular', 'favorite-active']
+                    : ['circular', 'favorite-inactive'],
+                halign: Gtk.Align.END,
+                valign: Gtk.Align.START,
+                margin_top: 6,
+                margin_end: 6,
+            });
+
+            // Add custom CSS for favorite button
+            const css = `
             .favorite-active {
                 background-color: alpha(@accent_bg_color, 0.9);
                 color: @accent_fg_color;
@@ -529,484 +560,70 @@ export const WallpaperBrowser = GObject.registerClass({
                 color: @window_fg_color;
             }
         `;
-        const provider = new Gtk.CssProvider();
-        provider.load_from_data(css, -1);
-        favButton.get_style_context().add_provider(provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+            const provider = new Gtk.CssProvider();
+            provider.load_from_data(css, -1);
+            favButton
+                .get_style_context()
+                .add_provider(
+                    provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
 
-        favButton.connect('clicked', () => {
-            this._toggleFavorite(wallpaper, favButton);
-        });
-
-        overlay.add_overlay(favButton);
-        mainBox.append(overlay);
-
-        // Info label
-        const infoLabel = new Gtk.Label({
-            label: `${wallpaper.resolution} • ${this._formatFileSize(wallpaper.file_size)}`,
-            css_classes: ['caption', 'dim-label'],
-            xalign: 0,
-        });
-
-        mainBox.append(infoLabel);
-
-        return mainBox;
-    }
-
-    async _loadThumbnail(url, picture) {
-        try {
-            const cacheDir = GLib.build_filenamev([
-                GLib.get_user_cache_dir(),
-                'aether',
-                'wallhaven-thumbs'
-            ]);
-
-            // Create cache directory if it doesn't exist
-            GLib.mkdir_with_parents(cacheDir, 0o755);
-
-            // Generate cache filename from URL
-            const filename = url.split('/').pop();
-            const cachePath = GLib.build_filenamev([cacheDir, filename]);
-
-            // Check if already cached
-            const file = Gio.File.new_for_path(cachePath);
-            if (file.query_exists(null)) {
-                picture.set_file(file);
-                return;
-            }
-
-            // Download to cache
-            await wallhavenService.downloadWallpaper(url, cachePath);
-            picture.set_file(Gio.File.new_for_path(cachePath));
-        } catch (e) {
-            console.error('Failed to load thumbnail:', e.message);
-        }
-    }
-
-    async _downloadAndUseWallpaper(wallpaper) {
-        try {
-            // Show loading state
-            const toast = new Adw.Toast({
-                title: 'Downloading wallpaper...',
-                timeout: 0,
+            favButton.connect('clicked', () => {
+                this._toggleFavorite(wallpaper, favButton);
             });
 
-            const toastOverlay = this._findToastOverlay();
-            if (toastOverlay) {
-                toastOverlay.add_toast(toast);
-            }
+            overlay.add_overlay(favButton);
+            mainBox.append(overlay);
 
-            // Download wallpaper to cache
-            const cacheDir = GLib.build_filenamev([
-                GLib.get_user_cache_dir(),
-                'aether',
-                'wallhaven-wallpapers'
-            ]);
-
-            GLib.mkdir_with_parents(cacheDir, 0o755);
-
-            const filename = wallpaper.path.split('/').pop();
-            const wallpaperPath = GLib.build_filenamev([cacheDir, filename]);
-
-            await wallhavenService.downloadWallpaper(wallpaper.path, wallpaperPath);
-
-            // Emit signal with wallpaper path
-            this.emit('wallpaper-selected', wallpaperPath);
-
-            // Update toast
-            if (toastOverlay) {
-                const successToast = new Adw.Toast({
-                    title: 'Wallpaper downloaded successfully',
-                    timeout: 2,
-                });
-                toastOverlay.add_toast(successToast);
-            }
-        } catch (e) {
-            console.error('[WallpaperBrowser] Failed to download wallpaper:', e.message);
-            console.error('[WallpaperBrowser] Stack:', e.stack);
-
-            const toastOverlay = this._findToastOverlay();
-            if (toastOverlay) {
-                const errorToast = new Adw.Toast({
-                    title: `Download failed: ${e.message}`,
-                    timeout: 3,
-                });
-                toastOverlay.add_toast(errorToast);
-            }
-        }
-    }
-
-    _findToastOverlay() {
-        // Try to find the toast overlay in the window hierarchy
-        let widget = this.get_parent();
-        while (widget) {
-            if (widget instanceof Adw.ToastOverlay) {
-                return widget;
-            }
-            if (widget instanceof Adw.ApplicationWindow) {
-                // If we reach the window, we can wrap our content in a toast overlay
-                break;
-            }
-            widget = widget.get_parent();
-        }
-        return null;
-    }
-
-    _updatePagination(meta) {
-        this._totalPages = meta.last_page || 1;
-        this._pageLabel.set_label(`Page ${this._currentPage} of ${this._totalPages}`);
-
-        this._prevButton.set_sensitive(this._currentPage > 1);
-        this._nextButton.set_sensitive(this._currentPage < this._totalPages);
-    }
-
-    _showError(message) {
-        this._errorLabel.set_label(message);
-        this._contentStack.set_visible_child_name('error');
-    }
-
-    _formatFileSize(bytes) {
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    }
-
-    _isFavorite(wallpaper) {
-        const key = this._getFavoriteKey(wallpaper);
-        return this._favorites.has(key);
-    }
-
-    _getFavoriteKey(wallpaper) {
-        // Use wallpaper ID or path as unique key
-        return JSON.stringify({
-            id: wallpaper.id,
-            path: wallpaper.path,
-            thumbs: wallpaper.thumbs,
-            resolution: wallpaper.resolution,
-            file_size: wallpaper.file_size,
-        });
-    }
-
-    _toggleFavorite(wallpaper, button) {
-        const key = this._getFavoriteKey(wallpaper);
-        
-        if (this._favorites.has(key)) {
-            this._favorites.delete(key);
-            button.set_css_classes(['circular', 'favorite-inactive']);
-        } else {
-            this._favorites.add(key);
-            button.set_css_classes(['circular', 'favorite-active']);
-        }
-
-        this._saveFavorites();
-        this._updateFavoritesCount();
-    }
-
-    _updateFavoritesCount() {
-        if (this._favoritesCountLabel) {
-            this._favoritesCountLabel.set_label(this._favorites.size.toString());
-        }
-    }
-
-    _loadFavorites() {
-        try {
-            const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether']);
-            const favPath = GLib.build_filenamev([configDir, 'favorites.json']);
-            const file = Gio.File.new_for_path(favPath);
-
-            if (file.query_exists(null)) {
-                const [success, contents] = file.load_contents(null);
-                if (success) {
-                    const decoder = new TextDecoder('utf-8');
-                    const text = decoder.decode(contents);
-                    const favArray = JSON.parse(text);
-                    this._favorites = new Set(favArray);
-                }
-            }
-        } catch (e) {
-            console.error('Failed to load favorites:', e.message);
-            this._favorites = new Set();
-        }
-    }
-
-    _saveFavorites() {
-        try {
-            const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether']);
-            GLib.mkdir_with_parents(configDir, 0o755);
-
-            const favPath = GLib.build_filenamev([configDir, 'favorites.json']);
-            const file = Gio.File.new_for_path(favPath);
-            
-            const favArray = Array.from(this._favorites);
-            const contents = JSON.stringify(favArray, null, 2);
-
-            file.replace_contents(
-                contents,
-                null,
-                false,
-                Gio.FileCreateFlags.REPLACE_DESTINATION,
-                null
-            );
-        } catch (e) {
-            console.error('Failed to save favorites:', e.message);
-        }
-    }
-
-    _loadConfig() {
-        try {
-            const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether']);
-            const configPath = GLib.build_filenamev([configDir, 'wallhaven.json']);
-            const file = Gio.File.new_for_path(configPath);
-
-            if (file.query_exists(null)) {
-                const [success, contents] = file.load_contents(null);
-                if (success) {
-                    const decoder = new TextDecoder('utf-8');
-                    const text = decoder.decode(contents);
-                    const config = JSON.parse(text);
-
-                    if (config.apiKey) {
-                        wallhavenService.setApiKey(config.apiKey);
-                    }
-
-                    // Load resolution preference
-                    if (config.resolutions) {
-                        this._searchParams.resolutions = config.resolutions;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('Failed to load config:', e.message);
-        }
-    }
-
-    _saveConfig(apiKey, resolutions) {
-        try {
-            const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether']);
-            GLib.mkdir_with_parents(configDir, 0o755);
-
-            const configPath = GLib.build_filenamev([configDir, 'wallhaven.json']);
-            
-            // Load existing config to preserve other settings
-            let config = { apiKey: '', resolutions: '' };
-            const file = Gio.File.new_for_path(configPath);
-            
-            if (file.query_exists(null)) {
-                try {
-                    const [success, contents] = file.load_contents(null);
-                    if (success) {
-                        const decoder = new TextDecoder('utf-8');
-                        const text = decoder.decode(contents);
-                        config = JSON.parse(text);
-                    }
-                } catch (e) {
-                    console.warn('Failed to load existing config, using defaults');
-                }
-            }
-
-            // Update config
-            config.apiKey = apiKey;
-            config.resolutions = resolutions;
-
-            const contents = JSON.stringify(config, null, 2);
-            file.replace_contents(
-                contents,
-                null,
-                false,
-                Gio.FileCreateFlags.REPLACE_DESTINATION,
-                null
-            );
-
-            wallhavenService.setApiKey(apiKey);
-            this._searchParams.resolutions = resolutions;
-        } catch (e) {
-            console.error('Failed to save config:', e.message);
-            throw e;
-        }
-    }
-
-    _showSettingsDialog() {
-        const dialog = new Adw.Dialog({
-            title: 'Wallhaven Settings',
-            content_width: 450,
-        });
-
-        const toolbarView = new Adw.ToolbarView();
-
-        const headerBar = new Adw.HeaderBar({
-            show_title: true,
-        });
-        toolbarView.add_top_bar(headerBar);
-
-        const contentBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            margin_top: 12,
-            margin_bottom: 12,
-            margin_start: 12,
-            margin_end: 12,
-        });
-
-        // API Configuration Group
-        const apiGroup = new Adw.PreferencesGroup({
-            title: 'API Configuration',
-            description: 'Configure your wallhaven.cc API key for access to additional content and higher rate limits',
-        });
-
-        // API Key entry
-        const apiKeyRow = new Adw.EntryRow({
-            title: 'API Key',
-            show_apply_button: false,
-        });
-
-        // Load current config
-        let currentApiKey = '';
-        let currentResolutions = '';
-        try {
-            const configPath = GLib.build_filenamev([
-                GLib.get_user_config_dir(),
-                'aether',
-                'wallhaven.json'
-            ]);
-            const file = Gio.File.new_for_path(configPath);
-            if (file.query_exists(null)) {
-                const [success, contents] = file.load_contents(null);
-                if (success) {
-                    const decoder = new TextDecoder('utf-8');
-                    const text = decoder.decode(contents);
-                    const config = JSON.parse(text);
-                    if (config.apiKey) {
-                        currentApiKey = config.apiKey;
-                        apiKeyRow.set_text(config.apiKey);
-                    }
-                    if (config.resolutions) {
-                        currentResolutions = config.resolutions;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('Failed to load current config:', e.message);
-        }
-
-        apiGroup.add(apiKeyRow);
-
-        // Help text for API key
-        const apiHelpLabel = new Gtk.Label({
-            label: 'Get your API key from:\nhttps://wallhaven.cc/settings/account',
-            wrap: true,
-            xalign: 0,
-            css_classes: ['dim-label', 'caption'],
-        });
-
-        contentBox.append(apiGroup);
-        contentBox.append(apiHelpLabel);
-
-        // Resolution Filter Group
-        const resolutionGroup = new Adw.PreferencesGroup({
-            title: 'Resolution Filters',
-            description: 'Filter wallpapers by resolution (comma-separated, e.g., "1920x1080,2560x1440")',
-            margin_top: 12,
-        });
-
-        const resolutionRow = new Adw.EntryRow({
-            title: 'Resolutions',
-            show_apply_button: false,
-            text: currentResolutions,
-        });
-
-        resolutionGroup.add(resolutionRow);
-
-        // Common resolutions as presets
-        const presetsBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 6,
-            halign: Gtk.Align.START,
-            margin_start: 12,
-            margin_end: 12,
-            margin_top: 6,
-        });
-
-        const presets = [
-            { label: '1080p', value: '1920x1080' },
-            { label: '1440p', value: '2560x1440' },
-            { label: '4K', value: '3840x2160' },
-            { label: 'Ultrawide', value: '3440x1440,2560x1080' },
-        ];
-
-        presets.forEach(preset => {
-            const btn = new Gtk.Button({
-                label: preset.label,
-                css_classes: ['pill'],
+            // Info label
+            const infoLabel = new Gtk.Label({
+                label: `${wallpaper.resolution} • ${this._formatFileSize(wallpaper.file_size)}`,
+                css_classes: ['caption', 'dim-label'],
+                xalign: 0,
             });
-            btn.connect('clicked', () => {
-                const currentText = resolutionRow.get_text();
-                if (currentText) {
-                    // Append to existing
-                    const existing = currentText.split(',').map(s => s.trim());
-                    const newValues = preset.value.split(',');
-                    const combined = [...new Set([...existing, ...newValues])];
-                    resolutionRow.set_text(combined.join(','));
-                } else {
-                    resolutionRow.set_text(preset.value);
-                }
-            });
-            presetsBox.append(btn);
-        });
 
-        const clearBtn = new Gtk.Button({
-            label: 'Clear',
-            css_classes: ['pill'],
-        });
-        clearBtn.connect('clicked', () => {
-            resolutionRow.set_text('');
-        });
-        presetsBox.append(clearBtn);
+            mainBox.append(infoLabel);
 
-        // Resolution help text
-        const resolutionHelpLabel = new Gtk.Label({
-            label: 'Leave empty to show all resolutions. Use presets above or enter custom resolutions.',
-            wrap: true,
-            xalign: 0,
-            css_classes: ['dim-label', 'caption'],
-            margin_start: 12,
-            margin_end: 12,
-            margin_top: 6,
-        });
+            return mainBox;
+        }
 
-        contentBox.append(resolutionGroup);
-        contentBox.append(presetsBox);
-        contentBox.append(resolutionHelpLabel);
-
-        // Action buttons
-        const buttonBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 6,
-            halign: Gtk.Align.END,
-            margin_top: 12,
-        });
-
-        const cancelButton = new Gtk.Button({
-            label: 'Cancel',
-        });
-        cancelButton.connect('clicked', () => dialog.close());
-
-        const saveButton = new Gtk.Button({
-            label: 'Save',
-            css_classes: ['suggested-action'],
-        });
-        saveButton.connect('clicked', () => {
-            const apiKey = apiKeyRow.get_text().trim();
-            const resolutions = resolutionRow.get_text().trim();
-
+        async _loadThumbnail(url, picture) {
             try {
-                this._saveConfig(apiKey, resolutions);
+                const cacheDir = GLib.build_filenamev([
+                    GLib.get_user_cache_dir(),
+                    'aether',
+                    'wallhaven-thumbs',
+                ]);
 
-                // Refresh search with new filters
-                this._currentPage = 1;
-                this._performSearch();
+                // Create cache directory if it doesn't exist
+                GLib.mkdir_with_parents(cacheDir, 0o755);
 
+                // Generate cache filename from URL
+                const filename = url.split('/').pop();
+                const cachePath = GLib.build_filenamev([cacheDir, filename]);
+
+                // Check if already cached
+                const file = Gio.File.new_for_path(cachePath);
+                if (file.query_exists(null)) {
+                    picture.set_file(file);
+                    return;
+                }
+
+                // Download to cache
+                await wallhavenService.downloadWallpaper(url, cachePath);
+                picture.set_file(Gio.File.new_for_path(cachePath));
+            } catch (e) {
+                console.error('Failed to load thumbnail:', e.message);
+            }
+        }
+
+        async _downloadAndUseWallpaper(wallpaper) {
+            try {
+                // Show loading state
                 const toast = new Adw.Toast({
-                    title: 'Settings saved successfully',
-                    timeout: 2,
+                    title: 'Downloading wallpaper...',
+                    timeout: 0,
                 });
 
                 const toastOverlay = this._findToastOverlay();
@@ -1014,31 +631,498 @@ export const WallpaperBrowser = GObject.registerClass({
                     toastOverlay.add_toast(toast);
                 }
 
-                dialog.close();
+                // Download wallpaper to cache
+                const cacheDir = GLib.build_filenamev([
+                    GLib.get_user_cache_dir(),
+                    'aether',
+                    'wallhaven-wallpapers',
+                ]);
+
+                GLib.mkdir_with_parents(cacheDir, 0o755);
+
+                const filename = wallpaper.path.split('/').pop();
+                const wallpaperPath = GLib.build_filenamev([
+                    cacheDir,
+                    filename,
+                ]);
+
+                await wallhavenService.downloadWallpaper(
+                    wallpaper.path,
+                    wallpaperPath
+                );
+
+                // Emit signal with wallpaper path
+                this.emit('wallpaper-selected', wallpaperPath);
+
+                // Update toast
+                if (toastOverlay) {
+                    const successToast = new Adw.Toast({
+                        title: 'Wallpaper downloaded successfully',
+                        timeout: 2,
+                    });
+                    toastOverlay.add_toast(successToast);
+                }
             } catch (e) {
-                const errorToast = new Adw.Toast({
-                    title: `Failed to save settings: ${e.message}`,
-                    timeout: 3,
-                });
+                console.error(
+                    '[WallpaperBrowser] Failed to download wallpaper:',
+                    e.message
+                );
+                console.error('[WallpaperBrowser] Stack:', e.stack);
 
                 const toastOverlay = this._findToastOverlay();
                 if (toastOverlay) {
+                    const errorToast = new Adw.Toast({
+                        title: `Download failed: ${e.message}`,
+                        timeout: 3,
+                    });
                     toastOverlay.add_toast(errorToast);
                 }
             }
-        });
+        }
 
-        buttonBox.append(cancelButton);
-        buttonBox.append(saveButton);
-        contentBox.append(buttonBox);
+        _findToastOverlay() {
+            // Try to find the toast overlay in the window hierarchy
+            let widget = this.get_parent();
+            while (widget) {
+                if (widget instanceof Adw.ToastOverlay) {
+                    return widget;
+                }
+                if (widget instanceof Adw.ApplicationWindow) {
+                    // If we reach the window, we can wrap our content in a toast overlay
+                    break;
+                }
+                widget = widget.get_parent();
+            }
+            return null;
+        }
 
-        toolbarView.set_content(contentBox);
-        dialog.set_child(toolbarView);
+        _updatePagination(meta) {
+            this._totalPages = meta.last_page || 1;
+            this._pageLabel.set_label(
+                `Page ${this._currentPage} of ${this._totalPages}`
+            );
 
-        dialog.present(this.get_root());
+            this._prevButton.set_sensitive(this._currentPage > 1);
+            this._nextButton.set_sensitive(
+                this._currentPage < this._totalPages
+            );
+        }
+
+        _showError(message) {
+            this._errorLabel.set_label(message);
+            this._contentStack.set_visible_child_name('error');
+        }
+
+        _formatFileSize(bytes) {
+            if (bytes < 1024) return `${bytes} B`;
+            if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        _isFavorite(wallpaper) {
+            const key = this._getFavoriteKey(wallpaper);
+            return this._favorites.has(key);
+        }
+
+        _getFavoriteKey(wallpaper) {
+            // Use wallpaper ID or path as unique key
+            return JSON.stringify({
+                id: wallpaper.id,
+                path: wallpaper.path,
+                thumbs: wallpaper.thumbs,
+                resolution: wallpaper.resolution,
+                file_size: wallpaper.file_size,
+            });
+        }
+
+        _toggleFavorite(wallpaper, button) {
+            const key = this._getFavoriteKey(wallpaper);
+
+            if (this._favorites.has(key)) {
+                this._favorites.delete(key);
+                button.set_css_classes(['circular', 'favorite-inactive']);
+            } else {
+                this._favorites.add(key);
+                button.set_css_classes(['circular', 'favorite-active']);
+            }
+
+            this._saveFavorites();
+            this._updateFavoritesCount();
+        }
+
+        _updateFavoritesCount() {
+            if (this._favoritesCountLabel) {
+                this._favoritesCountLabel.set_label(
+                    this._favorites.size.toString()
+                );
+            }
+        }
+
+        _loadFavorites() {
+            try {
+                const configDir = GLib.build_filenamev([
+                    GLib.get_user_config_dir(),
+                    'aether',
+                ]);
+                const favPath = GLib.build_filenamev([
+                    configDir,
+                    'favorites.json',
+                ]);
+                const file = Gio.File.new_for_path(favPath);
+
+                if (file.query_exists(null)) {
+                    const [success, contents] = file.load_contents(null);
+                    if (success) {
+                        const decoder = new TextDecoder('utf-8');
+                        const text = decoder.decode(contents);
+                        const favArray = JSON.parse(text);
+                        this._favorites = new Set(favArray);
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load favorites:', e.message);
+                this._favorites = new Set();
+            }
+        }
+
+        _saveFavorites() {
+            try {
+                const configDir = GLib.build_filenamev([
+                    GLib.get_user_config_dir(),
+                    'aether',
+                ]);
+                GLib.mkdir_with_parents(configDir, 0o755);
+
+                const favPath = GLib.build_filenamev([
+                    configDir,
+                    'favorites.json',
+                ]);
+                const file = Gio.File.new_for_path(favPath);
+
+                const favArray = Array.from(this._favorites);
+                const contents = JSON.stringify(favArray, null, 2);
+
+                file.replace_contents(
+                    contents,
+                    null,
+                    false,
+                    Gio.FileCreateFlags.REPLACE_DESTINATION,
+                    null
+                );
+            } catch (e) {
+                console.error('Failed to save favorites:', e.message);
+            }
+        }
+
+        _loadConfig() {
+            try {
+                const configDir = GLib.build_filenamev([
+                    GLib.get_user_config_dir(),
+                    'aether',
+                ]);
+                const configPath = GLib.build_filenamev([
+                    configDir,
+                    'wallhaven.json',
+                ]);
+                const file = Gio.File.new_for_path(configPath);
+
+                if (file.query_exists(null)) {
+                    const [success, contents] = file.load_contents(null);
+                    if (success) {
+                        const decoder = new TextDecoder('utf-8');
+                        const text = decoder.decode(contents);
+                        const config = JSON.parse(text);
+
+                        if (config.apiKey) {
+                            wallhavenService.setApiKey(config.apiKey);
+                        }
+
+                        // Load resolution preference
+                        if (config.resolutions) {
+                            this._searchParams.resolutions = config.resolutions;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load config:', e.message);
+            }
+        }
+
+        _saveConfig(apiKey, resolutions) {
+            try {
+                const configDir = GLib.build_filenamev([
+                    GLib.get_user_config_dir(),
+                    'aether',
+                ]);
+                GLib.mkdir_with_parents(configDir, 0o755);
+
+                const configPath = GLib.build_filenamev([
+                    configDir,
+                    'wallhaven.json',
+                ]);
+
+                // Load existing config to preserve other settings
+                let config = {apiKey: '', resolutions: ''};
+                const file = Gio.File.new_for_path(configPath);
+
+                if (file.query_exists(null)) {
+                    try {
+                        const [success, contents] = file.load_contents(null);
+                        if (success) {
+                            const decoder = new TextDecoder('utf-8');
+                            const text = decoder.decode(contents);
+                            config = JSON.parse(text);
+                        }
+                    } catch (e) {
+                        console.warn(
+                            'Failed to load existing config, using defaults'
+                        );
+                    }
+                }
+
+                // Update config
+                config.apiKey = apiKey;
+                config.resolutions = resolutions;
+
+                const contents = JSON.stringify(config, null, 2);
+                file.replace_contents(
+                    contents,
+                    null,
+                    false,
+                    Gio.FileCreateFlags.REPLACE_DESTINATION,
+                    null
+                );
+
+                wallhavenService.setApiKey(apiKey);
+                this._searchParams.resolutions = resolutions;
+            } catch (e) {
+                console.error('Failed to save config:', e.message);
+                throw e;
+            }
+        }
+
+        _showSettingsDialog() {
+            const dialog = new Adw.Dialog({
+                title: 'Wallhaven Settings',
+                content_width: 450,
+            });
+
+            const toolbarView = new Adw.ToolbarView();
+
+            const headerBar = new Adw.HeaderBar({
+                show_title: true,
+            });
+            toolbarView.add_top_bar(headerBar);
+
+            const contentBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+                margin_start: 12,
+                margin_end: 12,
+            });
+
+            // API Configuration Group
+            const apiGroup = new Adw.PreferencesGroup({
+                title: 'API Configuration',
+                description:
+                    'Configure your wallhaven.cc API key for access to additional content and higher rate limits',
+            });
+
+            // API Key entry
+            const apiKeyRow = new Adw.EntryRow({
+                title: 'API Key',
+                show_apply_button: false,
+            });
+
+            // Load current config
+            let currentApiKey = '';
+            let currentResolutions = '';
+            try {
+                const configPath = GLib.build_filenamev([
+                    GLib.get_user_config_dir(),
+                    'aether',
+                    'wallhaven.json',
+                ]);
+                const file = Gio.File.new_for_path(configPath);
+                if (file.query_exists(null)) {
+                    const [success, contents] = file.load_contents(null);
+                    if (success) {
+                        const decoder = new TextDecoder('utf-8');
+                        const text = decoder.decode(contents);
+                        const config = JSON.parse(text);
+                        if (config.apiKey) {
+                            currentApiKey = config.apiKey;
+                            apiKeyRow.set_text(config.apiKey);
+                        }
+                        if (config.resolutions) {
+                            currentResolutions = config.resolutions;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load current config:', e.message);
+            }
+
+            apiGroup.add(apiKeyRow);
+
+            // Help text for API key
+            const apiHelpLabel = new Gtk.Label({
+                label: 'Get your API key from:\nhttps://wallhaven.cc/settings/account',
+                wrap: true,
+                xalign: 0,
+                css_classes: ['dim-label', 'caption'],
+            });
+
+            contentBox.append(apiGroup);
+            contentBox.append(apiHelpLabel);
+
+            // Resolution Filter Group
+            const resolutionGroup = new Adw.PreferencesGroup({
+                title: 'Resolution Filters',
+                description:
+                    'Filter wallpapers by resolution (comma-separated, e.g., "1920x1080,2560x1440")',
+                margin_top: 12,
+            });
+
+            const resolutionRow = new Adw.EntryRow({
+                title: 'Resolutions',
+                show_apply_button: false,
+                text: currentResolutions,
+            });
+
+            resolutionGroup.add(resolutionRow);
+
+            // Common resolutions as presets
+            const presetsBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                halign: Gtk.Align.START,
+                margin_start: 12,
+                margin_end: 12,
+                margin_top: 6,
+            });
+
+            const presets = [
+                {label: '1080p', value: '1920x1080'},
+                {label: '1440p', value: '2560x1440'},
+                {label: '4K', value: '3840x2160'},
+                {label: 'Ultrawide', value: '3440x1440,2560x1080'},
+            ];
+
+            presets.forEach(preset => {
+                const btn = new Gtk.Button({
+                    label: preset.label,
+                    css_classes: ['pill'],
+                });
+                btn.connect('clicked', () => {
+                    const currentText = resolutionRow.get_text();
+                    if (currentText) {
+                        // Append to existing
+                        const existing = currentText
+                            .split(',')
+                            .map(s => s.trim());
+                        const newValues = preset.value.split(',');
+                        const combined = [
+                            ...new Set([...existing, ...newValues]),
+                        ];
+                        resolutionRow.set_text(combined.join(','));
+                    } else {
+                        resolutionRow.set_text(preset.value);
+                    }
+                });
+                presetsBox.append(btn);
+            });
+
+            const clearBtn = new Gtk.Button({
+                label: 'Clear',
+                css_classes: ['pill'],
+            });
+            clearBtn.connect('clicked', () => {
+                resolutionRow.set_text('');
+            });
+            presetsBox.append(clearBtn);
+
+            // Resolution help text
+            const resolutionHelpLabel = new Gtk.Label({
+                label: 'Leave empty to show all resolutions. Use presets above or enter custom resolutions.',
+                wrap: true,
+                xalign: 0,
+                css_classes: ['dim-label', 'caption'],
+                margin_start: 12,
+                margin_end: 12,
+                margin_top: 6,
+            });
+
+            contentBox.append(resolutionGroup);
+            contentBox.append(presetsBox);
+            contentBox.append(resolutionHelpLabel);
+
+            // Action buttons
+            const buttonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                halign: Gtk.Align.END,
+                margin_top: 12,
+            });
+
+            const cancelButton = new Gtk.Button({
+                label: 'Cancel',
+            });
+            cancelButton.connect('clicked', () => dialog.close());
+
+            const saveButton = new Gtk.Button({
+                label: 'Save',
+                css_classes: ['suggested-action'],
+            });
+            saveButton.connect('clicked', () => {
+                const apiKey = apiKeyRow.get_text().trim();
+                const resolutions = resolutionRow.get_text().trim();
+
+                try {
+                    this._saveConfig(apiKey, resolutions);
+
+                    // Refresh search with new filters
+                    this._currentPage = 1;
+                    this._performSearch();
+
+                    const toast = new Adw.Toast({
+                        title: 'Settings saved successfully',
+                        timeout: 2,
+                    });
+
+                    const toastOverlay = this._findToastOverlay();
+                    if (toastOverlay) {
+                        toastOverlay.add_toast(toast);
+                    }
+
+                    dialog.close();
+                } catch (e) {
+                    const errorToast = new Adw.Toast({
+                        title: `Failed to save settings: ${e.message}`,
+                        timeout: 3,
+                    });
+
+                    const toastOverlay = this._findToastOverlay();
+                    if (toastOverlay) {
+                        toastOverlay.add_toast(errorToast);
+                    }
+                }
+            });
+
+            buttonBox.append(cancelButton);
+            buttonBox.append(saveButton);
+            contentBox.append(buttonBox);
+
+            toolbarView.set_content(contentBox);
+            dialog.set_child(toolbarView);
+
+            dialog.present(this.get_root());
+        }
+
+        get widget() {
+            return this;
+        }
     }
-
-    get widget() {
-        return this;
-    }
-});
+);

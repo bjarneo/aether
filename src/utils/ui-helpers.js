@@ -10,13 +10,14 @@ import Gtk from 'gi://Gtk?version=4.0';
  * @param {string} css - CSS string
  * @param {number} priority - Optional priority level (default: APPLICATION)
  */
-export function applyCssToWidget(widget, css, priority = Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION) {
+export function applyCssToWidget(
+    widget,
+    css,
+    priority = Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+) {
     const cssProvider = new Gtk.CssProvider();
     cssProvider.load_from_string(css);
-    widget.get_style_context().add_provider(
-        cssProvider,
-        priority
-    );
+    widget.get_style_context().add_provider(cssProvider, priority);
 }
 
 /**
@@ -31,14 +32,7 @@ export function applyCssToWidget(widget, css, priority = Gtk.STYLE_PROVIDER_PRIO
  * @returns {Object} Object with box (Gtk.Box) and scale (Gtk.Scale)
  */
 export function createLabeledSlider(config) {
-    const {
-        label,
-        min,
-        max,
-        defaultValue,
-        step,
-        onChange
-    } = config;
+    const {label, min, max, defaultValue, step, onChange} = config;
 
     const box = new Gtk.Box({
         orientation: Gtk.Orientation.HORIZONTAL,
@@ -75,7 +69,7 @@ export function createLabeledSlider(config) {
     box.append(labelWidget);
     box.append(scale);
 
-    return { box, scale };
+    return {box, scale};
 }
 
 /**

@@ -36,7 +36,7 @@ export class WallhavenService {
             page: 1,
         };
 
-        const searchParams = { ...defaultParams, ...params };
+        const searchParams = {...defaultParams, ...params};
 
         // Add API key if available
         if (this.apiKey) {
@@ -45,7 +45,10 @@ export class WallhavenService {
 
         const queryString = Object.entries(searchParams)
             .filter(([_, value]) => value !== null && value !== undefined)
-            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+            .map(
+                ([key, value]) =>
+                    `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+            )
             .join('&');
 
         const url = `${WALLHAVEN_BASE_URL}/search?${queryString}`;
@@ -93,7 +96,11 @@ export class WallhavenService {
                         const bytes = session.send_and_read_finish(result);
 
                         if (message.get_status() !== Soup.Status.OK) {
-                            reject(new Error(`Download failed: ${message.get_status()}`));
+                            reject(
+                                new Error(
+                                    `Download failed: ${message.get_status()}`
+                                )
+                            );
                             return;
                         }
 
@@ -142,7 +149,11 @@ export class WallhavenService {
                         const bytes = session.send_and_read_finish(result);
 
                         if (message.get_status() !== Soup.Status.OK) {
-                            reject(new Error(`API request failed: ${message.get_status()}`));
+                            reject(
+                                new Error(
+                                    `API request failed: ${message.get_status()}`
+                                )
+                            );
                             return;
                         }
 

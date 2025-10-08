@@ -4,9 +4,9 @@ import Adw from 'gi://Adw?version=1';
 
 import {
     getReadabilityScore,
-    simulateColorBlindness
+    simulateColorBlindness,
 } from '../utils/accessibility-utils.js';
-import { applyCssToWidget } from '../utils/ui-helpers.js';
+import {applyCssToWidget} from '../utils/ui-helpers.js';
 
 export const AccessibilityPanel = GObject.registerClass(
     class AccessibilityPanel extends Gtk.Box {
@@ -137,9 +137,21 @@ export const AccessibilityPanel = GObject.registerClass(
             });
 
             this._blindnessTypes = [
-                { type: 'protanopia', name: 'Protanopia (Red-Blind)', preview: null },
-                { type: 'deuteranopia', name: 'Deuteranopia (Green-Blind)', preview: null },
-                { type: 'tritanopia', name: 'Tritanopia (Blue-Blind)', preview: null },
+                {
+                    type: 'protanopia',
+                    name: 'Protanopia (Red-Blind)',
+                    preview: null,
+                },
+                {
+                    type: 'deuteranopia',
+                    name: 'Deuteranopia (Green-Blind)',
+                    preview: null,
+                },
+                {
+                    type: 'tritanopia',
+                    name: 'Tritanopia (Blue-Blind)',
+                    preview: null,
+                },
             ];
 
             this._blindnessTypes.forEach(item => {
@@ -186,7 +198,10 @@ export const AccessibilityPanel = GObject.registerClass(
             }
 
             // Update contrast checker
-            const readability = getReadabilityScore(colors.foreground, colors.background);
+            const readability = getReadabilityScore(
+                colors.foreground,
+                colors.background
+            );
 
             this._contrastLabel.set_label(
                 `Contrast Ratio: ${readability.ratio}:1 (${readability.recommendation})`
@@ -254,7 +269,7 @@ export const AccessibilityPanel = GObject.registerClass(
                 // Add simulated colors
                 previewColors.forEach(color => {
                     const simulated = simulateColorBlindness(color, item.type);
-                    const colorBox = new Gtk.Box({ hexpand: true });
+                    const colorBox = new Gtk.Box({hexpand: true});
                     const css = `* { background-color: ${simulated}; }`;
                     applyCssToWidget(colorBox, css);
                     item.preview.append(colorBox);

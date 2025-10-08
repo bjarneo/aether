@@ -68,7 +68,9 @@ export function copyFile(sourcePath, destPath, overwrite = true) {
         const sourceFile = Gio.File.new_for_path(sourcePath);
         const destFile = Gio.File.new_for_path(destPath);
 
-        const flags = overwrite ? Gio.FileCopyFlags.OVERWRITE : Gio.FileCopyFlags.NONE;
+        const flags = overwrite
+            ? Gio.FileCopyFlags.OVERWRITE
+            : Gio.FileCopyFlags.NONE;
         sourceFile.copy(destFile, flags, null, null);
 
         return true;
@@ -109,7 +111,11 @@ export function ensureDirectoryExists(path, permissions = 0o755) {
  * @param {Function} callback - Callback function called for each file (fileInfo, filePath)
  * @param {string} attributes - File attributes to query
  */
-export function enumerateDirectory(dirPath, callback, attributes = 'standard::name,standard::type') {
+export function enumerateDirectory(
+    dirPath,
+    callback,
+    attributes = 'standard::name,standard::type'
+) {
     try {
         const dir = Gio.File.new_for_path(dirPath);
         const enumerator = dir.enumerate_children(
@@ -200,7 +206,9 @@ export function saveJsonFile(path, data, pretty = true) {
             console.error('Cannot save null/undefined data to JSON file');
             return false;
         }
-        const jsonStr = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
+        const jsonStr = pretty
+            ? JSON.stringify(data, null, 2)
+            : JSON.stringify(data);
         if (!jsonStr) {
             console.error('JSON.stringify returned empty result');
             return false;

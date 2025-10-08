@@ -2,7 +2,7 @@
  * Accessibility utility functions for color contrast and color blindness simulation
  */
 
-import { hexToRgb } from './color-utils.js';
+import {hexToRgb} from './color-utils.js';
 
 /**
  * Calculate relative luminance of a color
@@ -18,9 +18,18 @@ export function getRelativeLuminance(hexColor) {
     const bsRGB = rgb.b / 255;
 
     // Apply gamma correction
-    const r = rsRGB <= 0.03928 ? rsRGB / 12.92 : Math.pow((rsRGB + 0.055) / 1.055, 2.4);
-    const g = gsRGB <= 0.03928 ? gsRGB / 12.92 : Math.pow((gsRGB + 0.055) / 1.055, 2.4);
-    const b = bsRGB <= 0.03928 ? bsRGB / 12.92 : Math.pow((bsRGB + 0.055) / 1.055, 2.4);
+    const r =
+        rsRGB <= 0.03928
+            ? rsRGB / 12.92
+            : Math.pow((rsRGB + 0.055) / 1.055, 2.4);
+    const g =
+        gsRGB <= 0.03928
+            ? gsRGB / 12.92
+            : Math.pow((gsRGB + 0.055) / 1.055, 2.4);
+    const b =
+        bsRGB <= 0.03928
+            ? bsRGB / 12.92
+            : Math.pow((bsRGB + 0.055) / 1.055, 2.4);
 
     // Calculate relative luminance
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -55,7 +64,12 @@ export function getWCAGCompliance(ratio, largeText = false) {
     return {
         aa: ratio >= aaThreshold,
         aaa: ratio >= aaaThreshold,
-        level: ratio >= aaaThreshold ? 'AAA' : ratio >= aaThreshold ? 'AA' : 'Fail'
+        level:
+            ratio >= aaaThreshold
+                ? 'AAA'
+                : ratio >= aaThreshold
+                  ? 'AA'
+                  : 'Fail',
     };
 }
 
@@ -100,18 +114,18 @@ export function simulateColorBlindness(hexColor, type) {
         protanopia: [
             [0.567, 0.433, 0.0],
             [0.558, 0.442, 0.0],
-            [0.0, 0.242, 0.758]
+            [0.0, 0.242, 0.758],
         ],
         deuteranopia: [
             [0.625, 0.375, 0.0],
             [0.7, 0.3, 0.0],
-            [0.0, 0.3, 0.7]
+            [0.0, 0.3, 0.7],
         ],
         tritanopia: [
             [0.95, 0.05, 0.0],
             [0.0, 0.433, 0.567],
-            [0.0, 0.475, 0.525]
-        ]
+            [0.0, 0.475, 0.525],
+        ],
     };
 
     const matrix = matrices[type] || matrices.protanopia;
@@ -127,9 +141,15 @@ export function simulateColorBlindness(hexColor, type) {
     newB = linearToSRGB(newB);
 
     // Clamp values and convert back to hex
-    const rHex = Math.round(Math.max(0, Math.min(1, newR)) * 255).toString(16).padStart(2, '0');
-    const gHex = Math.round(Math.max(0, Math.min(1, newG)) * 255).toString(16).padStart(2, '0');
-    const bHex = Math.round(Math.max(0, Math.min(1, newB)) * 255).toString(16).padStart(2, '0');
+    const rHex = Math.round(Math.max(0, Math.min(1, newR)) * 255)
+        .toString(16)
+        .padStart(2, '0');
+    const gHex = Math.round(Math.max(0, Math.min(1, newG)) * 255)
+        .toString(16)
+        .padStart(2, '0');
+    const bHex = Math.round(Math.max(0, Math.min(1, newB)) * 255)
+        .toString(16)
+        .padStart(2, '0');
 
     return `#${rHex}${gHex}${bHex}`;
 }
@@ -157,6 +177,13 @@ export function getReadabilityScore(foreground, background) {
         score,
         normalText,
         largeText,
-        recommendation: score >= 4 ? 'Excellent' : score >= 3 ? 'Good' : score >= 2 ? 'Poor' : 'Very Poor'
+        recommendation:
+            score >= 4
+                ? 'Excellent'
+                : score >= 3
+                  ? 'Good'
+                  : score >= 2
+                    ? 'Poor'
+                    : 'Very Poor',
     };
 }
