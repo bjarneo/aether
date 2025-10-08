@@ -1,28 +1,27 @@
-/* Synthwave 84 Theme for Aether */
+/* Synthwave 84 Theme for Aether
+ * Based on the Synthwave '84 color scheme
+ * 
+ * To use this theme:
+ * cp examples/synthwave-84-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #241b2f;
-    --aether-button-hover-bg: #2a2139;
-    --aether-button-active-bg: #332842;
-    --aether-button-border: #495495;
-    --aether-button-hover-border: #ff7edb;
-    
-    --aether-window-bg: #241b2f;
-    --aether-view-bg: #1a1525;
-    --aether-card-bg: #2a2139;
-    --aether-headerbar-bg: #1a1525;
-    --aether-sidebar-bg: #1a1525;
-    --aether-actionbar-bg: #1a1525;
-    
-    /* Slider colors */
-    --aether-slider-bg: #ff7edb;
-    --aether-slider-trough-bg: rgba(73, 84, 149, 0.3);
-    
-    --aether-suggested-button-bg: #72f1b8;
-    --aether-suggested-button-hover-bg: #88f5c5;
-    --aether-suggested-button-fg: #241b2f;
-    
-    --aether-destructive-button-bg: #fe4450;
-    --aether-destructive-button-hover-bg: #ff5c67;
-    --aether-destructive-button-fg: #f7f7f7;
-}
+@define-color accent_bg_color #ff7edb;
+@define-color accent_fg_color #241b2f;
+@define-color accent_color #ff7edb;
+
+@define-color window_bg_color #241b2f;
+@define-color window_fg_color #f0eff1;
+
+/* Sidebar background and content */
+@define-color view_bg_color #1c1525;
+@define-color view_fg_color #f0eff1;
+
+@define-color headerbar_bg_color #241b2f;
+@define-color headerbar_fg_color #f0eff1;
+@define-color card_bg_color #34294f;
+@define-color card_fg_color #f0eff1;
+
+@define-color destructive_bg_color #fe4450;
+@define-color destructive_fg_color #241b2f;
+
+@define-color borders rgba(255, 255, 255, 0.12);

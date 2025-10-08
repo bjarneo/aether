@@ -1,28 +1,27 @@
-/* Ayu Mirage Theme for Aether */
+/* Ayu Mirage Theme for Aether
+ * Based on the Ayu Mirage color scheme
+ * 
+ * To use this theme:
+ * cp examples/ayu-mirage-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #1f2430;
-    --aether-button-hover-bg: #272d38;
-    --aether-button-active-bg: #34404f;
-    --aether-button-border: #707a8c;
-    --aether-button-hover-border: #73d0ff;
-    
-    --aether-window-bg: #1f2430;
-    --aether-view-bg: #171b24;
-    --aether-card-bg: #272d38;
-    --aether-headerbar-bg: #171b24;
-    --aether-sidebar-bg: #171b24;
-    --aether-actionbar-bg: #171b24;
-    
-    /* Slider colors */
-    --aether-slider-bg: #73d0ff;
-    --aether-slider-trough-bg: rgba(112, 122, 140, 0.3);
-    
-    --aether-suggested-button-bg: #d5ff80;
-    --aether-suggested-button-hover-bg: #deff99;
-    --aether-suggested-button-fg: #1f2430;
-    
-    --aether-destructive-button-bg: #f28779;
-    --aether-destructive-button-hover-bg: #f59c8d;
-    --aether-destructive-button-fg: #cbccc6;
-}
+@define-color accent_bg_color #5ccfe6;
+@define-color accent_fg_color #1f2430;
+@define-color accent_color #5ccfe6;
+
+@define-color window_bg_color #1f2430;
+@define-color window_fg_color #cbccc6;
+
+/* Sidebar background and content */
+@define-color view_bg_color #191e2a;
+@define-color view_fg_color #cbccc6;
+
+@define-color headerbar_bg_color #1f2430;
+@define-color headerbar_fg_color #cbccc6;
+@define-color card_bg_color #272d38;
+@define-color card_fg_color #cbccc6;
+
+@define-color destructive_bg_color #f28779;
+@define-color destructive_fg_color #1f2430;
+
+@define-color borders rgba(255, 255, 255, 0.08);

@@ -1,28 +1,27 @@
-/* Catppuccin Mocha Theme for Aether */
+/* Catppuccin Mocha Theme for Aether
+ * Based on the Catppuccin color scheme
+ * 
+ * To use this theme:
+ * cp examples/catppuccin-mocha-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #1e1e2e;
-    --aether-button-hover-bg: #313244;
-    --aether-button-active-bg: #45475a;
-    --aether-button-border: #45475a;
-    --aether-button-hover-border: #89b4fa;
-    
-    --aether-window-bg: #1e1e2e;
-    --aether-view-bg: #181825;
-    --aether-card-bg: #313244;
-    --aether-headerbar-bg: #181825;
-    --aether-sidebar-bg: #181825;
-    --aether-actionbar-bg: #181825;
-    
-    /* Slider colors */
-    --aether-slider-bg: #89b4fa;
-    --aether-slider-trough-bg: rgba(69, 71, 90, 0.3);
-    
-    --aether-suggested-button-bg: #a6e3a1;
-    --aether-suggested-button-hover-bg: #b9f0b5;
-    --aether-suggested-button-fg: #1e1e2e;
-    
-    --aether-destructive-button-bg: #f38ba8;
-    --aether-destructive-button-hover-bg: #f5a0bb;
-    --aether-destructive-button-fg: #1e1e2e;
-}
+@define-color accent_bg_color #89b4fa;
+@define-color accent_fg_color #1e1e2e;
+@define-color accent_color #89b4fa;
+
+@define-color window_bg_color #1e1e2e;
+@define-color window_fg_color #cdd6f4;
+
+/* Sidebar background and content */
+@define-color view_bg_color #181825;
+@define-color view_fg_color #cdd6f4;
+
+@define-color headerbar_bg_color #1e1e2e;
+@define-color headerbar_fg_color #cdd6f4;
+@define-color card_bg_color #313244;
+@define-color card_fg_color #cdd6f4;
+
+@define-color destructive_bg_color #f38ba8;
+@define-color destructive_fg_color #1e1e2e;
+
+@define-color borders rgba(255, 255, 255, 0.12);

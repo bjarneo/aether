@@ -1,28 +1,27 @@
-/* Palenight Theme for Aether */
+/* Palenight Theme for Aether
+ * Based on the Material Palenight color scheme
+ * 
+ * To use this theme:
+ * cp examples/palenight-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #292d3e;
-    --aether-button-hover-bg: #34384a;
-    --aether-button-active-bg: #3f4458;
-    --aether-button-border: #676e95;
-    --aether-button-hover-border: #82aaff;
-    
-    --aether-window-bg: #292d3e;
-    --aether-view-bg: #1f2233;
-    --aether-card-bg: #34384a;
-    --aether-headerbar-bg: #1f2233;
-    --aether-sidebar-bg: #1f2233;
-    --aether-actionbar-bg: #1f2233;
-    
-    /* Slider colors */
-    --aether-slider-bg: #82aaff;
-    --aether-slider-trough-bg: rgba(103, 110, 149, 0.3);
-    
-    --aether-suggested-button-bg: #c3e88d;
-    --aether-suggested-button-hover-bg: #d0f0a0;
-    --aether-suggested-button-fg: #292d3e;
-    
-    --aether-destructive-button-bg: #f07178;
-    --aether-destructive-button-hover-bg: #f5848a;
-    --aether-destructive-button-fg: #bfc7d5;
-}
+@define-color accent_bg_color #82aaff;
+@define-color accent_fg_color #292d3e;
+@define-color accent_color #82aaff;
+
+@define-color window_bg_color #292d3e;
+@define-color window_fg_color #a6accd;
+
+/* Sidebar background and content */
+@define-color view_bg_color #1f2233;
+@define-color view_fg_color #a6accd;
+
+@define-color headerbar_bg_color #292d3e;
+@define-color headerbar_fg_color #a6accd;
+@define-color card_bg_color #3a3f58;
+@define-color card_fg_color #a6accd;
+
+@define-color destructive_bg_color #f07178;
+@define-color destructive_fg_color #292d3e;
+
+@define-color borders rgba(255, 255, 255, 0.1);

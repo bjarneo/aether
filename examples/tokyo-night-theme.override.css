@@ -1,28 +1,27 @@
-/* Tokyo Night Theme for Aether */
+/* Tokyo Night Theme for Aether
+ * Based on the Tokyo Night color scheme
+ * 
+ * To use this theme:
+ * cp examples/tokyo-night-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #1a1b26;
-    --aether-button-hover-bg: #24283b;
-    --aether-button-active-bg: #414868;
-    --aether-button-border: #414868;
-    --aether-button-hover-border: #7aa2f7;
-    
-    --aether-window-bg: #1a1b26;
-    --aether-view-bg: #16161e;
-    --aether-card-bg: #24283b;
-    --aether-headerbar-bg: #16161e;
-    --aether-sidebar-bg: #16161e;
-    --aether-actionbar-bg: #16161e;
-    
-    /* Slider colors */
-    --aether-slider-bg: #7aa2f7;
-    --aether-slider-trough-bg: rgba(65, 72, 104, 0.3);
-    
-    --aether-suggested-button-bg: #9ece6a;
-    --aether-suggested-button-hover-bg: #b3e380;
-    --aether-suggested-button-fg: #1a1b26;
-    
-    --aether-destructive-button-bg: #f7768e;
-    --aether-destructive-button-hover-bg: #ff8fa3;
-    --aether-destructive-button-fg: #1a1b26;
-}
+@define-color accent_bg_color #7aa2f7;
+@define-color accent_fg_color #1a1b26;
+@define-color accent_color #7aa2f7;
+
+@define-color window_bg_color #1a1b26;
+@define-color window_fg_color #c0caf5;
+
+/* Sidebar background and content */
+@define-color view_bg_color #16161e;
+@define-color view_fg_color #c0caf5;
+
+@define-color headerbar_bg_color #1a1b26;
+@define-color headerbar_fg_color #c0caf5;
+@define-color card_bg_color #24283b;
+@define-color card_fg_color #c0caf5;
+
+@define-color destructive_bg_color #f7768e;
+@define-color destructive_fg_color #1a1b26;
+
+@define-color borders rgba(255, 255, 255, 0.1);

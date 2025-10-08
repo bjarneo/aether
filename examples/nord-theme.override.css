@@ -1,28 +1,27 @@
-/* Nord Theme for Aether */
+/* Nord Theme for Aether
+ * Based on the Nord color scheme
+ * 
+ * To use this theme:
+ * cp examples/nord-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #2e3440;
-    --aether-button-hover-bg: #3b4252;
-    --aether-button-active-bg: #434c5e;
-    --aether-button-border: #4c566a;
-    --aether-button-hover-border: #88c0d0;
-    
-    --aether-window-bg: #2e3440;
-    --aether-view-bg: #242933;
-    --aether-card-bg: #3b4252;
-    --aether-headerbar-bg: #242933;
-    --aether-sidebar-bg: #242933;
-    --aether-actionbar-bg: #242933;
-    
-    /* Slider colors */
-    --aether-slider-bg: #88c0d0;
-    --aether-slider-trough-bg: rgba(76, 86, 106, 0.3);
-    
-    --aether-suggested-button-bg: #a3be8c;
-    --aether-suggested-button-hover-bg: #b8d4a3;
-    --aether-suggested-button-fg: #2e3440;
-    
-    --aether-destructive-button-bg: #bf616a;
-    --aether-destructive-button-hover-bg: #d08770;
-    --aether-destructive-button-fg: #e5e9f0;
-}
+@define-color accent_bg_color #88c0d0;
+@define-color accent_fg_color #2e3440;
+@define-color accent_color #88c0d0;
+
+@define-color window_bg_color #2e3440;
+@define-color window_fg_color #eceff4;
+
+/* Sidebar background and content */
+@define-color view_bg_color #242933;
+@define-color view_fg_color #eceff4;
+
+@define-color headerbar_bg_color #2e3440;
+@define-color headerbar_fg_color #eceff4;
+@define-color card_bg_color #3b4252;
+@define-color card_fg_color #eceff4;
+
+@define-color destructive_bg_color #bf616a;
+@define-color destructive_fg_color #eceff4;
+
+@define-color borders rgba(255, 255, 255, 0.1);

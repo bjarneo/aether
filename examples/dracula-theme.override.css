@@ -1,28 +1,27 @@
-/* Dracula Theme for Aether */
+/* Dracula Theme for Aether
+ * Based on the Dracula color scheme
+ * 
+ * To use this theme:
+ * cp examples/dracula-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #282a36;
-    --aether-button-hover-bg: #44475a;
-    --aether-button-active-bg: #6272a4;
-    --aether-button-border: #6272a4;
-    --aether-button-hover-border: #bd93f9;
-    
-    --aether-window-bg: #282a36;
-    --aether-view-bg: #21222c;
-    --aether-card-bg: #44475a;
-    --aether-headerbar-bg: #21222c;
-    --aether-sidebar-bg: #21222c;
-    --aether-actionbar-bg: #21222c;
-    
-    /* Slider colors */
-    --aether-slider-bg: #bd93f9;
-    --aether-slider-trough-bg: rgba(98, 114, 164, 0.3);
-    
-    --aether-suggested-button-bg: #50fa7b;
-    --aether-suggested-button-hover-bg: #69ff94;
-    --aether-suggested-button-fg: #282a36;
-    
-    --aether-destructive-button-bg: #ff5555;
-    --aether-destructive-button-hover-bg: #ff6e6e;
-    --aether-destructive-button-fg: #f8f8f2;
-}
+@define-color accent_bg_color #bd93f9;
+@define-color accent_fg_color #282a36;
+@define-color accent_color #bd93f9;
+
+@define-color window_bg_color #282a36;
+@define-color window_fg_color #f8f8f2;
+
+/* Sidebar background and content */
+@define-color view_bg_color #1e1f29;
+@define-color view_fg_color #f8f8f2;
+
+@define-color headerbar_bg_color #282a36;
+@define-color headerbar_fg_color #f8f8f2;
+@define-color card_bg_color #44475a;
+@define-color card_fg_color #f8f8f2;
+
+@define-color destructive_bg_color #ff5555;
+@define-color destructive_fg_color #282a36;
+
+@define-color borders rgba(255, 255, 255, 0.1);

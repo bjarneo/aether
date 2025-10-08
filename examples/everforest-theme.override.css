@@ -1,28 +1,27 @@
-/* Everforest Theme for Aether */
+/* Everforest Theme for Aether
+ * Based on the Everforest color scheme
+ * 
+ * To use this theme:
+ * cp examples/everforest-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #2b3339;
-    --aether-button-hover-bg: #323d43;
-    --aether-button-active-bg: #3a464c;
-    --aether-button-border: #475258;
-    --aether-button-hover-border: #83c092;
-    
-    --aether-window-bg: #2b3339;
-    --aether-view-bg: #272e33;
-    --aether-card-bg: #323d43;
-    --aether-headerbar-bg: #272e33;
-    --aether-sidebar-bg: #272e33;
-    --aether-actionbar-bg: #272e33;
-    
-    /* Slider colors */
-    --aether-slider-bg: #83c092;
-    --aether-slider-trough-bg: rgba(71, 82, 88, 0.3);
-    
-    --aether-suggested-button-bg: #a7c080;
-    --aether-suggested-button-hover-bg: #b8cc93;
-    --aether-suggested-button-fg: #2b3339;
-    
-    --aether-destructive-button-bg: #e67e80;
-    --aether-destructive-button-hover-bg: #eb9193;
-    --aether-destructive-button-fg: #d3c6aa;
-}
+@define-color accent_bg_color #a7c080;
+@define-color accent_fg_color #2b3339;
+@define-color accent_color #a7c080;
+
+@define-color window_bg_color #2b3339;
+@define-color window_fg_color #d3c6aa;
+
+/* Sidebar background and content */
+@define-color view_bg_color #232a2e;
+@define-color view_fg_color #d3c6aa;
+
+@define-color headerbar_bg_color #2b3339;
+@define-color headerbar_fg_color #d3c6aa;
+@define-color card_bg_color #3d484d;
+@define-color card_fg_color #d3c6aa;
+
+@define-color destructive_bg_color #e67e80;
+@define-color destructive_fg_color #2b3339;
+
+@define-color borders rgba(255, 255, 255, 0.08);

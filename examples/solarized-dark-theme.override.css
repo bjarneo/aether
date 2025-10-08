@@ -1,28 +1,27 @@
-/* Solarized Dark Theme for Aether */
+/* Solarized Dark Theme for Aether
+ * Based on the Solarized color scheme by Ethan Schoonover
+ * 
+ * To use this theme:
+ * cp examples/solarized-dark-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #002b36;
-    --aether-button-hover-bg: #073642;
-    --aether-button-active-bg: #586e75;
-    --aether-button-border: #586e75;
-    --aether-button-hover-border: #268bd2;
-    
-    --aether-window-bg: #002b36;
-    --aether-view-bg: #00212b;
-    --aether-card-bg: #073642;
-    --aether-headerbar-bg: #00212b;
-    --aether-sidebar-bg: #00212b;
-    --aether-actionbar-bg: #00212b;
-    
-    /* Slider colors */
-    --aether-slider-bg: #268bd2;
-    --aether-slider-trough-bg: rgba(88, 110, 117, 0.3);
-    
-    --aether-suggested-button-bg: #859900;
-    --aether-suggested-button-hover-bg: #9eb611;
-    --aether-suggested-button-fg: #002b36;
-    
-    --aether-destructive-button-bg: #dc322f;
-    --aether-destructive-button-hover-bg: #cb4b16;
-    --aether-destructive-button-fg: #fdf6e3;
-}
+@define-color accent_bg_color #268bd2;
+@define-color accent_fg_color #002b36;
+@define-color accent_color #268bd2;
+
+@define-color window_bg_color #002b36;
+@define-color window_fg_color #839496;
+
+/* Sidebar background and content */
+@define-color view_bg_color #00212b;
+@define-color view_fg_color #839496;
+
+@define-color headerbar_bg_color #002b36;
+@define-color headerbar_fg_color #839496;
+@define-color card_bg_color #073642;
+@define-color card_fg_color #839496;
+
+@define-color destructive_bg_color #dc322f;
+@define-color destructive_fg_color #fdf6e3;
+
+@define-color borders rgba(255, 255, 255, 0.08);

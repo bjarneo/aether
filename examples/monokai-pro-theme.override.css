@@ -1,28 +1,27 @@
-/* Monokai Pro Theme for Aether */
+/* Monokai Pro Theme for Aether
+ * Based on the Monokai Pro color scheme
+ * 
+ * To use this theme:
+ * cp examples/monokai-pro-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #2d2a2e;
-    --aether-button-hover-bg: #403e41;
-    --aether-button-active-bg: #5b595c;
-    --aether-button-border: #727072;
-    --aether-button-hover-border: #78dce8;
-    
-    --aether-window-bg: #2d2a2e;
-    --aether-view-bg: #221f22;
-    --aether-card-bg: #403e41;
-    --aether-headerbar-bg: #221f22;
-    --aether-sidebar-bg: #221f22;
-    --aether-actionbar-bg: #221f22;
-    
-    /* Slider colors */
-    --aether-slider-bg: #78dce8;
-    --aether-slider-trough-bg: rgba(114, 112, 114, 0.3);
-    
-    --aether-suggested-button-bg: #a9dc76;
-    --aether-suggested-button-hover-bg: #bae68a;
-    --aether-suggested-button-fg: #2d2a2e;
-    
-    --aether-destructive-button-bg: #ff6188;
-    --aether-destructive-button-hover-bg: #ff7a9b;
-    --aether-destructive-button-fg: #fcfcfa;
-}
+@define-color accent_bg_color #ffd866;
+@define-color accent_fg_color #2d2a2e;
+@define-color accent_color #ffd866;
+
+@define-color window_bg_color #2d2a2e;
+@define-color window_fg_color #fcfcfa;
+
+/* Sidebar background and content */
+@define-color view_bg_color #221f22;
+@define-color view_fg_color #fcfcfa;
+
+@define-color headerbar_bg_color #2d2a2e;
+@define-color headerbar_fg_color #fcfcfa;
+@define-color card_bg_color #403e41;
+@define-color card_fg_color #fcfcfa;
+
+@define-color destructive_bg_color #ff6188;
+@define-color destructive_fg_color #2d2a2e;
+
+@define-color borders rgba(255, 255, 255, 0.1);

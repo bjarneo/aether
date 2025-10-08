@@ -15,7 +15,7 @@ cp examples/gruvbox-dark-theme.override.css ~/.config/aether/theme.override.css
 
 ## Available Themes
 
-All themes include complete configuration of the 15 CSS variables for buttons and backgrounds.
+All themes use GTK named colors (`@define-color`) to theme the entire application.
 
 ### Dark Themes
 
@@ -42,40 +42,40 @@ All themes include complete configuration of the 15 CSS variables for buttons an
 ## Creating Your Own
 
 1. Start with an example theme or an empty override file
-2. Edit the CSS variables in the `:root` section
+2. Override GTK named colors using `@define-color`
 3. Add custom CSS rules as needed
 4. Save and watch changes apply instantly!
 
 See `THEMING.md` in the project root for detailed documentation.
 
-## Color Variables
+## GTK Named Colors
 
-All themes can customize these variables:
+All themes can override these GTK named colors:
 
-**Buttons:**
-- `--aether-button-bg`
-- `--aether-button-hover-bg`
-- `--aether-button-active-bg`
-- `--aether-button-border`
-- `--aether-button-hover-border`
-- `--aether-suggested-button-bg`
-- `--aether-suggested-button-hover-bg`
-- `--aether-suggested-button-fg`
-- `--aether-destructive-button-bg`
-- `--aether-destructive-button-hover-bg`
-- `--aether-destructive-button-fg`
+**Accent Colors (interactive elements):**
+- `@define-color accent_bg_color #color;` - Main accent color
+- `@define-color accent_fg_color #color;` - Accent text color
+- `@define-color accent_color #color;` - Accent variant
 
-**Backgrounds:**
-- `--aether-window-bg`
-- `--aether-view-bg`
-- `--aether-card-bg`
-- `--aether-headerbar-bg`
-- `--aether-sidebar-bg`
-- `--aether-actionbar-bg`
+**Window/View Colors:**
+- `@define-color window_bg_color #color;` - Main window background
+- `@define-color window_fg_color #color;` - Main window text
+- `@define-color view_bg_color #color;` - Content area background
+- `@define-color view_fg_color #color;` - Content area text
 
-**Sliders:**
-- `--aether-slider-bg`
-- `--aether-slider-trough-bg`
+**UI Elements:**
+- `@define-color headerbar_bg_color #color;` - Header bar background
+- `@define-color headerbar_fg_color #color;` - Header bar text
+- `@define-color card_bg_color #color;` - Card/panel background
+- `@define-color card_fg_color #color;` - Card/panel text
+- `@define-color borders #color;` - Border colors
+
+**Action Colors:**
+- `@define-color destructive_bg_color #color;` - Delete/remove buttons
+- `@define-color destructive_fg_color #color;` - Destructive button text
+- `@define-color success_bg_color #color;` - Success state
+- `@define-color warning_bg_color #color;` - Warning state
+- `@define-color error_bg_color #color;` - Error state
 
 ## Contributing
 

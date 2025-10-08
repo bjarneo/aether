@@ -1,28 +1,27 @@
-/* Nightfox Theme for Aether */
+/* Nightfox Theme for Aether
+ * Based on the Nightfox color scheme
+ * 
+ * To use this theme:
+ * cp examples/nightfox-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #192330;
-    --aether-button-hover-bg: #212e3f;
-    --aether-button-active-bg: #29394f;
-    --aether-button-border: #526176;
-    --aether-button-hover-border: #719cd6;
-    
-    --aether-window-bg: #192330;
-    --aether-view-bg: #131a24;
-    --aether-card-bg: #212e3f;
-    --aether-headerbar-bg: #131a24;
-    --aether-sidebar-bg: #131a24;
-    --aether-actionbar-bg: #131a24;
-    
-    /* Slider colors */
-    --aether-slider-bg: #719cd6;
-    --aether-slider-trough-bg: rgba(82, 97, 118, 0.3);
-    
-    --aether-suggested-button-bg: #81b29a;
-    --aether-suggested-button-hover-bg: #93c2ab;
-    --aether-suggested-button-fg: #192330;
-    
-    --aether-destructive-button-bg: #c94f6d;
-    --aether-destructive-button-hover-bg: #d7667e;
-    --aether-destructive-button-fg: #cdcecf;
-}
+@define-color accent_bg_color #719cd6;
+@define-color accent_fg_color #192330;
+@define-color accent_color #719cd6;
+
+@define-color window_bg_color #192330;
+@define-color window_fg_color #cdcecf;
+
+/* Sidebar background and content */
+@define-color view_bg_color #131a24;
+@define-color view_fg_color #cdcecf;
+
+@define-color headerbar_bg_color #192330;
+@define-color headerbar_fg_color #cdcecf;
+@define-color card_bg_color #212e3f;
+@define-color card_fg_color #cdcecf;
+
+@define-color destructive_bg_color #c94f6d;
+@define-color destructive_fg_color #cdcecf;
+
+@define-color borders rgba(255, 255, 255, 0.1);

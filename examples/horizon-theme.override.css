@@ -1,28 +1,27 @@
-/* Horizon Theme for Aether */
+/* Horizon Theme for Aether
+ * Based on the Horizon color scheme
+ * 
+ * To use this theme:
+ * cp examples/horizon-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #1c1e26;
-    --aether-button-hover-bg: #232530;
-    --aether-button-active-bg: #2e303e;
-    --aether-button-border: #6c6f93;
-    --aether-button-hover-border: #26bbd9;
-    
-    --aether-window-bg: #1c1e26;
-    --aether-view-bg: #16161c;
-    --aether-card-bg: #232530;
-    --aether-headerbar-bg: #16161c;
-    --aether-sidebar-bg: #16161c;
-    --aether-actionbar-bg: #16161c;
-    
-    /* Slider colors */
-    --aether-slider-bg: #26bbd9;
-    --aether-slider-trough-bg: rgba(108, 111, 147, 0.3);
-    
-    --aether-suggested-button-bg: #29d398;
-    --aether-suggested-button-hover-bg: #3fdaa4;
-    --aether-suggested-button-fg: #1c1e26;
-    
-    --aether-destructive-button-bg: #e95678;
-    --aether-destructive-button-hover-bg: #ec6a88;
-    --aether-destructive-button-fg: #fadad1;
-}
+@define-color accent_bg_color #e95678;
+@define-color accent_fg_color #1c1e26;
+@define-color accent_color #e95678;
+
+@define-color window_bg_color #1c1e26;
+@define-color window_fg_color #e3e6ee;
+
+/* Sidebar background and content */
+@define-color view_bg_color #16181d;
+@define-color view_fg_color #e3e6ee;
+
+@define-color headerbar_bg_color #1c1e26;
+@define-color headerbar_fg_color #e3e6ee;
+@define-color card_bg_color #232530;
+@define-color card_fg_color #e3e6ee;
+
+@define-color destructive_bg_color #f43e5c;
+@define-color destructive_fg_color #1c1e26;
+
+@define-color borders rgba(255, 255, 255, 0.1);

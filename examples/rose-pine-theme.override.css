@@ -1,28 +1,27 @@
-/* Rose Pine Theme for Aether */
+/* Rosé Pine Theme for Aether
+ * Based on the Rosé Pine color scheme
+ * 
+ * To use this theme:
+ * cp examples/rose-pine-theme.override.css ~/.config/aether/theme.override.css
+ */
 
-:root {
-    --aether-button-bg: #191724;
-    --aether-button-hover-bg: #1f1d2e;
-    --aether-button-active-bg: #26233a;
-    --aether-button-border: #26233a;
-    --aether-button-hover-border: #9ccfd8;
-    
-    --aether-window-bg: #191724;
-    --aether-view-bg: #16141f;
-    --aether-card-bg: #1f1d2e;
-    --aether-headerbar-bg: #16141f;
-    --aether-sidebar-bg: #16141f;
-    --aether-actionbar-bg: #16141f;
-    
-    /* Slider colors */
-    --aether-slider-bg: #9ccfd8;
-    --aether-slider-trough-bg: rgba(38, 35, 58, 0.3);
-    
-    --aether-suggested-button-bg: #9ccfd8;
-    --aether-suggested-button-hover-bg: #b0dce3;
-    --aether-suggested-button-fg: #191724;
-    
-    --aether-destructive-button-bg: #eb6f92;
-    --aether-destructive-button-hover-bg: #f083a2;
-    --aether-destructive-button-fg: #e0def4;
-}
+@define-color accent_bg_color #c4a7e7;
+@define-color accent_fg_color #191724;
+@define-color accent_color #c4a7e7;
+
+@define-color window_bg_color #191724;
+@define-color window_fg_color #e0def4;
+
+/* Sidebar background and content */
+@define-color view_bg_color #1f1d2e;
+@define-color view_fg_color #e0def4;
+
+@define-color headerbar_bg_color #191724;
+@define-color headerbar_fg_color #e0def4;
+@define-color card_bg_color #26233a;
+@define-color card_fg_color #e0def4;
+
+@define-color destructive_bg_color #eb6f92;
+@define-color destructive_fg_color #191724;
+
+@define-color borders rgba(255, 255, 255, 0.08);
