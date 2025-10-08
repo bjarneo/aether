@@ -26,9 +26,13 @@ export const WallpaperBrowser = GObject.registerClass({
             purity: '100', // SFW only
             sorting: 'date_added',
             order: 'desc',
+            resolutions: '', // Resolution filter
         };
+        this._favorites = new Set();
+        this._showingFavorites = false;
 
-        this._loadApiKey();
+        this._loadConfig();
+        this._loadFavorites();
         this._initializeUI();
         this._loadInitialWallpapers();
     }
@@ -39,7 +43,7 @@ export const WallpaperBrowser = GObject.registerClass({
         this.append(searchBox);
 
         // Scrolled window for wallpaper grid
-        const scrolledWindow = new Gtk.ScrolledWindow({
+        this._scrolledWindow = new Gtk.ScrolledWindow({
             vexpand: true,
             hscrollbar_policy: Gtk.PolicyType.NEVER,
             vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
@@ -105,8 +109,8 @@ export const WallpaperBrowser = GObject.registerClass({
             homogeneous: true,
         });
 
-        scrolledWindow.set_child(this._gridFlow);
-        this._contentStack.add_named(scrolledWindow, 'content');
+        this._scrolledWindow.set_child(this._gridFlow);
+        this._contentStack.add_named(this._scrolledWindow, 'content');
 
         this._contentStack.set_visible_child_name('loading');
         this.append(this._contentStack);
@@ -221,11 +225,66 @@ export const WallpaperBrowser = GObject.registerClass({
         categoriesRow.add_suffix(categoriesBox);
         searchGroup.add(categoriesRow);
 
+        // Settings button
+        const settingsRow = new Adw.ActionRow({
+            title: 'Settings',
+            subtitle: 'Configure API key and resolution filters',
+            activatable: true,
+        });
+
+        const settingsIcon = new Gtk.Image({
+            icon_name: 'emblem-system-symbolic',
+            valign: Gtk.Align.CENTER,
+        });
+        settingsRow.add_suffix(settingsIcon);
+        settingsRow.set_activatable_widget(settingsIcon);
+
+        settingsRow.connect('activated', () => {
+            this._showSettingsDialog();
+        });
+
+        searchGroup.add(settingsRow);
+
+        // Favorites button
+        const favoritesRow = new Adw.ActionRow({
+            title: 'Favorites',
+            subtitle: 'View your favorite wallpapers',
+            activatable: true,
+        });
+
+        this._favoritesCountLabel = new Gtk.Label({
+            label: '0',
+            css_classes: ['badge', 'accent'],
+            valign: Gtk.Align.CENTER,
+        });
+
+        const favoritesIcon = new Gtk.Image({
+            icon_name: 'emblem-favorite-symbolic',
+            valign: Gtk.Align.CENTER,
+        });
+
+        const favoritesBox = new Gtk.Box({
+            spacing: 6,
+            valign: Gtk.Align.CENTER,
+        });
+        favoritesBox.append(this._favoritesCountLabel);
+        favoritesBox.append(favoritesIcon);
+
+        favoritesRow.add_suffix(favoritesBox);
+        favoritesRow.set_activatable_widget(favoritesIcon);
+
+        favoritesRow.connect('activated', () => {
+            this._toggleFavoritesView();
+        });
+
+        searchGroup.add(favoritesRow);
+        this._updateFavoritesCount();
+
         return searchGroup;
     }
 
     _createPaginationControls() {
-        const paginationBox = new Gtk.Box({
+        this._paginationBox = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
             halign: Gtk.Align.CENTER,
             spacing: 12,
@@ -241,6 +300,7 @@ export const WallpaperBrowser = GObject.registerClass({
             if (this._currentPage > 1) {
                 this._currentPage--;
                 this._performSearch();
+                this._scrollToTop();
             }
         });
 
@@ -256,18 +316,67 @@ export const WallpaperBrowser = GObject.registerClass({
             if (this._currentPage < this._totalPages) {
                 this._currentPage++;
                 this._performSearch();
+                this._scrollToTop();
             }
         });
 
-        paginationBox.append(this._prevButton);
-        paginationBox.append(this._pageLabel);
-        paginationBox.append(this._nextButton);
+        this._paginationBox.append(this._prevButton);
+        this._paginationBox.append(this._pageLabel);
+        this._paginationBox.append(this._nextButton);
 
-        return paginationBox;
+        return this._paginationBox;
     }
 
     _loadInitialWallpapers() {
         this._performSearch();
+    }
+
+    _scrollToTop() {
+        // Scroll back to top when changing pages
+        const adjustment = this._scrolledWindow.get_vadjustment();
+        if (adjustment) {
+            adjustment.set_value(0);
+        }
+    }
+
+    _toggleFavoritesView() {
+        this._showingFavorites = !this._showingFavorites;
+        
+        if (this._showingFavorites) {
+            this._displayFavorites();
+            this._paginationBox.set_visible(false);
+        } else {
+            this._currentPage = 1;
+            this._performSearch();
+            this._paginationBox.set_visible(true);
+        }
+    }
+
+    _displayFavorites() {
+        this._contentStack.set_visible_child_name('loading');
+
+        // Clear existing items
+        let child = this._gridFlow.get_first_child();
+        while (child) {
+            const next = child.get_next_sibling();
+            this._gridFlow.remove(child);
+            child = next;
+        }
+
+        if (this._favorites.size === 0) {
+            this._showError('No favorites yet. Click the heart icon on wallpapers to add them.');
+            return;
+        }
+
+        // Convert favorites to array and display
+        const favArray = Array.from(this._favorites);
+        favArray.forEach(favData => {
+            const wallpaper = JSON.parse(favData);
+            const item = this._createWallpaperItem(wallpaper, true);
+            this._gridFlow.append(item);
+        });
+
+        this._contentStack.set_visible_child_name('content');
     }
 
     async _performSearch() {
@@ -278,6 +387,11 @@ export const WallpaperBrowser = GObject.registerClass({
                 ...this._searchParams,
                 page: this._currentPage,
             };
+
+            // Only include resolutions if set
+            if (this._searchParams.resolutions) {
+                params.resolutions = this._searchParams.resolutions;
+            }
 
             const result = await wallhavenService.search(params);
 
@@ -305,23 +419,26 @@ export const WallpaperBrowser = GObject.registerClass({
 
         // Add wallpaper thumbnails
         wallpapers.forEach(wallpaper => {
-            const item = this._createWallpaperItem(wallpaper);
+            const item = this._createWallpaperItem(wallpaper, false);
             this._gridFlow.append(item);
         });
     }
 
-    _createWallpaperItem(wallpaper) {
-        const button = new Gtk.Button({
-            css_classes: ['flat'],
-            overflow: Gtk.Overflow.HIDDEN,
-        });
-
-        const box = new Gtk.Box({
+    _createWallpaperItem(wallpaper, isFavorite) {
+        const mainBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 6,
         });
 
-        // Thumbnail image
+        // Overlay for thumbnail and favorite button
+        const overlay = new Gtk.Overlay();
+
+        // Thumbnail image in a button
+        const imageButton = new Gtk.Button({
+            css_classes: ['flat'],
+            overflow: Gtk.Overflow.HIDDEN,
+        });
+
         const picture = new Gtk.Picture({
             width_request: 280,
             height_request: 180,
@@ -331,6 +448,46 @@ export const WallpaperBrowser = GObject.registerClass({
 
         // Load thumbnail asynchronously
         this._loadThumbnail(wallpaper.thumbs.small, picture);
+        imageButton.set_child(picture);
+
+        // Click handler to download and use wallpaper
+        imageButton.connect('clicked', () => {
+            this._downloadAndUseWallpaper(wallpaper);
+        });
+
+        overlay.set_child(imageButton);
+
+        // Favorite button overlay
+        const favButton = new Gtk.Button({
+            icon_name: this._isFavorite(wallpaper) ? 'emblem-favorite-symbolic' : 'emblem-favorite-symbolic',
+            css_classes: this._isFavorite(wallpaper) ? ['circular', 'favorite-active'] : ['circular', 'favorite-inactive'],
+            halign: Gtk.Align.END,
+            valign: Gtk.Align.START,
+            margin_top: 6,
+            margin_end: 6,
+        });
+
+        // Add custom CSS for favorite button
+        const css = `
+            .favorite-active {
+                background-color: alpha(@accent_bg_color, 0.9);
+                color: @accent_fg_color;
+            }
+            .favorite-inactive {
+                background-color: alpha(@window_bg_color, 0.7);
+                color: @window_fg_color;
+            }
+        `;
+        const provider = new Gtk.CssProvider();
+        provider.load_from_data(css, -1);
+        favButton.get_style_context().add_provider(provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+        favButton.connect('clicked', () => {
+            this._toggleFavorite(wallpaper, favButton);
+        });
+
+        overlay.add_overlay(favButton);
+        mainBox.append(overlay);
 
         // Info label
         const infoLabel = new Gtk.Label({
@@ -339,16 +496,9 @@ export const WallpaperBrowser = GObject.registerClass({
             xalign: 0,
         });
 
-        box.append(picture);
-        box.append(infoLabel);
-        button.set_child(box);
+        mainBox.append(infoLabel);
 
-        // Click handler to download and use wallpaper
-        button.connect('clicked', () => {
-            this._downloadAndUseWallpaper(wallpaper);
-        });
-
-        return button;
+        return mainBox;
     }
 
     async _loadThumbnail(url, picture) {
@@ -468,7 +618,88 @@ export const WallpaperBrowser = GObject.registerClass({
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
-    _loadApiKey() {
+    _isFavorite(wallpaper) {
+        const key = this._getFavoriteKey(wallpaper);
+        return this._favorites.has(key);
+    }
+
+    _getFavoriteKey(wallpaper) {
+        // Use wallpaper ID or path as unique key
+        return JSON.stringify({
+            id: wallpaper.id,
+            path: wallpaper.path,
+            thumbs: wallpaper.thumbs,
+            resolution: wallpaper.resolution,
+            file_size: wallpaper.file_size,
+        });
+    }
+
+    _toggleFavorite(wallpaper, button) {
+        const key = this._getFavoriteKey(wallpaper);
+        
+        if (this._favorites.has(key)) {
+            this._favorites.delete(key);
+            button.set_css_classes(['circular', 'favorite-inactive']);
+        } else {
+            this._favorites.add(key);
+            button.set_css_classes(['circular', 'favorite-active']);
+        }
+
+        this._saveFavorites();
+        this._updateFavoritesCount();
+    }
+
+    _updateFavoritesCount() {
+        if (this._favoritesCountLabel) {
+            this._favoritesCountLabel.set_label(this._favorites.size.toString());
+        }
+    }
+
+    _loadFavorites() {
+        try {
+            const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether']);
+            const favPath = GLib.build_filenamev([configDir, 'favorites.json']);
+            const file = Gio.File.new_for_path(favPath);
+
+            if (file.query_exists(null)) {
+                const [success, contents] = file.load_contents(null);
+                if (success) {
+                    const decoder = new TextDecoder('utf-8');
+                    const text = decoder.decode(contents);
+                    const favArray = JSON.parse(text);
+                    this._favorites = new Set(favArray);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load favorites:', e.message);
+            this._favorites = new Set();
+        }
+    }
+
+    _saveFavorites() {
+        try {
+            const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether']);
+            GLib.mkdir_with_parents(configDir, 0o755);
+
+            const favPath = GLib.build_filenamev([configDir, 'favorites.json']);
+            const file = Gio.File.new_for_path(favPath);
+            
+            const favArray = Array.from(this._favorites);
+            const contents = JSON.stringify(favArray, null, 2);
+
+            file.replace_contents(
+                contents,
+                null,
+                false,
+                Gio.FileCreateFlags.REPLACE_DESTINATION,
+                null
+            );
+        } catch (e) {
+            console.error('Failed to save favorites:', e.message);
+        }
+    }
+
+    _loadConfig() {
         try {
             const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether']);
             const configPath = GLib.build_filenamev([configDir, 'wallhaven.json']);
@@ -484,24 +715,47 @@ export const WallpaperBrowser = GObject.registerClass({
                     if (config.apiKey) {
                         wallhavenService.setApiKey(config.apiKey);
                     }
+
+                    // Load resolution preference
+                    if (config.resolutions) {
+                        this._searchParams.resolutions = config.resolutions;
+                    }
                 }
             }
         } catch (e) {
-            console.error('Failed to load API key:', e.message);
+            console.error('Failed to load config:', e.message);
         }
     }
 
-    _saveApiKey(apiKey) {
+    _saveConfig(apiKey, resolutions) {
         try {
             const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether']);
             GLib.mkdir_with_parents(configDir, 0o755);
 
             const configPath = GLib.build_filenamev([configDir, 'wallhaven.json']);
-            const config = { apiKey };
-
+            
+            // Load existing config to preserve other settings
+            let config = { apiKey: '', resolutions: '' };
             const file = Gio.File.new_for_path(configPath);
-            const contents = JSON.stringify(config, null, 2);
+            
+            if (file.query_exists(null)) {
+                try {
+                    const [success, contents] = file.load_contents(null);
+                    if (success) {
+                        const decoder = new TextDecoder('utf-8');
+                        const text = decoder.decode(contents);
+                        config = JSON.parse(text);
+                    }
+                } catch (e) {
+                    console.warn('Failed to load existing config, using defaults');
+                }
+            }
 
+            // Update config
+            config.apiKey = apiKey;
+            config.resolutions = resolutions;
+
+            const contents = JSON.stringify(config, null, 2);
             file.replace_contents(
                 contents,
                 null,
@@ -511,8 +765,9 @@ export const WallpaperBrowser = GObject.registerClass({
             );
 
             wallhavenService.setApiKey(apiKey);
+            this._searchParams.resolutions = resolutions;
         } catch (e) {
-            console.error('Failed to save API key:', e.message);
+            console.error('Failed to save config:', e.message);
             throw e;
         }
     }
@@ -520,7 +775,7 @@ export const WallpaperBrowser = GObject.registerClass({
     _showSettingsDialog() {
         const dialog = new Adw.Dialog({
             title: 'Wallhaven Settings',
-            content_width: 400,
+            content_width: 450,
         });
 
         const toolbarView = new Adw.ToolbarView();
@@ -539,7 +794,8 @@ export const WallpaperBrowser = GObject.registerClass({
             margin_end: 12,
         });
 
-        const prefsGroup = new Adw.PreferencesGroup({
+        // API Configuration Group
+        const apiGroup = new Adw.PreferencesGroup({
             title: 'API Configuration',
             description: 'Configure your wallhaven.cc API key for access to additional content and higher rate limits',
         });
@@ -550,7 +806,9 @@ export const WallpaperBrowser = GObject.registerClass({
             show_apply_button: false,
         });
 
-        // Load current API key if exists
+        // Load current config
+        let currentApiKey = '';
+        let currentResolutions = '';
         try {
             const configPath = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
@@ -565,26 +823,106 @@ export const WallpaperBrowser = GObject.registerClass({
                     const text = decoder.decode(contents);
                     const config = JSON.parse(text);
                     if (config.apiKey) {
+                        currentApiKey = config.apiKey;
                         apiKeyRow.set_text(config.apiKey);
+                    }
+                    if (config.resolutions) {
+                        currentResolutions = config.resolutions;
                     }
                 }
             }
         } catch (e) {
-            console.error('Failed to load current API key:', e.message);
+            console.error('Failed to load current config:', e.message);
         }
 
-        prefsGroup.add(apiKeyRow);
+        apiGroup.add(apiKeyRow);
 
-        // Help text
-        const helpLabel = new Gtk.Label({
+        // Help text for API key
+        const apiHelpLabel = new Gtk.Label({
             label: 'Get your API key from:\nhttps://wallhaven.cc/settings/account',
             wrap: true,
             xalign: 0,
             css_classes: ['dim-label', 'caption'],
         });
 
-        contentBox.append(prefsGroup);
-        contentBox.append(helpLabel);
+        contentBox.append(apiGroup);
+        contentBox.append(apiHelpLabel);
+
+        // Resolution Filter Group
+        const resolutionGroup = new Adw.PreferencesGroup({
+            title: 'Resolution Filters',
+            description: 'Filter wallpapers by resolution (comma-separated, e.g., "1920x1080,2560x1440")',
+            margin_top: 12,
+        });
+
+        const resolutionRow = new Adw.EntryRow({
+            title: 'Resolutions',
+            show_apply_button: false,
+            text: currentResolutions,
+        });
+
+        resolutionGroup.add(resolutionRow);
+
+        // Common resolutions as presets
+        const presetsBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 6,
+            halign: Gtk.Align.START,
+            margin_start: 12,
+            margin_end: 12,
+            margin_top: 6,
+        });
+
+        const presets = [
+            { label: '1080p', value: '1920x1080' },
+            { label: '1440p', value: '2560x1440' },
+            { label: '4K', value: '3840x2160' },
+            { label: 'Ultrawide', value: '3440x1440,2560x1080' },
+        ];
+
+        presets.forEach(preset => {
+            const btn = new Gtk.Button({
+                label: preset.label,
+                css_classes: ['pill'],
+            });
+            btn.connect('clicked', () => {
+                const currentText = resolutionRow.get_text();
+                if (currentText) {
+                    // Append to existing
+                    const existing = currentText.split(',').map(s => s.trim());
+                    const newValues = preset.value.split(',');
+                    const combined = [...new Set([...existing, ...newValues])];
+                    resolutionRow.set_text(combined.join(','));
+                } else {
+                    resolutionRow.set_text(preset.value);
+                }
+            });
+            presetsBox.append(btn);
+        });
+
+        const clearBtn = new Gtk.Button({
+            label: 'Clear',
+            css_classes: ['pill'],
+        });
+        clearBtn.connect('clicked', () => {
+            resolutionRow.set_text('');
+        });
+        presetsBox.append(clearBtn);
+
+        // Resolution help text
+        const resolutionHelpLabel = new Gtk.Label({
+            label: 'Leave empty to show all resolutions. Use presets above or enter custom resolutions.',
+            wrap: true,
+            xalign: 0,
+            css_classes: ['dim-label', 'caption'],
+            margin_start: 12,
+            margin_end: 12,
+            margin_top: 6,
+        });
+
+        contentBox.append(resolutionGroup);
+        contentBox.append(presetsBox);
+        contentBox.append(resolutionHelpLabel);
 
         // Action buttons
         const buttonBox = new Gtk.Box({
@@ -605,12 +943,17 @@ export const WallpaperBrowser = GObject.registerClass({
         });
         saveButton.connect('clicked', () => {
             const apiKey = apiKeyRow.get_text().trim();
+            const resolutions = resolutionRow.get_text().trim();
 
             try {
-                this._saveApiKey(apiKey);
+                this._saveConfig(apiKey, resolutions);
+
+                // Refresh search with new filters
+                this._currentPage = 1;
+                this._performSearch();
 
                 const toast = new Adw.Toast({
-                    title: 'API key saved successfully',
+                    title: 'Settings saved successfully',
                     timeout: 2,
                 });
 
@@ -622,7 +965,7 @@ export const WallpaperBrowser = GObject.registerClass({
                 dialog.close();
             } catch (e) {
                 const errorToast = new Adw.Toast({
-                    title: `Failed to save API key: ${e.message}`,
+                    title: `Failed to save settings: ${e.message}`,
                     timeout: 3,
                 });
 

@@ -49,7 +49,7 @@ export const PaletteGenerator = GObject.registerClass({
         const browserPage = this._viewStack.add_titled(this._wallpaperBrowser, 'browser', 'Find Wallpaper');
         browserPage.set_icon_name('network-workgroup-symbolic');
 
-        // Header box with view switcher and settings button
+        // Header box with view switcher
         const headerBox = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
             spacing: 6,
@@ -61,19 +61,7 @@ export const PaletteGenerator = GObject.registerClass({
         viewSwitcherTitle.set_title('Palette Source');
         viewSwitcherTitle.set_hexpand(true);
 
-        // Settings button for wallhaven
-        this._wallhavenSettingsButton = new Gtk.Button({
-            icon_name: 'preferences-system-symbolic',
-            tooltip_text: 'Wallhaven Settings',
-            css_classes: ['flat'],
-            valign: Gtk.Align.CENTER,
-        });
-        this._wallhavenSettingsButton.connect('clicked', () => {
-            this._wallpaperBrowser._showSettingsDialog();
-        });
-
         headerBox.append(viewSwitcherTitle);
-        headerBox.append(this._wallhavenSettingsButton);
 
         this.append(headerBox);
         this.append(this._viewStack);
