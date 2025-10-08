@@ -24,51 +24,51 @@ const applyGlobalSharpCorners = () => {
         * {
             border-radius: 0px;
         }
-        
+
         .card {
             border-radius: 0px;
         }
-        
+
         button {
             border-radius: 0px;
         }
-        
+
         .boxed-list {
             border-radius: 0px;
         }
-        
+
         .boxed-list > row {
             border-radius: 0px;
         }
-        
+
         entry {
             border-radius: 0px;
         }
-        
+
         .toolbar {
             border-radius: 0px;
         }
-        
+
         headerbar {
             border-radius: 0px;
         }
-        
+
         popover {
             border-radius: 0px;
         }
-        
+
         dialog {
             border-radius: 0px;
         }
-        
+
         menu {
             border-radius: 0px;
         }
-        
+
         menubutton {
             border-radius: 0px;
         }
-        
+
         .background {
             border-radius: 0px;
         }
