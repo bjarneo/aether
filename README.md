@@ -82,7 +82,7 @@ Fine-tune your entire palette with real-time sliders:
 - One-click reset to original palette
 
 ### 🎯 Color Role Management
-- Edit all 16 ANSI terminal colors (color0-15)
+- Edit all 16 terminal colors (color0-15)
 - Customize background and foreground colors
 - Visual color picker for each role
 - Real-time preview across the interface
