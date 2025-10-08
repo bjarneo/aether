@@ -234,24 +234,6 @@ export class ThemeManager {
         return this.overrideFile.get_path();
     }
 
-    openThemeFile() {
-        // Open the override file, not the base theme
-        try {
-            const launcher = new Gtk.FileLauncher({
-                file: this.overrideFile
-            });
-            launcher.launch(null, null, (source, result) => {
-                try {
-                    launcher.launch_finish(result);
-                } catch (e) {
-                    console.error(`Failed to open override theme file: ${e.message}`);
-                }
-            });
-        } catch (e) {
-            console.error(`Failed to launch override theme file: ${e.message}`);
-        }
-    }
-
     destroy() {
         if (this.fileMonitor) {
             this.fileMonitor.cancel();

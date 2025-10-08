@@ -236,15 +236,6 @@ const AetherWindow = GObject.registerClass(
             });
             blueprintsButton.connect('clicked', () => this._showBlueprintsDialog());
             actionBar.pack_start(blueprintsButton);
-            
-            const themeButton = new Gtk.Button({
-                icon_name: 'preferences-color-symbolic',
-                tooltip_text: 'Edit Theme (Live Reload)',
-            });
-            themeButton.connect('clicked', () => {
-                this.application.themeManager.openThemeFile();
-            });
-            actionBar.pack_start(themeButton);
 
             const exportButton = new Gtk.Button({ label: 'Export Theme' });
             exportButton.connect('clicked', () => this._exportTheme());
