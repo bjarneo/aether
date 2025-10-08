@@ -33,6 +33,7 @@ export class ConfigWriter {
 
             const variables = this._buildVariables(colorRoles);
             this._processTemplates(variables, settings);
+            this._applyAetherThemeOverride(variables);
             this._handleLightModeMarker(this.themeDir, lightMode);
             this._applyOmarchyTheme();
 
@@ -230,6 +231,52 @@ export class ConfigWriter {
             } catch (e) {
                 console.error('Error removing light.mode file:', e.message);
             }
+        }
+    }
+
+    _applyAetherThemeOverride(variables) {
+        try {
+            // Process the aether.override.css template
+            const templatePath = GLib.build_filenamev([this.templatesDir, 'aether.override.css']);
+            
+            // Write to omarchy themes folder (with other config files)
+            const themeOverridePath = GLib.build_filenamev([this.themeDir, 'aether.override.css']);
+            
+            // Process the template with color variables
+            this._processTemplate(templatePath, themeOverridePath, variables);
+            
+            // Create symlink from ~/.config/aether/theme.override.css to the generated file
+            const aetherConfigDir = GLib.build_filenamev([this.configDir, 'aether']);
+            const symlinkPath = GLib.build_filenamev([aetherConfigDir, 'theme.override.css']);
+            
+            // Ensure aether config directory exists
+            ensureDirectoryExists(aetherConfigDir);
+            
+            // Remove existing symlink or file if it exists
+            const symlinkFile = Gio.File.new_for_path(symlinkPath);
+            if (symlinkFile.query_exists(null)) {
+                try {
+                    symlinkFile.delete(null);
+                } catch (e) {
+                    console.error('Error removing existing theme.override.css:', e.message);
+                }
+            }
+            
+            // Create symlink
+            try {
+                const symlinkGFile = Gio.File.new_for_path(symlinkPath);
+                symlinkGFile.make_symbolic_link(themeOverridePath, null);
+                console.log(`Created symlink: ${symlinkPath} -> ${themeOverridePath}`);
+            } catch (e) {
+                console.error('Error creating symlink:', e.message);
+                // Fallback: copy the file if symlink fails
+                copyFile(themeOverridePath, symlinkPath);
+                console.log(`Fallback: Copied file to ${symlinkPath}`);
+            }
+            
+            console.log(`Applied Aether theme override to ${themeOverridePath}`);
+        } catch (e) {
+            console.error('Error applying Aether theme override:', e.message);
         }
     }
 

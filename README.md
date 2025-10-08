@@ -197,6 +197,18 @@ paru -S aether
 
 ## Usage
 
+### Theming Aether's Interface
+
+When you apply a theme in Aether, it automatically updates the application's own interface to match your chosen colors:
+
+**Auto-theming:**
+1. Apply any theme using the "Apply Theme" button
+2. Aether generates `aether.override.css` in `~/.config/omarchy/themes/aether/`
+3. A symlink is created at `~/.config/aether/theme.override.css`
+4. The interface instantly updates with your theme colors (live reload)
+
+The generated file is a standard GTK CSS theme using `@define-color` variables, fully compatible with GTK/Libadwaita.
+
 ### Customizing Aether's UI
 
 Aether includes a powerful theming system to customize the application's own appearance (not to be confused with desktop theme generation). See `THEMING.md` for complete documentation, or:
