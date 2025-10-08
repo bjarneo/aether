@@ -11,6 +11,7 @@ export class ThemeManager {
         this.cssProvider = null;
         this.fileMonitor = null;
         this.overrideFileMonitor = null;
+        this.omarchyThemeMonitor = null;
         this.themeFile = null;
         this.overrideFile = null;
 
@@ -40,10 +41,121 @@ export class ThemeManager {
             this._createBaseTheme();
         }
 
-        // Create empty override file if it doesn't exist
-        if (!this.overrideFile.query_exists(null)) {
-            this._createOverrideTheme();
+        // Handle override file - check if it's a broken symlink
+        this._handleOverrideFile();
+    }
+
+    _handleOverrideFile() {
+        try {
+            const fileInfo = this.overrideFile.query_info(
+                'standard::is-symlink,standard::symlink-target',
+                Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS,
+                null
+            );
+
+            const isSymlink = fileInfo.get_is_symlink();
+
+            if (isSymlink) {
+                const symlinkTarget = fileInfo.get_symlink_target();
+
+                // Check if we should validate against current omarchy theme
+                if (this._shouldValidateAgainstCurrentTheme(symlinkTarget)) {
+                    const currentThemeOverride =
+                        this._getCurrentThemeOverridePath();
+
+                    if (currentThemeOverride) {
+                        const currentOverrideFile =
+                            Gio.File.new_for_path(currentThemeOverride);
+
+                        if (!currentOverrideFile.query_exists(null)) {
+                            console.log(
+                                `Current theme does not have aether.override.css, clearing to default theme`
+                            );
+                            this._clearToDefaultTheme();
+                            return;
+                        } else {
+                            console.log(
+                                `Using current theme override: ${currentThemeOverride}`
+                            );
+                        }
+                    }
+                }
+
+                // Fallback: check if symlink target exists at all
+                const targetFile = Gio.File.new_for_path(symlinkTarget);
+                if (!targetFile.query_exists(null)) {
+                    console.log(
+                        `Symlink target does not exist: ${symlinkTarget}, clearing to default theme`
+                    );
+                    this._clearToDefaultTheme();
+                } else {
+                    console.log(`Using symlinked theme: ${symlinkTarget}`);
+                }
+            }
+        } catch (e) {
+            // File doesn't exist or can't be queried
+            if (!this.overrideFile.query_exists(null)) {
+                console.log(
+                    'Override file does not exist, creating default theme'
+                );
+                this._createOverrideTheme();
+            }
         }
+    }
+
+    _shouldValidateAgainstCurrentTheme(symlinkTarget) {
+        // Check if symlink points to an omarchy theme directory
+        return symlinkTarget && symlinkTarget.includes('/omarchy/themes/');
+    }
+
+    _getCurrentThemeOverridePath() {
+        try {
+            const currentThemeLink = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'omarchy',
+                'current',
+                'theme',
+            ]);
+
+            const currentThemeFile = Gio.File.new_for_path(currentThemeLink);
+
+            if (!currentThemeFile.query_exists(null)) {
+                return null;
+            }
+
+            const fileInfo = currentThemeFile.query_info(
+                'standard::is-symlink,standard::symlink-target',
+                Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS,
+                null
+            );
+
+            if (fileInfo.get_is_symlink()) {
+                const targetPath = fileInfo.get_symlink_target();
+                return GLib.build_filenamev([
+                    targetPath,
+                    'aether.override.css',
+                ]);
+            }
+        } catch (e) {
+            console.error(`Failed to get current theme path: ${e.message}`);
+        }
+
+        return null;
+    }
+
+    _clearToDefaultTheme() {
+        // Remove the broken symlink
+        try {
+            if (this.overrideFile.query_exists(null)) {
+                this.overrideFile.delete(null);
+            }
+        } catch (e) {
+            console.error(`Failed to remove broken symlink: ${e.message}`);
+        }
+
+        // Create empty override file with default template
+        this._createOverrideTheme();
+        console.log('Cleared to default theme');
     }
 
     _createBaseTheme() {
@@ -236,6 +348,15 @@ export class ThemeManager {
                             this._applyTheme();
                             return GLib.SOURCE_REMOVE;
                         });
+                    } else if (eventType === Gio.FileMonitorEvent.DELETED) {
+                        console.log(
+                            'Override theme file deleted (possibly broken symlink), clearing to default...'
+                        );
+                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+                            this._handleOverrideFile();
+                            this._applyTheme();
+                            return GLib.SOURCE_REMOVE;
+                        });
                     }
                 }
             );
@@ -246,6 +367,62 @@ export class ThemeManager {
         } catch (e) {
             console.error(
                 `Failed to setup override theme monitor: ${e.message}`
+            );
+        }
+
+        // Monitor omarchy current theme symlink
+        this._setupOmarchyThemeMonitor();
+    }
+
+    _setupOmarchyThemeMonitor() {
+        try {
+            const omarchyCurrentTheme = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'omarchy',
+                'current',
+                'theme',
+            ]);
+
+            const omarchyThemeFile = Gio.File.new_for_path(omarchyCurrentTheme);
+
+            // Only set up monitor if omarchy directory exists
+            if (!omarchyThemeFile.query_exists(null)) {
+                console.log(
+                    'Omarchy current theme not found, skipping monitor'
+                );
+                return;
+            }
+
+            this.omarchyThemeMonitor = omarchyThemeFile.monitor_file(
+                Gio.FileMonitorFlags.NONE,
+                null
+            );
+
+            this.omarchyThemeMonitor.connect(
+                'changed',
+                (monitor, file, otherFile, eventType) => {
+                    if (
+                        eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT ||
+                        eventType === Gio.FileMonitorEvent.CHANGED ||
+                        eventType === Gio.FileMonitorEvent.DELETED ||
+                        eventType === Gio.FileMonitorEvent.CREATED
+                    ) {
+                        console.log(
+                            'Omarchy current theme changed, validating override...'
+                        );
+                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
+                            this._handleOverrideFile();
+                            this._applyTheme();
+                            return GLib.SOURCE_REMOVE;
+                        });
+                    }
+                }
+            );
+
+            console.log('File monitor setup for omarchy current theme');
+        } catch (e) {
+            console.error(
+                `Failed to setup omarchy theme monitor: ${e.message}`
             );
         }
     }
@@ -267,6 +444,11 @@ export class ThemeManager {
         if (this.overrideFileMonitor) {
             this.overrideFileMonitor.cancel();
             this.overrideFileMonitor = null;
+        }
+
+        if (this.omarchyThemeMonitor) {
+            this.omarchyThemeMonitor.cancel();
+            this.omarchyThemeMonitor = null;
         }
 
         if (this.cssProvider) {
