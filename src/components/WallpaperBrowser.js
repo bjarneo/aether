@@ -100,7 +100,7 @@ export const WallpaperBrowser = GObject.registerClass(
             this._gridFlow = new Gtk.FlowBox({
                 valign: Gtk.Align.START,
                 max_children_per_line: 3,
-                min_children_per_line: 2,
+                min_children_per_line: 3,
                 selection_mode: Gtk.SelectionMode.NONE,
                 column_spacing: 12,
                 row_spacing: 12,
@@ -512,18 +512,41 @@ export const WallpaperBrowser = GObject.registerClass(
             // Overlay for thumbnail and favorite button
             const overlay = new Gtk.Overlay();
 
-            // Create a button for the image
+            // Create a clickable area for the image without hover effect
             const imageButton = new Gtk.Button({
                 css_classes: ['flat'],
                 overflow: Gtk.Overflow.HIDDEN,
             });
+
+            // Add CSS to remove hover/active states from the button
+            const buttonCss = `
+                button.flat {
+                    background: none;
+                    border: none;
+                    box-shadow: none;
+                }
+                button.flat:hover,
+                button.flat:active,
+                button.flat:focus {
+                    background: none;
+                    border: none;
+                    box-shadow: none;
+                }
+            `;
+            const buttonProvider = new Gtk.CssProvider();
+            buttonProvider.load_from_data(buttonCss, -1);
+            imageButton
+                .get_style_context()
+                .add_provider(
+                    buttonProvider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
 
             // Thumbnail image
             const picture = new Gtk.Picture({
                 width_request: 280,
                 height_request: 180,
                 can_shrink: true,
-                css_classes: ['card'],
             });
 
             // Load thumbnail asynchronously
@@ -537,7 +560,7 @@ export const WallpaperBrowser = GObject.registerClass(
 
             overlay.set_child(imageButton);
 
-            // Favorite button overlay
+            // Favorite button overlay - positioned at top-right with no margin
             const favButton = new Gtk.Button({
                 icon_name: 'emblem-favorite-symbolic',
                 css_classes: this._isFavorite(wallpaper)
@@ -545,8 +568,8 @@ export const WallpaperBrowser = GObject.registerClass(
                     : ['circular', 'favorite-inactive'],
                 halign: Gtk.Align.END,
                 valign: Gtk.Align.START,
-                margin_top: 6,
-                margin_end: 6,
+                margin_top: 0,
+                margin_end: 0,
             });
 
             // Add custom CSS for favorite button
