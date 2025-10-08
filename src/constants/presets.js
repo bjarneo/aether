@@ -4,6 +4,28 @@
 
 export const COLOR_PRESETS = [
     {
+        name: 'Aether',
+        author: 'Bjarne Øverli',
+        colors: [
+            '#141114', // background
+            '#ff637e', // red
+            '#b4e173', // green
+            '#ffd568', // yellow
+            '#ff9b66', // orange
+            '#c09ef5', // purple
+            '#76ecdb', // cyan
+            '#ffffff', // foreground
+            '#766974', // bright black
+            '#ff637e', // bright red
+            '#b4e173', // bright green
+            '#ffd568', // bright yellow
+            '#ff9b66', // bright orange
+            '#c09ef5', // bright purple
+            '#76ecdb', // bright cyan
+            '#ffffff', // bright white
+        ],
+    },
+    {
         name: 'Dracula',
         author: 'Dracula Theme',
         colors: [
