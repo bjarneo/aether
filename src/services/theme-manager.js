@@ -329,10 +329,14 @@ export class ThemeManager {
                         eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT ||
                         eventType === Gio.FileMonitorEvent.CHANGED
                     ) {
-                        console.log('Override theme file changed, reloading...');
+                        console.log(
+                            'Override theme file changed, reloading...'
+                        );
                         this._reloadTheme();
                     } else if (eventType === Gio.FileMonitorEvent.DELETED) {
-                        console.log('Override theme file deleted, clearing to default...');
+                        console.log(
+                            'Override theme file deleted, clearing to default...'
+                        );
                         this._revalidateAndReloadTheme();
                     }
                 }
@@ -384,7 +388,9 @@ export class ThemeManager {
                         eventType === Gio.FileMonitorEvent.DELETED ||
                         eventType === Gio.FileMonitorEvent.CREATED
                     ) {
-                        console.log('Omarchy current theme changed, validating override...');
+                        console.log(
+                            'Omarchy current theme changed, validating override...'
+                        );
                         this._revalidateAndReloadTheme();
                     }
                 }
