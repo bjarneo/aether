@@ -38,16 +38,9 @@ export const WallpaperBrowser = GObject.registerClass({
     }
 
     _initializeUI() {
-        // Search and filters section
-        const searchBox = this._createSearchSection();
-        this.append(searchBox);
-
-        // Scrolled window for wallpaper grid
-        this._scrolledWindow = new Gtk.ScrolledWindow({
-            vexpand: true,
-            hscrollbar_policy: Gtk.PolicyType.NEVER,
-            vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-        });
+        // Toolbar/Header section
+        const toolbar = this._createToolbar();
+        this.append(toolbar);
 
         // Main content box with loading state
         this._contentStack = new Gtk.Stack({
@@ -94,6 +87,13 @@ export const WallpaperBrowser = GObject.registerClass({
         errorBox.append(retryButton);
         this._contentStack.add_named(errorBox, 'error');
 
+        // Scrolled window for wallpaper grid
+        this._scrolledWindow = new Gtk.ScrolledWindow({
+            vexpand: true,
+            hscrollbar_policy: Gtk.PolicyType.NEVER,
+            vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+        });
+
         // Wallpaper grid
         this._gridFlow = new Gtk.FlowBox({
             valign: Gtk.Align.START,
@@ -120,167 +120,213 @@ export const WallpaperBrowser = GObject.registerClass({
         this.append(paginationBox);
     }
 
-    _createSearchSection() {
-        const searchGroup = new Adw.PreferencesGroup();
-
-        // Search entry row
-        const searchRow = new Adw.ActionRow({
-            title: 'Search Wallpapers',
+    _createToolbar() {
+        const toolbarBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 0,
         });
 
-        const searchEntry = new Gtk.SearchEntry({
+        // Top action bar with search and buttons
+        const actionBar = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 6,
+            margin_top: 6,
+            margin_bottom: 6,
+            margin_start: 6,
+            margin_end: 6,
+        });
+
+        // Search entry
+        this._searchEntry = new Gtk.SearchEntry({
             placeholder_text: 'Search by tags, colors...',
-            valign: Gtk.Align.CENTER,
             hexpand: true,
         });
 
-        searchEntry.connect('activate', () => {
-            this._searchParams.q = searchEntry.get_text();
+        this._searchEntry.connect('activate', () => {
+            this._searchParams.q = this._searchEntry.get_text();
             this._currentPage = 1;
+            this._showingFavorites = false;
             this._performSearch();
         });
 
+        // Search button
         const searchButton = new Gtk.Button({
             icon_name: 'system-search-symbolic',
-            valign: Gtk.Align.CENTER,
+            tooltip_text: 'Search',
         });
         searchButton.connect('clicked', () => {
-            this._searchParams.q = searchEntry.get_text();
+            this._searchParams.q = this._searchEntry.get_text();
             this._currentPage = 1;
+            this._showingFavorites = false;
             this._performSearch();
         });
 
-        searchRow.add_suffix(searchEntry);
-        searchRow.add_suffix(searchButton);
-        searchGroup.add(searchRow);
-
-        // Sorting row
-        const sortRow = new Adw.ComboRow({
-            title: 'Sort By',
+        // Favorites button
+        this._favoritesButton = new Gtk.ToggleButton({
+            icon_name: 'emblem-favorite-symbolic',
+            tooltip_text: 'View Favorites',
+        });
+        
+        this._favoritesCountLabel = new Gtk.Label({
+            label: '0',
+            css_classes: ['caption'],
         });
 
-        const sortModel = new Gtk.StringList();
-        sortModel.append('Latest');
-        sortModel.append('Relevance');
-        sortModel.append('Random');
-        sortModel.append('Views');
-        sortModel.append('Favorites');
-        sortModel.append('Top List');
+        const favBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 4,
+        });
+        favBox.append(new Gtk.Image({ icon_name: 'emblem-favorite-symbolic' }));
+        favBox.append(this._favoritesCountLabel);
+        this._favoritesButton.set_child(favBox);
 
-        sortRow.set_model(sortModel);
-        sortRow.set_selected(0);
+        this._favoritesButton.connect('toggled', () => {
+            this._toggleFavoritesView();
+        });
 
-        sortRow.connect('notify::selected', () => {
+        // Filters button (toggle)
+        this._filtersButton = new Gtk.ToggleButton({
+            icon_name: 'preferences-other-symbolic',
+            tooltip_text: 'Show Filters',
+        });
+
+        this._filtersButton.connect('toggled', () => {
+            this._filtersRevealer.set_reveal_child(this._filtersButton.get_active());
+        });
+
+        // Settings button
+        const settingsButton = new Gtk.Button({
+            icon_name: 'emblem-system-symbolic',
+            tooltip_text: 'Settings',
+        });
+        settingsButton.connect('clicked', () => {
+            this._showSettingsDialog();
+        });
+
+        actionBar.append(this._searchEntry);
+        actionBar.append(searchButton);
+        actionBar.append(new Gtk.Separator({ orientation: Gtk.Orientation.VERTICAL }));
+        actionBar.append(this._favoritesButton);
+        actionBar.append(this._filtersButton);
+        actionBar.append(settingsButton);
+
+        toolbarBox.append(actionBar);
+
+        // Filters section (collapsible)
+        this._filtersRevealer = new Gtk.Revealer({
+            transition_type: Gtk.RevealerTransitionType.SLIDE_DOWN,
+            reveal_child: false,
+        });
+
+        const filtersBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 12,
+            margin_top: 6,
+            margin_bottom: 6,
+            margin_start: 12,
+            margin_end: 12,
+        });
+
+        // Sort dropdown
+        const sortBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 3,
+        });
+
+        const sortLabel = new Gtk.Label({
+            label: 'Sort',
+            xalign: 0,
+            css_classes: ['caption', 'dim-label'],
+        });
+
+        this._sortDropdown = new Gtk.DropDown({
+            model: new Gtk.StringList(),
+        });
+        
+        const sortModel = this._sortDropdown.get_model();
+        ['Latest', 'Relevance', 'Random', 'Views', 'Favorites', 'Top List'].forEach(item => {
+            sortModel.append(item);
+        });
+
+        this._sortDropdown.connect('notify::selected', () => {
             const sortMethods = ['date_added', 'relevance', 'random', 'views', 'favorites', 'toplist'];
-            this._searchParams.sorting = sortMethods[sortRow.get_selected()];
+            this._searchParams.sorting = sortMethods[this._sortDropdown.get_selected()];
             this._currentPage = 1;
-            this._performSearch();
+            if (!this._showingFavorites) {
+                this._performSearch();
+            }
         });
 
-        searchGroup.add(sortRow);
+        sortBox.append(sortLabel);
+        sortBox.append(this._sortDropdown);
 
-        // Categories row
-        const categoriesRow = new Adw.ActionRow({
-            title: 'Categories',
-            subtitle: 'Select wallpaper categories',
-        });
-
+        // Categories
         const categoriesBox = new Gtk.Box({
-            spacing: 6,
-            valign: Gtk.Align.CENTER,
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 3,
         });
 
-        const generalCheck = new Gtk.CheckButton({
+        const categoriesLabel = new Gtk.Label({
+            label: 'Categories',
+            xalign: 0,
+            css_classes: ['caption', 'dim-label'],
+        });
+
+        const categoriesCheckBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 6,
+        });
+
+        this._generalCheck = new Gtk.CheckButton({
             label: 'General',
             active: true,
         });
-        const animeCheck = new Gtk.CheckButton({
+        this._animeCheck = new Gtk.CheckButton({
             label: 'Anime',
             active: true,
         });
-        const peopleCheck = new Gtk.CheckButton({
+        this._peopleCheck = new Gtk.CheckButton({
             label: 'People',
             active: true,
         });
 
         const updateCategories = () => {
             const cats = [
-                generalCheck.get_active() ? '1' : '0',
-                animeCheck.get_active() ? '1' : '0',
-                peopleCheck.get_active() ? '1' : '0',
+                this._generalCheck.get_active() ? '1' : '0',
+                this._animeCheck.get_active() ? '1' : '0',
+                this._peopleCheck.get_active() ? '1' : '0',
             ].join('');
             this._searchParams.categories = cats;
             this._currentPage = 1;
-            this._performSearch();
+            if (!this._showingFavorites) {
+                this._performSearch();
+            }
         };
 
-        generalCheck.connect('toggled', updateCategories);
-        animeCheck.connect('toggled', updateCategories);
-        peopleCheck.connect('toggled', updateCategories);
+        this._generalCheck.connect('toggled', updateCategories);
+        this._animeCheck.connect('toggled', updateCategories);
+        this._peopleCheck.connect('toggled', updateCategories);
 
-        categoriesBox.append(generalCheck);
-        categoriesBox.append(animeCheck);
-        categoriesBox.append(peopleCheck);
+        categoriesCheckBox.append(this._generalCheck);
+        categoriesCheckBox.append(this._animeCheck);
+        categoriesCheckBox.append(this._peopleCheck);
 
-        categoriesRow.add_suffix(categoriesBox);
-        searchGroup.add(categoriesRow);
+        categoriesBox.append(categoriesLabel);
+        categoriesBox.append(categoriesCheckBox);
 
-        // Settings button
-        const settingsRow = new Adw.ActionRow({
-            title: 'Settings',
-            subtitle: 'Configure API key and resolution filters',
-            activatable: true,
-        });
+        filtersBox.append(sortBox);
+        filtersBox.append(new Gtk.Separator({ orientation: Gtk.Orientation.VERTICAL }));
+        filtersBox.append(categoriesBox);
 
-        const settingsIcon = new Gtk.Image({
-            icon_name: 'emblem-system-symbolic',
-            valign: Gtk.Align.CENTER,
-        });
-        settingsRow.add_suffix(settingsIcon);
-        settingsRow.set_activatable_widget(settingsIcon);
+        this._filtersRevealer.set_child(filtersBox);
+        toolbarBox.append(this._filtersRevealer);
 
-        settingsRow.connect('activated', () => {
-            this._showSettingsDialog();
-        });
+        // Separator
+        toolbarBox.append(new Gtk.Separator({ orientation: Gtk.Orientation.HORIZONTAL }));
 
-        searchGroup.add(settingsRow);
-
-        // Favorites button
-        const favoritesRow = new Adw.ActionRow({
-            title: 'Favorites',
-            subtitle: 'View your favorite wallpapers',
-            activatable: true,
-        });
-
-        this._favoritesCountLabel = new Gtk.Label({
-            label: '0',
-            css_classes: ['badge', 'accent'],
-            valign: Gtk.Align.CENTER,
-        });
-
-        const favoritesIcon = new Gtk.Image({
-            icon_name: 'emblem-favorite-symbolic',
-            valign: Gtk.Align.CENTER,
-        });
-
-        const favoritesBox = new Gtk.Box({
-            spacing: 6,
-            valign: Gtk.Align.CENTER,
-        });
-        favoritesBox.append(this._favoritesCountLabel);
-        favoritesBox.append(favoritesIcon);
-
-        favoritesRow.add_suffix(favoritesBox);
-        favoritesRow.set_activatable_widget(favoritesIcon);
-
-        favoritesRow.connect('activated', () => {
-            this._toggleFavoritesView();
-        });
-
-        searchGroup.add(favoritesRow);
         this._updateFavoritesCount();
 
-        return searchGroup;
+        return toolbarBox;
     }
 
     _createPaginationControls() {
@@ -340,15 +386,19 @@ export const WallpaperBrowser = GObject.registerClass({
     }
 
     _toggleFavoritesView() {
-        this._showingFavorites = !this._showingFavorites;
+        this._showingFavorites = this._favoritesButton.get_active();
         
         if (this._showingFavorites) {
             this._displayFavorites();
             this._paginationBox.set_visible(false);
+            this._searchEntry.set_sensitive(false);
+            this._filtersButton.set_sensitive(false);
         } else {
             this._currentPage = 1;
             this._performSearch();
             this._paginationBox.set_visible(true);
+            this._searchEntry.set_sensitive(true);
+            this._filtersButton.set_sensitive(true);
         }
     }
 
@@ -433,12 +483,7 @@ export const WallpaperBrowser = GObject.registerClass({
         // Overlay for thumbnail and favorite button
         const overlay = new Gtk.Overlay();
 
-        // Thumbnail image in a button
-        const imageButton = new Gtk.Button({
-            css_classes: ['flat'],
-            overflow: Gtk.Overflow.HIDDEN,
-        });
-
+        // Thumbnail image with event controller for clicking
         const picture = new Gtk.Picture({
             width_request: 280,
             height_request: 180,
@@ -448,18 +493,19 @@ export const WallpaperBrowser = GObject.registerClass({
 
         // Load thumbnail asynchronously
         this._loadThumbnail(wallpaper.thumbs.small, picture);
-        imageButton.set_child(picture);
 
-        // Click handler to download and use wallpaper
-        imageButton.connect('clicked', () => {
+        // Add click gesture to picture
+        const clickGesture = new Gtk.GestureClick();
+        clickGesture.connect('released', () => {
             this._downloadAndUseWallpaper(wallpaper);
         });
+        picture.add_controller(clickGesture);
 
-        overlay.set_child(imageButton);
+        overlay.set_child(picture);
 
         // Favorite button overlay
         const favButton = new Gtk.Button({
-            icon_name: this._isFavorite(wallpaper) ? 'emblem-favorite-symbolic' : 'emblem-favorite-symbolic',
+            icon_name: 'emblem-favorite-symbolic',
             css_classes: this._isFavorite(wallpaper) ? ['circular', 'favorite-active'] : ['circular', 'favorite-inactive'],
             halign: Gtk.Align.END,
             valign: Gtk.Align.START,
