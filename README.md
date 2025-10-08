@@ -14,7 +14,7 @@ Aether is a beautiful theming application for Omarchy. It provides real-time, vi
 
 #### From Wallpaper (Automatic Extraction)
 - Upload wallpapers
-- Automatic extraction of 16 ANSI colors using pywal
+- Automatic extraction of 16 colors using pywal
 - Light/Dark mode toggle for generating light or dark color schemes
 - Intelligent color analysis optimized for terminals and desktop themes
 - Real-time wallpaper preview
