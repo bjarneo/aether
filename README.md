@@ -13,7 +13,7 @@ Aether is a beautiful theming application for Omarchy. It provides real-time, vi
 ### 🎨 Triple Palette Generation Modes
 
 #### From Wallpaper (Automatic Extraction)
-- Drag-and-drop wallpaper or use file picker
+- Upload wallpapers
 - Automatic extraction of 16 ANSI colors using pywal
 - Light/Dark mode toggle for generating light or dark color schemes
 - Intelligent color analysis optimized for terminals and desktop themes
@@ -37,7 +37,7 @@ Aether is a beautiful theming application for Omarchy. It provides real-time, vi
 - Settings dialog for easy API key configuration
 
 ### 🎨 Color Presets Library
-10 popular hand-picked themes ready to use:
+Popular hand-picked themes ready to use:
 - **Dracula** - Dark theme with vibrant colors
 - **Nord** - Arctic, north-bluish color palette
 - **Gruvbox Dark** - Retro groove with warm tones
@@ -50,7 +50,7 @@ Aether is a beautiful theming application for Omarchy. It provides real-time, vi
 - **Rose Pine** - All natural pine, faux fur and a bit of soho vibes
 
 ### 💻 Neovim Theme Integration
-37 LazyVim-compatible Neovim themes with perfect color preset matching:
+LazyVim-compatible Neovim themes with perfect color preset matching:
 - **One-click selection** - Choose your Neovim theme from the Settings sidebar
 - **Visual feedback** - Checkmark indicator shows selected theme
 - **Blueprint integration** - Themes saved and restored with blueprints
