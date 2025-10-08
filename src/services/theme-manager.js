@@ -53,13 +53,11 @@ export class ThemeManager {
                 null
             );
 
-            const isSymlink = fileInfo.get_is_symlink();
-
-            if (isSymlink) {
+            if (fileInfo.get_is_symlink()) {
                 const symlinkTarget = fileInfo.get_symlink_target();
 
-                // Check if we should validate against current omarchy theme
-                if (this._shouldValidateAgainstCurrentTheme(symlinkTarget)) {
+                // Check if symlink points to omarchy theme
+                if (symlinkTarget?.includes('/omarchy/themes/')) {
                     const currentThemeOverride =
                         this._getCurrentThemeOverridePath();
 
@@ -68,44 +66,25 @@ export class ThemeManager {
                             Gio.File.new_for_path(currentThemeOverride);
 
                         if (!currentOverrideFile.query_exists(null)) {
-                            console.log(
-                                `Current theme does not have aether.override.css, clearing to default theme`
-                            );
                             this._clearToDefaultTheme();
                             return;
-                        } else {
-                            console.log(
-                                `Using current theme override: ${currentThemeOverride}`
-                            );
                         }
+                        return;
                     }
                 }
 
-                // Fallback: check if symlink target exists at all
-                const targetFile = Gio.File.new_for_path(symlinkTarget);
-                if (!targetFile.query_exists(null)) {
-                    console.log(
-                        `Symlink target does not exist: ${symlinkTarget}, clearing to default theme`
-                    );
+                // Check if symlink target exists
+                if (!Gio.File.new_for_path(symlinkTarget).query_exists(null)) {
                     this._clearToDefaultTheme();
-                } else {
-                    console.log(`Using symlinked theme: ${symlinkTarget}`);
+                    return;
                 }
             }
         } catch (e) {
             // File doesn't exist or can't be queried
             if (!this.overrideFile.query_exists(null)) {
-                console.log(
-                    'Override file does not exist, creating default theme'
-                );
                 this._createOverrideTheme();
             }
         }
-    }
-
-    _shouldValidateAgainstCurrentTheme(symlinkTarget) {
-        // Check if symlink points to an omarchy theme directory
-        return symlinkTarget && symlinkTarget.includes('/omarchy/themes/');
     }
 
     _getCurrentThemeOverridePath() {
@@ -144,18 +123,15 @@ export class ThemeManager {
     }
 
     _clearToDefaultTheme() {
-        // Remove the broken symlink
         try {
             if (this.overrideFile.query_exists(null)) {
                 this.overrideFile.delete(null);
             }
+            this._createOverrideTheme();
+            console.log('Cleared to default theme');
         } catch (e) {
-            console.error(`Failed to remove broken symlink: ${e.message}`);
+            console.error(`Failed to clear to default theme: ${e.message}`);
         }
-
-        // Create empty override file with default template
-        this._createOverrideTheme();
-        console.log('Cleared to default theme');
     }
 
     _createBaseTheme() {
@@ -289,13 +265,28 @@ export class ThemeManager {
             Gtk.StyleContext.add_provider_for_display(
                 Gdk.Display.get_default(),
                 this.cssProvider,
-                Gtk.STYLE_PROVIDER_PRIORITY_USER // Higher priority than APPLICATION
+                Gtk.STYLE_PROVIDER_PRIORITY_USER
             );
 
             console.log('Theme applied successfully');
         } catch (e) {
             console.error(`Failed to apply theme: ${e.message}`);
         }
+    }
+
+    _reloadTheme() {
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+            this._applyTheme();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _revalidateAndReloadTheme() {
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
+            this._handleOverrideFile();
+            this._applyTheme();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _setupFileMonitors() {
@@ -314,10 +305,7 @@ export class ThemeManager {
                         eventType === Gio.FileMonitorEvent.CHANGED
                     ) {
                         console.log('Base theme file changed, reloading...');
-                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-                            this._applyTheme();
-                            return GLib.SOURCE_REMOVE;
-                        });
+                        this._reloadTheme();
                     }
                 }
             );
@@ -341,22 +329,11 @@ export class ThemeManager {
                         eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT ||
                         eventType === Gio.FileMonitorEvent.CHANGED
                     ) {
-                        console.log(
-                            'Override theme file changed, reloading...'
-                        );
-                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-                            this._applyTheme();
-                            return GLib.SOURCE_REMOVE;
-                        });
+                        console.log('Override theme file changed, reloading...');
+                        this._reloadTheme();
                     } else if (eventType === Gio.FileMonitorEvent.DELETED) {
-                        console.log(
-                            'Override theme file deleted (possibly broken symlink), clearing to default...'
-                        );
-                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-                            this._handleOverrideFile();
-                            this._applyTheme();
-                            return GLib.SOURCE_REMOVE;
-                        });
+                        console.log('Override theme file deleted, clearing to default...');
+                        this._revalidateAndReloadTheme();
                     }
                 }
             );
@@ -407,14 +384,8 @@ export class ThemeManager {
                         eventType === Gio.FileMonitorEvent.DELETED ||
                         eventType === Gio.FileMonitorEvent.CREATED
                     ) {
-                        console.log(
-                            'Omarchy current theme changed, validating override...'
-                        );
-                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
-                            this._handleOverrideFile();
-                            this._applyTheme();
-                            return GLib.SOURCE_REMOVE;
-                        });
+                        console.log('Omarchy current theme changed, validating override...');
+                        this._revalidateAndReloadTheme();
                     }
                 }
             );
