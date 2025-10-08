@@ -54,15 +54,21 @@ export const ColorSynthesizer = GObject.registerClass({
     }
 
     _createColorButton(role) {
+        const initialColor = new Gdk.RGBA();
+        initialColor.parse('#808080');
+        
         const colorButton = new Gtk.ColorDialogButton({
             valign: Gtk.Align.CENTER,
             tooltip_text: 'Choose color',
-            dialog: new Gtk.ColorDialog({ with_alpha: true }),
+            rgba: initialColor,
         });
 
-        const initialColor = new Gdk.RGBA();
-        initialColor.parse('#808080');
-        colorButton.set_rgba(initialColor);
+        // Defer dialog creation until widget is realized to avoid GTK warnings
+        colorButton.connect('realize', () => {
+            if (!colorButton.dialog) {
+                colorButton.dialog = new Gtk.ColorDialog({ with_alpha: true });
+            }
+        });
 
         colorButton.connect('notify::rgba', () => {
             const rgba = colorButton.get_rgba();

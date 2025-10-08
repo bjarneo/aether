@@ -165,15 +165,21 @@ export const SettingsSidebar = GObject.registerClass({
             hexpand: true,
         });
 
+        const startColor = new Gdk.RGBA();
+        startColor.parse('#1e1e2e');
+        
         this._gradientStartButton = new Gtk.ColorDialogButton({
             valign: Gtk.Align.CENTER,
             tooltip_text: 'Choose start color',
-            dialog: new Gtk.ColorDialog({ with_alpha: false }),
+            rgba: startColor,
         });
 
-        const startColor = new Gdk.RGBA();
-        startColor.parse('#1e1e2e');
-        this._gradientStartButton.set_rgba(startColor);
+        // Defer dialog creation until widget is realized to avoid GTK warnings
+        this._gradientStartButton.connect('realize', (btn) => {
+            if (!btn.dialog) {
+                btn.dialog = new Gtk.ColorDialog({ with_alpha: false });
+            }
+        });
 
         startColorRow.append(startColorLabel);
         startColorRow.append(this._gradientStartButton);
@@ -192,15 +198,21 @@ export const SettingsSidebar = GObject.registerClass({
             hexpand: true,
         });
 
+        const endColor = new Gdk.RGBA();
+        endColor.parse('#cdd6f4');
+        
         this._gradientEndButton = new Gtk.ColorDialogButton({
             valign: Gtk.Align.CENTER,
             tooltip_text: 'Choose end color',
-            dialog: new Gtk.ColorDialog({ with_alpha: false }),
+            rgba: endColor,
         });
 
-        const endColor = new Gdk.RGBA();
-        endColor.parse('#cdd6f4');
-        this._gradientEndButton.set_rgba(endColor);
+        // Defer dialog creation until widget is realized to avoid GTK warnings
+        this._gradientEndButton.connect('realize', (btn) => {
+            if (!btn.dialog) {
+                btn.dialog = new Gtk.ColorDialog({ with_alpha: false });
+            }
+        });
 
         endColorRow.append(endColorLabel);
         endColorRow.append(this._gradientEndButton);
