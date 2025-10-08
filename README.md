@@ -2,8 +2,7 @@
   <img src="icon.png" alt="Aether Icon" width="256" height="256">
 </p>
 
-https://github.com/user-attachments/assets/1cf4c084-355a-42c3-b754-fb9f2a417013
-
+https://github.com/user-attachments/assets/d0571670-e98f-4717-834c-34d6a2ec53f1
 
 # Aether
 
