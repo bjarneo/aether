@@ -322,7 +322,6 @@ export const PaletteGenerator = GObject.registerClass({
         this._originalPalette = [...preset.colors];
         this.setPalette(preset.colors);
         this.emit('palette-generated', preset.colors);
-        console.log(`Applied preset: ${preset.name}`);
     }
 
     applyHarmony(colors) {

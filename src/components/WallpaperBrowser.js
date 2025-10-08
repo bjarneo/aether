@@ -483,7 +483,13 @@ export const WallpaperBrowser = GObject.registerClass({
         // Overlay for thumbnail and favorite button
         const overlay = new Gtk.Overlay();
 
-        // Thumbnail image with event controller for clicking
+        // Create a button for the image
+        const imageButton = new Gtk.Button({
+            css_classes: ['flat'],
+            overflow: Gtk.Overflow.HIDDEN,
+        });
+
+        // Thumbnail image
         const picture = new Gtk.Picture({
             width_request: 280,
             height_request: 180,
@@ -493,15 +499,14 @@ export const WallpaperBrowser = GObject.registerClass({
 
         // Load thumbnail asynchronously
         this._loadThumbnail(wallpaper.thumbs.small, picture);
+        imageButton.set_child(picture);
 
-        // Add click gesture to picture
-        const clickGesture = new Gtk.GestureClick();
-        clickGesture.connect('released', () => {
+        // Click handler to download and use wallpaper
+        imageButton.connect('clicked', () => {
             this._downloadAndUseWallpaper(wallpaper);
         });
-        picture.add_controller(clickGesture);
 
-        overlay.set_child(picture);
+        overlay.set_child(imageButton);
 
         // Favorite button overlay
         const favButton = new Gtk.Button({
@@ -616,7 +621,8 @@ export const WallpaperBrowser = GObject.registerClass({
                 toastOverlay.add_toast(successToast);
             }
         } catch (e) {
-            console.error('Failed to download wallpaper:', e.message);
+            console.error('[WallpaperBrowser] Failed to download wallpaper:', e.message);
+            console.error('[WallpaperBrowser] Stack:', e.stack);
 
             const toastOverlay = this._findToastOverlay();
             if (toastOverlay) {
