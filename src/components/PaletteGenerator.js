@@ -65,11 +65,16 @@ export const PaletteGenerator = GObject.registerClass(
                 spacing: 6,
             });
 
+            // Spacer to push tabs to the right
+            const spacer = new Gtk.Box({
+                hexpand: true,
+            });
+            headerBox.append(spacer);
+
             // View switcher title for tabs at the top
             const viewSwitcherTitle = new Adw.ViewSwitcherTitle();
             viewSwitcherTitle.set_stack(this._viewStack);
             viewSwitcherTitle.set_title('Palette Source');
-            viewSwitcherTitle.set_hexpand(true);
 
             headerBox.append(viewSwitcherTitle);
 

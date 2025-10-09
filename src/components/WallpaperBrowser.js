@@ -134,8 +134,8 @@ export const WallpaperBrowser = GObject.registerClass(
                 spacing: 6,
                 margin_top: 6,
                 margin_bottom: 6,
-                margin_start: 6,
-                margin_end: 6,
+                margin_start: 12,
+                margin_end: 12,
             });
 
             // Search entry
