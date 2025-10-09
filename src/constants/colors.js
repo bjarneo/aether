@@ -50,24 +50,24 @@ export const DEFAULT_COLORS = {
     color15: '#cdd6f4',
 };
 
-// ANSI color names for tooltips
+// ANSI color names for tooltips with descriptions
 export const ANSI_COLOR_NAMES = [
-    'Black (0)',
-    'Red (1)',
-    'Green (2)',
-    'Yellow (3)',
-    'Blue (4)',
-    'Magenta (5)',
-    'Cyan (6)',
-    'White (7)',
-    'Bright Black (8)',
-    'Bright Red (9)',
-    'Bright Green (10)',
-    'Bright Yellow (11)',
-    'Bright Blue (12)',
-    'Bright Magenta (13)',
-    'Bright Cyan (14)',
-    'Bright White (15)',
+    'Black (0) - Normal black, used for dark text and backgrounds',
+    'Red (1) - Normal red, used for errors and warnings',
+    'Green (2) - Normal green, used for success messages and confirmations',
+    'Yellow (3) - Normal yellow, used for warnings and highlights',
+    'Blue (4) - Normal blue, used for information and links',
+    'Magenta (5) - Normal magenta, used for special elements and constants',
+    'Cyan (6) - Normal cyan, used for strings and secondary information',
+    'White (7) - Normal white, used for regular text',
+    'Bright Black (8) - Comments and dimmed text',
+    'Bright Red (9) - Intense errors and critical warnings',
+    'Bright Green (10) - Emphasized success and completions',
+    'Bright Yellow (11) - Important warnings and search highlights',
+    'Bright Blue (12) - Emphasized information and active links',
+    'Bright Magenta (13) - Special keywords and focused elements',
+    'Bright Cyan (14) - Highlighted strings and important data',
+    'Bright White (15) - Bold text and headings',
 ];
 
 // Color harmony types
