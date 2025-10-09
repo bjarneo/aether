@@ -1,88 +1,22 @@
 #!/usr/bin/env gjs
 
-import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
-import Gdk from 'gi://Gdk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
 import {PaletteGenerator} from './components/PaletteGenerator.js';
 import {ColorSynthesizer} from './components/ColorSynthesizer.js';
 import {BlueprintManager} from './components/BlueprintManager.js';
 import {SettingsSidebar} from './components/SettingsSidebar.js';
+import {ActionBar} from './components/ActionBar.js';
 import {ConfigWriter} from './utils/ConfigWriter.js';
+import {DialogManager} from './utils/DialogManager.js';
 import {ThemeManager} from './services/theme-manager.js';
+import {ThemeExporter} from './services/ThemeExporter.js';
+import {BlueprintService} from './services/BlueprintService.js';
 
 Adw.init();
-
-// Apply global CSS to remove all rounded corners (Hyprland style)
-const applyGlobalSharpCorners = () => {
-    const cssProvider = new Gtk.CssProvider();
-    const css = `
-        /* Remove all rounded corners for sharp Hyprland aesthetic */
-        * {
-            border-radius: 0px;
-        }
-
-        .card {
-            border-radius: 0px;
-        }
-
-        button {
-            border-radius: 0px;
-        }
-
-        .boxed-list {
-            border-radius: 0px;
-        }
-
-        .boxed-list > row {
-            border-radius: 0px;
-        }
-
-        entry {
-            border-radius: 0px;
-        }
-
-        .toolbar {
-            border-radius: 0px;
-        }
-
-        headerbar {
-            border-radius: 0px;
-        }
-
-        popover {
-            border-radius: 0px;
-        }
-
-        dialog {
-            border-radius: 0px;
-        }
-
-        menu {
-            border-radius: 0px;
-        }
-
-        menubutton {
-            border-radius: 0px;
-        }
-
-        .background {
-            border-radius: 0px;
-        }
-    `;
-
-    cssProvider.load_from_string(css);
-    Gtk.StyleContext.add_provider_for_display(
-        Gdk.Display.get_default(),
-        cssProvider,
-        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-    );
-};
-
-applyGlobalSharpCorners();
 
 // Initialize theme manager with live reload
 const themeManager = new ThemeManager();
@@ -135,6 +69,13 @@ const AetherWindow = GObject.registerClass(
 
         _initializeUI() {
             this.blueprintManager = new BlueprintManager();
+            this.dialogManager = new DialogManager(this);
+            this.blueprintService = new BlueprintService(this.blueprintManager);
+            this.themeExporter = new ThemeExporter(
+                this.configWriter,
+                this.dialogManager
+            );
+
             const mainContent = this._createMainContent();
             this.set_content(mainContent);
         }
@@ -216,58 +157,33 @@ const AetherWindow = GObject.registerClass(
         }
 
         _createActionBar() {
-            const actionBar = new Gtk.ActionBar({
-                margin_top: 6,
-                margin_bottom: 6,
-                margin_start: 6,
-                margin_end: 6,
+            this.actionBar = new ActionBar();
+
+            this.actionBar.connect('toggle-settings', (_, visible) => {
+                this.settingsSplitView.collapsed = !visible;
             });
 
-            this._toggleSettingsButton = new Gtk.ToggleButton({
-                icon_name: 'sidebar-show-symbolic',
-                tooltip_text: 'Hide Settings',
-                active: true,
+            this.actionBar.connect('show-blueprints', () => {
+                this.dialogManager.showBlueprintsDialog(this.blueprintManager);
             });
-            this._toggleSettingsButton.connect('toggled', btn => {
-                this.settingsSplitView.collapsed = !btn.get_active();
-                btn.set_tooltip_text(
-                    btn.get_active() ? 'Hide Settings' : 'Show Settings'
-                );
+
+            this.actionBar.connect('export-theme', () => {
+                this._exportTheme();
             });
-            actionBar.pack_start(this._toggleSettingsButton);
 
-            const blueprintsButton = new Gtk.Button({
-                icon_name: 'view-list-symbolic',
-                tooltip_text: 'Open Blueprints',
+            this.actionBar.connect('save-blueprint', () => {
+                this._saveBlueprint();
             });
-            blueprintsButton.connect('clicked', () =>
-                this._showBlueprintsDialog()
-            );
-            actionBar.pack_start(blueprintsButton);
 
-            const exportButton = new Gtk.Button({label: 'Export Theme'});
-            exportButton.connect('clicked', () => this._exportTheme());
-            actionBar.pack_start(exportButton);
-
-            const applyButton = new Gtk.Button({
-                label: 'Apply Theme',
-                css_classes: ['suggested-action'],
+            this.actionBar.connect('reset', () => {
+                this._resetApplication();
             });
-            applyButton.connect('clicked', () => this._applyCurrentTheme());
-            actionBar.pack_end(applyButton);
 
-            const resetButton = new Gtk.Button({
-                label: 'Reset',
-                css_classes: ['destructive-action'],
+            this.actionBar.connect('apply-theme', () => {
+                this._applyCurrentTheme();
             });
-            resetButton.connect('clicked', () => this._resetApplication());
-            actionBar.pack_end(resetButton);
 
-            const saveButton = new Gtk.Button({label: 'Save Blueprint'});
-            saveButton.connect('clicked', () => this._saveBlueprint());
-            actionBar.pack_end(saveButton);
-
-            return actionBar;
+            return this.actionBar;
         }
 
         _connectSignals() {
@@ -318,49 +234,13 @@ const AetherWindow = GObject.registerClass(
         }
 
         _loadBlueprint(blueprint) {
-            try {
-                console.log('Loading blueprint:', blueprint.name);
-
-                // Reset adjustment sliders when loading a blueprint
-                this.settingsSidebar.resetAdjustments();
-
-                // Switch to custom tab for blueprint editing
-                this.paletteGenerator.switchToCustomTab();
-
-                // Load palette (colors, wallpaper, locks)
-                if (blueprint.palette) {
-                    this.paletteGenerator.loadBlueprintPalette(
-                        blueprint.palette
-                    );
-
-                    // Sync light mode to sidebar
-                    if (blueprint.palette.lightMode !== undefined) {
-                        this.settingsSidebar.setLightMode(
-                            blueprint.palette.lightMode
-                        );
-                    }
-
-                    // Auto-assign color roles from palette
-                    if (blueprint.palette.colors) {
-                        this.colorSynthesizer.setPalette(
-                            blueprint.palette.colors
-                        );
-                    }
-                }
-
-                // Load settings (including Neovim theme selection)
-                if (blueprint.settings) {
-                    if (blueprint.settings.selectedNeovimConfig !== undefined) {
-                        this.settingsSidebar.setNeovimTheme(
-                            blueprint.settings.selectedNeovimConfig
-                        );
-                    }
-                }
-
-                this._updateAccessibility();
-            } catch (e) {
-                console.error(`Error loading blueprint: ${e.message}`);
-            }
+            this.blueprintService.loadBlueprint(
+                blueprint,
+                this.paletteGenerator,
+                this.colorSynthesizer,
+                this.settingsSidebar
+            );
+            this._updateAccessibility();
         }
 
         _applyCurrentTheme() {
@@ -388,149 +268,27 @@ const AetherWindow = GObject.registerClass(
             console.log('Application reset to launch state');
         }
 
-        _showBlueprintsDialog() {
-            const dialog = new Adw.Dialog({
-                title: 'Blueprints',
-                content_width: 400,
-                content_height: 500,
-            });
-
-            const toolbarView = new Adw.ToolbarView();
-
-            const headerBar = new Adw.HeaderBar({
-                show_title: true,
-            });
-
-            toolbarView.add_top_bar(headerBar);
-
-            const blueprintBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 0,
-            });
-            blueprintBox.append(this.blueprintManager.widget);
-
-            toolbarView.set_content(blueprintBox);
-
-            dialog.set_child(toolbarView);
-            dialog.present(this);
-        }
-
         _saveBlueprint() {
             const palette = this.paletteGenerator.getPalette();
-            palette.lightMode = this.settingsSidebar.getLightMode();
+            const settings = this.settingsSidebar.getSettings();
+            const lightMode = this.settingsSidebar.getLightMode();
 
-            const blueprint = {
-                palette: palette,
-                timestamp: Date.now(),
-                settings: this.settingsSidebar.getSettings(), // Include all settings including selectedNeovimConfig
-            };
-
-            this.blueprintManager.saveBlueprint(blueprint);
+            this.blueprintService.saveBlueprint(palette, settings, lightMode);
         }
 
         _exportTheme() {
-            this._showThemeNameDialog();
-        }
+            const colors = this.colorSynthesizer.getColors();
+            const palette = this.paletteGenerator.getPalette();
+            const settings = this.settingsSidebar.getSettings();
+            const lightMode = this.settingsSidebar.getLightMode();
 
-        _showThemeNameDialog() {
-            const nameDialog = new Adw.MessageDialog({
-                heading: 'Export Theme',
-                body: 'Enter a name for your theme',
-                transient_for: this,
-            });
-
-            nameDialog.add_response('cancel', 'Cancel');
-            nameDialog.add_response('continue', 'Continue');
-            nameDialog.set_response_appearance(
-                'continue',
-                Adw.ResponseAppearance.SUGGESTED
+            this.themeExporter.setThemeData(
+                colors,
+                palette.wallpaper,
+                settings,
+                lightMode
             );
-
-            const nameEntry = new Gtk.Entry({
-                placeholder_text: 'my-theme',
-                margin_start: 12,
-                margin_end: 12,
-                margin_top: 6,
-                margin_bottom: 6,
-            });
-
-            nameDialog.set_extra_child(nameEntry);
-
-            nameDialog.connect('response', (dialog, response) => {
-                if (response === 'continue') {
-                    const themeName = nameEntry.get_text().trim() || 'my-theme';
-                    this._chooseExportDirectory(themeName);
-                }
-            });
-
-            nameDialog.present();
-        }
-
-        _chooseExportDirectory(themeName) {
-            const fileDialog = new Gtk.FileDialog({
-                title: 'Choose Export Directory',
-                modal: true,
-            });
-
-            fileDialog.select_folder(this, null, (source, result) => {
-                try {
-                    const folder = source.select_folder_finish(result);
-                    if (!folder) return;
-
-                    const exportPath = folder.get_path();
-                    this._performExport(themeName, exportPath);
-                } catch (e) {
-                    console.log('Export cancelled');
-                }
-            });
-        }
-
-        _performExport(themeName, exportPath) {
-            try {
-                const colors = this.colorSynthesizer.getColors();
-                const palette = this.paletteGenerator.getPalette();
-                const settings = this.settingsSidebar.getSettings();
-                const lightMode = this.settingsSidebar.getLightMode();
-                const themeDir = `omarchy-${themeName}-theme`;
-                const fullPath = GLib.build_filenamev([exportPath, themeDir]);
-
-                console.log(`Exporting theme to: ${fullPath}`);
-
-                this.configWriter.exportTheme(
-                    colors,
-                    palette.wallpaper,
-                    fullPath,
-                    themeName,
-                    settings,
-                    lightMode
-                );
-
-                this._showSuccessDialog(fullPath);
-            } catch (e) {
-                this._showErrorDialog(e.message);
-            }
-        }
-
-        _showSuccessDialog(fullPath) {
-            const successDialog = new Adw.MessageDialog({
-                heading: 'Theme Exported',
-                body: `Theme exported successfully to:\n${fullPath}`,
-                transient_for: this,
-            });
-
-            successDialog.add_response('ok', 'OK');
-            successDialog.present();
-        }
-
-        _showErrorDialog(errorMessage) {
-            const errorDialog = new Adw.MessageDialog({
-                heading: 'Export Failed',
-                body: `Failed to export theme: ${errorMessage}`,
-                transient_for: this,
-            });
-
-            errorDialog.add_response('ok', 'OK');
-            errorDialog.present();
+            this.themeExporter.startExport();
         }
     }
 );

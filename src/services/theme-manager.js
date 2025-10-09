@@ -9,6 +9,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 export class ThemeManager {
     constructor() {
         this.cssProvider = null;
+        this.sharpCornersCssProvider = null;
         this.fileMonitor = null;
         this.overrideFileMonitor = null;
         this.omarchyThemeMonitor = null;
@@ -16,6 +17,7 @@ export class ThemeManager {
         this.overrideFile = null;
 
         this._initializeThemeFiles();
+        this._applyGlobalSharpCorners();
         this._applyTheme();
         this._setupFileMonitors();
     }
@@ -162,6 +164,76 @@ export class ThemeManager {
             console.log(`Created base theme at: ${this.themeFile.get_path()}`);
         } catch (e) {
             console.error(`Failed to create base theme: ${e.message}`);
+        }
+    }
+
+    _applyGlobalSharpCorners() {
+        const css = `
+        /* Remove all rounded corners for sharp Hyprland aesthetic */
+        * {
+            border-radius: 0px;
+        }
+
+        .card {
+            border-radius: 0px;
+        }
+
+        button {
+            border-radius: 0px;
+        }
+
+        .boxed-list {
+            border-radius: 0px;
+        }
+
+        .boxed-list > row {
+            border-radius: 0px;
+        }
+
+        entry {
+            border-radius: 0px;
+        }
+
+        .toolbar {
+            border-radius: 0px;
+        }
+
+        headerbar {
+            border-radius: 0px;
+        }
+
+        popover {
+            border-radius: 0px;
+        }
+
+        dialog {
+            border-radius: 0px;
+        }
+
+        menu {
+            border-radius: 0px;
+        }
+
+        menubutton {
+            border-radius: 0px;
+        }
+
+        .background {
+            border-radius: 0px;
+        }
+    `;
+
+        try {
+            this.sharpCornersCssProvider = new Gtk.CssProvider();
+            this.sharpCornersCssProvider.load_from_string(css);
+            Gtk.StyleContext.add_provider_for_display(
+                Gdk.Display.get_default(),
+                this.sharpCornersCssProvider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            );
+            console.log('Sharp corners CSS applied');
+        } catch (e) {
+            console.error(`Failed to apply sharp corners CSS: ${e.message}`);
         }
     }
 
@@ -434,6 +506,14 @@ export class ThemeManager {
                 this.cssProvider
             );
             this.cssProvider = null;
+        }
+
+        if (this.sharpCornersCssProvider) {
+            Gtk.StyleContext.remove_provider_for_display(
+                Gdk.Display.get_default(),
+                this.sharpCornersCssProvider
+            );
+            this.sharpCornersCssProvider = null;
         }
     }
 }
