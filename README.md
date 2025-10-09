@@ -10,20 +10,16 @@ Aether is a beautiful theming application for Omarchy. It provides real-time, vi
 
 ## Features
 
-### 🎨 Triple Palette Generation Modes
+### Dual Palette Generation Modes
 
-#### From Wallpaper (Automatic Extraction)
-- Upload wallpapers
-- Automatic extraction of 16 colors using pywal
-- Light/Dark mode toggle for generating light or dark color schemes
-- Intelligent color analysis optimized for terminals and desktop themes
-- Real-time wallpaper preview
-
-#### Custom Palette
+#### Palette Editor
 - Start with beautiful predefined color scheme
-- Upload wallpaper for visual reference (optional)
+- Upload wallpaper for visual reference or color extraction
+- Light/Dark mode toggle for generating light or dark color schemes
+- Automatic extraction of 16 colors using pywal
 - Manually craft your perfect palette
 - Click any color swatch to fine-tune individual colors with advanced color picker
+- Real-time wallpaper preview
 
 #### Find Wallpaper (Wallhaven Integration)
 - Browse thousands of wallpapers from [wallhaven.cc](https://wallhaven.cc)
@@ -36,7 +32,7 @@ Aether is a beautiful theming application for Omarchy. It provides real-time, vi
 - Optional API key support for additional content and higher rate limits
 - Settings dialog for easy API key configuration
 
-### 🎨 Color Presets Library
+### Color Presets Library
 Popular hand-picked themes ready to use:
 - **Dracula** - Dark theme with vibrant colors
 - **Nord** - Arctic, north-bluish color palette
@@ -49,7 +45,7 @@ Popular hand-picked themes ready to use:
 - **Palenight** - Elegant Material theme variant
 - **Rose Pine** - All natural pine, faux fur and a bit of soho vibes
 
-### 💻 Neovim Theme Integration
+### Neovim Theme Integration
 LazyVim-compatible Neovim themes with perfect color preset matching:
 - **One-click selection** - Choose your Neovim theme from the Settings sidebar
 - **Visual feedback** - Checkmark indicator shows selected theme
@@ -63,14 +59,14 @@ Select a color preset like "Gruvbox Dark" for your desktop, then choose the matc
 
 **Available themes include**: Catppuccin (Mocha & Latte), Tokyo Night, Gruvbox (Dark & Light), Rose Pine (Main & Dawn), Nord, Dracula, One Dark, Kanagawa, Nightfox, Everforest, Solarized (Dark & Light), GitHub (Dark & Light), and many more.
 
-### 🌈 Gradient Generator
+### Gradient Generator
 - Create smooth color transitions between two colors
 - Real-time gradient preview with 16 color steps
 - Linear RGB interpolation for natural-looking gradients
 - Perfect for creating cohesive color schemes
 - Live preview updates as you adjust start/end colors
 
-### 🎛️ Advanced Color Adjustments
+### Advanced Color Adjustments
 Fine-tune your entire palette with real-time sliders:
 - **Vibrance** - Boost or reduce color intensity
 - **Contrast** - Adjust difference between light and dark
@@ -81,14 +77,14 @@ Fine-tune your entire palette with real-time sliders:
 - Debounced updates prevent UI freezing
 - One-click reset to original palette
 
-### 🎯 Color Role Management
+### Color Role Management
 - Edit all 16 terminal colors (color0-15)
 - Customize background and foreground colors
 - Visual color picker for each role
 - Real-time preview across the interface
 - Colors sync across all applications via omarchy templates
 
-### 🔒 Color Lock System
+### Color Lock System
 - Lock individual colors to protect them from changes
 - Locked colors exempt from adjustment sliders
 - Visual indicators: accent border shows locked state
@@ -97,13 +93,13 @@ Fine-tune your entire palette with real-time sliders:
 - Perfect for preserving specific colors while experimenting
 - Lock state resets when loading blueprints (not saved to blueprints)
 
-### ♿ WCAG Accessibility Checker
+### WCAG Accessibility Checker
 - Real-time contrast ratio calculations
 - AA and AAA compliance indicators
 - Foreground vs Background contrast testing
 - Ensures your themes are readable and accessible
 
-### 📦 Blueprint System
+### Blueprint System
 - Save themes as shareable JSON blueprints
 - Quick theme switching with one click
 - Modal dialog for easy browsing and management
@@ -112,7 +108,7 @@ Fine-tune your entire palette with real-time sliders:
 - Auto-assigns color roles when loading blueprints
 - Stored in `~/.config/aether/blueprints/`
 
-### 🎨 Lightroom-Style Interface
+### Lightroom-Style Interface
 - Collapsible right sidebar with all settings
 - Clean, focused main workspace
 - Organized sections:
@@ -125,7 +121,7 @@ Fine-tune your entire palette with real-time sliders:
   - Accessibility Checker
 - Toggle sidebar visibility with one click
 
-### 🎨 Customizable UI Theming
+### Customizable UI Theming
 - Comprehensive CSS variable system for UI customization
 - 19 theme variables covering buttons, backgrounds, sliders, and accent colors
 - Live theme reload without restart
@@ -135,7 +131,7 @@ Fine-tune your entire palette with real-time sliders:
 - Unified accent color system (no hardcoded blues)
 - Complete theming documentation in `THEMING.md`
 
-### 🔄 Omarchy Integration
+### Omarchy Integration
 - Template-based theme generation
 - One-click apply updates all applications instantly
 - Export themes with custom names and directories
@@ -145,10 +141,10 @@ Fine-tune your entire palette with real-time sliders:
   - **Neovim** - Lua theme file for Neovim editors
   - **Vencord** - Discord client theme (vencord.theme.css)
 
-### ⚡ Quality of Life Features
+### Quality of Life Features
 - **Reset Button** - Instantly return to launch state
 - **Drag-and-Drop** - Drop wallpapers directly onto the interface
-- **Tab Navigation** - Switch between wallpaper and custom modes
+- **Tab Navigation** - Switch between Palette Editor and Find Wallpaper modes
 - **Color Locking** - Protect specific colors while experimenting
 - **Live Previews** - See colors before applying
 - **Persistent Settings** - Your preferences are remembered
@@ -234,62 +230,6 @@ Aether uses a template-based system:
 
 Toggle these in Template Settings sidebar to include/exclude them when applying themes.
 
-## Project Structure
-
-```
-Aether/
-├── src/
-│   ├── main.js                          # Main application window
-│   ├── components/
-│   │   ├── PaletteGenerator.js          # Triple-mode palette generation (wallpaper/custom/browser)
-│   │   ├── WallpaperBrowser.js          # Wallhaven.cc browser with search/filters
-│   │   ├── ColorSynthesizer.js          # Color role editor (background, foreground, color0-15)
-│   │   ├── BlueprintManager.js          # Theme save/load/apply
-│   │   ├── SettingsSidebar.js           # Collapsible settings sidebar
-│   │   ├── AccessibilityPanel.js        # WCAG contrast checker
-│   │   └── palette/
-│   │       ├── color-swatch-grid.js     # 16-color grid with lock feature
-│   │       ├── color-picker-dialog.js   # Advanced color picker
-│   │       └── color-adjustment-controls.js # Vibrance, contrast, etc.
-│   ├── services/
-│   │   ├── wallpaper-service.js         # Pywal integration
-│   │   ├── wallhaven-service.js         # Wallhaven.cc API client
-│   │   ├── color-harmony.js             # Color theory algorithms
-│   │   └── theme-manager.js             # CSS theming system with live reload
-│   ├── constants/
-│   │   ├── colors.js                    # Color roles and defaults
-│   │   ├── presets.js                   # 29 popular color presets
-│   │   └── neovim-presets.js            # 37 LazyVim Neovim themes
-│   └── utils/
-│       ├── ConfigWriter.js              # Template processor & omarchy integration
-│       ├── color-utils.js               # HSL/RGB/Hex conversions
-│       ├── accessibility-utils.js       # WCAG contrast calculations
-│       ├── ui-helpers.js                # GTK helper functions
-│       └── file-utils.js                # File I/O wrappers
-├── templates/                           # Config templates with {variable} placeholders
-│   ├── alacritty.toml
-│   ├── btop.theme
-│   ├── chromium.theme
-│   ├── ghostty.conf
-│   ├── hyprland.conf
-│   ├── hyprlock.conf
-│   ├── icons.theme
-│   ├── kitty.conf
-│   ├── mako.ini
-│   ├── neovim.lua                       # Optional Neovim theme
-│   ├── swayosd.css
-│   ├── vencord.theme.css                # Optional Discord/Vencord theme
-│   ├── walker.css
-│   ├── waybar.css
-│   └── wofi.css
-├── examples/                            # 20 pre-made UI theme examples
-├── icon.png
-├── aether                               # Launcher script
-├── li.oever.aether.desktop              # Desktop entry file
-├── THEMING.md                           # Complete theming documentation
-└── README.md
-```
-
 ## Development
 
 Run directly:
@@ -333,12 +273,15 @@ For automatic formatting on save:
 
 ### Theme Application Flow
 
-#### From Wallpaper Mode
-1. User selects wallpaper via file picker or drag-and-drop
-2. Optionally toggle Light Mode for light color schemes
-3. Aether runs `wal -n -s -t -e -i <image>` to generate colors
-4. Reads 16 colors from `~/.cache/wal/colors`
-5. User optionally customizes colors with:
+#### Palette Editor Mode
+1. User starts with a predefined color scheme (Catppuccin-inspired)
+2. Optionally select wallpaper via file picker or drag-and-drop
+3. Optionally toggle Light Mode for light color schemes
+4. Optionally click Extract button to run pywal color extraction
+5. User customizes palette via:
+   - Preset selection (Dracula, Nord, Gruvbox, etc.)
+   - Color Harmony generator (complementary, triadic, etc.)
+   - Gradient generator (smooth color transitions)
    - Direct swatch editing (with color lock protection)
    - Color adjustment sliders (vibrance, contrast, etc.)
 6. Click "Apply Theme" to deploy
@@ -349,21 +292,11 @@ For automatic formatting on save:
 3. Filter by categories (General, Anime, People)
 4. Sort by Latest, Relevance, Random, Views, Favorites, or Top List
 5. Click a wallpaper thumbnail to download
-6. Automatically switches to "From Wallpaper" tab and extracts colors
-7. Continue with customization as in From Wallpaper mode
+6. Automatically switches to "Palette Editor" tab with wallpaper loaded
+7. Click Extract button to extract colors with pywal
+8. Continue with customization as in Palette Editor mode
 
-#### Custom Palette Mode
-1. Starts with predefined Catppuccin-inspired palette
-2. User optionally uploads wallpaper for visual reference
-3. User customizes palette via:
-   - Preset selection (Dracula, Nord, Gruvbox, etc.)
-   - Color Harmony generator (complementary, triadic, etc.)
-   - Gradient generator (smooth color transitions)
-   - Direct swatch editing
-   - Color adjustment sliders (with color lock protection)
-4. Click "Apply Theme" to deploy
-
-#### Apply Process (Both Modes)
+#### Apply Process
 - Create `~/.config/omarchy/themes/aether/` directory
 - Copy wallpaper to theme's `backgrounds/` folder (if provided)
 - Process all templates in `templates/` directory
@@ -448,15 +381,17 @@ Color roles (background, foreground, color0-15) are automatically assigned from 
 Aether is designed to be extensible:
 
 1. **Add New Apps**: Create new template files in `templates/` directory
-2. **Add Color Presets**: Add themes to `src/constants/presets.js` (16-color arrays)
+2. **Add Color Presets**: Add themes to `src/constants/presets.js`
 3. **Modify Color Mappings**: Edit `ColorSynthesizer.js` roles array
-4. **Enhance UI**: Add new widgets to `main.js` or component files
+4. **Enhance UI**: Add new components in `src/components/`
 5. **Template Variables**: Add new variable processing in `ConfigWriter.js`
 6. **Color Algorithms**: Add harmony types in `src/services/color-harmony.js`
 7. **Adjustment Controls**: Extend color adjustments in `color-adjustment-controls.js`
 8. **Gradient Algorithms**: Enhance gradient generation in `SettingsSidebar.js`
-9. **Blueprint Features**: Extend import/export in `BlueprintManager.js`
+9. **Blueprint Features**: Extend functionality in `BlueprintService.js`
 10. **UI Theming**: Add new CSS variables in `theme-manager.js` for customizable UI elements
+11. **Dialog System**: Extend dialogs in `DialogManager.js`
+12. **Export Features**: Enhance theme export in `ThemeExporter.js`
 
 ## Philosophy
 
@@ -467,12 +402,12 @@ Aether is the visual theming interface for Omarchy. It bridges the gap between a
 Whether you want to:
 - Browse and download wallpapers from wallhaven.cc
 - Extract colors from your favorite wallpaper
-- Generate palettes using color theory (harmonies)
+- Generate palettes using color theory harmonies
 - Create smooth gradients between two colors
 - Pick from popular presets like Dracula or Nord
-- Start from scratch with a custom palette
+- Craft custom palettes from scratch
 
-Aether gives you professional-grade tools with a friendly interface. The focus shifts from editing multiple config files to creative exploration: "Pick a source, refine the colors, lock your favorites, click apply."
+Aether gives you professional-grade tools with a friendly interface. The focus shifts from editing multiple config files to creative exploration: refine colors, lock your favorites, and apply with one click.
 
 Every interaction is immediate, visual, and reversible. Real-time previews, accessibility checking, and one-click resets make theme creation both powerful and approachable.
 
