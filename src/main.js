@@ -249,9 +249,12 @@ const AetherWindow = GObject.registerClass(
             exportButton.connect('clicked', () => this._exportTheme());
             actionBar.pack_start(exportButton);
 
-            const saveButton = new Gtk.Button({label: 'Save Blueprint'});
-            saveButton.connect('clicked', () => this._saveBlueprint());
-            actionBar.pack_end(saveButton);
+            const applyButton = new Gtk.Button({
+                label: 'Apply Theme',
+                css_classes: ['suggested-action'],
+            });
+            applyButton.connect('clicked', () => this._applyCurrentTheme());
+            actionBar.pack_end(applyButton);
 
             const resetButton = new Gtk.Button({
                 label: 'Reset',
@@ -260,12 +263,9 @@ const AetherWindow = GObject.registerClass(
             resetButton.connect('clicked', () => this._resetApplication());
             actionBar.pack_end(resetButton);
 
-            const applyButton = new Gtk.Button({
-                label: 'Apply Theme',
-                css_classes: ['suggested-action'],
-            });
-            applyButton.connect('clicked', () => this._applyCurrentTheme());
-            actionBar.pack_end(applyButton);
+            const saveButton = new Gtk.Button({label: 'Save Blueprint'});
+            saveButton.connect('clicked', () => this._saveBlueprint());
+            actionBar.pack_end(saveButton);
 
             return actionBar;
         }
