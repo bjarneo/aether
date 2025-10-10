@@ -347,9 +347,6 @@ export const SettingsSidebar = GObject.registerClass(
                 subtitle: 'Popular color palettes',
             });
 
-            // Create a CSS provider for all preset colors at display level
-            this._presetColorProviders = [];
-
             COLOR_PRESETS.forEach((preset, presetIndex) => {
                 const presetRow = new Adw.ActionRow({
                     title: preset.name,
@@ -364,26 +361,21 @@ export const SettingsSidebar = GObject.registerClass(
                 });
 
                 preset.colors.slice(0, 6).forEach((color, colorIndex) => {
-                    const uniqueClass = `preset-color-${presetIndex}-${colorIndex}`;
                     const colorBox = new Gtk.Box({
                         width_request: 20,
                         height_request: 20,
-                        css_classes: [uniqueClass],
                     });
 
-                    // Create CSS provider and add at display level with high priority
-                    const cssProvider = new Gtk.CssProvider();
-                    const css = `.${uniqueClass} { background-color: ${color}; border-radius: 0px; min-width: 20px; min-height: 20px; border: 1px solid alpha(currentColor, 0.1); }`;
-                    cssProvider.load_from_string(css);
+                    // Use inline CSS via applyCssToWidget (persists across hide/show)
+                    const css = `* {
+                        background-color: ${color};
+                        border-radius: 0px;
+                        min-width: 20px;
+                        min-height: 20px;
+                        border: 1px solid alpha(currentColor, 0.1);
+                    }`;
+                    applyCssToWidget(colorBox, css);
 
-                    // Add at display level with priority higher than theme
-                    Gtk.StyleContext.add_provider_for_display(
-                        Gdk.Display.get_default(),
-                        cssProvider,
-                        Gtk.STYLE_PROVIDER_PRIORITY_USER + 1
-                    );
-
-                    this._presetColorProviders.push(cssProvider);
                     previewBox.append(colorBox);
                 });
 
@@ -647,20 +639,6 @@ export const SettingsSidebar = GObject.registerClass(
                     item.icon.set_visible(false);
                 });
             }
-        }
-
-        vfunc_unroot() {
-            // Cleanup preset color CSS providers when widget is destroyed
-            if (this._presetColorProviders) {
-                this._presetColorProviders.forEach(provider => {
-                    Gtk.StyleContext.remove_provider_for_display(
-                        Gdk.Display.get_default(),
-                        provider
-                    );
-                });
-                this._presetColorProviders = [];
-            }
-            super.vfunc_unroot();
         }
 
         get widget() {
