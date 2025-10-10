@@ -247,9 +247,9 @@ export const COLOR_PRESETS = [
     },
     {
         name: 'Everforest',
-        author: 'Nature Inspired',
+        author: 'Omarchy',
         colors: [
-            '#2b3339', // background
+            '#2d353b', // background
             '#e67e80', // red
             '#a7c080', // green
             '#dbbc7f', // yellow
@@ -265,6 +265,72 @@ export const COLOR_PRESETS = [
             '#d699b6', // bright magenta
             '#83c092', // bright cyan
             '#d3c6aa', // bright white
+        ],
+    },
+    {
+        name: 'Matte Black',
+        author: 'Omarchy',
+        colors: [
+            '#121212', // background
+            '#D35F5F', // red
+            '#FFC107', // green
+            '#b91c1c', // yellow
+            '#e68e0d', // blue
+            '#D35F5F', // magenta
+            '#bebebe', // cyan
+            '#bebebe', // foreground
+            '#8a8a8d', // bright black
+            '#B91C1C', // bright red
+            '#FFC107', // bright green
+            '#b90a0a', // bright yellow
+            '#f59e0b', // bright blue
+            '#B91C1C', // bright magenta
+            '#eaeaea', // bright cyan
+            '#ffffff', // bright white
+        ],
+    },
+    {
+        name: 'Osaka Jade',
+        author: 'Omarchy',
+        colors: [
+            '#111c18', // background
+            '#FF5345', // red
+            '#549e6a', // green
+            '#459451', // yellow
+            '#509475', // blue
+            '#D2689C', // magenta
+            '#2DD5B7', // cyan
+            '#C1C497', // foreground
+            '#53685B', // bright black
+            '#db9f9c', // bright red
+            '#63b07a', // bright green
+            '#E5C736', // bright yellow
+            '#ACD4CF', // bright blue
+            '#75bbb3', // bright magenta
+            '#8CD3CB', // bright cyan
+            '#9eebb3', // bright white
+        ],
+    },
+    {
+        name: 'Ristretto',
+        author: 'Omarchy',
+        colors: [
+            '#2c2525', // background
+            '#fd6883', // red
+            '#adda78', // green
+            '#f9cc6c', // yellow
+            '#f38d70', // blue
+            '#a8a9eb', // magenta
+            '#85dacc', // cyan
+            '#e6d9db', // foreground
+            '#948a8b', // bright black
+            '#ff8297', // bright red
+            '#c8e292', // bright green
+            '#fcd675', // bright yellow
+            '#f8a788', // bright blue
+            '#bebffd', // bright magenta
+            '#9bf1e1', // bright cyan
+            '#f1e5e7', // bright white
         ],
     },
     {
