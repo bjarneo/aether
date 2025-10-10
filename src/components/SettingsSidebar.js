@@ -10,6 +10,7 @@ import {COLOR_PRESETS} from '../constants/presets.js';
 import {NEOVIM_PRESETS} from '../constants/neovim-presets.js';
 import {applyCssToWidget} from '../utils/ui-helpers.js';
 import {rgbaToHex} from '../utils/color-utils.js';
+import {loadJsonFile, saveJsonFile} from '../utils/file-utils.js';
 
 export const SettingsSidebar = GObject.registerClass(
     {
@@ -29,11 +30,23 @@ export const SettingsSidebar = GObject.registerClass(
                 spacing: 0,
             });
 
+            this._settingsPath = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'aether',
+                'settings.json',
+            ]);
+
+            // Default values
             this._includeNeovim = true;
             this._includeVencord = false;
+            this._includeGtk = false;
             this._lightMode = false;
             this._selectedNeovimConfig = null;
             this._neovimPresetRows = []; // Store references to preset rows for visual feedback
+
+            // Load persisted settings
+            this._loadSettings();
+
             this._initializeUI();
         }
 
@@ -491,18 +504,18 @@ export const SettingsSidebar = GObject.registerClass(
                 subtitle: 'Copy neovim.lua to theme directory',
             });
 
-            const neovimSwitch = new Gtk.Switch({
+            this._neovimSwitch = new Gtk.Switch({
                 active: this._includeNeovim,
                 valign: Gtk.Align.CENTER,
             });
 
-            neovimSwitch.connect('notify::active', sw => {
+            this._neovimSwitch.connect('notify::active', sw => {
                 this._includeNeovim = sw.get_active();
                 this.emit('settings-changed', this.getSettings());
             });
 
-            neovimRow.add_suffix(neovimSwitch);
-            neovimRow.set_activatable_widget(neovimSwitch);
+            neovimRow.add_suffix(this._neovimSwitch);
+            neovimRow.set_activatable_widget(this._neovimSwitch);
 
             expanderRow.add_row(neovimRow);
 
@@ -511,20 +524,40 @@ export const SettingsSidebar = GObject.registerClass(
                 subtitle: 'Copy vencord.theme.css to theme directory',
             });
 
-            const vencordSwitch = new Gtk.Switch({
+            this._vencordSwitch = new Gtk.Switch({
                 active: this._includeVencord,
                 valign: Gtk.Align.CENTER,
             });
 
-            vencordSwitch.connect('notify::active', sw => {
+            this._vencordSwitch.connect('notify::active', sw => {
                 this._includeVencord = sw.get_active();
                 this.emit('settings-changed', this.getSettings());
             });
 
-            vencordRow.add_suffix(vencordSwitch);
-            vencordRow.set_activatable_widget(vencordSwitch);
+            vencordRow.add_suffix(this._vencordSwitch);
+            vencordRow.set_activatable_widget(this._vencordSwitch);
 
             expanderRow.add_row(vencordRow);
+
+            const gtkRow = new Adw.ActionRow({
+                title: 'Include GTK Theming',
+                subtitle: 'Copy gtk.css to GTK 3.0 and GTK 4.0 config',
+            });
+
+            this._gtkSwitch = new Gtk.Switch({
+                active: this._includeGtk,
+                valign: Gtk.Align.CENTER,
+            });
+
+            this._gtkSwitch.connect('notify::active', sw => {
+                this._includeGtk = sw.get_active();
+                this.emit('settings-changed', this.getSettings());
+            });
+
+            gtkRow.add_suffix(this._gtkSwitch);
+            gtkRow.set_activatable_widget(this._gtkSwitch);
+
+            expanderRow.add_row(gtkRow);
 
             return expanderRow;
         }
@@ -541,9 +574,49 @@ export const SettingsSidebar = GObject.registerClass(
             return {
                 includeNeovim: this._includeNeovim,
                 includeVencord: this._includeVencord,
+                includeGtk: this._includeGtk,
                 lightMode: this._lightMode,
                 selectedNeovimConfig: this._selectedNeovimConfig,
             };
+        }
+
+        _loadSettings() {
+            // Ensure config directory exists
+            const configDir = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'aether',
+            ]);
+            GLib.mkdir_with_parents(configDir, 0o755);
+
+            const settings = loadJsonFile(this._settingsPath);
+            if (settings) {
+                this._includeNeovim = settings.includeNeovim ?? true;
+                this._includeVencord = settings.includeVencord ?? false;
+                this._includeGtk = settings.includeGtk ?? false;
+                this._selectedNeovimConfig = settings.selectedNeovimConfig ?? null;
+                console.log('Loaded settings from', this._settingsPath);
+            }
+        }
+
+        saveSettings() {
+            // Ensure config directory exists
+            const configDir = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'aether',
+            ]);
+            GLib.mkdir_with_parents(configDir, 0o755);
+
+            const settings = {
+                includeNeovim: this._includeNeovim,
+                includeVencord: this._includeVencord,
+                includeGtk: this._includeGtk,
+                selectedNeovimConfig: this._selectedNeovimConfig,
+            };
+
+            const success = saveJsonFile(this._settingsPath, settings);
+            if (success) {
+                console.log('Saved settings to', this._settingsPath);
+            }
         }
 
         setLightMode(lightMode) {

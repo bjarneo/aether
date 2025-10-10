@@ -226,6 +226,10 @@ const AetherWindow = GObject.registerClass(
                     this.paletteGenerator.setLightMode(lightMode);
                 }
             );
+
+            this.settingsSidebar.connect('settings-changed', () => {
+                this.settingsSidebar.saveSettings();
+            });
         }
 
         _updateAccessibility() {

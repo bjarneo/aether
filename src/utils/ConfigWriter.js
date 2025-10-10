@@ -48,7 +48,12 @@ export class ConfigWriter {
             const variables = this._buildVariables(colorRoles);
             this._processTemplates(variables, settings);
             this._applyAetherThemeOverride(variables);
-            this._createGtkSymlinks();
+
+            // Only apply GTK theming if enabled
+            if (settings.includeGtk === true) {
+                this._createGtkSymlinks();
+            }
+
             this._handleLightModeMarker(this.themeDir, lightMode);
             this._applyOmarchyTheme();
 
