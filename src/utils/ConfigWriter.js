@@ -264,6 +264,14 @@ export class ConfigWriter {
                     return;
                 }
 
+                // Skip gtk.css if includeGtk is false
+                if (
+                    fileName === 'gtk.css' &&
+                    settings.includeGtk === false
+                ) {
+                    return;
+                }
+
                 const outputPath = GLib.build_filenamev([exportPath, fileName]);
 
                 // If this is neovim.lua and a custom config is selected, write it directly
