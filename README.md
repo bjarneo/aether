@@ -376,6 +376,23 @@ Color roles (background, foreground, color0-15) are automatically assigned from 
 - Add API key in settings for higher limits and additional content access
 - Clear cache if needed: `rm -rf ~/.cache/aether/wallhaven-*`
 
+**Removing GTK theming from your system:**
+
+If you previously enabled GTK theming in Template Settings and want to remove it:
+
+```bash
+# Remove GTK 3.0 theme file
+rm ~/.config/gtk-3.0/gtk.css
+
+# Remove GTK 4.0 theme file
+rm ~/.config/gtk-4.0/gtk.css
+
+# Restart xdg-desktop-portal-gtk to reset theming
+killall xdg-desktop-portal-gtk
+```
+
+**Note:** The GTK theming toggle is disabled by default. Enable it in Settings → Template Settings → "Include GTK Theming" only if you want Aether to theme GTK applications system-wide. When disabled, Aether will not generate or copy `gtk.css` files.
+
 ## Contributing
 
 Aether is designed to be extensible:
