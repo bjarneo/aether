@@ -187,6 +187,59 @@ export const NEOVIM_PRESETS = [
 }`,
     },
     {
+        name: 'Matte Black',
+        author: 'tahayvr',
+        config: `return {
+\t{
+\t\t"tahayvr/matteblack.nvim",
+\t\tlazy = false,
+\t\tpriority = 1000,
+\t},
+\t{
+\t\t"LazyVim/LazyVim",
+\t\topts = {
+\t\t\tcolorscheme = "matteblack",
+\t\t},
+\t},
+}`,
+    },
+    {
+        name: 'Osaka Jade (Bamboo)',
+        author: 'ribru17',
+        config: `return {
+\t{
+\t\t"ribru17/bamboo.nvim",
+\t\tpriority = 1000,
+\t\topts = {},
+\t},
+\t{
+\t\t"LazyVim/LazyVim",
+\t\topts = {
+\t\t\tcolorscheme = "bamboo",
+\t\t},
+\t},
+}`,
+    },
+    {
+        name: 'Ristretto',
+        author: 'loctvl842',
+        config: `return {
+\t{
+\t\t"loctvl842/monokai-pro.nvim",
+\t\tpriority = 1000,
+\t\topts = {
+\t\t\tfilter = "ristretto",
+\t\t},
+\t},
+\t{
+\t\t"LazyVim/LazyVim",
+\t\topts = {
+\t\t\tcolorscheme = "monokai-pro",
+\t\t},
+\t},
+}`,
+    },
+    {
         name: 'Sonokai',
         author: 'sainnhe',
         config: `return {
