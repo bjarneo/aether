@@ -48,6 +48,7 @@ export class ConfigWriter {
             const variables = this._buildVariables(colorRoles);
             this._processTemplates(variables, settings);
             this._applyAetherThemeOverride(variables);
+            this._createGtkSymlinks();
             this._handleLightModeMarker(this.themeDir, lightMode);
             this._applyOmarchyTheme();
 
@@ -151,6 +152,12 @@ export class ConfigWriter {
             });
 
             writeTextToFile(outputPath, processed);
+
+            // Set special permissions for gtk.css (chmod 644)
+            const fileName = GLib.path_get_basename(outputPath);
+            if (fileName === 'gtk.css') {
+                this._setFilePermissions(outputPath, 0o644);
+            }
         } catch (e) {
             console.error(
                 `Error processing template ${templatePath}:`,
@@ -366,10 +373,119 @@ export class ConfigWriter {
         }
     }
 
+    _createGtkSymlinks() {
+        try {
+            // Source: ~/.config/omarchy/themes/aether/gtk.css
+            const gtkSourcePath = GLib.build_filenamev([
+                this.themeDir,
+                'gtk.css',
+            ]);
+
+            // Check if source file exists
+            const sourceFile = Gio.File.new_for_path(gtkSourcePath);
+            if (!sourceFile.query_exists(null)) {
+                console.log('gtk.css not found in theme directory, skipping GTK copies');
+                return;
+            }
+
+            // GTK3 destination: ~/.config/gtk-3.0/gtk.css
+            const gtk3ConfigDir = GLib.build_filenamev([
+                this.configDir,
+                'gtk-3.0',
+            ]);
+            const gtk3DestPath = GLib.build_filenamev([
+                gtk3ConfigDir,
+                'gtk.css',
+            ]);
+
+            // GTK4 destination: ~/.config/gtk-4.0/gtk.css
+            const gtk4ConfigDir = GLib.build_filenamev([
+                this.configDir,
+                'gtk-4.0',
+            ]);
+            const gtk4DestPath = GLib.build_filenamev([
+                gtk4ConfigDir,
+                'gtk.css',
+            ]);
+
+            // Ensure GTK config directories exist
+            ensureDirectoryExists(gtk3ConfigDir);
+            ensureDirectoryExists(gtk4ConfigDir);
+
+            // Copy to GTK3
+            this._copyGtkFile(gtkSourcePath, gtk3DestPath, 'GTK3');
+
+            // Copy to GTK4
+            this._copyGtkFile(gtkSourcePath, gtk4DestPath, 'GTK4');
+
+            console.log('GTK files copied successfully');
+        } catch (e) {
+            console.error('Error copying GTK files:', e.message);
+        }
+    }
+
+    _copyGtkFile(sourcePath, destPath, label) {
+        try {
+            // Remove existing file if it exists
+            const destFile = Gio.File.new_for_path(destPath);
+            if (destFile.query_exists(null)) {
+                try {
+                    destFile.delete(null);
+                } catch (e) {
+                    console.error(
+                        `Error removing existing ${label} gtk.css:`,
+                        e.message
+                    );
+                    return;
+                }
+            }
+
+            // Copy the file
+            const success = copyFile(sourcePath, destPath);
+            if (success) {
+                console.log(`Copied ${label} gtk.css to ${destPath}`);
+                // Set permissions to 644 after copying
+                this._setFilePermissions(destPath, 0o644);
+            } else {
+                console.error(`Failed to copy ${label} gtk.css`);
+            }
+        } catch (e) {
+            console.error(`Error in _copyGtkFile for ${label}:`, e.message);
+        }
+    }
+
+    _setFilePermissions(filePath, mode) {
+        try {
+            const file = Gio.File.new_for_path(filePath);
+            if (!file.query_exists(null)) {
+                console.error(`File not found for chmod: ${filePath}`);
+                return;
+            }
+
+            // Use GLib.chmod (octal mode)
+            const result = GLib.chmod(filePath, mode);
+            if (result === 0) {
+                console.log(`Set permissions ${mode.toString(8)} on ${filePath}`);
+            } else {
+                console.error(`Failed to chmod ${filePath}: returned ${result}`);
+            }
+        } catch (e) {
+            console.error(`Error setting permissions on ${filePath}:`, e.message);
+        }
+    }
+
     _applyOmarchyTheme() {
         try {
             GLib.spawn_command_line_async('omarchy-theme-set aether');
             console.log('Applied theme: aether');
+            
+            // Restart xdg-desktop-portal-gtk to pick up new theme
+            try {
+                GLib.spawn_command_line_async('killall xdg-desktop-portal-gtk');
+                console.log('Restarting xdg-desktop-portal-gtk for theme update');
+            } catch (e) {
+                console.log('Could not restart portal (may not be running):', e.message);
+            }
         } catch (e) {
             console.error('Error applying omarchy theme:', e.message);
         }
