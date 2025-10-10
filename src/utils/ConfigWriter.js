@@ -115,6 +115,14 @@ export class ConfigWriter {
                     return;
                 }
 
+                // Skip gtk.css if includeGtk is false
+                if (
+                    fileName === 'gtk.css' &&
+                    settings.includeGtk === false
+                ) {
+                    return;
+                }
+
                 const outputPath = GLib.build_filenamev([
                     this.themeDir,
                     fileName,
