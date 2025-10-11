@@ -36,13 +36,15 @@ npm run dev
 ### Core Components
 
 **PaletteGenerator** (`src/components/PaletteGenerator.js`)
-- Three-tab interface: "From Wallpaper", "Custom", "Find Wallpaper"
-- Tab 1 (From Wallpaper): File picker/drag-drop, light/dark mode toggle, pywal integration
-- Tab 2 (Custom): Manual palette creation with optional wallpaper reference
-- Tab 3 (Find Wallpaper): WallpaperBrowser component for wallhaven.cc integration
+- Two-tab interface: "Palette Editor", "Find Wallpaper"
+- Tab 1 (Palette Editor): Unified interface for wallpaper + custom palette creation
+  - File picker/drag-drop for wallpaper selection
+  - Manual extract button (no auto-extraction)
+  - 16-color swatch grid with click-to-edit and lock feature
+  - Loads default Catppuccin-inspired colors on startup
+- Tab 2 (Find Wallpaper): WallpaperBrowser component for wallhaven.cc integration
 - Calls `extractColorsFromWallpaper()` which runs `wal -n -s -t -e -i <image>`
-- Light mode flag (`_lightMode`) saved to blueprints and restored on load
-- Displays 16-color swatch grid with click-to-edit and lock feature
+- Light mode flag (`_lightMode`) controlled by SettingsSidebar, saved to blueprints, affects pywal extraction
 - Emits: `palette-generated` signal with 16 colors
 
 **WallpaperBrowser** (`src/components/WallpaperBrowser.js`)
@@ -50,7 +52,7 @@ npm run dev
 - Search interface: query input, category filters (General/Anime/People), sorting options
 - Grid view with thumbnails (FlowBox, 2-3 columns)
 - Pagination controls (prev/next, page indicator)
-- Click wallpaper → downloads to `~/.cache/aether/wallhaven-wallpapers/` → emits `wallpaper-selected` signal → switches to "From Wallpaper" tab
+- Click wallpaper → downloads to `~/.cache/aether/wallhaven-wallpapers/` → emits `wallpaper-selected` signal → switches to "Palette Editor" tab
 - Settings dialog (gear icon) for API key configuration (stored in `~/.config/aether/wallhaven.json`)
 - Thumbnail caching in `~/.cache/aether/wallhaven-thumbs/`
 
@@ -62,11 +64,15 @@ npm run dev
 
 **SettingsSidebar** (`src/components/SettingsSidebar.js`)
 - Collapsible right sidebar with Adw.NavigationSplitView
-- Contains: color adjustments (vibrance, contrast, brightness, hue shift, temperature, gamma)
-- Color harmony generator (complementary, analogous, triadic, split-complementary, tetradic, monochromatic)
-- Gradient generator (smooth transitions between two colors)
-- Preset library (10 popular themes: Dracula, Nord, Gruvbox, etc.)
-- Template settings and accessibility checker
+- Contains multiple sections:
+  - Light Mode toggle (for pywal light/dark scheme extraction)
+  - Color adjustments (vibrance, contrast, brightness, hue shift, temperature, gamma)
+  - Color harmony generator (complementary, analogous, triadic, split-complementary, tetradic, monochromatic)
+  - Gradient generator (smooth transitions between two colors)
+  - Preset library (10 popular themes: Dracula, Nord, Gruvbox, etc.)
+  - Neovim theme selector (37 LazyVim-compatible themes)
+  - Template settings (enable/disable optional templates)
+  - Accessibility checker
 - Emits: `adjustments-changed`, `adjustments-reset`, `preset-applied`, `harmony-generated`, `gradient-generated`
 
 **BlueprintManager** (`src/components/BlueprintManager.js`)
@@ -184,175 +190,140 @@ SettingsSidebar → 'harmony-generated' → PaletteGenerator.applyHarmony()
 
 ## Theming System
 
-**IMPORTANT:** Aether has a comprehensive theming system that must be considered when adding new UI elements.
+**IMPORTANT:** Aether uses standard GTK/Adwaita theming with `@define-color` variables.
 
 ### Theme Manager (`src/services/theme-manager.js`)
 
-The theme system uses CSS variables to allow user customization with live reload. When adding new UI elements, ensure they use the appropriate theme variables.
+The theme system manages CSS file monitoring and live reload. Theming is done through standard GTK named colors using `@define-color` statements.
 
-### Available CSS Variables (19 total)
+### How Theming Works
 
-**Buttons (5 variables):**
-- `--aether-button-bg` - Normal button background
-- `--aether-button-hover-bg` - Button hover background
-- `--aether-button-active-bg` - Button pressed background
-- `--aether-button-border` - Button border color
-- `--aether-button-hover-border` - Button hover border color
+1. **Base theme**: `~/.config/aether/theme.css` (auto-generated, imports override)
+2. **User overrides**: `~/.config/aether/theme.override.css` (user editable or symlinked)
+3. **Template system**: `templates/aether.override.css` and `templates/gtk.css` define color mappings
+4. **Live reload**: File monitors detect changes and reload CSS automatically
 
-**Backgrounds (6 variables):**
-- `--aether-window-bg` - Main window background
-- `--aether-view-bg` - Content area background
-- `--aether-card-bg` - Card/panel background
-- `--aether-headerbar-bg` - Header bar background
-- `--aether-sidebar-bg` - Sidebar background
-- `--aether-actionbar-bg` - Action bar (button wrapper) background
+When you apply a theme in Aether:
+- `templates/aether.override.css` → processed → `~/.config/omarchy/themes/aether/aether.override.css`
+- Symlink created: `~/.config/aether/theme.override.css` → omarchy theme file
+- Aether's UI updates automatically with the new colors
 
-**Sliders (2 variables):**
-- `--aether-slider-bg` - Slider handle/knob color
-- `--aether-slider-trough-bg` - Slider track background
+### GTK Named Colors (Standard)
 
-**Suggested Buttons (3 variables):**
-- `--aether-suggested-button-bg` - Apply/Save button background
-- `--aether-suggested-button-hover-bg` - Hover state
-- `--aether-suggested-button-fg` - Text color
+Aether uses standard GTK/Adwaita color names. Key colors used in templates:
 
-**Destructive Buttons (3 variables):**
-- `--aether-destructive-button-bg` - Delete/Remove button background
-- `--aether-destructive-button-hover-bg` - Hover state
-- `--aether-destructive-button-fg` - Text color
+**Accent/Interactive:**
+- `@define-color accent_bg_color` - Suggested buttons, checkboxes, switches, links
+- `@define-color accent_fg_color` - Accent foreground text
+- `@define-color accent_color` - Accent color variant
 
-### Unified Accent Color System
+**Windows/Views:**
+- `@define-color window_bg_color` - Main window background
+- `@define-color window_fg_color` - Main window text
+- `@define-color view_bg_color` - Content area background
+- `@define-color view_fg_color` - Content area text
 
-**CRITICAL:** All accent/interactive elements MUST use the suggested button color variables, NOT hardcoded blue colors.
+**UI Elements:**
+- `@define-color headerbar_bg_color` - Header bar background
+- `@define-color card_bg_color` - Card/panel background
+- `@define-color borders` - Border colors
 
-Elements that use `--aether-suggested-button-bg` for consistency:
-- Checkboxes (when checked)
-- Switches/toggles (when active)
-- Expander arrows (when expanded)
-- Links
-- Selections (highlighted text/items)
-- Progress bars
-- Spinners
-- Any other "active" or "selected" state indicators
+**Actions:**
+- `@define-color destructive_bg_color` - Delete/remove buttons
+- `@define-color success_bg_color` - Success states
+- `@define-color warning_bg_color` - Warning states
+- `@define-color error_bg_color` - Error states
+
+See `templates/aether.override.css` for the complete list of color mappings from palette colors to GTK variables.
 
 ### When Adding New UI Elements
 
 **1. For buttons:**
 ```javascript
-// Use css_classes for proper theming
+// Use css_classes for proper GTK theming
 const myButton = new Gtk.Button({
     label: 'My Action',
     css_classes: ['suggested-action'], // or ['destructive-action']
 });
+// GTK automatically applies accent_bg_color to .suggested-action
+// GTK automatically applies destructive_bg_color to .destructive-action
 ```
 
-**2. For custom backgrounds:**
+**2. For custom styling needs:**
 ```javascript
-// Use theme variables, not hardcoded colors
-const css = `
-    * {
-        background-color: var(--aether-card-bg);
-        border-radius: 0px; /* Sharp corners for Hyprland style */
-    }
-`;
+// GTK widgets inherit theme colors automatically
+// No custom CSS needed in most cases
+const card = new Gtk.Box({
+    css_classes: ['card'], // Uses card_bg_color from theme
+});
 ```
 
-**3. For interactive elements (checkboxes, switches, etc.):**
-- DO NOT hardcode blue colors (#89b4fa, etc.)
-- Let the theme system handle colors via CSS in theme-manager.js
-- If adding new interactive elements, add CSS rules to theme-manager.js
+**3. For interactive elements:**
+- DO NOT hardcode colors (#89b4fa, etc.)
+- Use GTK's built-in CSS classes: `suggested-action`, `destructive-action`, `card`, `toolbar`, etc.
+- GTK automatically applies appropriate named colors to standard widgets
+- Checkboxes, switches, and links use `accent_bg_color` by default
 
-**4. For accent colors:**
-```css
-/* WRONG - hardcoded blue */
-.my-element:active {
-    color: #89b4fa;
-}
-
-/* RIGHT - uses theme accent */
-.my-element:active {
-    color: var(--aether-suggested-button-bg);
-}
-```
-
-### Adding New CSS Rules
-
-When adding new UI components that need theming, add CSS rules to `src/services/theme-manager.js` in the `_createBaseTheme()` method:
-
-```javascript
-// Example: Adding a new component
-/* My New Component */
-.my-component {
-    background-color: var(--aether-card-bg);
-}
-
-.my-component:active {
-    background-color: var(--aether-suggested-button-bg);
-    color: var(--aether-suggested-button-fg);
-}
-```
+**4. Sharp corners:**
+All UI elements automatically get `border-radius: 0px` via theme-manager.js's global CSS
+No need to set this per-widget
 
 ### Design Principles
 
-1. **Sharp Corners:** All UI elements use `border-radius: 0px` for Hyprland aesthetic
-2. **Unified Accents:** All interactive/active states use suggested button color
-3. **High Contrast:** Proper contrast between background and foreground colors
-4. **Live Reload:** Changes to theme files apply instantly without restart
-5. **No Hardcoded Colors:** Always use CSS variables from the theme system
+1. **Sharp Corners:** All UI elements get `border-radius: 0px` globally (Hyprland aesthetic)
+2. **GTK Native Theming:** Use GTK's built-in CSS classes instead of custom styling
+3. **Live Reload:** Theme file changes apply instantly via file monitors
+4. **No Hardcoded Colors:** Let GTK's named colors handle all theming
+5. **Template-based:** Color mappings defined in `templates/aether.override.css`
 
 ### Testing New Components
 
 After adding new UI elements:
-1. Test with multiple themes (Gruvbox, Tokyo Night, Dracula, etc.)
-2. Verify all interactive states use the correct theme colors
-3. Check that accent colors match the suggested button color (not default blue)
-4. Ensure sharp corners are maintained
-5. Test with both light and dark system themes
+1. Verify widgets use GTK CSS classes (`.suggested-action`, `.card`, etc.)
+2. Check that no colors are hardcoded in component code
+3. Test that sharp corners are applied (should be automatic)
+4. Apply a theme in Aether and verify the new widget updates correctly
+5. Edit `~/.config/aether/theme.override.css` manually to test live reload
 
 ### Theme Files Location
 
-- **Base theme:** `~/.config/aether/theme.css` (auto-generated, do not edit)
-- **User overrides:** `~/.config/aether/theme.override.css` (user editable)
-- **Examples:** `examples/*-theme.override.css` (19 pre-made themes)
-- **Documentation:** `THEMING.md` (complete theming guide)
+- **Base theme:** `~/.config/aether/theme.css` (auto-generated, imports override)
+- **User overrides:** `~/.config/aether/theme.override.css` (editable or symlinked to omarchy theme)
+- **Template (source):** `templates/aether.override.css` (defines color → GTK variable mapping)
+- **Template (GTK apps):** `templates/gtk.css` (for system-wide GTK theming when enabled)
+- **Generated override:** `~/.config/omarchy/themes/aether/aether.override.css` (processed template)
 
 ### Common Mistakes to Avoid
 
-❌ Hardcoding blue accent colors
-❌ Using rounded corners (border-radius > 0)
-❌ Not testing with different themes
-❌ Forgetting to add CSS rules for new interactive elements
-❌ Using inline styles instead of CSS variables
-❌ Not documenting new theme variables
+❌ Hardcoding colors in component code (#89b4fa, etc.)
+❌ Creating custom CSS variables (use GTK's `@define-color` instead)
+❌ Setting border-radius per-widget (already global)
+❌ Using inline styles instead of CSS classes
+❌ Not using GTK's built-in CSS classes
 
-✅ Use theme variables for all colors
-✅ Maintain sharp corners everywhere
-✅ Test with multiple themes
-✅ Add CSS rules to theme-manager.js
-✅ Use suggested button color for all accents
-✅ Document any new variables in override template
+✅ Use GTK CSS classes: `.suggested-action`, `.destructive-action`, `.card`
+✅ Let GTK handle theming automatically
+✅ Rely on named colors from templates
+✅ Trust the global sharp corners CSS
+✅ Test with "Apply Theme" to verify color mappings
 
 ## Quick Reference: Adding New UI Elements
 
 **Checklist when adding any new UI component:**
 
-- [ ] Use appropriate CSS variable for background colors
-- [ ] Set `border-radius: 0px` for all visual elements
+- [ ] Use GTK CSS classes instead of custom styling
+- [ ] Avoid hardcoded colors (let GTK's `@define-color` handle it)
 - [ ] For buttons, use `css_classes: ['suggested-action']` or `['destructive-action']`
-- [ ] For interactive elements (checkboxes, switches), add CSS rules in theme-manager.js
-- [ ] Use `var(--aether-suggested-button-bg)` for all accent/active states
-- [ ] Avoid hardcoded colors (especially blues like #89b4fa)
-- [ ] Test with at least 3 different themes (Gruvbox, Tokyo Night, Dracula)
-- [ ] Verify live reload works with your changes
-- [ ] Check both light and dark mode compatibility
-- [ ] Update theme variable documentation if adding new variables
-- [ ] Add example CSS to theme examples if needed
+- [ ] For containers, use `css_classes: ['card']`, `['toolbar']`, etc.
+- [ ] Don't set `border-radius` (already global)
+- [ ] Test by applying a theme in Aether
 
-**Quick Theme Variable Reference:**
+**GTK Named Colors Quick Reference:**
 ```
-Backgrounds: --aether-window-bg, --aether-view-bg, --aether-card-bg, --aether-sidebar-bg
-Buttons: --aether-button-bg, --aether-button-hover-bg, --aether-button-border
-Accents: --aether-suggested-button-bg (USE THIS FOR ALL BLUE/ACTIVE STATES)
-Sliders: --aether-slider-bg, --aether-slider-trough-bg
-Destructive: --aether-destructive-button-bg
+Accent: accent_bg_color, accent_fg_color
+Windows: window_bg_color, window_fg_color, view_bg_color, view_fg_color
+UI: headerbar_bg_color, card_bg_color, borders
+Actions: destructive_bg_color, success_bg_color, warning_bg_color, error_bg_color
 ```
+
+See `templates/aether.override.css` for complete color → GTK variable mappings.

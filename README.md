@@ -17,7 +17,7 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - **Blueprint System** - Save and share themes as JSON files
 - **Neovim Themes** - 37 LazyVim-compatible themes with preset matching
 - **Accessibility Checker** - Real-time WCAG contrast ratio validation
-- **Customizable UI** - 20 pre-made CSS themes for Aether itself
+- **Customizable UI** - Live theme reload and CSS variable system
 - **Multi-App Support** - Hyprland, Waybar, Kitty, Alacritty, btop, Mako, and 15+ more applications
 
 ## Requirements
@@ -82,13 +82,13 @@ paru -S aether
 
 ### Customizing Aether's UI
 
-Aether auto-themes itself when you apply a theme. To use pre-made UI themes:
+Aether auto-themes itself when you apply a theme. You can further customize by editing:
 
 ```bash
-cp examples/gruvbox-theme.override.css ~/.config/aether/theme.override.css
+~/.config/aether/theme.override.css
 ```
 
-Changes apply instantly.
+Changes apply instantly via live reload.
 
 ## Development
 
