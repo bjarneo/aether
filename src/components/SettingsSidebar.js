@@ -580,15 +580,49 @@ export const SettingsSidebar = GObject.registerClass(
             });
 
             // Single color palette generator
-            const colorGenRow = new Adw.ActionRow({
-                title: 'Generate from Single Color',
-                subtitle: 'Create full 16-color palette from one base color',
+            const colorGenBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 12,
+                margin_start: 12,
+                margin_end: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+            });
+
+            // Title row with info button
+            const titleRow = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+            });
+
+            const titleLabel = new Gtk.Label({
+                label: 'Palette from a single color',
+                xalign: 0,
+                hexpand: true,
+            });
+
+            const colorGenInfoButton = new Gtk.Button({
+                icon_name: 'help-about-symbolic',
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Create full 16-color palette from one base color',
+                css_classes: ['flat', 'circular'],
+            });
+
+            titleRow.append(titleLabel);
+            titleRow.append(colorGenInfoButton);
+            colorGenBox.append(titleRow);
+
+            // Controls row
+            const controlsRow = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 8,
+                halign: Gtk.Align.END,
             });
 
             // Color preview box
             this._baseColorPreview = new Gtk.Box({
-                width_request: 40,
-                height_request: 40,
+                width_request: 32,
+                height_request: 32,
                 valign: Gtk.Align.CENTER,
                 css_classes: ['card'],
             });
@@ -596,6 +630,8 @@ export const SettingsSidebar = GObject.registerClass(
                 * {
                     background-color: ${this._baseColor};
                     border-radius: 0px;
+                    min-width: 32px;
+                    min-height: 32px;
                 }
             `);
 
@@ -615,24 +651,34 @@ export const SettingsSidebar = GObject.registerClass(
             });
             generateButton.connect('clicked', () => this._generateFromBaseColor());
 
-            colorGenRow.add_suffix(this._baseColorPreview);
-            colorGenRow.add_suffix(pickColorButton);
-            colorGenRow.add_suffix(generateButton);
+            controlsRow.append(this._baseColorPreview);
+            controlsRow.append(pickColorButton);
+            controlsRow.append(generateButton);
+            colorGenBox.append(controlsRow);
 
-            expanderRow.add_row(colorGenRow);
+            expanderRow.add_row(new Adw.ActionRow({child: colorGenBox}));
 
             // GTK Theming row
             const gtkRow = new Adw.ActionRow({
                 title: 'Include GTK Theming',
-                subtitle: 'Copy gtk.css to GTK 3.0 and GTK 4.0 config',
             });
 
-            // Create a box to hold both the clear button and switch
+            // Add info button with description
+            const gtkInfoButton = new Gtk.Button({
+                icon_name: 'help-about-symbolic',
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Copy gtk.css to GTK 3.0 and GTK 4.0 config',
+                css_classes: ['flat', 'circular'],
+            });
+
+            // Create a box to hold the info button, clear button, and switch
             const suffixBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
                 valign: Gtk.Align.CENTER,
             });
+
+            suffixBox.append(gtkInfoButton);
 
             // Create clear button (initially hidden)
             this._gtkClearButton = new Gtk.Button({
