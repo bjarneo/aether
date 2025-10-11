@@ -403,6 +403,7 @@ export const WallpaperBrowser = GObject.registerClass(
 
         _setupResponsiveColumns() {
             this._lastWidth = 0;
+            this._resizeTimeoutId = null;
 
             // Initial update
             GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
@@ -411,7 +412,7 @@ export const WallpaperBrowser = GObject.registerClass(
             });
 
             // Periodic check for width changes (Wayland/Hyprland compatibility)
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+            this._resizeTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
                 if (this._scrolledWindow?.get_mapped()) {
                     const width = this._getAvailableWidth();
                     if (Math.abs(width - this._lastWidth) > 50) {
@@ -421,6 +422,23 @@ export const WallpaperBrowser = GObject.registerClass(
                 }
                 return GLib.SOURCE_CONTINUE;
             });
+
+            // Cleanup timeout when component is destroyed
+            this.connect('destroy', () => {
+                this._cleanupResponsiveColumns();
+            });
+
+            // Also cleanup when unrealized (for good measure)
+            this.connect('unrealize', () => {
+                this._cleanupResponsiveColumns();
+            });
+        }
+
+        _cleanupResponsiveColumns() {
+            if (this._resizeTimeoutId) {
+                GLib.source_remove(this._resizeTimeoutId);
+                this._resizeTimeoutId = null;
+            }
         }
 
         _getAvailableWidth() {
