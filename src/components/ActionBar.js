@@ -8,7 +8,7 @@ export const ActionBar = GObject.registerClass(
             'show-blueprints': {},
             'export-theme': {},
             'save-blueprint': {},
-            'reset': {},
+            reset: {},
             'apply-theme': {},
         },
     },

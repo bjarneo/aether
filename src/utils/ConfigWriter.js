@@ -116,10 +116,7 @@ export class ConfigWriter {
                 }
 
                 // Skip gtk.css if includeGtk is false
-                if (
-                    fileName === 'gtk.css' &&
-                    settings.includeGtk === false
-                ) {
+                if (fileName === 'gtk.css' && settings.includeGtk === false) {
                     return;
                 }
 
@@ -201,7 +198,10 @@ export class ConfigWriter {
 
         // Replace {key.rgba} (converts hex to rgba format with optional alpha)
         // Supports {key.rgba} (default alpha 1.0) or {key.rgba:0.5} (custom alpha)
-        const rgbaRegex = new RegExp(`\\{${key}\\.rgba(?::(\\d*\\.?\\d+))?\\}`, 'g');
+        const rgbaRegex = new RegExp(
+            `\\{${key}\\.rgba(?::(\\d*\\.?\\d+))?\\}`,
+            'g'
+        );
         if (typeof value === 'string' && value.startsWith('#')) {
             result = result.replace(rgbaRegex, (match, alpha) => {
                 const alphaValue = alpha ? parseFloat(alpha) : 1.0;
@@ -277,10 +277,7 @@ export class ConfigWriter {
                 }
 
                 // Skip gtk.css if includeGtk is false
-                if (
-                    fileName === 'gtk.css' &&
-                    settings.includeGtk === false
-                ) {
+                if (fileName === 'gtk.css' && settings.includeGtk === false) {
                     return;
                 }
 
@@ -417,7 +414,9 @@ export class ConfigWriter {
             // Check if source file exists
             const sourceFile = Gio.File.new_for_path(gtkSourcePath);
             if (!sourceFile.query_exists(null)) {
-                console.log('gtk.css not found in theme directory, skipping GTK copies');
+                console.log(
+                    'gtk.css not found in theme directory, skipping GTK copies'
+                );
                 return;
             }
 
@@ -498,12 +497,19 @@ export class ConfigWriter {
             // Use GLib.chmod (octal mode)
             const result = GLib.chmod(filePath, mode);
             if (result === 0) {
-                console.log(`Set permissions ${mode.toString(8)} on ${filePath}`);
+                console.log(
+                    `Set permissions ${mode.toString(8)} on ${filePath}`
+                );
             } else {
-                console.error(`Failed to chmod ${filePath}: returned ${result}`);
+                console.error(
+                    `Failed to chmod ${filePath}: returned ${result}`
+                );
             }
         } catch (e) {
-            console.error(`Error setting permissions on ${filePath}:`, e.message);
+            console.error(
+                `Error setting permissions on ${filePath}:`,
+                e.message
+            );
         }
     }
 
@@ -511,13 +517,18 @@ export class ConfigWriter {
         try {
             GLib.spawn_command_line_async('omarchy-theme-set aether');
             console.log('Applied theme: aether');
-            
+
             // Restart xdg-desktop-portal-gtk to pick up new theme
             try {
                 GLib.spawn_command_line_async('killall xdg-desktop-portal-gtk');
-                console.log('Restarting xdg-desktop-portal-gtk for theme update');
+                console.log(
+                    'Restarting xdg-desktop-portal-gtk for theme update'
+                );
             } catch (e) {
-                console.log('Could not restart portal (may not be running):', e.message);
+                console.log(
+                    'Could not restart portal (may not be running):',
+                    e.message
+                );
             }
         } catch (e) {
             console.error('Error applying omarchy theme:', e.message);

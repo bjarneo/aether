@@ -404,16 +404,16 @@ export const WallpaperBrowser = GObject.registerClass(
         _setupResponsiveColumns() {
             // Responsive grid constants
             this.LAYOUT_CONSTANTS = {
-                MIN_COLUMNS: 2,                    // Minimum columns to maintain usable grid
-                FALLBACK_WIDTH: 1200,              // Default width when allocation unavailable
-                CONTENT_WIDTH_RATIO: 0.65,         // Content area ratio of total window (accounts for sidebar)
-                WINDOW_SCROLL_THRESHOLD: 2,        // Window must be 2x scroll width to use window-based calculation
-                MIN_WINDOW_WIDTH: 1200,            // Minimum window width to apply window-based calculation
-                ITEM_WIDTH: 280,                   // Width of each wallpaper item (from _createWallpaperItem)
-                GRID_MARGINS: 24,                  // Total margins (12px left + 12px right)
-                CHANGE_THRESHOLD: 50,              // Minimum width change (px) to trigger column recalculation
-                INITIAL_DELAY: 300,                // Initial delay (ms) before first column calculation
-                POLLING_INTERVAL: 1000             // Polling interval (ms) for resize detection
+                MIN_COLUMNS: 2, // Minimum columns to maintain usable grid
+                FALLBACK_WIDTH: 1200, // Default width when allocation unavailable
+                CONTENT_WIDTH_RATIO: 0.65, // Content area ratio of total window (accounts for sidebar)
+                WINDOW_SCROLL_THRESHOLD: 2, // Window must be 2x scroll width to use window-based calculation
+                MIN_WINDOW_WIDTH: 1200, // Minimum window width to apply window-based calculation
+                ITEM_WIDTH: 280, // Width of each wallpaper item (from _createWallpaperItem)
+                GRID_MARGINS: 24, // Total margins (12px left + 12px right)
+                CHANGE_THRESHOLD: 50, // Minimum width change (px) to trigger column recalculation
+                INITIAL_DELAY: 300, // Initial delay (ms) before first column calculation
+                POLLING_INTERVAL: 1000, // Polling interval (ms) for resize detection
             };
 
             this._lastWidth = 0;
@@ -424,10 +424,14 @@ export const WallpaperBrowser = GObject.registerClass(
             this._cachedColumnSpacing = this._gridFlow.get_column_spacing();
 
             // Initial update
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, this.LAYOUT_CONSTANTS.INITIAL_DELAY, () => {
-                this._updateColumns();
-                return GLib.SOURCE_REMOVE;
-            });
+            GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                this.LAYOUT_CONSTANTS.INITIAL_DELAY,
+                () => {
+                    this._updateColumns();
+                    return GLib.SOURCE_REMOVE;
+                }
+            );
 
             // Connect to size allocation signals for efficient resize detection
             this.connect('realize', () => {
@@ -443,14 +447,21 @@ export const WallpaperBrowser = GObject.registerClass(
         _connectResizeSignals() {
             // Use efficient polling with change detection
             // Check at POLLING_INTERVAL, but only update if width changed significantly
-            this._resizeTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, this.LAYOUT_CONSTANTS.POLLING_INTERVAL, () => {
-                const width = this._getAvailableWidth();
-                if (Math.abs(width - this._lastWidth) > this.LAYOUT_CONSTANTS.CHANGE_THRESHOLD) {
-                    this._updateColumns();
-                    this._lastWidth = width;
+            this._resizeTimeoutId = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                this.LAYOUT_CONSTANTS.POLLING_INTERVAL,
+                () => {
+                    const width = this._getAvailableWidth();
+                    if (
+                        Math.abs(width - this._lastWidth) >
+                        this.LAYOUT_CONSTANTS.CHANGE_THRESHOLD
+                    ) {
+                        this._updateColumns();
+                        this._lastWidth = width;
+                    }
+                    return GLib.SOURCE_CONTINUE;
                 }
-                return GLib.SOURCE_CONTINUE;
-            });
+            );
         }
 
         _cleanupResponsiveColumns() {
@@ -473,8 +484,11 @@ export const WallpaperBrowser = GObject.registerClass(
             const windowWidth = window?.get_allocated_width() || 0;
 
             // Use window-based calculation if scroll area hasn't expanded yet
-            const shouldUseWindowWidth = windowWidth > scrollWidth * this.LAYOUT_CONSTANTS.WINDOW_SCROLL_THRESHOLD
-                                      && windowWidth > this.LAYOUT_CONSTANTS.MIN_WINDOW_WIDTH;
+            const shouldUseWindowWidth =
+                windowWidth >
+                    scrollWidth *
+                        this.LAYOUT_CONSTANTS.WINDOW_SCROLL_THRESHOLD &&
+                windowWidth > this.LAYOUT_CONSTANTS.MIN_WINDOW_WIDTH;
 
             return shouldUseWindowWidth
                 ? windowWidth * this.LAYOUT_CONSTANTS.CONTENT_WIDTH_RATIO
@@ -489,14 +503,18 @@ export const WallpaperBrowser = GObject.registerClass(
                 this._gridFlow.set_max_children_per_line(columns);
 
                 // Set min to columns-1, but never below MIN_COLUMNS
-                const minColumns = Math.max(this.LAYOUT_CONSTANTS.MIN_COLUMNS, columns - 1);
+                const minColumns = Math.max(
+                    this.LAYOUT_CONSTANTS.MIN_COLUMNS,
+                    columns - 1
+                );
                 this._gridFlow.set_min_children_per_line(minColumns);
             }
         }
 
         _calculateColumns(width) {
             // Use cached spacing value for better performance
-            const itemSize = this.LAYOUT_CONSTANTS.ITEM_WIDTH + this._cachedColumnSpacing;
+            const itemSize =
+                this.LAYOUT_CONSTANTS.ITEM_WIDTH + this._cachedColumnSpacing;
             const availableWidth = width - this.LAYOUT_CONSTANTS.GRID_MARGINS;
             const calculated = Math.floor(availableWidth / itemSize);
 
@@ -504,7 +522,10 @@ export const WallpaperBrowser = GObject.registerClass(
             if (width >= 2560) return Math.max(4, Math.min(calculated, 6));
             if (width >= 1920) return Math.max(3, Math.min(calculated, 5));
             if (width >= 1400) return Math.max(3, Math.min(calculated, 4));
-            return Math.max(this.LAYOUT_CONSTANTS.MIN_COLUMNS, Math.min(calculated, 3));
+            return Math.max(
+                this.LAYOUT_CONSTANTS.MIN_COLUMNS,
+                Math.min(calculated, 3)
+            );
         }
 
         _loadInitialWallpapers() {

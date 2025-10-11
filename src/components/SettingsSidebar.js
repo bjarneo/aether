@@ -22,7 +22,9 @@ export const SettingsSidebar = GObject.registerClass(
             'preset-applied': {param_types: [GObject.TYPE_JSOBJECT]},
             'gradient-generated': {param_types: [GObject.TYPE_JSOBJECT]},
             'light-mode-changed': {param_types: [GObject.TYPE_BOOLEAN]},
-            'palette-from-color-generated': {param_types: [GObject.TYPE_JSOBJECT]},
+            'palette-from-color-generated': {
+                param_types: [GObject.TYPE_JSOBJECT],
+            },
         },
     },
     class SettingsSidebar extends Gtk.Box {
@@ -604,7 +606,8 @@ export const SettingsSidebar = GObject.registerClass(
             const colorGenInfoButton = new Gtk.Button({
                 icon_name: 'help-about-symbolic',
                 valign: Gtk.Align.CENTER,
-                tooltip_text: 'Create full 16-color palette from one base color',
+                tooltip_text:
+                    'Create full 16-color palette from one base color',
                 css_classes: ['flat', 'circular'],
             });
 
@@ -626,14 +629,17 @@ export const SettingsSidebar = GObject.registerClass(
                 valign: Gtk.Align.CENTER,
                 css_classes: ['card'],
             });
-            applyCssToWidget(this._baseColorPreview, `
+            applyCssToWidget(
+                this._baseColorPreview,
+                `
                 * {
                     background-color: ${this._baseColor};
                     border-radius: 0px;
                     min-width: 32px;
                     min-height: 32px;
                 }
-            `);
+            `
+            );
 
             // Color picker button
             const pickColorButton = new Gtk.Button({
@@ -649,7 +655,9 @@ export const SettingsSidebar = GObject.registerClass(
                 css_classes: ['suggested-action'],
                 valign: Gtk.Align.CENTER,
             });
-            generateButton.connect('clicked', () => this._generateFromBaseColor());
+            generateButton.connect('clicked', () =>
+                this._generateFromBaseColor()
+            );
 
             controlsRow.append(this._baseColorPreview);
             controlsRow.append(pickColorButton);
@@ -724,24 +732,32 @@ export const SettingsSidebar = GObject.registerClass(
             const currentRgba = new Gdk.RGBA();
             currentRgba.parse(this._baseColor);
 
-            dialog.choose_rgba(this.get_root(), currentRgba, null, (source, result) => {
-                const rgba = dialog.choose_rgba_finish(result);
-                if (!rgba) return;
+            dialog.choose_rgba(
+                this.get_root(),
+                currentRgba,
+                null,
+                (source, result) => {
+                    const rgba = dialog.choose_rgba_finish(result);
+                    if (!rgba) return;
 
-                // Convert RGBA to hex
-                const r = Math.round(rgba.red * 255);
-                const g = Math.round(rgba.green * 255);
-                const b = Math.round(rgba.blue * 255);
-                this._baseColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+                    // Convert RGBA to hex
+                    const r = Math.round(rgba.red * 255);
+                    const g = Math.round(rgba.green * 255);
+                    const b = Math.round(rgba.blue * 255);
+                    this._baseColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 
-                // Update preview box
-                applyCssToWidget(this._baseColorPreview, `
+                    // Update preview box
+                    applyCssToWidget(
+                        this._baseColorPreview,
+                        `
                     * {
                         background-color: ${this._baseColor};
                         border-radius: 0px;
                     }
-                `);
-            });
+                `
+                    );
+                }
+            );
         }
 
         _generateFromBaseColor() {
@@ -806,7 +822,8 @@ export const SettingsSidebar = GObject.registerClass(
                 this._includeNeovim = settings.includeNeovim ?? true;
                 this._includeVencord = settings.includeVencord ?? false;
                 this._includeGtk = settings.includeGtk ?? false;
-                this._selectedNeovimConfig = settings.selectedNeovimConfig ?? null;
+                this._selectedNeovimConfig =
+                    settings.selectedNeovimConfig ?? null;
                 console.log('Loaded settings from', this._settingsPath);
             }
         }

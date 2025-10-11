@@ -15,7 +15,12 @@ export class BlueprintService {
         this.blueprintManager.saveBlueprint(blueprint);
     }
 
-    loadBlueprint(blueprint, paletteGenerator, colorSynthesizer, settingsSidebar) {
+    loadBlueprint(
+        blueprint,
+        paletteGenerator,
+        colorSynthesizer,
+        settingsSidebar
+    ) {
         try {
             console.log('Loading blueprint:', blueprint.name);
 

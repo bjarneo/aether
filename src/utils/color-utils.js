@@ -429,12 +429,12 @@ export function generatePaletteFromColor(baseColor) {
 
     // Define standard ANSI color hues (in degrees)
     const ansiHues = [
-        0,      // color1: Red
-        120,    // color2: Green
-        60,     // color3: Yellow
-        240,    // color4: Blue
-        300,    // color5: Magenta
-        180,    // color6: Cyan
+        0, // color1: Red
+        120, // color2: Green
+        60, // color3: Yellow
+        240, // color4: Blue
+        300, // color5: Magenta
+        180, // color6: Cyan
     ];
 
     // Generate colors 1-6 using the base color's saturation and lightness
@@ -466,11 +466,7 @@ export function generatePaletteFromColor(baseColor) {
     );
 
     // Generate color 7 (white/light gray) - always light
-    const color7 = hslToHex(
-        baseHue,
-        baseSaturation * 0.15,
-        92
-    );
+    const color7 = hslToHex(baseHue, baseSaturation * 0.15, 92);
 
     // Generate color 8 (bright black) - darker gray between background and colors
     const color8 = hslToHex(
@@ -480,28 +476,24 @@ export function generatePaletteFromColor(baseColor) {
     );
 
     // Generate color 15 (bright white) - always very bright
-    const color15 = hslToHex(
-        baseHue,
-        baseSaturation * 0.1,
-        98
-    );
+    const color15 = hslToHex(baseHue, baseSaturation * 0.1, 98);
 
     return [
-        backgroundColor,  // background
-        colors1to6[0],    // color1 (red)
-        colors1to6[1],    // color2 (green)
-        colors1to6[2],    // color3 (yellow)
-        colors1to6[3],    // color4 (blue)
-        colors1to6[4],    // color5 (magenta)
-        colors1to6[5],    // color6 (cyan)
-        color7,           // color7 (white)
-        color8,           // color8 (bright black)
-        colors8to14[0],   // color9 (bright red)
-        colors8to14[1],   // color10 (bright green)
-        colors8to14[2],   // color11 (bright yellow)
-        colors8to14[3],   // color12 (bright blue)
-        colors8to14[4],   // color13 (bright magenta)
-        colors8to14[5],   // color14 (bright cyan)
-        color15,          // color15 (bright white)
+        backgroundColor, // background
+        colors1to6[0], // color1 (red)
+        colors1to6[1], // color2 (green)
+        colors1to6[2], // color3 (yellow)
+        colors1to6[3], // color4 (blue)
+        colors1to6[4], // color5 (magenta)
+        colors1to6[5], // color6 (cyan)
+        color7, // color7 (white)
+        color8, // color8 (bright black)
+        colors8to14[0], // color9 (bright red)
+        colors8to14[1], // color10 (bright green)
+        colors8to14[2], // color11 (bright yellow)
+        colors8to14[3], // color12 (bright blue)
+        colors8to14[4], // color13 (bright magenta)
+        colors8to14[5], // color14 (bright cyan)
+        color15, // color15 (bright white)
     ];
 }

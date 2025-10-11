@@ -231,9 +231,12 @@ const AetherWindow = GObject.registerClass(
                 this.settingsSidebar.saveSettings();
             });
 
-            this.settingsSidebar.connect('palette-from-color-generated', (_, colors) => {
-                this.paletteGenerator.applyHarmony(colors);
-            });
+            this.settingsSidebar.connect(
+                'palette-from-color-generated',
+                (_, colors) => {
+                    this.paletteGenerator.applyHarmony(colors);
+                }
+            );
         }
 
         _updateAccessibility() {
