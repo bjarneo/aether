@@ -90,6 +90,10 @@ export const SettingsSidebar = GObject.registerClass(
             const templateSettings = this._createTemplateSettings();
             contentBox.append(templateSettings);
 
+            // Experimental Section
+            const experimentalSettings = this._createExperimentalSettings();
+            contentBox.append(experimentalSettings);
+
             // Accessibility Section (at bottom)
             this._accessibilityPanel = new AccessibilityPanel();
             contentBox.append(this._accessibilityPanel);
@@ -530,6 +534,15 @@ export const SettingsSidebar = GObject.registerClass(
             vencordRow.set_activatable_widget(this._vencordSwitch);
 
             expanderRow.add_row(vencordRow);
+
+            return expanderRow;
+        }
+
+        _createExperimentalSettings() {
+            const expanderRow = new Adw.ExpanderRow({
+                title: 'Experimental',
+                subtitle: 'Features that might or might not be part of Aether',
+            });
 
             const gtkRow = new Adw.ActionRow({
                 title: 'Include GTK Theming',
