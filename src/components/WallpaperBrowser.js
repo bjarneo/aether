@@ -419,6 +419,9 @@ export const WallpaperBrowser = GObject.registerClass(
             this._lastWidth = 0;
             this._resizeTimeoutId = null;
 
+            // Cache column spacing to avoid repeated method calls
+            this._cachedColumnSpacing = this._gridFlow.get_column_spacing();
+
             // Initial update
             GLib.timeout_add(GLib.PRIORITY_DEFAULT, this.LAYOUT_CONSTANTS.INITIAL_DELAY, () => {
                 this._updateColumns();
@@ -476,15 +479,15 @@ export const WallpaperBrowser = GObject.registerClass(
             if (this._gridFlow.get_max_children_per_line() !== columns) {
                 this._gridFlow.set_max_children_per_line(columns);
 
-                // Ensure min <= max in all cases
+                // Set min to columns-1, but never below MIN_COLUMNS
                 const minColumns = Math.max(this.LAYOUT_CONSTANTS.MIN_COLUMNS, columns - 1);
-                this._gridFlow.set_min_children_per_line(Math.min(minColumns, columns));
+                this._gridFlow.set_min_children_per_line(minColumns);
             }
         }
 
         _calculateColumns(width) {
-            // Use actual grid configuration values for consistency
-            const itemSize = this.LAYOUT_CONSTANTS.ITEM_WIDTH + this._gridFlow.get_column_spacing();
+            // Use cached spacing value for better performance
+            const itemSize = this.LAYOUT_CONSTANTS.ITEM_WIDTH + this._cachedColumnSpacing;
             const availableWidth = width - this.LAYOUT_CONSTANTS.GRID_MARGINS;
             const calculated = Math.floor(availableWidth / itemSize);
 
