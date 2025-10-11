@@ -10,7 +10,7 @@ import {AccessibilityPanel} from './AccessibilityPanel.js';
 import {COLOR_PRESETS} from '../constants/presets.js';
 import {NEOVIM_PRESETS} from '../constants/neovim-presets.js';
 import {applyCssToWidget} from '../utils/ui-helpers.js';
-import {rgbaToHex} from '../utils/color-utils.js';
+import {rgbaToHex, generatePaletteFromColor} from '../utils/color-utils.js';
 import {loadJsonFile, saveJsonFile} from '../utils/file-utils.js';
 
 export const SettingsSidebar = GObject.registerClass(
@@ -22,6 +22,7 @@ export const SettingsSidebar = GObject.registerClass(
             'preset-applied': {param_types: [GObject.TYPE_JSOBJECT]},
             'gradient-generated': {param_types: [GObject.TYPE_JSOBJECT]},
             'light-mode-changed': {param_types: [GObject.TYPE_BOOLEAN]},
+            'palette-from-color-generated': {param_types: [GObject.TYPE_JSOBJECT]},
         },
     },
     class SettingsSidebar extends Gtk.Box {
@@ -44,6 +45,7 @@ export const SettingsSidebar = GObject.registerClass(
             this._lightMode = false;
             this._selectedNeovimConfig = null;
             this._neovimPresetRows = []; // Store references to preset rows for visual feedback
+            this._baseColor = '#89b4fa'; // Default base color for palette generation
 
             // Load persisted settings
             this._loadSettings();
@@ -579,6 +581,49 @@ export const SettingsSidebar = GObject.registerClass(
                 subtitle: 'Features that might or might not be part of Aether',
             });
 
+            // Single color palette generator
+            const colorGenRow = new Adw.ActionRow({
+                title: 'Generate from Single Color',
+                subtitle: 'Create full 16-color palette from one base color',
+            });
+
+            // Color preview box
+            this._baseColorPreview = new Gtk.Box({
+                width_request: 40,
+                height_request: 40,
+                valign: Gtk.Align.CENTER,
+                css_classes: ['card'],
+            });
+            applyCssToWidget(this._baseColorPreview, `
+                * {
+                    background-color: ${this._baseColor};
+                    border-radius: 0px;
+                }
+            `);
+
+            // Color picker button
+            const pickColorButton = new Gtk.Button({
+                icon_name: 'color-select-symbolic',
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Pick base color',
+            });
+            pickColorButton.connect('clicked', () => this._pickBaseColor());
+
+            // Generate button
+            const generateButton = new Gtk.Button({
+                label: 'Generate',
+                css_classes: ['suggested-action'],
+                valign: Gtk.Align.CENTER,
+            });
+            generateButton.connect('clicked', () => this._generateFromBaseColor());
+
+            colorGenRow.add_suffix(this._baseColorPreview);
+            colorGenRow.add_suffix(pickColorButton);
+            colorGenRow.add_suffix(generateButton);
+
+            expanderRow.add_row(colorGenRow);
+
+            // GTK Theming row
             const gtkRow = new Adw.ActionRow({
                 title: 'Include GTK Theming',
                 subtitle: 'Copy gtk.css to GTK 3.0 and GTK 4.0 config',
@@ -628,6 +673,36 @@ export const SettingsSidebar = GObject.registerClass(
             expanderRow.add_row(gtkRow);
 
             return expanderRow;
+        }
+
+        _pickBaseColor() {
+            const dialog = new Gtk.ColorDialog();
+            const currentRgba = new Gdk.RGBA();
+            currentRgba.parse(this._baseColor);
+
+            dialog.choose_rgba(this.get_root(), currentRgba, null, (source, result) => {
+                const rgba = dialog.choose_rgba_finish(result);
+                if (!rgba) return;
+
+                // Convert RGBA to hex
+                const r = Math.round(rgba.red * 255);
+                const g = Math.round(rgba.green * 255);
+                const b = Math.round(rgba.blue * 255);
+                this._baseColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+
+                // Update preview box
+                applyCssToWidget(this._baseColorPreview, `
+                    * {
+                        background-color: ${this._baseColor};
+                        border-radius: 0px;
+                    }
+                `);
+            });
+        }
+
+        _generateFromBaseColor() {
+            const generatedColors = generatePaletteFromColor(this._baseColor);
+            this.emit('palette-from-color-generated', generatedColors);
         }
 
         _clearGtkTheme() {
