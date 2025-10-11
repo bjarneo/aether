@@ -418,6 +418,7 @@ export const WallpaperBrowser = GObject.registerClass(
 
             this._lastWidth = 0;
             this._resizeTimeoutId = null;
+            this._isCleanedUp = false;
 
             // Cache column spacing to avoid repeated method calls
             this._cachedColumnSpacing = this._gridFlow.get_column_spacing();
@@ -437,10 +438,6 @@ export const WallpaperBrowser = GObject.registerClass(
             this.connect('destroy', () => {
                 this._cleanupResponsiveColumns();
             });
-
-            this.connect('unrealize', () => {
-                this._cleanupResponsiveColumns();
-            });
         }
 
         _connectResizeSignals() {
@@ -457,6 +454,12 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         _cleanupResponsiveColumns() {
+            // Guard against double cleanup
+            if (this._isCleanedUp) {
+                return;
+            }
+            this._isCleanedUp = true;
+
             // Cleanup timeout
             if (this._resizeTimeoutId) {
                 GLib.source_remove(this._resizeTimeoutId);
