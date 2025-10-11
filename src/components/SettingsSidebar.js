@@ -401,12 +401,11 @@ export const SettingsSidebar = GObject.registerClass(
                 presetsBox.append(presetRow);
             });
 
-            // Wrap in scrolled window with max height
+            // Wrap in scrolled window with fixed height
             const scrolled = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-                max_content_height: 300,
-                propagate_natural_height: true,
+                height_request: 300,
             });
             scrolled.set_child(presetsBox);
 
@@ -512,12 +511,11 @@ export const SettingsSidebar = GObject.registerClass(
                 neovimBox.append(presetRow);
             });
 
-            // Wrap in scrolled window with max height
+            // Wrap in scrolled window with fixed height
             const scrolled = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-                max_content_height: 300,
-                propagate_natural_height: true,
+                height_request: 300,
             });
             scrolled.set_child(neovimBox);
 
