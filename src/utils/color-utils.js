@@ -36,6 +36,23 @@ export function hexToRgbString(hex) {
 }
 
 /**
+ * Converts hex color to rgba format
+ * @param {string} hex - Hex color string (with or without #)
+ * @param {number} alpha - Alpha value (0.0 to 1.0), default 1.0
+ * @returns {string} RGBA string in format "rgba(r, g, b, a)"
+ */
+export function hexToRgba(hex, alpha = 1.0) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return 'rgba(0, 0, 0, 1.0)';
+
+    const r = parseInt(result[1], 16);
+    const g = parseInt(result[2], 16);
+    const b = parseInt(result[3], 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
  * Converts RGB values to HSL
  * @param {number} r - Red value (0-255)
  * @param {number} g - Green value (0-255)
