@@ -1,4 +1,5 @@
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
@@ -583,6 +584,26 @@ export const SettingsSidebar = GObject.registerClass(
                 subtitle: 'Copy gtk.css to GTK 3.0 and GTK 4.0 config',
             });
 
+            // Create a box to hold both the clear button and switch
+            const suffixBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                valign: Gtk.Align.CENTER,
+            });
+
+            // Create clear button (initially hidden)
+            this._gtkClearButton = new Gtk.Button({
+                icon_name: 'user-trash-symbolic',
+                tooltip_text: 'Remove GTK theme files',
+                valign: Gtk.Align.CENTER,
+                visible: false,
+                css_classes: ['flat', 'circular'],
+            });
+
+            this._gtkClearButton.connect('clicked', () => {
+                this._clearGtkTheme();
+            });
+
             this._gtkSwitch = new Gtk.Switch({
                 active: this._includeGtk,
                 valign: Gtk.Align.CENTER,
@@ -590,15 +611,49 @@ export const SettingsSidebar = GObject.registerClass(
 
             this._gtkSwitch.connect('notify::active', sw => {
                 this._includeGtk = sw.get_active();
+                // Show/hide clear button based on switch state
+                this._gtkClearButton.set_visible(this._includeGtk);
                 this.emit('settings-changed', this.getSettings());
             });
 
-            gtkRow.add_suffix(this._gtkSwitch);
+            // Set initial visibility of clear button
+            this._gtkClearButton.set_visible(this._includeGtk);
+
+            suffixBox.append(this._gtkClearButton);
+            suffixBox.append(this._gtkSwitch);
+
+            gtkRow.add_suffix(suffixBox);
             gtkRow.set_activatable_widget(this._gtkSwitch);
 
             expanderRow.add_row(gtkRow);
 
             return expanderRow;
+        }
+
+        _clearGtkTheme() {
+            const configDir = GLib.get_user_config_dir();
+            const paths = [
+                GLib.build_filenamev([configDir, 'gtk-3.0', 'gtk.css']),
+                GLib.build_filenamev([configDir, 'gtk-4.0', 'gtk.css']),
+            ];
+
+            paths.forEach(path => {
+                const file = Gio.File.new_for_path(path);
+                try {
+                    if (file.query_exists(null)) {
+                        file.delete(null);
+                    }
+                } catch (e) {
+                    console.error(`Failed to remove ${path}:`, e.message);
+                }
+            });
+
+            // Show checkmark feedback
+            this._gtkClearButton.set_icon_name('object-select-symbolic');
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2000, () => {
+                this._gtkClearButton.set_icon_name('user-trash-symbolic');
+                return GLib.SOURCE_REMOVE;
+            });
         }
 
         resetAdjustments() {
