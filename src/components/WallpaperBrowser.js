@@ -402,20 +402,35 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         _setupResponsiveColumns() {
+            // Responsive grid constants
+            this.LAYOUT_CONSTANTS = {
+                MIN_COLUMNS: 2,                    // Minimum columns to maintain usable grid
+                FALLBACK_WIDTH: 1200,              // Default width when allocation unavailable
+                CONTENT_WIDTH_RATIO: 0.65,         // Content area ratio of total window (accounts for sidebar)
+                WINDOW_SCROLL_THRESHOLD: 2,        // Window must be 2x scroll width to use window-based calculation
+                MIN_WINDOW_WIDTH: 1200,            // Minimum window width to apply window-based calculation
+                ITEM_WIDTH: 280,                   // Width of each wallpaper item (from _createWallpaperItem)
+                ITEM_SPACING: 12,                  // Spacing between grid items
+                GRID_MARGINS: 24,                  // Total margins (12px left + 12px right)
+                CHANGE_THRESHOLD: 50,              // Minimum width change (px) to trigger column recalculation
+                POLLING_INTERVAL: 400,             // Polling interval (ms) for Wayland/Hyprland compatibility
+                INITIAL_DELAY: 300                 // Initial delay (ms) before first column calculation
+            };
+
             this._lastWidth = 0;
             this._resizeTimeoutId = null;
 
             // Initial update
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, this.LAYOUT_CONSTANTS.INITIAL_DELAY, () => {
                 this._updateColumns();
                 return GLib.SOURCE_REMOVE;
             });
 
             // Periodic check for width changes (Wayland/Hyprland compatibility)
-            this._resizeTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+            this._resizeTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, this.LAYOUT_CONSTANTS.POLLING_INTERVAL, () => {
                 if (this._scrolledWindow?.get_mapped()) {
                     const width = this._getAvailableWidth();
-                    if (Math.abs(width - this._lastWidth) > 50) {
+                    if (Math.abs(width - this._lastWidth) > this.LAYOUT_CONSTANTS.CHANGE_THRESHOLD) {
                         this._updateColumns();
                         this._lastWidth = width;
                     }
@@ -447,9 +462,12 @@ export const WallpaperBrowser = GObject.registerClass(
             const windowWidth = window?.get_allocated_width() || 0;
 
             // Use window-based calculation if scroll area hasn't expanded yet
-            return (windowWidth > scrollWidth * 2 && windowWidth > 1200)
-                ? windowWidth * 0.65
-                : scrollWidth || 1200;
+            const shouldUseWindowWidth = windowWidth > scrollWidth * this.LAYOUT_CONSTANTS.WINDOW_SCROLL_THRESHOLD
+                                      && windowWidth > this.LAYOUT_CONSTANTS.MIN_WINDOW_WIDTH;
+
+            return shouldUseWindowWidth
+                ? windowWidth * this.LAYOUT_CONSTANTS.CONTENT_WIDTH_RATIO
+                : scrollWidth || this.LAYOUT_CONSTANTS.FALLBACK_WIDTH;
         }
 
         _updateColumns() {
@@ -458,21 +476,21 @@ export const WallpaperBrowser = GObject.registerClass(
 
             if (this._gridFlow.get_max_children_per_line() !== columns) {
                 this._gridFlow.set_max_children_per_line(columns);
-                this._gridFlow.set_min_children_per_line(Math.max(2, columns - 1));
+                this._gridFlow.set_min_children_per_line(Math.max(this.LAYOUT_CONSTANTS.MIN_COLUMNS, columns - 1));
             }
         }
 
         _calculateColumns(width) {
-            // Item: 280px + spacing: 12px, margins: 24px total
-            const itemSize = 292; // 280 + 12
-            const availableWidth = width - 24;
+            // Use actual grid configuration values for consistency
+            const itemSize = this.LAYOUT_CONSTANTS.ITEM_WIDTH + this._gridFlow.get_column_spacing();
+            const availableWidth = width - this.LAYOUT_CONSTANTS.GRID_MARGINS;
             const calculated = Math.floor(availableWidth / itemSize);
 
             // Apply responsive breakpoints
             if (width >= 2560) return Math.max(4, Math.min(calculated, 6));
             if (width >= 1920) return Math.max(3, Math.min(calculated, 5));
             if (width >= 1400) return Math.max(3, Math.min(calculated, 4));
-            return Math.max(2, Math.min(calculated, 3));
+            return Math.max(this.LAYOUT_CONSTANTS.MIN_COLUMNS, Math.min(calculated, 3));
         }
 
         _loadInitialWallpapers() {
