@@ -410,7 +410,6 @@ export const WallpaperBrowser = GObject.registerClass(
                 WINDOW_SCROLL_THRESHOLD: 2,        // Window must be 2x scroll width to use window-based calculation
                 MIN_WINDOW_WIDTH: 1200,            // Minimum window width to apply window-based calculation
                 ITEM_WIDTH: 280,                   // Width of each wallpaper item (from _createWallpaperItem)
-                ITEM_SPACING: 12,                  // Spacing between grid items
                 GRID_MARGINS: 24,                  // Total margins (12px left + 12px right)
                 CHANGE_THRESHOLD: 50,              // Minimum width change (px) to trigger column recalculation
                 POLLING_INTERVAL: 400,             // Polling interval (ms) for Wayland/Hyprland compatibility
@@ -476,7 +475,10 @@ export const WallpaperBrowser = GObject.registerClass(
 
             if (this._gridFlow.get_max_children_per_line() !== columns) {
                 this._gridFlow.set_max_children_per_line(columns);
-                this._gridFlow.set_min_children_per_line(Math.max(this.LAYOUT_CONSTANTS.MIN_COLUMNS, columns - 1));
+
+                // Ensure min <= max in all cases
+                const minColumns = Math.max(this.LAYOUT_CONSTANTS.MIN_COLUMNS, columns - 1);
+                this._gridFlow.set_min_children_per_line(Math.min(minColumns, columns));
             }
         }
 
