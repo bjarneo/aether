@@ -351,6 +351,12 @@ export const SettingsSidebar = GObject.registerClass(
                 subtitle: 'Popular color palettes',
             });
 
+            // Create container box for all preset rows
+            const presetsBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 0,
+            });
+
             COLOR_PRESETS.forEach((preset, presetIndex) => {
                 const presetRow = new Adw.ActionRow({
                     title: preset.name,
@@ -389,8 +395,19 @@ export const SettingsSidebar = GObject.registerClass(
                     this.emit('preset-applied', preset);
                 });
 
-                expanderRow.add_row(presetRow);
+                presetsBox.append(presetRow);
             });
+
+            // Wrap in scrolled window with max height
+            const scrolled = new Gtk.ScrolledWindow({
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+                max_content_height: 300,
+                propagate_natural_height: true,
+            });
+            scrolled.set_child(presetsBox);
+
+            expanderRow.add_row(new Adw.ActionRow({child: scrolled}));
 
             return expanderRow;
         }
@@ -399,6 +416,12 @@ export const SettingsSidebar = GObject.registerClass(
             const expanderRow = new Adw.ExpanderRow({
                 title: 'Neovim Themes',
                 subtitle: 'LazyVim colorscheme presets',
+            });
+
+            // Create container box for all neovim preset rows
+            const neovimBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 0,
             });
 
             NEOVIM_PRESETS.forEach((preset, index) => {
@@ -483,8 +506,19 @@ export const SettingsSidebar = GObject.registerClass(
                     }
                 });
 
-                expanderRow.add_row(presetRow);
+                neovimBox.append(presetRow);
             });
+
+            // Wrap in scrolled window with max height
+            const scrolled = new Gtk.ScrolledWindow({
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+                max_content_height: 300,
+                propagate_natural_height: true,
+            });
+            scrolled.set_child(neovimBox);
+
+            expanderRow.add_row(new Adw.ActionRow({child: scrolled}));
 
             return expanderRow;
         }
