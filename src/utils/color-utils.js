@@ -93,6 +93,38 @@ export function rgbToHsl(r, g, b) {
 }
 
 /**
+ * Helper function for HSL to RGB conversion
+ * @private
+ */
+function hue2rgb(p, q, t) {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+}
+
+/**
+ * Converts RGB values to hex
+ * @param {number} r - Red (0-255)
+ * @param {number} g - Green (0-255)
+ * @param {number} b - Blue (0-255)
+ * @returns {string} Hex color
+ */
+function rgbToHex(r, g, b) {
+    return (
+        '#' +
+        [r, g, b]
+            .map(x => {
+                const hex = Math.round(x).toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            })
+            .join('')
+    );
+}
+
+/**
  * Converts HSL values to hex color
  * @param {number} h - Hue (0-360)
  * @param {number} s - Saturation (0-100)
@@ -100,38 +132,8 @@ export function rgbToHsl(r, g, b) {
  * @returns {string} Hex color string with # prefix
  */
 export function hslToHex(h, s, l) {
-    h /= 360;
-    s /= 100;
-    l /= 100;
-
-    let r, g, b;
-
-    if (s === 0) {
-        r = g = b = l;
-    } else {
-        const hue2rgb = (p, q, t) => {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-            return p;
-        };
-
-        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        const p = 2 * l - q;
-
-        r = hue2rgb(p, q, h + 1 / 3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1 / 3);
-    }
-
-    const toHex = x => {
-        const hex = Math.round(x * 255).toString(16);
-        return hex.length === 1 ? '0' + hex : hex;
-    };
-
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    const rgb = hslToRgb(h, s, l);
+    return rgbToHex(rgb.r, rgb.g, rgb.b);
 }
 
 /**
@@ -242,25 +244,6 @@ export function adjustColor(
 }
 
 /**
- * Converts RGB values to hex
- * @param {number} r - Red (0-255)
- * @param {number} g - Green (0-255)
- * @param {number} b - Blue (0-255)
- * @returns {string} Hex color
- */
-function rgbToHex(r, g, b) {
-    return (
-        '#' +
-        [r, g, b]
-            .map(x => {
-                const hex = Math.round(x).toString(16);
-                return hex.length === 1 ? '0' + hex : hex;
-            })
-            .join('')
-    );
-}
-
-/**
  * Converts HSL to RGB
  * @param {number} h - Hue (0-360)
  * @param {number} s - Saturation (0-100)
@@ -277,15 +260,6 @@ function hslToRgb(h, s, l) {
     if (s === 0) {
         r = g = b = l;
     } else {
-        const hue2rgb = (p, q, t) => {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-            return p;
-        };
-
         const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
         const p = 2 * l - q;
 
@@ -392,6 +366,41 @@ export function hexToYaruTheme(hexColor) {
     else {
         return 'Yaru-magenta';
     }
+}
+
+/**
+ * Generates a gradient of 16 colors between start and end colors
+ * @param {string} startColor - Starting hex color
+ * @param {string} endColor - Ending hex color
+ * @returns {string[]} Array of 16 hex colors forming a gradient
+ */
+export function generateGradient(startColor, endColor) {
+    // Parse hex colors to RGB
+    const start = {
+        r: parseInt(startColor.slice(1, 3), 16),
+        g: parseInt(startColor.slice(3, 5), 16),
+        b: parseInt(startColor.slice(5, 7), 16),
+    };
+
+    const end = {
+        r: parseInt(endColor.slice(1, 3), 16),
+        g: parseInt(endColor.slice(3, 5), 16),
+        b: parseInt(endColor.slice(5, 7), 16),
+    };
+
+    const colors = [];
+
+    // Generate 16 color steps
+    for (let i = 0; i < 16; i++) {
+        const ratio = i / 15;
+        const r = Math.round(start.r + (end.r - start.r) * ratio);
+        const g = Math.round(start.g + (end.g - start.g) * ratio);
+        const b = Math.round(start.b + (end.b - start.b) * ratio);
+
+        colors.push(rgbToHex(r, g, b));
+    }
+
+    return colors;
 }
 
 /**

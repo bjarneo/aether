@@ -6,6 +6,7 @@ import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 
 import {wallhavenService} from '../services/wallhaven-service.js';
+import {removeAllChildren} from '../utils/ui-helpers.js';
 
 export const WallpaperBrowser = GObject.registerClass(
     {
@@ -561,12 +562,7 @@ export const WallpaperBrowser = GObject.registerClass(
             this._contentStack.set_visible_child_name('loading');
 
             // Clear existing items
-            let child = this._gridFlow.get_first_child();
-            while (child) {
-                const next = child.get_next_sibling();
-                this._gridFlow.remove(child);
-                child = next;
-            }
+            removeAllChildren(this._gridFlow);
 
             if (this._favorites.size === 0) {
                 this._showError(
@@ -617,12 +613,7 @@ export const WallpaperBrowser = GObject.registerClass(
 
         _displayWallpapers(wallpapers) {
             // Clear existing items
-            let child = this._gridFlow.get_first_child();
-            while (child) {
-                const next = child.get_next_sibling();
-                this._gridFlow.remove(child);
-                child = next;
-            }
+            removeAllChildren(this._gridFlow);
 
             // Add wallpaper thumbnails
             wallpapers.forEach(wallpaper => {

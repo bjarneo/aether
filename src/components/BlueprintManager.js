@@ -10,7 +10,12 @@ import {
     saveJsonFile,
     deleteFile,
 } from '../utils/file-utils.js';
-import {applyCssToWidget, removeAllChildren} from '../utils/ui-helpers.js';
+import {
+    applyCssToWidget,
+    removeAllChildren,
+    forEachChild,
+} from '../utils/ui-helpers.js';
+import {DialogManager} from '../utils/DialogManager.js';
 
 export const BlueprintManager = GObject.registerClass(
     {
@@ -228,39 +233,17 @@ export const BlueprintManager = GObject.registerClass(
         }
 
         saveBlueprint(blueprint) {
-            const dialog = new Adw.MessageDialog({
+            const dialogManager = new DialogManager(this.get_root());
+
+            dialogManager.showTextInput({
                 heading: 'Save Blueprint',
                 body: 'Enter a name for your blueprint',
-                transient_for: this.get_root(),
-            });
-
-            dialog.add_response('cancel', 'Cancel');
-            dialog.add_response('save', 'Save');
-            dialog.set_response_appearance(
-                'save',
-                Adw.ResponseAppearance.SUGGESTED
-            );
-
-            const entry = new Gtk.Entry({
-                placeholder_text: 'My Awesome Theme',
-                margin_start: 12,
-                margin_end: 12,
-                margin_top: 6,
-                margin_bottom: 6,
-            });
-
-            dialog.set_extra_child(entry);
-
-            dialog.connect('response', (_, response) => {
-                if (response === 'save') {
-                    const name =
-                        entry.get_text().trim() || `Blueprint ${Date.now()}`;
-                    blueprint.name = name;
+                placeholder: 'My Awesome Theme',
+                onSubmit: name => {
+                    blueprint.name = name || `Blueprint ${Date.now()}`;
                     this._saveBlueprintToFile(blueprint);
-                }
+                },
             });
-
-            dialog.present();
         }
 
         _saveBlueprintToFile(blueprint) {
@@ -285,18 +268,12 @@ export const BlueprintManager = GObject.registerClass(
         }
 
         _exportBlueprint(blueprint) {
-            const fileDialog = new Gtk.FileDialog({
+            const dialogManager = new DialogManager(this.get_root());
+
+            dialogManager.showSaveDialog({
                 title: 'Export Blueprint',
-                initial_name: `${blueprint.name}.json`,
-            });
-
-            fileDialog.save(this.get_root(), null, (dialog, result) => {
-                try {
-                    const file = dialog.save_finish(result);
-                    if (!file) return;
-
-                    const exportPath = file.get_path();
-
+                initialName: `${blueprint.name}.json`,
+                onSave: exportPath => {
                     // Create a clean copy without the internal path property
                     const exportData = {
                         name: blueprint.name,
@@ -308,38 +285,17 @@ export const BlueprintManager = GObject.registerClass(
                     if (success) {
                         this._showExportSuccess(blueprint.name);
                     }
-                } catch (e) {
-                    if (
-                        e.matches &&
-                        e.matches(Gtk.DialogError, Gtk.DialogError.DISMISSED)
-                    ) {
-                        return;
-                    }
-                    console.error('Error exporting blueprint:', e.message);
-                }
+                },
             });
         }
 
         _importBlueprint() {
-            const fileDialog = new Gtk.FileDialog({
+            const dialogManager = new DialogManager(this.get_root());
+
+            dialogManager.showFilePicker({
                 title: 'Import Blueprint',
-            });
-
-            const filter = new Gtk.FileFilter();
-            filter.add_mime_type('application/json');
-            filter.add_pattern('*.json');
-            filter.set_name('Blueprint Files');
-
-            const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
-            filterList.append(filter);
-            fileDialog.set_filters(filterList);
-
-            fileDialog.open(this.get_root(), null, (dialog, result) => {
-                try {
-                    const file = dialog.open_finish(result);
-                    if (!file) return;
-
-                    const importPath = file.get_path();
+                mimeTypes: ['application/json'],
+                onSelect: importPath => {
                     const blueprint = this._loadBlueprintFromFile(importPath);
 
                     if (!blueprint) {
@@ -350,60 +306,43 @@ export const BlueprintManager = GObject.registerClass(
                     // Import by saving to blueprints directory
                     this._saveBlueprintToFile(blueprint);
                     this._showImportSuccess(blueprint.name);
-                } catch (e) {
-                    if (
-                        e.matches &&
-                        e.matches(Gtk.DialogError, Gtk.DialogError.DISMISSED)
-                    ) {
-                        return;
-                    }
-                    console.error('Error importing blueprint:', e.message);
-                    this._showImportError(e.message);
-                }
+                },
             });
         }
 
         _showExportSuccess(name) {
-            const dialog = new Adw.MessageDialog({
+            const dialogManager = new DialogManager(this.get_root());
+            dialogManager.showMessage({
                 heading: 'Blueprint Exported',
                 body: `"${name}" was exported successfully`,
-                transient_for: this.get_root(),
             });
-            dialog.add_response('ok', 'OK');
-            dialog.present();
         }
 
         _showImportSuccess(name) {
-            const dialog = new Adw.MessageDialog({
+            const dialogManager = new DialogManager(this.get_root());
+            dialogManager.showMessage({
                 heading: 'Blueprint Imported',
                 body: `"${name}" was imported successfully`,
-                transient_for: this.get_root(),
             });
-            dialog.add_response('ok', 'OK');
-            dialog.present();
         }
 
         _showImportError(error) {
-            const dialog = new Adw.MessageDialog({
+            const dialogManager = new DialogManager(this.get_root());
+            dialogManager.showMessage({
                 heading: 'Import Failed',
                 body: `Failed to import blueprint: ${error}`,
-                transient_for: this.get_root(),
             });
-            dialog.add_response('ok', 'OK');
-            dialog.present();
         }
 
         _filterBlueprints(query) {
             const lowerQuery = query.toLowerCase();
 
-            let child = this._listBox.get_first_child();
-            while (child) {
+            forEachChild(this._listBox, child => {
                 const visible =
                     !query ||
                     child._blueprint?.name?.toLowerCase().includes(lowerQuery);
                 child.set_visible(visible);
-                child = child.get_next_sibling();
-            }
+            });
         }
 
         _formatDate(timestamp) {

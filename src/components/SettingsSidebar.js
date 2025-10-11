@@ -9,8 +9,12 @@ import {ColorAdjustmentControls} from './palette/color-adjustment-controls.js';
 import {AccessibilityPanel} from './AccessibilityPanel.js';
 import {COLOR_PRESETS} from '../constants/presets.js';
 import {NEOVIM_PRESETS} from '../constants/neovim-presets.js';
-import {applyCssToWidget} from '../utils/ui-helpers.js';
-import {rgbaToHex, generatePaletteFromColor} from '../utils/color-utils.js';
+import {applyCssToWidget, removeAllChildren} from '../utils/ui-helpers.js';
+import {
+    rgbaToHex,
+    generatePaletteFromColor,
+    generateGradient,
+} from '../utils/color-utils.js';
 import {loadJsonFile, saveJsonFile} from '../utils/file-utils.js';
 
 export const SettingsSidebar = GObject.registerClass(
@@ -290,15 +294,10 @@ export const SettingsSidebar = GObject.registerClass(
             const endColor = rgbaToHex(endRgba);
 
             // Clear existing preview
-            let child = this._gradientPreviewBox.get_first_child();
-            while (child) {
-                const next = child.get_next_sibling();
-                this._gradientPreviewBox.remove(child);
-                child = next;
-            }
+            removeAllChildren(this._gradientPreviewBox);
 
             // Show gradient preview with 16 color steps
-            const colors = this._generateGradientColors(startColor, endColor);
+            const colors = generateGradient(startColor, endColor);
             colors.forEach(color => {
                 const colorBox = new Gtk.Box({
                     hexpand: true,
@@ -309,36 +308,6 @@ export const SettingsSidebar = GObject.registerClass(
             });
         }
 
-        _generateGradientColors(startColor, endColor) {
-            // Parse hex colors to RGB
-            const start = {
-                r: parseInt(startColor.slice(1, 3), 16),
-                g: parseInt(startColor.slice(3, 5), 16),
-                b: parseInt(startColor.slice(5, 7), 16),
-            };
-
-            const end = {
-                r: parseInt(endColor.slice(1, 3), 16),
-                g: parseInt(endColor.slice(3, 5), 16),
-                b: parseInt(endColor.slice(5, 7), 16),
-            };
-
-            const colors = [];
-
-            // Generate 16 color steps
-            for (let i = 0; i < 16; i++) {
-                const ratio = i / 15;
-                const r = Math.round(start.r + (end.r - start.r) * ratio);
-                const g = Math.round(start.g + (end.g - start.g) * ratio);
-                const b = Math.round(start.b + (end.b - start.b) * ratio);
-
-                const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-                colors.push(hex);
-            }
-
-            return colors;
-        }
-
         _generateGradient() {
             const startRgba = this._gradientStartButton.get_rgba();
             const endRgba = this._gradientEndButton.get_rgba();
@@ -346,7 +315,7 @@ export const SettingsSidebar = GObject.registerClass(
             const startColor = rgbaToHex(startRgba);
             const endColor = rgbaToHex(endRgba);
 
-            const colors = this._generateGradientColors(startColor, endColor);
+            const colors = generateGradient(startColor, endColor);
             this.emit('gradient-generated', colors);
         }
 
