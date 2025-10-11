@@ -354,10 +354,10 @@ export const SettingsSidebar = GObject.registerClass(
                 subtitle: 'Popular color palettes',
             });
 
-            // Create container box for all preset rows
-            const presetsBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 0,
+            // Create a ListBox for proper row activation
+            const listBox = new Gtk.ListBox({
+                selection_mode: Gtk.SelectionMode.NONE,
+                css_classes: ['boxed-list'],
             });
 
             COLOR_PRESETS.forEach((preset, presetIndex) => {
@@ -398,16 +398,16 @@ export const SettingsSidebar = GObject.registerClass(
                     this.emit('preset-applied', preset);
                 });
 
-                presetsBox.append(presetRow);
+                listBox.append(presetRow);
             });
 
-            // Wrap in scrolled window with fixed height
+            // Wrap ListBox in scrolled window with fixed height
             const scrolled = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
                 height_request: 300,
             });
-            scrolled.set_child(presetsBox);
+            scrolled.set_child(listBox);
 
             expanderRow.add_row(new Adw.ActionRow({child: scrolled}));
 
@@ -420,10 +420,10 @@ export const SettingsSidebar = GObject.registerClass(
                 subtitle: 'LazyVim colorscheme presets',
             });
 
-            // Create container box for all neovim preset rows
-            const neovimBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 0,
+            // Create a ListBox for proper row activation
+            const listBox = new Gtk.ListBox({
+                selection_mode: Gtk.SelectionMode.NONE,
+                css_classes: ['boxed-list'],
             });
 
             NEOVIM_PRESETS.forEach((preset, index) => {
@@ -508,16 +508,16 @@ export const SettingsSidebar = GObject.registerClass(
                     }
                 });
 
-                neovimBox.append(presetRow);
+                listBox.append(presetRow);
             });
 
-            // Wrap in scrolled window with fixed height
+            // Wrap ListBox in scrolled window with fixed height
             const scrolled = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
                 height_request: 300,
             });
-            scrolled.set_child(neovimBox);
+            scrolled.set_child(listBox);
 
             expanderRow.add_row(new Adw.ActionRow({child: scrolled}));
 
