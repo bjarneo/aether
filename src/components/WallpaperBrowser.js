@@ -36,6 +36,7 @@ export const WallpaperBrowser = GObject.registerClass(
             this._loadConfig();
             this._loadFavorites();
             this._initializeUI();
+            this._setupResponsiveColumns();
             this._loadInitialWallpapers();
         }
 
@@ -96,11 +97,11 @@ export const WallpaperBrowser = GObject.registerClass(
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
             });
 
-            // Wallpaper grid
+            // Wallpaper grid - start with default 3 columns, will be updated based on screen size
             this._gridFlow = new Gtk.FlowBox({
                 valign: Gtk.Align.START,
                 max_children_per_line: 3,
-                min_children_per_line: 3,
+                min_children_per_line: 2,
                 selection_mode: Gtk.SelectionMode.NONE,
                 column_spacing: 12,
                 row_spacing: 12,
@@ -398,6 +399,74 @@ export const WallpaperBrowser = GObject.registerClass(
             this._paginationBox.append(this._nextButton);
 
             return this._paginationBox;
+        }
+
+        _setupResponsiveColumns() {
+            // Set up size allocation signal to adjust columns based on window width
+            this.connect('realize', () => {
+                const window = this.get_root();
+                if (window) {
+                    // Initial calculation
+                    this._updateColumnCount();
+
+                    // Update on window resize
+                    const controller = new Gtk.EventControllerFocus();
+                    window.add_controller(controller);
+
+                    // Use a timeout to throttle resize events
+                    let resizeTimeout = null;
+                    this._scrolledWindow.connect('resize', () => {
+                        if (resizeTimeout) {
+                            GLib.source_remove(resizeTimeout);
+                        }
+                        resizeTimeout = GLib.timeout_add(
+                            GLib.PRIORITY_DEFAULT,
+                            100,
+                            () => {
+                                this._updateColumnCount();
+                                resizeTimeout = null;
+                                return GLib.SOURCE_REMOVE;
+                            }
+                        );
+                    });
+                }
+            });
+        }
+
+        _updateColumnCount() {
+            // Get the width of the scrolled window
+            const width = this._scrolledWindow.get_width();
+
+            // Calculate number of columns based on width
+            // Base width per item: 280px (from _createWallpaperItem)
+            // Add spacing: 12px between items
+            // Add margins: 24px total (12px on each side)
+            const itemWidth = 280;
+            const spacing = 12;
+            const margins = 24;
+            const availableWidth = width - margins;
+
+            let columns = Math.floor(
+                (availableWidth + spacing) / (itemWidth + spacing)
+            );
+
+            // Set minimum and maximum columns
+            columns = Math.max(2, Math.min(columns, 8));
+
+            // For larger screens, use more columns
+            if (width >= 3840) {
+                // 4K: 6-8 columns
+                columns = Math.max(6, columns);
+            } else if (width >= 2560) {
+                // 1440p+: 4-6 columns
+                columns = Math.max(4, columns);
+            } else if (width >= 1920) {
+                // 1080p+: 3-4 columns
+                columns = Math.max(3, columns);
+            }
+
+            this._gridFlow.set_max_children_per_line(columns);
+            this._gridFlow.set_min_children_per_line(Math.max(2, columns - 1));
         }
 
         _loadInitialWallpapers() {
