@@ -412,8 +412,8 @@ export const WallpaperBrowser = GObject.registerClass(
                 ITEM_WIDTH: 280,                   // Width of each wallpaper item (from _createWallpaperItem)
                 GRID_MARGINS: 24,                  // Total margins (12px left + 12px right)
                 CHANGE_THRESHOLD: 50,              // Minimum width change (px) to trigger column recalculation
-                POLLING_INTERVAL: 400,             // Polling interval (ms) for Wayland/Hyprland compatibility
-                INITIAL_DELAY: 300                 // Initial delay (ms) before first column calculation
+                INITIAL_DELAY: 300,                // Initial delay (ms) before first column calculation
+                POLLING_INTERVAL: 1000             // Polling interval (ms) for resize detection
             };
 
             this._lastWidth = 0;
@@ -428,30 +428,36 @@ export const WallpaperBrowser = GObject.registerClass(
                 return GLib.SOURCE_REMOVE;
             });
 
-            // Periodic check for width changes (Wayland/Hyprland compatibility)
-            this._resizeTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, this.LAYOUT_CONSTANTS.POLLING_INTERVAL, () => {
-                if (this._scrolledWindow?.get_mapped()) {
-                    const width = this._getAvailableWidth();
-                    if (Math.abs(width - this._lastWidth) > this.LAYOUT_CONSTANTS.CHANGE_THRESHOLD) {
-                        this._updateColumns();
-                        this._lastWidth = width;
-                    }
-                }
-                return GLib.SOURCE_CONTINUE;
+            // Connect to size allocation signals for efficient resize detection
+            this.connect('realize', () => {
+                this._connectResizeSignals();
             });
 
-            // Cleanup timeout when component is destroyed
+            // Cleanup when component is destroyed
             this.connect('destroy', () => {
                 this._cleanupResponsiveColumns();
             });
 
-            // Also cleanup when unrealized (for good measure)
             this.connect('unrealize', () => {
                 this._cleanupResponsiveColumns();
             });
         }
 
+        _connectResizeSignals() {
+            // Use efficient polling with change detection
+            // Check at POLLING_INTERVAL, but only update if width changed significantly
+            this._resizeTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, this.LAYOUT_CONSTANTS.POLLING_INTERVAL, () => {
+                const width = this._getAvailableWidth();
+                if (Math.abs(width - this._lastWidth) > this.LAYOUT_CONSTANTS.CHANGE_THRESHOLD) {
+                    this._updateColumns();
+                    this._lastWidth = width;
+                }
+                return GLib.SOURCE_CONTINUE;
+            });
+        }
+
         _cleanupResponsiveColumns() {
+            // Cleanup timeout
             if (this._resizeTimeoutId) {
                 GLib.source_remove(this._resizeTimeoutId);
                 this._resizeTimeoutId = null;
