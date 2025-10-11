@@ -402,71 +402,59 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         _setupResponsiveColumns() {
-            // Set up size allocation signal to adjust columns based on window width
-            this.connect('realize', () => {
-                const window = this.get_root();
-                if (window) {
-                    // Initial calculation
-                    this._updateColumnCount();
+            this._lastWidth = 0;
 
-                    // Update on window resize
-                    const controller = new Gtk.EventControllerFocus();
-                    window.add_controller(controller);
+            // Initial update
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+                this._updateColumns();
+                return GLib.SOURCE_REMOVE;
+            });
 
-                    // Use a timeout to throttle resize events
-                    let resizeTimeout = null;
-                    this._scrolledWindow.connect('resize', () => {
-                        if (resizeTimeout) {
-                            GLib.source_remove(resizeTimeout);
-                        }
-                        resizeTimeout = GLib.timeout_add(
-                            GLib.PRIORITY_DEFAULT,
-                            100,
-                            () => {
-                                this._updateColumnCount();
-                                resizeTimeout = null;
-                                return GLib.SOURCE_REMOVE;
-                            }
-                        );
-                    });
+            // Periodic check for width changes (Wayland/Hyprland compatibility)
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+                if (this._scrolledWindow?.get_mapped()) {
+                    const width = this._getAvailableWidth();
+                    if (Math.abs(width - this._lastWidth) > 50) {
+                        this._updateColumns();
+                        this._lastWidth = width;
+                    }
                 }
+                return GLib.SOURCE_CONTINUE;
             });
         }
 
-        _updateColumnCount() {
-            // Get the width of the scrolled window
-            const width = this._scrolledWindow.get_width();
+        _getAvailableWidth() {
+            const scrollWidth = this._scrolledWindow.get_allocated_width();
+            const window = this.get_root();
+            const windowWidth = window?.get_allocated_width() || 0;
 
-            // Calculate number of columns based on width
-            // Base width per item: 280px (from _createWallpaperItem)
-            // Add spacing: 12px between items
-            // Add margins: 24px total (12px on each side)
-            const itemWidth = 280;
-            const spacing = 12;
-            const margins = 24;
-            const availableWidth = width - margins;
+            // Use window-based calculation if scroll area hasn't expanded yet
+            return (windowWidth > scrollWidth * 2 && windowWidth > 1200)
+                ? windowWidth * 0.65
+                : scrollWidth || 1200;
+        }
 
-            let columns = Math.floor(
-                (availableWidth + spacing) / (itemWidth + spacing)
-            );
+        _updateColumns() {
+            const width = this._getAvailableWidth();
+            const columns = this._calculateColumns(width);
 
-            // Set minimum and maximum columns
-            columns = Math.max(2, Math.min(columns, 8));
-
-            // For larger screens, use more columns
-            if (width >= 3840) {
-                // 4K: 6-8 columns
-                columns = Math.max(6, columns);
-            } else if (width >= 2560) {
-                // 1440p+: 4-6 columns
-                columns = Math.max(4, columns);
-            } else if (width >= 1920) {
-                // 1080p+: 3-4 columns
-                columns = Math.max(3, columns);
+            if (this._gridFlow.get_max_children_per_line() !== columns) {
+                this._gridFlow.set_max_children_per_line(columns);
+                this._gridFlow.set_min_children_per_line(Math.max(2, columns - 1));
             }
+        }
 
-            this._gridFlow.set_max_children_per_line(columns);
-            this._gridFlow.set_min_children_per_line(Math.max(2, columns - 1));
+        _calculateColumns(width) {
+            // Item: 280px + spacing: 12px, margins: 24px total
+            const itemSize = 292; // 280 + 12
+            const availableWidth = width - 24;
+            const calculated = Math.floor(availableWidth / itemSize);
+
+            // Apply responsive breakpoints
+            if (width >= 2560) return Math.max(4, Math.min(calculated, 6));
+            if (width >= 1920) return Math.max(3, Math.min(calculated, 5));
+            if (width >= 1400) return Math.max(3, Math.min(calculated, 4));
+            return Math.max(2, Math.min(calculated, 3));
         }
 
         _loadInitialWallpapers() {
