@@ -123,8 +123,8 @@ export class ColorAdjustmentControls {
         const {label, min, max, defaultValue, step, onChange} = config;
 
         const box = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 0,
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 8,
             hexpand: true,
         });
 
@@ -132,6 +132,7 @@ export class ColorAdjustmentControls {
             label,
             xalign: 0,
             css_classes: ['caption'],
+            width_request: 90,
         });
 
         const scale = new Gtk.Scale({
@@ -142,14 +143,23 @@ export class ColorAdjustmentControls {
                 value: defaultValue,
                 step_increment: step,
             }),
-            draw_value: true,
-            value_pos: Gtk.PositionType.RIGHT,
+            draw_value: false,
             digits: 1,
             hexpand: true,
         });
 
+        const valueLabel = new Gtk.Label({
+            label: defaultValue.toFixed(1),
+            xalign: 1,
+            css_classes: ['caption', 'monospace'],
+            width_request: 40,
+        });
+
         if (onChange) {
-            scale.connect('value-changed', onChange);
+            scale.connect('value-changed', () => {
+                valueLabel.set_label(scale.get_value().toFixed(1));
+                onChange();
+            });
         }
 
         // Double-click to reset slider to default value
@@ -173,6 +183,7 @@ export class ColorAdjustmentControls {
                     () => {
                         if (clickCount === 2) {
                             scale.set_value(defaultValue);
+                            valueLabel.set_label(defaultValue.toFixed(1));
                         }
                         clickCount = 0;
                         clickTimeout = null;
@@ -187,6 +198,7 @@ export class ColorAdjustmentControls {
 
         box.append(labelWidget);
         box.append(scale);
+        box.append(valueLabel);
 
         return {box, scale};
     }
