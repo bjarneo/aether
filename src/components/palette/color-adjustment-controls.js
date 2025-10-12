@@ -146,23 +146,101 @@ export class ColorAdjustmentControls {
             draw_value: false,
             digits: 1,
             hexpand: true,
+            width_request: 150,
+        });
+
+        // Create a stack to switch between label and entry
+        const valueStack = new Gtk.Stack({
+            width_request: 50,
         });
 
         const valueLabel = new Gtk.Label({
             label: defaultValue.toFixed(1),
             xalign: 1,
             css_classes: ['caption', 'monospace'],
-            width_request: 40,
         });
 
+        const valueEntry = new Gtk.Entry({
+            text: defaultValue.toFixed(1),
+            xalign: 1,
+            width_chars: 5,
+            max_width_chars: 5,
+        });
+
+        valueStack.add_named(valueLabel, 'label');
+        valueStack.add_named(valueEntry, 'entry');
+        valueStack.set_visible_child_name('label');
+
+        // Update label when scale changes
         if (onChange) {
             scale.connect('value-changed', () => {
-                valueLabel.set_label(scale.get_value().toFixed(1));
+                const value = scale.get_value().toFixed(1);
+                valueLabel.set_label(value);
+                valueEntry.set_text(value);
                 onChange();
             });
         }
 
-        // Double-click to reset slider to default value
+        // Click on label to edit
+        const labelGesture = new Gtk.GestureClick();
+        labelGesture.connect('pressed', () => {
+            valueStack.set_visible_child_name('entry');
+            valueEntry.grab_focus();
+            valueEntry.select_region(0, -1);
+        });
+        valueLabel.add_controller(labelGesture);
+
+        // Handle entry input
+        valueEntry.connect('activate', () => {
+            const text = valueEntry.get_text();
+            const value = parseFloat(text);
+            
+            if (!isNaN(value)) {
+                const clampedValue = Math.max(min, Math.min(max, value));
+                scale.set_value(clampedValue);
+                valueLabel.set_label(clampedValue.toFixed(1));
+                valueEntry.set_text(clampedValue.toFixed(1));
+            } else {
+                valueEntry.set_text(scale.get_value().toFixed(1));
+            }
+            
+            valueStack.set_visible_child_name('label');
+        });
+
+        // Cancel editing on Escape or focus loss
+        const entryController = Gtk.EventControllerKey.new();
+        entryController.connect('key-pressed', (controller, keyval, keycode, state) => {
+            if (keyval === Gdk.KEY_Escape) {
+                valueEntry.set_text(scale.get_value().toFixed(1));
+                valueStack.set_visible_child_name('label');
+                return true;
+            }
+            return false;
+        });
+        valueEntry.add_controller(entryController);
+
+        const focusController = Gtk.EventControllerFocus.new();
+        focusController.connect('leave', () => {
+            // Only switch back if we're still showing the entry
+            if (valueStack.get_visible_child_name() === 'entry') {
+                const text = valueEntry.get_text();
+                const value = parseFloat(text);
+                
+                if (!isNaN(value)) {
+                    const clampedValue = Math.max(min, Math.min(max, value));
+                    scale.set_value(clampedValue);
+                    valueLabel.set_label(clampedValue.toFixed(1));
+                    valueEntry.set_text(clampedValue.toFixed(1));
+                } else {
+                    valueEntry.set_text(scale.get_value().toFixed(1));
+                }
+                
+                valueStack.set_visible_child_name('label');
+            }
+        });
+        valueEntry.add_controller(focusController);
+
+        // Double-click on scale to reset to default value
         let clickCount = 0;
         let clickTimeout = null;
 
@@ -184,6 +262,7 @@ export class ColorAdjustmentControls {
                         if (clickCount === 2) {
                             scale.set_value(defaultValue);
                             valueLabel.set_label(defaultValue.toFixed(1));
+                            valueEntry.set_text(defaultValue.toFixed(1));
                         }
                         clickCount = 0;
                         clickTimeout = null;
@@ -198,7 +277,7 @@ export class ColorAdjustmentControls {
 
         box.append(labelWidget);
         box.append(scale);
-        box.append(valueLabel);
+        box.append(valueStack);
 
         return {box, scale};
     }
