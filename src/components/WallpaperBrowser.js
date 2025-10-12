@@ -149,7 +149,13 @@ export const WallpaperBrowser = GObject.registerClass(
             this._searchEntry.connect('activate', () => {
                 this._searchParams.q = this._searchEntry.get_text();
                 this._currentPage = 1;
-                this._showingFavorites = false;
+                if (this._showingFavorites) {
+                    this._showingFavorites = false;
+                    this._favoritesButton.set_active(false);
+                    this._paginationBox.set_visible(true);
+                    this._searchEntry.set_sensitive(true);
+                    this._filtersButton.set_sensitive(true);
+                }
                 this._performSearch();
             });
 
@@ -161,7 +167,13 @@ export const WallpaperBrowser = GObject.registerClass(
             searchButton.connect('clicked', () => {
                 this._searchParams.q = this._searchEntry.get_text();
                 this._currentPage = 1;
-                this._showingFavorites = false;
+                if (this._showingFavorites) {
+                    this._showingFavorites = false;
+                    this._favoritesButton.set_active(false);
+                    this._paginationBox.set_visible(true);
+                    this._searchEntry.set_sensitive(true);
+                    this._filtersButton.set_sensitive(true);
+                }
                 this._performSearch();
             });
 
