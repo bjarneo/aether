@@ -176,6 +176,8 @@ export const WallpaperColorPicker = GObject.registerClass(
             // Mouse motion for live preview
             const motionController = new Gtk.EventControllerMotion();
             motionController.connect('motion', (_, x, y) => this._handleMouseMove(x, y));
+            motionController.connect('enter', () => this._hideCursor());
+            motionController.connect('leave', () => this._showCursor());
             this._drawingArea.add_controller(motionController);
 
             // Click to pick color
@@ -323,6 +325,17 @@ export const WallpaperColorPicker = GObject.registerClass(
             // Circle
             cr.arc(x, y, CROSSHAIR_CONFIG.CIRCLE_RADIUS, 0, 2 * Math.PI);
             cr.stroke();
+        }
+
+        // Cursor Management
+        _hideCursor() {
+            const display = this._drawingArea.get_display();
+            const cursor = Gdk.Cursor.new_from_name('none', null);
+            this._drawingArea.set_cursor(cursor);
+        }
+
+        _showCursor() {
+            this._drawingArea.set_cursor(null);
         }
 
         // Event Handlers
