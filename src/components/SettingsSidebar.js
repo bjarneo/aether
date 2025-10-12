@@ -421,24 +421,18 @@ export const SettingsSidebar = GObject.registerClass(
                 });
 
                 presetRow.connect('activated', () => {
-                    // Toggle selection: if already selected, deselect it
                     const isCurrentlySelected =
                         this._selectedNeovimConfig === preset.config;
 
                     if (isCurrentlySelected) {
-                        // Deselect
                         this._selectedNeovimConfig = null;
                         checkIcon.set_visible(false);
 
-                        this.emit('settings-changed', this.getSettings());
-
-                        // Visual feedback toast
                         const toast = new Adw.Toast({
                             title: `${preset.name} theme deselected`,
                             timeout: 2,
                         });
 
-                        // Try to show toast if parent window has overlay
                         let widget = this;
                         while (widget) {
                             if (widget._toastOverlay) {
@@ -448,26 +442,19 @@ export const SettingsSidebar = GObject.registerClass(
                             widget = widget.get_parent();
                         }
                     } else {
-                        // Select
                         this._selectedNeovimConfig = preset.config;
 
-                        // Clear all checkmarks
                         this._neovimPresetRows.forEach(item => {
                             item.icon.set_visible(false);
                         });
 
-                        // Show checkmark on selected theme
                         checkIcon.set_visible(true);
 
-                        this.emit('settings-changed', this.getSettings());
-
-                        // Visual feedback toast
                         const toast = new Adw.Toast({
                             title: `${preset.name} theme selected`,
                             timeout: 2,
                         });
 
-                        // Try to show toast if parent window has overlay
                         let widget = this;
                         while (widget) {
                             if (widget._toastOverlay) {
@@ -779,7 +766,6 @@ export const SettingsSidebar = GObject.registerClass(
         }
 
         _loadSettings() {
-            // Ensure config directory exists
             const configDir = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
                 'aether',
@@ -791,14 +777,11 @@ export const SettingsSidebar = GObject.registerClass(
                 this._includeNeovim = settings.includeNeovim ?? true;
                 this._includeVencord = settings.includeVencord ?? false;
                 this._includeGtk = settings.includeGtk ?? false;
-                this._selectedNeovimConfig =
-                    settings.selectedNeovimConfig ?? null;
                 console.log('Loaded settings from', this._settingsPath);
             }
         }
 
         saveSettings() {
-            // Ensure config directory exists
             const configDir = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
                 'aether',
@@ -809,7 +792,6 @@ export const SettingsSidebar = GObject.registerClass(
                 includeNeovim: this._includeNeovim,
                 includeVencord: this._includeVencord,
                 includeGtk: this._includeGtk,
-                selectedNeovimConfig: this._selectedNeovimConfig,
             };
 
             const success = saveJsonFile(this._settingsPath, settings);
