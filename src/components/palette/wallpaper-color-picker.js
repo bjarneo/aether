@@ -71,6 +71,13 @@ export const WallpaperColorPicker = GObject.registerClass(
             this._redrawTimeout = null; // Debounce redraws
             this._surface = null; // Cairo surface cache
 
+            // Pan/drag state
+            this._isDragging = false;
+            this._dragStartX = 0;
+            this._dragStartY = 0;
+            this._scrollStartH = 0;
+            this._scrollStartV = 0;
+
             this._initializeUI();
             this._loadWallpaper();
         }
@@ -160,7 +167,7 @@ export const WallpaperColorPicker = GObject.registerClass(
         }
 
         _createWallpaperView() {
-            const scrolled = new Gtk.ScrolledWindow({
+            this._scrolledWindow = new Gtk.ScrolledWindow({
                 hexpand: true,
                 vexpand: true,
                 height_request: UI_CONFIG.PREVIEW_HEIGHT,
@@ -178,8 +185,8 @@ export const WallpaperColorPicker = GObject.registerClass(
 
             this._setupEventControllers();
 
-            scrolled.set_child(this._drawingArea);
-            return scrolled;
+            this._scrolledWindow.set_child(this._drawingArea);
+            return this._scrolledWindow;
         }
 
         _setupEventControllers() {
@@ -192,12 +199,29 @@ export const WallpaperColorPicker = GObject.registerClass(
             motionController.connect('leave', () => this._showCursor());
             this._drawingArea.add_controller(motionController);
 
-            // Click to pick color
-            const clickGesture = new Gtk.GestureClick();
+            // Left click to pick color
+            const clickGesture = new Gtk.GestureClick({
+                button: 1, // Left mouse button only
+            });
             clickGesture.connect('pressed', (_, nPress, x, y) =>
                 this._handleClick(x, y)
             );
             this._drawingArea.add_controller(clickGesture);
+
+            // Right click drag to pan
+            const dragGesture = new Gtk.GestureDrag({
+                button: 3, // Right mouse button only
+            });
+            dragGesture.connect('drag-begin', (gesture, x, y) =>
+                this._handleDragBegin(x, y)
+            );
+            dragGesture.connect('drag-update', (gesture, offsetX, offsetY) =>
+                this._handleDragUpdate(offsetX, offsetY)
+            );
+            dragGesture.connect('drag-end', (gesture, offsetX, offsetY) =>
+                this._handleDragEnd()
+            );
+            this._drawingArea.add_controller(dragGesture);
         }
 
         _createColorPreview() {
@@ -402,6 +426,11 @@ export const WallpaperColorPicker = GObject.registerClass(
             this._mouseX = x;
             this._mouseY = y;
 
+            // Don't update color preview while dragging
+            if (this._isDragging) {
+                return;
+            }
+
             const color = this._getColorAt(x, y);
             if (color) {
                 this._currentColor = color;
@@ -429,6 +458,54 @@ export const WallpaperColorPicker = GObject.registerClass(
             if (color) {
                 this.emit('color-picked', color);
             }
+        }
+
+        _handleDragBegin(x, y) {
+            this._isDragging = true;
+            this._dragStartX = x;
+            this._dragStartY = y;
+
+            // Store current scroll positions
+            const hAdj = this._scrolledWindow.get_hadjustment();
+            const vAdj = this._scrolledWindow.get_vadjustment();
+            this._scrollStartH = hAdj.get_value();
+            this._scrollStartV = vAdj.get_value();
+
+            // Change cursor to indicate dragging
+            const display = this._drawingArea.get_display();
+            const cursor = Gdk.Cursor.new_from_name('grabbing', null);
+            this._drawingArea.set_cursor(cursor);
+        }
+
+        _handleDragUpdate(offsetX, offsetY) {
+            if (!this._isDragging) return;
+
+            // Calculate new scroll positions (inverted offset for natural drag feeling)
+            const hAdj = this._scrolledWindow.get_hadjustment();
+            const vAdj = this._scrolledWindow.get_vadjustment();
+
+            const newH = this._scrollStartH - offsetX;
+            const newV = this._scrollStartV - offsetY;
+
+            // Clamp values to valid range
+            const clampedH = Math.max(
+                hAdj.get_lower(),
+                Math.min(newH, hAdj.get_upper() - hAdj.get_page_size())
+            );
+            const clampedV = Math.max(
+                vAdj.get_lower(),
+                Math.min(newV, vAdj.get_upper() - vAdj.get_page_size())
+            );
+
+            hAdj.set_value(clampedH);
+            vAdj.set_value(clampedV);
+        }
+
+        _handleDragEnd() {
+            this._isDragging = false;
+
+            // Restore cursor (will be hidden by motion controller if still hovering)
+            this._hideCursor();
         }
 
         // Color Extraction
