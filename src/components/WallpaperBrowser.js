@@ -282,23 +282,26 @@ export const WallpaperBrowser = GObject.registerClass(
                 sortModel.append(item);
             });
 
-            this._sortDropdown.connect('notify::selected', () => {
-                const sortMethods = [
-                    'date_added',
-                    'relevance',
-                    'random',
-                    'views',
-                    'favorites',
-                    'toplist',
-                ];
-                this._searchParams.sorting =
-                    sortMethods[this._sortDropdown.get_selected()];
-                this._currentPage = 1;
-                this._persistFilters();
-                if (!this._showingFavorites) {
-                    this._performSearch();
+            this._sortDropdownSignalId = this._sortDropdown.connect(
+                'notify::selected',
+                () => {
+                    const sortMethods = [
+                        'date_added',
+                        'relevance',
+                        'random',
+                        'views',
+                        'favorites',
+                        'toplist',
+                    ];
+                    this._searchParams.sorting =
+                        sortMethods[this._sortDropdown.get_selected()];
+                    this._currentPage = 1;
+                    this._persistFilters();
+                    if (!this._showingFavorites) {
+                        this._performSearch();
+                    }
                 }
-            });
+            );
 
             sortBox.append(sortLabel);
             sortBox.append(this._sortDropdown);
@@ -347,9 +350,12 @@ export const WallpaperBrowser = GObject.registerClass(
                 }
             };
 
-            this._generalCheck.connect('toggled', updateCategories);
-            this._animeCheck.connect('toggled', updateCategories);
-            this._peopleCheck.connect('toggled', updateCategories);
+            this._generalCheckSignalId =
+                this._generalCheck.connect('toggled', updateCategories);
+            this._animeCheckSignalId =
+                this._animeCheck.connect('toggled', updateCategories);
+            this._peopleCheckSignalId =
+                this._peopleCheck.connect('toggled', updateCategories);
 
             categoriesCheckBox.append(this._generalCheck);
             categoriesCheckBox.append(this._animeCheck);
@@ -1033,15 +1039,50 @@ export const WallpaperBrowser = GObject.registerClass(
                 ];
                 const index = sortMethods.indexOf(this._searchParams.sorting);
                 if (index !== -1) {
+                    GObject.signal_handler_block(
+                        this._sortDropdown,
+                        this._sortDropdownSignalId
+                    );
                     this._sortDropdown.set_selected(index);
+                    GObject.signal_handler_unblock(
+                        this._sortDropdown,
+                        this._sortDropdownSignalId
+                    );
                 }
             }
 
             if (this._generalCheck && this._animeCheck && this._peopleCheck) {
                 const cats = this._searchParams.categories;
+
+                GObject.signal_handler_block(
+                    this._generalCheck,
+                    this._generalCheckSignalId
+                );
+                GObject.signal_handler_block(
+                    this._animeCheck,
+                    this._animeCheckSignalId
+                );
+                GObject.signal_handler_block(
+                    this._peopleCheck,
+                    this._peopleCheckSignalId
+                );
+
                 this._generalCheck.set_active(cats[0] === '1');
                 this._animeCheck.set_active(cats[1] === '1');
                 this._peopleCheck.set_active(cats[2] === '1');
+
+                GObject.signal_handler_unblock(
+                    this._generalCheck,
+                    this._generalCheckSignalId
+                );
+                GObject.signal_handler_unblock(
+                    this._animeCheck,
+                    this._animeCheckSignalId
+                );
+                GObject.signal_handler_unblock(
+                    this._peopleCheck,
+                    this._peopleCheckSignalId
+                );
             }
         }
 
