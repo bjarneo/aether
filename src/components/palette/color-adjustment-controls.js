@@ -171,15 +171,28 @@ export class ColorAdjustmentControls {
         valueStack.add_named(valueEntry, 'entry');
         valueStack.set_visible_child_name('label');
 
-        // Update label when scale changes
-        if (onChange) {
-            scale.connect('value-changed', () => {
-                const value = scale.get_value().toFixed(1);
-                valueLabel.set_label(value);
-                valueEntry.set_text(value);
-                onChange();
-            });
-        }
+        // Helper to apply entry value to scale
+        const applyEntryValue = () => {
+            const value = parseFloat(valueEntry.get_text());
+            if (!isNaN(value)) {
+                const clampedValue = Math.max(min, Math.min(max, value));
+                scale.set_value(clampedValue);
+            }
+        };
+
+        // Helper to switch back to label view
+        const exitEditMode = () => {
+            valueEntry.set_text(scale.get_value().toFixed(1));
+            valueStack.set_visible_child_name('label');
+        };
+
+        // Update displays when scale changes
+        scale.connect('value-changed', () => {
+            const value = scale.get_value().toFixed(1);
+            valueLabel.set_label(value);
+            valueEntry.set_text(value);
+            if (onChange) onChange();
+        });
 
         // Click on label to edit
         const labelGesture = new Gtk.GestureClick();
@@ -190,90 +203,56 @@ export class ColorAdjustmentControls {
         });
         valueLabel.add_controller(labelGesture);
 
-        // Handle entry input
+        // Enter applies value
         valueEntry.connect('activate', () => {
-            const text = valueEntry.get_text();
-            const value = parseFloat(text);
-            
-            if (!isNaN(value)) {
-                const clampedValue = Math.max(min, Math.min(max, value));
-                scale.set_value(clampedValue);
-                valueLabel.set_label(clampedValue.toFixed(1));
-                valueEntry.set_text(clampedValue.toFixed(1));
-            } else {
-                valueEntry.set_text(scale.get_value().toFixed(1));
-            }
-            
-            valueStack.set_visible_child_name('label');
+            applyEntryValue();
+            exitEditMode();
         });
 
-        // Cancel editing on Escape or focus loss
-        const entryController = Gtk.EventControllerKey.new();
-        entryController.connect('key-pressed', (controller, keyval, keycode, state) => {
+        // Escape cancels editing
+        const entryKeyController = Gtk.EventControllerKey.new();
+        entryKeyController.connect('key-pressed', (controller, keyval) => {
             if (keyval === Gdk.KEY_Escape) {
-                valueEntry.set_text(scale.get_value().toFixed(1));
-                valueStack.set_visible_child_name('label');
+                exitEditMode();
                 return true;
             }
             return false;
         });
-        valueEntry.add_controller(entryController);
+        valueEntry.add_controller(entryKeyController);
 
+        // Focus loss applies value
         const focusController = Gtk.EventControllerFocus.new();
         focusController.connect('leave', () => {
-            // Only switch back if we're still showing the entry
             if (valueStack.get_visible_child_name() === 'entry') {
-                const text = valueEntry.get_text();
-                const value = parseFloat(text);
-                
-                if (!isNaN(value)) {
-                    const clampedValue = Math.max(min, Math.min(max, value));
-                    scale.set_value(clampedValue);
-                    valueLabel.set_label(clampedValue.toFixed(1));
-                    valueEntry.set_text(clampedValue.toFixed(1));
-                } else {
-                    valueEntry.set_text(scale.get_value().toFixed(1));
-                }
-                
-                valueStack.set_visible_child_name('label');
+                applyEntryValue();
+                exitEditMode();
             }
         });
         valueEntry.add_controller(focusController);
 
-        // Double-click on scale to reset to default value
+        // Double-click scale to reset to default
         let clickCount = 0;
         let clickTimeout = null;
 
-        const eventController = new Gtk.EventControllerLegacy();
-        eventController.connect('event', (controller, event) => {
-            const eventType = event.get_event_type();
-
-            if (eventType === Gdk.EventType.BUTTON_PRESS) {
+        const scaleClickController = new Gtk.EventControllerLegacy();
+        scaleClickController.connect('event', (controller, event) => {
+            if (event.get_event_type() === Gdk.EventType.BUTTON_PRESS) {
                 clickCount++;
 
-                if (clickTimeout) {
-                    GLib.source_remove(clickTimeout);
-                }
+                if (clickTimeout) GLib.source_remove(clickTimeout);
 
-                clickTimeout = GLib.timeout_add(
-                    GLib.PRIORITY_DEFAULT,
-                    300,
-                    () => {
-                        if (clickCount === 2) {
-                            scale.set_value(defaultValue);
-                            valueLabel.set_label(defaultValue.toFixed(1));
-                            valueEntry.set_text(defaultValue.toFixed(1));
-                        }
-                        clickCount = 0;
-                        clickTimeout = null;
-                        return GLib.SOURCE_REMOVE;
+                clickTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+                    if (clickCount === 2) {
+                        scale.set_value(defaultValue);
                     }
-                );
+                    clickCount = 0;
+                    clickTimeout = null;
+                    return GLib.SOURCE_REMOVE;
+                });
             }
-
             return false;
         });
-        scale.add_controller(eventController);
+        scale.add_controller(scaleClickController);
 
         box.append(labelWidget);
         box.append(scale);
