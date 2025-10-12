@@ -106,16 +106,12 @@ export const WallpaperColorPicker = GObject.registerClass(
             const zoomOutBtn = this._createButton('zoom-out-symbolic', 'Zoom out', () =>
                 this._adjustZoom(-ZOOM_CONFIG.STEP)
             );
-            const zoomResetBtn = this._createButton(null, 'Reset zoom to fit', () =>
-                this._resetZoom(), 'Fit'
-            );
             const zoomInBtn = this._createButton('zoom-in-symbolic', 'Zoom in', () =>
                 this._adjustZoom(ZOOM_CONFIG.STEP)
             );
 
             zoomBox.append(zoomOutBtn);
             zoomBox.append(this._zoomLabel);
-            zoomBox.append(zoomResetBtn);
             zoomBox.append(zoomInBtn);
 
             return zoomBox;
