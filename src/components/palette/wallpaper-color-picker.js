@@ -2,6 +2,8 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
 import GdkPixbuf from 'gi://GdkPixbuf';
+import GLib from 'gi://GLib';
+import cairo from 'gi://cairo';
 
 import {applyCssToWidget} from '../../utils/ui-helpers.js';
 import {rgbToHex, hexToRgb} from '../../utils/color-utils.js';
@@ -24,6 +26,12 @@ const UI_CONFIG = {
     PREVIEW_HEIGHT: 350,
     COLOR_SWATCH_WIDTH: 60,
     COLOR_SWATCH_HEIGHT: 40,
+};
+
+const PERFORMANCE_CONFIG = {
+    MAX_TEXTURE_SIZE: 2048, // Limit scaled image size
+    DEBOUNCE_REDRAW_MS: 16, // ~60fps
+    USE_NEAREST_AT_HIGH_ZOOM: 2.0, // Switch to NEAREST interp above this zoom
 };
 
 /**
@@ -60,6 +68,8 @@ export const WallpaperColorPicker = GObject.registerClass(
             this._currentColor = '#000000';
             this._mouseX = 0;
             this._mouseY = 0;
+            this._redrawTimeout = null; // Debounce redraws
+            this._surface = null; // Cairo surface cache
 
             this._initializeUI();
             this._loadWallpaper();
@@ -238,6 +248,7 @@ export const WallpaperColorPicker = GObject.registerClass(
             this._zoomLevel = zoom;
             this._zoomLabel.set_label(this._formatZoomLabel(zoom));
             this._scaledPixbuf = null; // Invalidate cache
+            this._surface = null; // Invalidate surface cache
             this._updateDrawingAreaSize();
             this._drawingArea.queue_draw();
         }
@@ -259,7 +270,24 @@ export const WallpaperColorPicker = GObject.registerClass(
         // Wallpaper Loading & Drawing
         _loadWallpaper() {
             try {
-                this._pixbuf = GdkPixbuf.Pixbuf.new_from_file(this._wallpaperPath);
+                // Load and potentially downsample large images
+                let pixbuf = GdkPixbuf.Pixbuf.new_from_file(this._wallpaperPath);
+                
+                // Downsample very large images to improve performance
+                const maxDim = Math.max(pixbuf.get_width(), pixbuf.get_height());
+                if (maxDim > PERFORMANCE_CONFIG.MAX_TEXTURE_SIZE) {
+                    const scale = PERFORMANCE_CONFIG.MAX_TEXTURE_SIZE / maxDim;
+                    const newWidth = Math.round(pixbuf.get_width() * scale);
+                    const newHeight = Math.round(pixbuf.get_height() * scale);
+                    this._pixbuf = pixbuf.scale_simple(
+                        newWidth,
+                        newHeight,
+                        GdkPixbuf.InterpType.BILINEAR
+                    );
+                } else {
+                    this._pixbuf = pixbuf;
+                }
+                
                 this._updateDrawingAreaSize();
                 this._drawingArea.queue_draw();
             } catch (e) {
@@ -270,7 +298,7 @@ export const WallpaperColorPicker = GObject.registerClass(
         _drawWallpaper(cr) {
             if (!this._pixbuf) return;
 
-            // Draw wallpaper (cached if zoom unchanged)
+            // Draw wallpaper directly (cairo surface caching causes issues with GTK4)
             const pixbuf = this._getScaledPixbuf();
             Gdk.cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
             cr.paint();
@@ -290,11 +318,13 @@ export const WallpaperColorPicker = GObject.registerClass(
             if (!this._scaledPixbuf) {
                 const width = Math.round(this._pixbuf.get_width() * this._zoomLevel);
                 const height = Math.round(this._pixbuf.get_height() * this._zoomLevel);
-                this._scaledPixbuf = this._pixbuf.scale_simple(
-                    width,
-                    height,
-                    GdkPixbuf.InterpType.BILINEAR
-                );
+                
+                // Use NEAREST interpolation for high zoom levels (faster, sharper pixels)
+                const interp = this._zoomLevel >= PERFORMANCE_CONFIG.USE_NEAREST_AT_HIGH_ZOOM
+                    ? GdkPixbuf.InterpType.NEAREST
+                    : GdkPixbuf.InterpType.BILINEAR;
+                
+                this._scaledPixbuf = this._pixbuf.scale_simple(width, height, interp);
             }
 
             return this._scaledPixbuf;
@@ -345,7 +375,16 @@ export const WallpaperColorPicker = GObject.registerClass(
                 this._updateColorPreview(color);
             }
 
-            this._drawingArea.queue_draw();
+            // Debounce redraws for smoother scrolling
+            if (this._redrawTimeout) {
+                return; // Skip if redraw is already scheduled
+            }
+            
+            this._redrawTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, PERFORMANCE_CONFIG.DEBOUNCE_REDRAW_MS, () => {
+                this._drawingArea.queue_draw();
+                this._redrawTimeout = null;
+                return GLib.SOURCE_REMOVE;
+            });
         }
 
         _handleClick(x, y) {
