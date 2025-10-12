@@ -11,6 +11,7 @@ import {applyCssToWidget} from '../utils/ui-helpers.js';
 import {ColorSwatchGrid} from './palette/color-swatch-grid.js';
 import {ColorPickerDialog} from './palette/color-picker-dialog.js';
 import {WallpaperBrowser} from './WallpaperBrowser.js';
+import {WallpaperColorPicker} from './palette/wallpaper-color-picker.js';
 
 export const PaletteGenerator = GObject.registerClass(
     {
@@ -193,16 +194,35 @@ export const PaletteGenerator = GObject.registerClass(
             viewBox.append(this._wallpaperPreview);
 
             // Color swatch grid section
+            const colorsHeaderBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 12,
+                margin_top: 12,
+            });
+
             const colorsLabel = new Gtk.Label({
                 label: 'Color Palette',
                 xalign: 0,
-                margin_top: 12,
+                hexpand: true,
                 css_classes: ['title-4'],
             });
-            viewBox.append(colorsLabel);
+            colorsHeaderBox.append(colorsLabel);
+
+            // Pick from wallpaper button (only visible when wallpaper is loaded)
+            this._pickFromWallpaperBtn = new Gtk.Button({
+                icon_name: 'color-select-symbolic',
+                tooltip_text: 'Pick colors from wallpaper',
+                visible: false,
+            });
+            this._pickFromWallpaperBtn.connect('clicked', () => {
+                this._openWallpaperColorPicker();
+            });
+            colorsHeaderBox.append(this._pickFromWallpaperBtn);
+
+            viewBox.append(colorsHeaderBox);
 
             const colorsSubtitle = new Gtk.Label({
-                label: 'Click any color to manually edit',
+                label: 'Click any color to manually edit, or pick from wallpaper',
                 xalign: 0,
                 margin_bottom: 6,
                 css_classes: ['dim-label', 'caption'],
@@ -298,6 +318,7 @@ export const PaletteGenerator = GObject.registerClass(
             this._wallpaperPreview.set_file(file);
             this._wallpaperPreview.set_visible(true);
             this._extractSection.set_visible(true);
+            this._pickFromWallpaperBtn.set_visible(true);
         }
 
         _onWallpaperBrowserSelected(path) {
@@ -316,6 +337,7 @@ export const PaletteGenerator = GObject.registerClass(
             this._wallpaperPreview.set_file(file);
             this._wallpaperPreview.set_visible(true);
             this._extractSection.set_visible(true);
+            this._pickFromWallpaperBtn.set_visible(true);
         }
 
         _extractColors(imagePath) {
@@ -397,6 +419,173 @@ export const PaletteGenerator = GObject.registerClass(
             this._palette[index] = hexColor;
             this._swatchGrid.updateSwatchColor(index, hexColor);
             this.emit('palette-generated', this._palette);
+        }
+
+        _openWallpaperColorPicker() {
+            if (!this._currentWallpaper) return;
+
+            const dialog = new Adw.Dialog({
+                title: 'Pick Colors from Wallpaper',
+                content_width: 700,
+                content_height: 500,
+            });
+
+            const dialogContent = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+                margin_start: 12,
+                margin_end: 12,
+            });
+
+            // Add the wallpaper color picker
+            const colorPicker = new WallpaperColorPicker(this._currentWallpaper);
+
+            // Track which swatch to update
+            let currentSwatchIndex = null;
+
+            // Create a label and swatch selector
+            const selectorBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 12,
+                margin_bottom: 12,
+            });
+
+            const selectorLabel = new Gtk.Label({
+                label: 'Click a color below to replace it:',
+                css_classes: ['caption', 'dim-label'],
+                hexpand: true,
+                xalign: 0,
+            });
+            selectorBox.append(selectorLabel);
+
+            // Mini swatch grid for selecting which color to update
+            const miniSwatchBox = new Gtk.FlowBox({
+                selection_mode: Gtk.SelectionMode.SINGLE,
+                column_spacing: 4,
+                row_spacing: 4,
+                max_children_per_line: 8,
+                min_children_per_line: 8,
+            });
+
+            // Create mini swatches for each color
+            const miniSwatches = [];
+            this._palette.forEach((color, index) => {
+                const swatchBox = new Gtk.Box({
+                    width_request: 32,
+                    height_request: 32,
+                    css_classes: ['card'],
+                });
+
+                // First swatch is selected by default
+                const isSelected = index === 0;
+                if (isSelected) {
+                    currentSwatchIndex = 0;
+                }
+
+                const borderColor = isSelected
+                    ? 'alpha(@accent_bg_color, 0.8)'
+                    : 'alpha(@borders, 0.3)';
+
+                const css = `
+                    * {
+                        background-color: ${color};
+                        border: 2px solid ${borderColor};
+                    }
+                    *:hover {
+                        border: 2px solid alpha(@accent_bg_color, 0.6);
+                    }
+                `;
+                applyCssToWidget(swatchBox, css);
+
+                const clickGesture = new Gtk.GestureClick();
+                clickGesture.connect('pressed', () => {
+                    currentSwatchIndex = index;
+                    console.log(`Selected swatch index: ${index}`);
+                    // Update border for all swatches
+                    miniSwatches.forEach((s, i) => {
+                        const selected = i === index;
+                        const borderColor = selected
+                            ? 'alpha(@accent_bg_color, 0.8)'
+                            : 'alpha(@borders, 0.3)';
+                        const swatchCss = `
+                            * {
+                                background-color: ${this._palette[i]};
+                                border: 2px solid ${borderColor};
+                            }
+                            *:hover {
+                                border: 2px solid alpha(@accent_bg_color, 0.6);
+                            }
+                        `;
+                        applyCssToWidget(s, swatchCss);
+                    });
+                });
+                swatchBox.add_controller(clickGesture);
+
+                miniSwatches.push(swatchBox);
+                miniSwatchBox.append(swatchBox);
+            });
+
+            dialogContent.append(selectorBox);
+            dialogContent.append(miniSwatchBox);
+
+            // Add color picker
+            dialogContent.append(colorPicker);
+
+            // Handle color selection
+            colorPicker.connect('color-picked', (picker, color) => {
+                console.log(`Color picked: ${color}, swatch index: ${currentSwatchIndex}`);
+                if (currentSwatchIndex !== null) {
+                    // Update the palette array
+                    this._palette[currentSwatchIndex] = color;
+
+                    // Update the main color grid immediately
+                    this._swatchGrid.updateSwatchColor(currentSwatchIndex, color);
+
+                    // Emit signal to update other components
+                    this.emit('palette-generated', this._palette);
+
+                    // Update the mini swatch display with the new color
+                    const swatchBox = miniSwatches[currentSwatchIndex];
+                    const css = `
+                        * {
+                            background-color: ${color};
+                            border: 2px solid alpha(@accent_bg_color, 0.8);
+                        }
+                        *:hover {
+                            border: 2px solid alpha(@accent_bg_color, 0.6);
+                        }
+                    `;
+                    applyCssToWidget(swatchBox, css);
+
+                    console.log(`Updated palette[${currentSwatchIndex}] to ${color}`);
+                } else {
+                    console.log('No swatch selected!');
+                }
+            });
+
+            // Button bar
+            const buttonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                margin_top: 12,
+                halign: Gtk.Align.END,
+            });
+
+            const doneButton = new Gtk.Button({
+                label: 'Done',
+                css_classes: ['suggested-action'],
+            });
+            doneButton.connect('clicked', () => {
+                dialog.close();
+            });
+
+            buttonBox.append(doneButton);
+            dialogContent.append(buttonBox);
+
+            dialog.set_child(dialogContent);
+            dialog.present(this.get_root());
         }
 
         setPalette(colors) {
