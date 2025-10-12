@@ -33,6 +33,7 @@ export const BlueprintManager = GObject.registerClass(
             });
 
             this._blueprints = [];
+            this._dialog = null;
             this._blueprintsDir = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
                 'aether',
@@ -258,6 +259,15 @@ export const BlueprintManager = GObject.registerClass(
 
         _applyBlueprint(blueprint) {
             this.emit('blueprint-applied', blueprint);
+            
+            // Auto-close dialog after applying blueprint
+            if (this._dialog) {
+                this._dialog.close();
+            }
+        }
+        
+        setDialog(dialog) {
+            this._dialog = dialog;
         }
 
         _deleteBlueprint(blueprint) {
