@@ -571,7 +571,7 @@ export const COLOR_PRESETS = [
             '#ffffff',
         ],
     },
-   
+
     {
         name: 'Solarized Light',
         author: 'Precision Colors',

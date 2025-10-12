@@ -167,14 +167,18 @@ export class ColorAdjustmentControls {
                     GLib.source_remove(clickTimeout);
                 }
 
-                clickTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
-                    if (clickCount === 2) {
-                        scale.set_value(defaultValue);
+                clickTimeout = GLib.timeout_add(
+                    GLib.PRIORITY_DEFAULT,
+                    300,
+                    () => {
+                        if (clickCount === 2) {
+                            scale.set_value(defaultValue);
+                        }
+                        clickCount = 0;
+                        clickTimeout = null;
+                        return GLib.SOURCE_REMOVE;
                     }
-                    clickCount = 0;
-                    clickTimeout = null;
-                    return GLib.SOURCE_REMOVE;
-                });
+                );
             }
 
             return false;

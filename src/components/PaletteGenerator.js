@@ -467,7 +467,9 @@ export const PaletteGenerator = GObject.registerClass(
             content.append(miniSwatchGrid.widget);
 
             // Create color picker
-            const colorPicker = new WallpaperColorPicker(this._currentWallpaper);
+            const colorPicker = new WallpaperColorPicker(
+                this._currentWallpaper
+            );
             content.append(colorPicker);
 
             // Handle color selection

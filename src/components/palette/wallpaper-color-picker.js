@@ -113,11 +113,15 @@ export const WallpaperColorPicker = GObject.registerClass(
                 css_classes: ['linked'],
             });
 
-            const zoomOutBtn = this._createButton('zoom-out-symbolic', 'Zoom out', () =>
-                this._adjustZoom(-ZOOM_CONFIG.STEP)
+            const zoomOutBtn = this._createButton(
+                'zoom-out-symbolic',
+                'Zoom out',
+                () => this._adjustZoom(-ZOOM_CONFIG.STEP)
             );
-            const zoomInBtn = this._createButton('zoom-in-symbolic', 'Zoom in', () =>
-                this._adjustZoom(ZOOM_CONFIG.STEP)
+            const zoomInBtn = this._createButton(
+                'zoom-in-symbolic',
+                'Zoom in',
+                () => this._adjustZoom(ZOOM_CONFIG.STEP)
             );
 
             zoomBox.append(zoomOutBtn);
@@ -181,14 +185,18 @@ export const WallpaperColorPicker = GObject.registerClass(
         _setupEventControllers() {
             // Mouse motion for live preview
             const motionController = new Gtk.EventControllerMotion();
-            motionController.connect('motion', (_, x, y) => this._handleMouseMove(x, y));
+            motionController.connect('motion', (_, x, y) =>
+                this._handleMouseMove(x, y)
+            );
             motionController.connect('enter', () => this._hideCursor());
             motionController.connect('leave', () => this._showCursor());
             this._drawingArea.add_controller(motionController);
 
             // Click to pick color
             const clickGesture = new Gtk.GestureClick();
-            clickGesture.connect('pressed', (_, nPress, x, y) => this._handleClick(x, y));
+            clickGesture.connect('pressed', (_, nPress, x, y) =>
+                this._handleClick(x, y)
+            );
             this._drawingArea.add_controller(clickGesture);
         }
 
@@ -237,7 +245,9 @@ export const WallpaperColorPicker = GObject.registerClass(
         // Zoom Management
         _adjustZoom(delta) {
             const newZoom = this._zoomLevel + delta;
-            this._setZoom(Math.max(ZOOM_CONFIG.MIN, Math.min(ZOOM_CONFIG.MAX, newZoom)));
+            this._setZoom(
+                Math.max(ZOOM_CONFIG.MIN, Math.min(ZOOM_CONFIG.MAX, newZoom))
+            );
         }
 
         _resetZoom() {
@@ -260,8 +270,12 @@ export const WallpaperColorPicker = GObject.registerClass(
         _updateDrawingAreaSize() {
             if (!this._pixbuf) return;
 
-            const width = Math.round(this._pixbuf.get_width() * this._zoomLevel);
-            const height = Math.round(this._pixbuf.get_height() * this._zoomLevel);
+            const width = Math.round(
+                this._pixbuf.get_width() * this._zoomLevel
+            );
+            const height = Math.round(
+                this._pixbuf.get_height() * this._zoomLevel
+            );
 
             this._drawingArea.set_content_width(width);
             this._drawingArea.set_content_height(height);
@@ -271,10 +285,15 @@ export const WallpaperColorPicker = GObject.registerClass(
         _loadWallpaper() {
             try {
                 // Load and potentially downsample large images
-                let pixbuf = GdkPixbuf.Pixbuf.new_from_file(this._wallpaperPath);
-                
+                let pixbuf = GdkPixbuf.Pixbuf.new_from_file(
+                    this._wallpaperPath
+                );
+
                 // Downsample very large images to improve performance
-                const maxDim = Math.max(pixbuf.get_width(), pixbuf.get_height());
+                const maxDim = Math.max(
+                    pixbuf.get_width(),
+                    pixbuf.get_height()
+                );
                 if (maxDim > PERFORMANCE_CONFIG.MAX_TEXTURE_SIZE) {
                     const scale = PERFORMANCE_CONFIG.MAX_TEXTURE_SIZE / maxDim;
                     const newWidth = Math.round(pixbuf.get_width() * scale);
@@ -287,7 +306,7 @@ export const WallpaperColorPicker = GObject.registerClass(
                 } else {
                     this._pixbuf = pixbuf;
                 }
-                
+
                 this._updateDrawingAreaSize();
                 this._drawingArea.queue_draw();
             } catch (e) {
@@ -316,15 +335,25 @@ export const WallpaperColorPicker = GObject.registerClass(
             }
 
             if (!this._scaledPixbuf) {
-                const width = Math.round(this._pixbuf.get_width() * this._zoomLevel);
-                const height = Math.round(this._pixbuf.get_height() * this._zoomLevel);
-                
+                const width = Math.round(
+                    this._pixbuf.get_width() * this._zoomLevel
+                );
+                const height = Math.round(
+                    this._pixbuf.get_height() * this._zoomLevel
+                );
+
                 // Use NEAREST interpolation for high zoom levels (faster, sharper pixels)
-                const interp = this._zoomLevel >= PERFORMANCE_CONFIG.USE_NEAREST_AT_HIGH_ZOOM
-                    ? GdkPixbuf.InterpType.NEAREST
-                    : GdkPixbuf.InterpType.BILINEAR;
-                
-                this._scaledPixbuf = this._pixbuf.scale_simple(width, height, interp);
+                const interp =
+                    this._zoomLevel >=
+                    PERFORMANCE_CONFIG.USE_NEAREST_AT_HIGH_ZOOM
+                        ? GdkPixbuf.InterpType.NEAREST
+                        : GdkPixbuf.InterpType.BILINEAR;
+
+                this._scaledPixbuf = this._pixbuf.scale_simple(
+                    width,
+                    height,
+                    interp
+                );
             }
 
             return this._scaledPixbuf;
@@ -332,8 +361,12 @@ export const WallpaperColorPicker = GObject.registerClass(
 
         _drawCrosshair(cr, x, y) {
             const {r, g, b, a} = CROSSHAIR_CONFIG.COLOR;
-            const scaledWidth = Math.round(this._pixbuf.get_width() * this._zoomLevel);
-            const scaledHeight = Math.round(this._pixbuf.get_height() * this._zoomLevel);
+            const scaledWidth = Math.round(
+                this._pixbuf.get_width() * this._zoomLevel
+            );
+            const scaledHeight = Math.round(
+                this._pixbuf.get_height() * this._zoomLevel
+            );
 
             cr.setSourceRGBA(r, g, b, a);
             cr.setLineWidth(CROSSHAIR_CONFIG.LINE_WIDTH);
@@ -379,12 +412,16 @@ export const WallpaperColorPicker = GObject.registerClass(
             if (this._redrawTimeout) {
                 return; // Skip if redraw is already scheduled
             }
-            
-            this._redrawTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, PERFORMANCE_CONFIG.DEBOUNCE_REDRAW_MS, () => {
-                this._drawingArea.queue_draw();
-                this._redrawTimeout = null;
-                return GLib.SOURCE_REMOVE;
-            });
+
+            this._redrawTimeout = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                PERFORMANCE_CONFIG.DEBOUNCE_REDRAW_MS,
+                () => {
+                    this._drawingArea.queue_draw();
+                    this._redrawTimeout = null;
+                    return GLib.SOURCE_REMOVE;
+                }
+            );
         }
 
         _handleClick(x, y) {

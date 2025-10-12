@@ -350,12 +350,18 @@ export const WallpaperBrowser = GObject.registerClass(
                 }
             };
 
-            this._generalCheckSignalId =
-                this._generalCheck.connect('toggled', updateCategories);
-            this._animeCheckSignalId =
-                this._animeCheck.connect('toggled', updateCategories);
-            this._peopleCheckSignalId =
-                this._peopleCheck.connect('toggled', updateCategories);
+            this._generalCheckSignalId = this._generalCheck.connect(
+                'toggled',
+                updateCategories
+            );
+            this._animeCheckSignalId = this._animeCheck.connect(
+                'toggled',
+                updateCategories
+            );
+            this._peopleCheckSignalId = this._peopleCheck.connect(
+                'toggled',
+                updateCategories
+            );
 
             categoriesCheckBox.append(this._generalCheck);
             categoriesCheckBox.append(this._animeCheck);

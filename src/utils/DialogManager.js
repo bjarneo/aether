@@ -278,10 +278,10 @@ export class DialogManager {
         toolbarView.set_content(blueprintBox);
 
         dialog.set_child(toolbarView);
-        
+
         // Set dialog reference so BlueprintManager can close it
         blueprintManager.setDialog(dialog);
-        
+
         dialog.present(this.window);
     }
 

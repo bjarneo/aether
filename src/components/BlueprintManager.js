@@ -259,13 +259,13 @@ export const BlueprintManager = GObject.registerClass(
 
         _applyBlueprint(blueprint) {
             this.emit('blueprint-applied', blueprint);
-            
+
             // Auto-close dialog after applying blueprint
             if (this._dialog) {
                 this._dialog.close();
             }
         }
-        
+
         setDialog(dialog) {
             this._dialog = dialog;
         }
