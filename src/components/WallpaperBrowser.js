@@ -146,6 +146,11 @@ export const WallpaperBrowser = GObject.registerClass(
                 hexpand: true,
             });
 
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._updateUIFromConfig();
+                return GLib.SOURCE_REMOVE;
+            });
+
             this._searchEntry.connect('activate', () => {
                 this._searchParams.q = this._searchEntry.get_text();
                 this._currentPage = 1;
@@ -289,6 +294,7 @@ export const WallpaperBrowser = GObject.registerClass(
                 this._searchParams.sorting =
                     sortMethods[this._sortDropdown.get_selected()];
                 this._currentPage = 1;
+                this._persistFilters();
                 if (!this._showingFavorites) {
                     this._performSearch();
                 }
@@ -335,6 +341,7 @@ export const WallpaperBrowser = GObject.registerClass(
                 ].join('');
                 this._searchParams.categories = cats;
                 this._currentPage = 1;
+                this._persistFilters();
                 if (!this._showingFavorites) {
                     this._performSearch();
                 }
@@ -996,9 +1003,16 @@ export const WallpaperBrowser = GObject.registerClass(
                             wallhavenService.setApiKey(config.apiKey);
                         }
 
-                        // Load resolution preference
                         if (config.resolutions) {
                             this._searchParams.resolutions = config.resolutions;
+                        }
+
+                        if (config.sorting) {
+                            this._searchParams.sorting = config.sorting;
+                        }
+
+                        if (config.categories) {
+                            this._searchParams.categories = config.categories;
                         }
                     }
                 }
@@ -1007,7 +1021,31 @@ export const WallpaperBrowser = GObject.registerClass(
             }
         }
 
-        _saveConfig(apiKey, resolutions) {
+        _updateUIFromConfig() {
+            if (this._sortDropdown) {
+                const sortMethods = [
+                    'date_added',
+                    'relevance',
+                    'random',
+                    'views',
+                    'favorites',
+                    'toplist',
+                ];
+                const index = sortMethods.indexOf(this._searchParams.sorting);
+                if (index !== -1) {
+                    this._sortDropdown.set_selected(index);
+                }
+            }
+
+            if (this._generalCheck && this._animeCheck && this._peopleCheck) {
+                const cats = this._searchParams.categories;
+                this._generalCheck.set_active(cats[0] === '1');
+                this._animeCheck.set_active(cats[1] === '1');
+                this._peopleCheck.set_active(cats[2] === '1');
+            }
+        }
+
+        _persistFilters() {
             try {
                 const configDir = GLib.build_filenamev([
                     GLib.get_user_config_dir(),
@@ -1020,8 +1058,12 @@ export const WallpaperBrowser = GObject.registerClass(
                     'wallhaven.json',
                 ]);
 
-                // Load existing config to preserve other settings
-                let config = {apiKey: '', resolutions: ''};
+                let config = {
+                    apiKey: '',
+                    resolutions: '',
+                    sorting: 'date_added',
+                    categories: '111',
+                };
                 const file = Gio.File.new_for_path(configPath);
 
                 if (file.query_exists(null)) {
@@ -1039,9 +1081,62 @@ export const WallpaperBrowser = GObject.registerClass(
                     }
                 }
 
-                // Update config
+                config.sorting = this._searchParams.sorting;
+                config.categories = this._searchParams.categories;
+
+                const contents = JSON.stringify(config, null, 2);
+                file.replace_contents(
+                    contents,
+                    null,
+                    false,
+                    Gio.FileCreateFlags.REPLACE_DESTINATION,
+                    null
+                );
+            } catch (e) {
+                console.error('Failed to persist filters:', e.message);
+            }
+        }
+
+        _saveConfig(apiKey, resolutions) {
+            try {
+                const configDir = GLib.build_filenamev([
+                    GLib.get_user_config_dir(),
+                    'aether',
+                ]);
+                GLib.mkdir_with_parents(configDir, 0o755);
+
+                const configPath = GLib.build_filenamev([
+                    configDir,
+                    'wallhaven.json',
+                ]);
+
+                let config = {
+                    apiKey: '',
+                    resolutions: '',
+                    sorting: 'date_added',
+                    categories: '111',
+                };
+                const file = Gio.File.new_for_path(configPath);
+
+                if (file.query_exists(null)) {
+                    try {
+                        const [success, contents] = file.load_contents(null);
+                        if (success) {
+                            const decoder = new TextDecoder('utf-8');
+                            const text = decoder.decode(contents);
+                            config = JSON.parse(text);
+                        }
+                    } catch (e) {
+                        console.warn(
+                            'Failed to load existing config, using defaults'
+                        );
+                    }
+                }
+
                 config.apiKey = apiKey;
                 config.resolutions = resolutions;
+                config.sorting = this._searchParams.sorting;
+                config.categories = this._searchParams.categories;
 
                 const contents = JSON.stringify(config, null, 2);
                 file.replace_contents(
