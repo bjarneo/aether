@@ -112,7 +112,7 @@ function hue2rgb(p, q, t) {
  * @param {number} b - Blue (0-255)
  * @returns {string} Hex color
  */
-function rgbToHex(r, g, b) {
+export function rgbToHex(r, g, b) {
     return (
         '#' +
         [r, g, b]

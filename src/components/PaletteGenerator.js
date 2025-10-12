@@ -7,10 +7,10 @@ import Gdk from 'gi://Gdk?version=4.0';
 
 import {extractColorsFromWallpaper} from '../services/wallpaper-service.js';
 import {adjustColor} from '../utils/color-utils.js';
-import {applyCssToWidget} from '../utils/ui-helpers.js';
 import {ColorSwatchGrid} from './palette/color-swatch-grid.js';
 import {ColorPickerDialog} from './palette/color-picker-dialog.js';
 import {WallpaperBrowser} from './WallpaperBrowser.js';
+import {WallpaperColorPicker} from './palette/wallpaper-color-picker.js';
 
 export const PaletteGenerator = GObject.registerClass(
     {
@@ -193,16 +193,35 @@ export const PaletteGenerator = GObject.registerClass(
             viewBox.append(this._wallpaperPreview);
 
             // Color swatch grid section
+            const colorsHeaderBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 12,
+                margin_top: 12,
+            });
+
             const colorsLabel = new Gtk.Label({
                 label: 'Color Palette',
                 xalign: 0,
-                margin_top: 12,
+                hexpand: true,
                 css_classes: ['title-4'],
             });
-            viewBox.append(colorsLabel);
+            colorsHeaderBox.append(colorsLabel);
+
+            // Pick from wallpaper button (only visible when wallpaper is loaded)
+            this._pickFromWallpaperBtn = new Gtk.Button({
+                icon_name: 'color-select-symbolic',
+                tooltip_text: 'Pick colors from wallpaper',
+                visible: false,
+            });
+            this._pickFromWallpaperBtn.connect('clicked', () => {
+                this._openWallpaperColorPicker();
+            });
+            colorsHeaderBox.append(this._pickFromWallpaperBtn);
+
+            viewBox.append(colorsHeaderBox);
 
             const colorsSubtitle = new Gtk.Label({
-                label: 'Click any color to manually edit',
+                label: 'Click any color to manually edit, or pick from wallpaper',
                 xalign: 0,
                 margin_bottom: 6,
                 css_classes: ['dim-label', 'caption'],
@@ -298,6 +317,7 @@ export const PaletteGenerator = GObject.registerClass(
             this._wallpaperPreview.set_file(file);
             this._wallpaperPreview.set_visible(true);
             this._extractSection.set_visible(true);
+            this._pickFromWallpaperBtn.set_visible(true);
         }
 
         _onWallpaperBrowserSelected(path) {
@@ -316,6 +336,7 @@ export const PaletteGenerator = GObject.registerClass(
             this._wallpaperPreview.set_file(file);
             this._wallpaperPreview.set_visible(true);
             this._extractSection.set_visible(true);
+            this._pickFromWallpaperBtn.set_visible(true);
         }
 
         _extractColors(imagePath) {
@@ -397,6 +418,101 @@ export const PaletteGenerator = GObject.registerClass(
             this._palette[index] = hexColor;
             this._swatchGrid.updateSwatchColor(index, hexColor);
             this.emit('palette-generated', this._palette);
+        }
+
+        _openWallpaperColorPicker() {
+            if (!this._currentWallpaper) return;
+
+            const dialog = this._createColorPickerDialog();
+            const dialogContent = this._createDialogContent(dialog);
+
+            dialog.set_child(dialogContent);
+            dialog.present(this.get_root());
+        }
+
+        _createColorPickerDialog() {
+            return new Adw.Dialog({
+                title: 'Pick Colors from Wallpaper',
+                content_width: 700,
+                content_height: 500,
+            });
+        }
+
+        _createDialogContent(dialog) {
+            const content = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+                margin_start: 12,
+                margin_end: 12,
+            });
+
+            // Swatch selector label
+            const selectorLabel = new Gtk.Label({
+                label: 'Select a color slot to replace:',
+                css_classes: ['caption', 'dim-label'],
+                xalign: 0,
+                margin_bottom: 6,
+            });
+            content.append(selectorLabel);
+
+            // Create mini swatch grid (reuse ColorSwatchGrid in mini mode)
+            const miniSwatchGrid = new ColorSwatchGrid(null, {
+                miniMode: true,
+                showLockButtons: false,
+                selectedIndex: 0,
+            });
+            miniSwatchGrid.setPalette([...this._palette]);
+            content.append(miniSwatchGrid.widget);
+
+            // Create color picker
+            const colorPicker = new WallpaperColorPicker(this._currentWallpaper);
+            content.append(colorPicker);
+
+            // Handle color selection
+            colorPicker.connect('color-picked', (_, color) => {
+                this._handleColorPicked(color, miniSwatchGrid);
+            });
+
+            // Done button
+            content.append(this._createDoneButton(dialog));
+
+            return content;
+        }
+
+        _handleColorPicked(color, miniSwatchGrid) {
+            const index = miniSwatchGrid.getSelectedIndex();
+
+            // Update palette
+            this._palette[index] = color;
+
+            // Update main swatch grid
+            this._swatchGrid.updateSwatchColor(index, color);
+
+            // Update mini swatch grid
+            miniSwatchGrid.updateSwatchColor(index, color);
+
+            // Emit signal
+            this.emit('palette-generated', this._palette);
+        }
+
+        _createDoneButton(dialog) {
+            const buttonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                margin_top: 12,
+                halign: Gtk.Align.END,
+            });
+
+            const doneButton = new Gtk.Button({
+                label: 'Done',
+                css_classes: ['suggested-action'],
+            });
+            doneButton.connect('clicked', () => dialog.close());
+
+            buttonBox.append(doneButton);
+            return buttonBox;
         }
 
         setPalette(colors) {
