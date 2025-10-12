@@ -222,6 +222,15 @@ export const WallpaperColorPicker = GObject.registerClass(
                 this._handleDragEnd()
             );
             this._drawingArea.add_controller(dragGesture);
+
+            // Mouse wheel to zoom in/out
+            const scrollController = new Gtk.EventControllerScroll({
+                flags: Gtk.EventControllerScrollFlags.VERTICAL,
+            });
+            scrollController.connect('scroll', (controller, dx, dy) =>
+                this._handleScroll(dy)
+            );
+            this._drawingArea.add_controller(scrollController);
         }
 
         _createColorPreview() {
@@ -506,6 +515,13 @@ export const WallpaperColorPicker = GObject.registerClass(
 
             // Restore cursor (will be hidden by motion controller if still hovering)
             this._hideCursor();
+        }
+
+        _handleScroll(dy) {
+            // Scroll down (positive dy) = zoom out, scroll up (negative dy) = zoom in
+            const delta = dy > 0 ? -ZOOM_CONFIG.STEP : ZOOM_CONFIG.STEP;
+            this._adjustZoom(delta);
+            return true; // Prevent default scroll behavior
         }
 
         // Color Extraction
