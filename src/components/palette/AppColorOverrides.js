@@ -1,0 +1,464 @@
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import Gtk from 'gi://Gtk?version=4.0';
+import Adw from 'gi://Adw?version=1';
+import Gdk from 'gi://Gdk?version=4.0';
+
+export const AppColorOverrides = GObject.registerClass(
+    {
+        Signals: {
+            'overrides-changed': {param_types: [GObject.TYPE_JSOBJECT]},
+        },
+    },
+    class AppColorOverrides extends Adw.ExpanderRow {
+        _init() {
+            super._init({
+                title: 'Advanced: Per-Application Overrides',
+                subtitle: 'Customize colors for specific applications',
+                icon_name: 'applications-science-symbolic',
+                show_enable_switch: false,
+            });
+
+            // Store overrides: { appName: { colorVar: colorValue } }
+            this._overrides = {};
+
+            // Get list of template files (excluding aether.override.css and gtk.css)
+            this._apps = this._getAvailableApps();
+
+            this._initializeUI();
+        }
+
+        _getAvailableApps() {
+            // Dynamically read from templates directory
+            // This file is at: src/components/palette/AppColorOverrides.js
+            // We need to go up 3 levels to get to project root, then into templates
+            const thisFilePath = Gio.File.new_for_path(
+                import.meta.url.replace('file://', '')
+            ).get_path();
+            const projectDir = GLib.path_get_dirname(
+                GLib.path_get_dirname(
+                    GLib.path_get_dirname(
+                        GLib.path_get_dirname(thisFilePath)
+                    )
+                )
+            );
+            const templatesDir = GLib.build_filenamev([projectDir, 'templates']);
+
+            const apps = [];
+            const dir = Gio.File.new_for_path(templatesDir);
+
+            try {
+                const enumerator = dir.enumerate_children(
+                    'standard::name,standard::type',
+                    Gio.FileQueryInfoFlags.NONE,
+                    null
+                );
+
+                let fileInfo;
+                while ((fileInfo = enumerator.next_file(null)) !== null) {
+                    const fileName = fileInfo.get_name();
+
+                    // Skip excluded files
+                    const excludedFiles = [
+                        'aether.override.css',
+                        'gtk.css',
+                        'alacritty.toml',
+                        'ghostty.conf',
+                        'kitty.conf',
+                        'neovim.lua',
+                        'vencord.theme.css',
+                        'btop.theme'
+                    ];
+
+                    if (excludedFiles.includes(fileName)) {
+                        continue;
+                    }
+
+                    // Only process regular files
+                    if (fileInfo.get_file_type() === Gio.FileType.REGULAR) {
+                        const appName = this._getAppNameFromFileName(fileName);
+                        const label = this._getAppLabelFromFileName(fileName);
+
+                        apps.push({
+                            name: appName,
+                            label: label,
+                            file: fileName
+                        });
+                    }
+                }
+
+                enumerator.close(null);
+            } catch (e) {
+                console.error('Error reading templates directory:', e.message);
+            }
+
+            // Sort alphabetically by label
+            apps.sort((a, b) => a.label.localeCompare(b.label));
+
+            return apps;
+        }
+
+        _getAppNameFromFileName(fileName) {
+            // Remove extension to get app name
+            const fileNameMap = {
+                'alacritty.toml': 'alacritty',
+                'btop.theme': 'btop',
+                'chromium.theme': 'chromium',
+                'ghostty.conf': 'ghostty',
+                'hyprland.conf': 'hyprland',
+                'hyprlock.conf': 'hyprlock',
+                'icons.theme': 'icons',
+                'kitty.conf': 'kitty',
+                'mako.ini': 'mako',
+                'neovim.lua': 'neovim',
+                'swayosd.css': 'swayosd',
+                'vencord.theme.css': 'vencord',
+                'walker.css': 'walker',
+                'waybar.css': 'waybar',
+                'wofi.css': 'wofi',
+            };
+            return fileNameMap[fileName] || fileName.split('.')[0];
+        }
+
+        _getAppLabelFromFileName(fileName) {
+            // Create human-readable labels
+            const appName = this._getAppNameFromFileName(fileName);
+            return appName.charAt(0).toUpperCase() + appName.slice(1);
+        }
+
+        _getUsedColorVariables(fileName) {
+            // Parse template file to find used color variables
+            const projectDir = GLib.path_get_dirname(
+                GLib.path_get_dirname(
+                    GLib.path_get_dirname(
+                        GLib.path_get_dirname(
+                            Gio.File.new_for_path(
+                                import.meta.url.replace('file://', '')
+                            ).get_path()
+                        )
+                    )
+                )
+            );
+            const templatePath = GLib.build_filenamev([projectDir, 'templates', fileName]);
+
+            try {
+                const file = Gio.File.new_for_path(templatePath);
+                const [success, contents] = file.load_contents(null);
+                if (!success) {
+                    return [];
+                }
+
+                const text = new TextDecoder('utf-8').decode(contents);
+                const colorVars = new Set();
+
+                // Match patterns like {background}, {foreground}, {color0}, etc.
+                // Also match {color0.strip}, {color0.rgb}, {color0.rgba}, {color0.yaru}
+                const regex = /\{(background|foreground|color\d+)(?:\.[a-z]+)?(?::\d*\.?\d+)?\}/g;
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    colorVars.add(match[1]); // Add just the variable name without modifiers
+                }
+
+                // Convert to sorted array
+                const varsArray = Array.from(colorVars);
+
+                // Custom sort: background first, foreground second, then color0-15
+                varsArray.sort((a, b) => {
+                    if (a === 'background') return -1;
+                    if (b === 'background') return 1;
+                    if (a === 'foreground') return -1;
+                    if (b === 'foreground') return 1;
+
+                    // Extract numbers from color variables
+                    const aNum = parseInt(a.replace('color', '')) || 0;
+                    const bNum = parseInt(b.replace('color', '')) || 0;
+                    return aNum - bNum;
+                });
+
+                return varsArray;
+            } catch (e) {
+                console.error(`Error reading template ${fileName}:`, e.message);
+                return [];
+            }
+        }
+
+        _initializeUI() {
+            // Help text at the top
+            const helpRow = new Adw.ActionRow({
+                title: 'Override specific colors for individual applications',
+            });
+            const helpLabel = new Gtk.Label({
+                label: 'Click an application to customize its color mappings',
+                css_classes: ['dim-label', 'caption'],
+                wrap: true,
+                xalign: 0,
+                margin_top: 6,
+                margin_bottom: 6,
+                margin_start: 12,
+                margin_end: 12,
+            });
+            this.add_row(helpLabel);
+
+            // Create list of applications
+            this._apps.forEach(app => {
+                const appRow = this._createAppRow(app);
+                this.add_row(appRow);
+            });
+
+            // Reset all button at the bottom
+            const resetButton = new Gtk.Button({
+                label: 'Reset All Overrides',
+                css_classes: ['destructive-action'],
+                margin_top: 12,
+                margin_bottom: 12,
+                margin_start: 12,
+                margin_end: 12,
+            });
+            resetButton.connect('clicked', () => this._resetAllOverrides());
+            this.add_row(resetButton);
+        }
+
+        _createAppRow(app) {
+            const row = new Adw.ActionRow({
+                title: app.label,
+                subtitle: app.file,
+                activatable: true,
+            });
+
+            // Count indicator - shows number of overrides for this app
+            const countLabel = new Gtk.Label({
+                css_classes: ['dim-label', 'caption'],
+                valign: Gtk.Align.CENTER,
+            });
+            this._updateCountLabel(countLabel, app.name);
+            row.add_suffix(countLabel);
+
+            // Arrow icon
+            const arrow = new Gtk.Image({
+                icon_name: 'go-next-symbolic',
+                valign: Gtk.Align.CENTER,
+            });
+            row.add_suffix(arrow);
+
+            row.connect('activated', () => {
+                this._showOverrideDialog(app, countLabel);
+            });
+
+            return row;
+        }
+
+        _updateCountLabel(label, appName) {
+            const count = this._overrides[appName]
+                ? Object.keys(this._overrides[appName]).length
+                : 0;
+            if (count > 0) {
+                label.set_label(`${count} override${count > 1 ? 's' : ''}`);
+                label.set_visible(true);
+            } else {
+                label.set_visible(false);
+            }
+        }
+
+        _showOverrideDialog(app, countLabel) {
+            const dialog = new Adw.Dialog({
+                title: `${app.label} Color Overrides`,
+                content_width: 600,
+                content_height: 500,
+            });
+
+            const content = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+                margin_start: 12,
+                margin_end: 12,
+            });
+
+            // Description
+            const desc = new Gtk.Label({
+                label: `Override color variables for ${app.label}. These will take precedence over the default palette colors.`,
+                wrap: true,
+                xalign: 0,
+                css_classes: ['dim-label'],
+                margin_bottom: 6,
+            });
+            content.append(desc);
+
+            // Scrolled window for overrides list
+            const scrolled = new Gtk.ScrolledWindow({
+                vexpand: true,
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+            });
+
+            const overridesGroup = new Adw.PreferencesGroup({
+                title: 'Color Variable Overrides',
+            });
+
+            // Get current overrides for this app
+            const appOverrides = this._overrides[app.name] || {};
+
+            // Get color variables used in this template
+            const colorVars = this._getUsedColorVariables(app.file);
+
+            if (colorVars.length === 0) {
+                const emptyLabel = new Gtk.Label({
+                    label: 'No color variables found in this template',
+                    css_classes: ['dim-label'],
+                    margin_top: 12,
+                    margin_bottom: 12,
+                });
+                overridesGroup.add(emptyLabel);
+            } else {
+                // Create rows for each color variable used in the template
+                colorVars.forEach(colorVar => {
+                    const row = this._createColorOverrideRow(
+                        colorVar,
+                        appOverrides[colorVar] || null,
+                        (newColor) => {
+                            this._updateOverride(app.name, colorVar, newColor);
+                            this._updateCountLabel(countLabel, app.name);
+                        }
+                    );
+                    overridesGroup.add(row);
+                });
+            }
+
+            scrolled.set_child(overridesGroup);
+            content.append(scrolled);
+
+            // Button row
+            const buttonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                margin_top: 12,
+                halign: Gtk.Align.END,
+            });
+
+            const resetAppButton = new Gtk.Button({
+                label: 'Reset All',
+                css_classes: ['destructive-action'],
+            });
+            resetAppButton.connect('clicked', () => {
+                this._resetAppOverrides(app.name);
+                this._updateCountLabel(countLabel, app.name);
+                dialog.close();
+            });
+
+            const doneButton = new Gtk.Button({
+                label: 'Done',
+                css_classes: ['suggested-action'],
+            });
+            doneButton.connect('clicked', () => dialog.close());
+
+            buttonBox.append(resetAppButton);
+            buttonBox.append(doneButton);
+            content.append(buttonBox);
+
+            dialog.set_child(content);
+            dialog.present(this.get_root());
+        }
+
+        _createColorOverrideRow(colorVar, currentValue, onColorChanged) {
+            const row = new Adw.ActionRow({
+                title: colorVar,
+                subtitle: currentValue ? `Custom: ${currentValue}` : 'Using default',
+            });
+
+            // Color button
+            const colorButton = new Gtk.ColorDialogButton({
+                valign: Gtk.Align.CENTER,
+                dialog: new Gtk.ColorDialog(),
+            });
+
+            // Set current color if exists
+            if (currentValue) {
+                const rgba = new Gdk.RGBA();
+                rgba.parse(currentValue);
+                colorButton.set_rgba(rgba);
+            }
+
+            colorButton.connect('notify::rgba', () => {
+                const rgba = colorButton.get_rgba();
+                const hex = this._rgbaToHex(rgba);
+                row.set_subtitle(`Custom: ${hex}`);
+                onColorChanged(hex);
+            });
+
+            row.add_suffix(colorButton);
+
+            // Clear button
+            const clearButton = new Gtk.Button({
+                icon_name: 'edit-clear-symbolic',
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Clear override',
+                css_classes: ['flat'],
+                visible: currentValue !== null,
+            });
+
+            clearButton.connect('clicked', () => {
+                onColorChanged(null);
+                row.set_subtitle('Using default');
+                clearButton.set_visible(false);
+            });
+
+            row.add_suffix(clearButton);
+
+            // Update clear button visibility when color changes
+            colorButton.connect('notify::rgba', () => {
+                clearButton.set_visible(true);
+            });
+
+            return row;
+        }
+
+        _updateOverride(appName, colorVar, value) {
+            if (!this._overrides[appName]) {
+                this._overrides[appName] = {};
+            }
+
+            if (value === null) {
+                delete this._overrides[appName][colorVar];
+                // Clean up empty app entries
+                if (Object.keys(this._overrides[appName]).length === 0) {
+                    delete this._overrides[appName];
+                }
+            } else {
+                this._overrides[appName][colorVar] = value;
+            }
+
+            this.emit('overrides-changed', this._overrides);
+        }
+
+        _resetAppOverrides(appName) {
+            delete this._overrides[appName];
+            this.emit('overrides-changed', this._overrides);
+        }
+
+        _resetAllOverrides() {
+            this._overrides = {};
+            this.emit('overrides-changed', this._overrides);
+        }
+
+        _rgbaToHex(rgba) {
+            const r = Math.round(rgba.red * 255);
+            const g = Math.round(rgba.green * 255);
+            const b = Math.round(rgba.blue * 255);
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        getOverrides() {
+            return this._overrides;
+        }
+
+        setOverrides(overrides) {
+            this._overrides = overrides || {};
+            this.emit('overrides-changed', this._overrides);
+        }
+
+        loadFromBlueprint(overrides) {
+            this.setOverrides(overrides);
+        }
+    }
+);

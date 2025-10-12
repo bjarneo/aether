@@ -260,11 +260,13 @@ const AetherWindow = GObject.registerClass(
                 const palette = this.paletteGenerator.getPalette();
                 const settings = this.settingsSidebar.getSettings();
                 const lightMode = this.settingsSidebar.getLightMode();
+                const appOverrides = this.paletteGenerator.getAppOverrides();
                 this.configWriter.applyTheme(
                     colors,
                     palette.wallpaper,
                     settings,
-                    lightMode
+                    lightMode,
+                    appOverrides
                 );
             } catch (e) {
                 console.error(`Error applying theme: ${e.message}`);
@@ -292,12 +294,14 @@ const AetherWindow = GObject.registerClass(
             const palette = this.paletteGenerator.getPalette();
             const settings = this.settingsSidebar.getSettings();
             const lightMode = this.settingsSidebar.getLightMode();
+            const appOverrides = this.paletteGenerator.getAppOverrides();
 
             this.themeExporter.setThemeData(
                 colors,
                 palette.wallpaper,
                 settings,
-                lightMode
+                lightMode,
+                appOverrides
             );
             this.themeExporter.startExport();
         }
