@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=4.0';
+import Gdk from 'gi://Gdk?version=4.0';
 
 import {ADJUSTMENT_LIMITS} from '../../constants/colors.js';
 
@@ -150,6 +151,35 @@ export class ColorAdjustmentControls {
         if (onChange) {
             scale.connect('value-changed', onChange);
         }
+
+        // Double-click to reset slider to default value
+        let clickCount = 0;
+        let clickTimeout = null;
+
+        const eventController = new Gtk.EventControllerLegacy();
+        eventController.connect('event', (controller, event) => {
+            const eventType = event.get_event_type();
+
+            if (eventType === Gdk.EventType.BUTTON_PRESS) {
+                clickCount++;
+
+                if (clickTimeout) {
+                    GLib.source_remove(clickTimeout);
+                }
+
+                clickTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+                    if (clickCount === 2) {
+                        scale.set_value(defaultValue);
+                    }
+                    clickCount = 0;
+                    clickTimeout = null;
+                    return GLib.SOURCE_REMOVE;
+                });
+            }
+
+            return false;
+        });
+        scale.add_controller(eventController);
 
         box.append(labelWidget);
         box.append(scale);
