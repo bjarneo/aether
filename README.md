@@ -79,14 +79,6 @@ paru -S aether
    - Aether processes templates and writes to `~/.config/omarchy/themes/aether/`
    - Runs `omarchy-theme-set aether` to apply across all configured applications
 
-### Customizing Aether's UI
-
-Aether auto-themes itself when you apply a theme. You can further customize by editing:
-
-```bash
-~/.config/aether/theme.override.css
-```
-
 Changes apply instantly via live reload.
 
 ## Development
