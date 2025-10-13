@@ -27,14 +27,13 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - Libadwaita 1
 - libsoup3 - HTTP client library for wallhaven API
 - **pywal** - Color extraction from wallpapers
-- **Omarchy** - Theme application backend
+- **Omarchy** - Distro
 
 ## Installation
 
 1. Install system dependencies:
 ```bash
 sudo pacman -S gjs gtk4 libadwaita libsoup3 python-pywal
-# Install omarchy theme manager from AUR or your preferred method
 ```
 
 2. Clone the repository:
