@@ -3,177 +3,179 @@
  * GTK4/Adwaita Custom Styling
  */
 
-/* Dynamic Color Palette */
+/* Dynamic color palette from Aether */
 @define-color background {background};
 @define-color foreground {foreground};
 
-@define-color color0 {color0};
-@define-color color1 {color1};
-@define-color color2 {color2};
-@define-color color3 {color3};
-@define-color color4 {color4};
-@define-color color5 {color5};
-@define-color color6 {color6};
-@define-color color7 {color7};
-@define-color color8 {color8};
-@define-color color9 {color9};
-@define-color color10 {color10};
-@define-color color11 {color11};
-@define-color color12 {color12};
-@define-color color13 {color13};
-@define-color color14 {color14};
-@define-color color15 {color15};
-
-/* Base GTK theme variables */
-@define-color theme_bg_color @background;
-@define-color theme_fg_color @foreground;
-@define-color theme_base_color @background;
-@define-color theme_text_color @foreground;
-@define-color theme_selected_bg_color @color4;
-@define-color theme_selected_fg_color @background;
-@define-color insensitive_bg_color alpha(@background, 0.5);
-@define-color insensitive_fg_color alpha(@foreground, 0.5);
-@define-color insensitive_base_color @background;
-@define-color theme_unfocused_bg_color @background;
-@define-color theme_unfocused_fg_color @foreground;
-@define-color theme_unfocused_base_color @background;
-@define-color theme_unfocused_text_color @foreground;
-@define-color theme_unfocused_selected_bg_color @color4;
-@define-color theme_unfocused_selected_fg_color @background;
+@define-color black {color0};
+@define-color red {color1};
+@define-color green {color2};
+@define-color yellow {color3};
+@define-color blue {color4};
+@define-color magenta {color5};
+@define-color cyan {color6};
+@define-color white {color7};
+@define-color bright_black {color8};
+@define-color bright_red {color9};
+@define-color bright_green {color10};
+@define-color bright_yellow {color11};
+@define-color bright_blue {color12};
+@define-color bright_magenta {color13};
+@define-color bright_cyan {color14};
+@define-color bright_white {color15};
 
 /* Adwaita Color Overrides */
-@define-color accent_bg_color @color4;
+@define-color accent_bg_color @blue;
 @define-color accent_fg_color @background;
-@define-color accent_color @color6;
+@define-color accent_color @cyan;
 
 @define-color window_bg_color @background;
 @define-color window_fg_color @foreground;
 
 /* Sidebar background and content */
-@define-color view_bg_color @background;
+@define-color view_bg_color @black;
 @define-color view_fg_color @foreground;
-@define-color sidebar_bg_color @background;
+@define-color sidebar_bg_color @black;
 @define-color sidebar_fg_color @foreground;
-@define-color sidebar_backdrop_color @background;
-@define-color sidebar_shade_color @background;
+@define-color sidebar_backdrop_color @black;
+@define-color sidebar_shade_color @black;
 
-@define-color headerbar_bg_color alpha(@foreground, 0.05);
+@define-color headerbar_bg_color alpha(@foreground, 0.1);
 @define-color headerbar_fg_color @foreground;
-@define-color headerbar_backdrop_color @background;
-@define-color headerbar_shade_color @background;
-@define-color headerbar_border_color alpha(@foreground, 0.15);
-
-@define-color card_bg_color alpha(@foreground, 0.03);
+@define-color headerbar_backdrop_color @black;
+@define-color headerbar_shade_color @black;
+@define-color card_bg_color alpha(@foreground, 0.1);
 @define-color card_fg_color @foreground;
-@define-color card_shade_color @background;
 
-@define-color thumbnail_bg_color @background;
-@define-color thumbnail_fg_color @foreground;
-
-@define-color shade_color @background;
-@define-color scrollbar_outline_color @background;
-
-@define-color popover_bg_color @background;
+@define-color popover_bg_color @black;
 @define-color popover_fg_color @foreground;
+
+@define-color destructive_bg_color @red;
+@define-color destructive_fg_color @background;
+
+@define-color success_bg_color @green;
+@define-color success_fg_color @background;
+
+@define-color warning_bg_color @yellow;
+@define-color warning_fg_color @background;
+
+@define-color error_bg_color @red;
+@define-color error_fg_color @background;
 
 @define-color dialog_bg_color @background;
 @define-color dialog_fg_color @foreground;
 
-@define-color destructive_bg_color @color1;
-@define-color destructive_fg_color @background;
+@define-color borders alpha(@foreground, 0.1);
 
-@define-color success_bg_color @color2;
-@define-color success_fg_color @background;
+/* GTK3 Adwaita Legacy Color Variables */
+@define-color theme_fg_color @foreground;
+@define-color theme_text_color @foreground;
+@define-color theme_bg_color @background;
+@define-color theme_base_color @black;
+@define-color theme_selected_bg_color @blue;
+@define-color theme_selected_fg_color @background;
+@define-color insensitive_bg_color @background;
+@define-color insensitive_fg_color @bright_black;
+@define-color insensitive_base_color @black;
+@define-color theme_unfocused_fg_color @foreground;
+@define-color theme_unfocused_text_color @foreground;
+@define-color theme_unfocused_bg_color @background;
+@define-color theme_unfocused_base_color @black;
+@define-color theme_unfocused_selected_bg_color @blue;
+@define-color theme_unfocused_selected_fg_color @background;
+@define-color unfocused_insensitive_color @bright_black;
+@define-color unfocused_borders alpha(@foreground, 0.1);
+@define-color warning_color @yellow;
+@define-color error_color @red;
+@define-color success_color @green;
+@define-color destructive_color @red;
 
-@define-color warning_bg_color @color3;
-@define-color warning_fg_color @background;
+/* Content View Colors */
+@define-color content_view_bg @black;
+@define-color text_view_bg @black;
 
-@define-color error_bg_color @color1;
-@define-color error_fg_color @background;
+/* GtkMessageDialog styling */
+/* Target the entire dialog's background */
+messagedialog {
+    background-color: @dialog_bg_color;
+}
 
-@define-color borders alpha(@foreground, 0.15);
+/* Target the main message label inside the dialog */
+messagedialog label {
+    color: @dialog_fg_color;
+    font-size: 14pt;
+    font-weight: bold;
+}
 
-/* Additional bg/fg color variables */
-@define-color window_backdrop_color @background;
-@define-color view_backdrop_color @background;
+/* Target the secondary, more detailed text (if any) */
+messagedialog .secondary-text {
+    font-size: 10pt;
+    font-style: italic;
+}
 
-@define-color menu_bg_color @background;
-@define-color menu_fg_color @foreground;
+/* Target the buttons in the dialog's action area */
+messagedialog button {
+    background-color: @black;
+    color: @foreground;
+    border: 1px solid @bright_black;
+    padding: 10px;
+}
 
-@define-color entry_bg_color alpha(@foreground, 0.03);
-@define-color entry_fg_color @foreground;
+messagedialog button:hover {
+    background-color: @blue;
+}
 
-@define-color button_bg_color alpha(@foreground, 0.05);
-@define-color button_fg_color @foreground;
+banner revealer widget {
+    background: @bright_black;
+    padding: 5px;
+    color: @foreground;
+}
 
-@define-color tooltip_bg_color @background;
-@define-color tooltip_fg_color @foreground;
-@define-color tooltip_border_color alpha(@foreground, 0.15);
+/* GtkAlertDialog styling */
+alertdialog.background {
+    background-color: @dialog_bg_color;
+    color: @dialog_fg_color;
+}
 
-@define-color osd_bg_color @background;
-@define-color osd_fg_color @foreground;
-@define-color osd_border_color alpha(@foreground, 0.15);
+alertdialog .titlebar {
+    background-color: @headerbar_bg_color;
+    color: @headerbar_fg_color;
+}
 
-@define-color filechooser_bg_color @background;
-@define-color filechooser_fg_color @foreground;
+alertdialog box {
+    background-color: @dialog_bg_color;
+}
 
-@define-color nautilus_window_bg_color @background;
-@define-color nautilus_window_fg_color @foreground;
+alertdialog label {
+    color: @dialog_fg_color;
+}
 
-/* Portal/native dialog colors */
-@define-color portal_bg_color @background;
-@define-color portal_fg_color @foreground;
+filechooser .dialog-action-box {
+    border-top: 1px solid @bright_black;
+}
 
-/* Gtk.FileDialog uses these in GTK4 */
-@define-color filedialog_bg_color @background;
-@define-color filedialog_fg_color @foreground;
+filechooser .dialog-action-box:backdrop {
+    border-top-color: @black;
+}
 
-/* Dropdown/ComboBox colors */
-@define-color dropdown_bg_color @background;
-@define-color dropdown_fg_color @foreground;
-@define-color dropdown_hover_bg_color alpha(@color4, 0.3);
-@define-color dropdown_selected_bg_color @color4;
-@define-color dropdown_selected_fg_color @background;
+filechooser #pathbarbox {
+    border-bottom: 1px solid @bright_black;
+}
 
-/* Pathbar/Breadcrumb colors */
-@define-color pathbar_bg_color @background;
-@define-color pathbar_fg_color @foreground;
+filechooserbutton:drop(active) {
+    box-shadow: none;
+    border-color: transparent;
+}
 
-/* Toolbar colors */
-@define-color toolbar_bg_color @background;
-@define-color toolbar_fg_color @foreground;
+toast {
+    background-color: @black;
+    color: @foreground;
+}
 
-/* Notebook/Tab colors */
-@define-color notebook_bg_color @background;
-@define-color notebook_fg_color @foreground;
-
-/* Scrollbar colors */
-@define-color scrollbar_slider_color alpha(@foreground, 0.3);
-@define-color scrollbar_slider_hover_color alpha(@foreground, 0.5);
-@define-color scrollbar_slider_active_color @foreground;
-
-/* Treeview/Listview colors */
-@define-color treeview_bg_color @background;
-@define-color treeview_fg_color @foreground;
-
-/* Link colors */
-@define-color link_color @color4;
-@define-color link_visited_color @color5;
-
-/* Selection colors (for text selection, etc) */
-@define-color selection_bg_color @color4;
-@define-color selection_fg_color @background;
-
-/* Content view (file browser grid/list) */
-@define-color content_view_bg @background;
-@define-color content_view_fg @foreground;
-
-/* Placeholder text in entries */
-@define-color placeholder_text_color alpha(@foreground, 0.5);
-
-/* Dim label */
-@define-color dim_label_color alpha(@foreground, 0.55);
-
+toast button.circular.flat.image-button:hover {
+    color: @background;
+    background-color: @red;
+}
 
 /* SVG Icons - recolor to match foreground text */
 .svg-icon {
