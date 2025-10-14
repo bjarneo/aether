@@ -237,17 +237,18 @@ export const PaletteGenerator = GObject.registerClass(
             });
             viewBox.append(this._swatchGrid.widget);
 
-            // Advanced section: App Color Overrides (collapsed by default)
-            const advancedGroup = new Adw.PreferencesGroup({
+            // Advanced section: App Color Overrides (collapsed by default, hidden initially)
+            this._advancedGroup = new Adw.PreferencesGroup({
                 margin_top: 12,
+                visible: false, // Hidden by default (experimental feature)
             });
             this._appOverridesWidget = new AppColorOverrides();
             this._appOverridesWidget.connect('overrides-changed', (_, overrides) => {
                 this._appOverrides = overrides;
                 this.emit('overrides-changed', overrides);
             });
-            advancedGroup.add(this._appOverridesWidget);
-            viewBox.append(advancedGroup);
+            this._advancedGroup.add(this._appOverridesWidget);
+            viewBox.append(this._advancedGroup);
 
             return viewBox;
         }
@@ -618,6 +619,12 @@ export const PaletteGenerator = GObject.registerClass(
 
         getLightMode() {
             return this._lightMode;
+        }
+
+        setAppOverridesVisible(visible) {
+            if (this._advancedGroup) {
+                this._advancedGroup.set_visible(visible);
+            }
         }
 
         get widget() {

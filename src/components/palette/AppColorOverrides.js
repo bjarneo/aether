@@ -23,6 +23,9 @@ export const AppColorOverrides = GObject.registerClass(
             // Store overrides: { appName: { colorVar: colorValue } }
             this._overrides = {};
 
+            // Store current palette colors (from main palette)
+            this._paletteColors = {};
+
             // Get list of template files (excluding aether.override.css and gtk.css)
             this._apps = this._getAvailableApps();
 
@@ -488,21 +491,14 @@ export const AppColorOverrides = GObject.registerClass(
                 dialog: new Gtk.ColorDialog(),
             });
 
-            // Set current color if exists
-            if (currentValue) {
-                const rgba = new Gdk.RGBA();
-                rgba.parse(currentValue);
-                colorButton.set_rgba(rgba);
-            }
+            // Track if we're programmatically changing the color
+            let isResetting = false;
 
-            colorButton.connect('notify::rgba', () => {
-                const rgba = colorButton.get_rgba();
-                const hex = this._rgbaToHex(rgba);
-                row.set_subtitle(`Custom: ${hex}`);
-                onColorChanged(hex);
-            });
-
-            row.add_suffix(colorButton);
+            // Set initial color: use override if exists, otherwise use palette color
+            const displayColor = currentValue || this._paletteColors[colorVar] || '#808080';
+            const rgba = new Gdk.RGBA();
+            rgba.parse(displayColor);
+            colorButton.set_rgba(rgba);
 
             // Clear button
             const clearButton = new Gtk.Button({
@@ -513,18 +509,37 @@ export const AppColorOverrides = GObject.registerClass(
                 visible: currentValue !== null,
             });
 
+            // Color change handler
+            colorButton.connect('notify::rgba', () => {
+                if (isResetting) {
+                    return; // Skip if we're resetting to default
+                }
+
+                const rgba = colorButton.get_rgba();
+                const hex = this._rgbaToHex(rgba);
+                row.set_subtitle(`Custom: ${hex}`);
+                onColorChanged(hex);
+                clearButton.set_visible(true);
+            });
+
+            row.add_suffix(colorButton);
+
             clearButton.connect('clicked', () => {
+                isResetting = true;
                 onColorChanged(null);
                 row.set_subtitle('Using default');
                 clearButton.set_visible(false);
+
+                // Reset color button to default palette color
+                const defaultColor = this._paletteColors[colorVar] || '#808080';
+                const defaultRgba = new Gdk.RGBA();
+                defaultRgba.parse(defaultColor);
+                colorButton.set_rgba(defaultRgba);
+
+                isResetting = false;
             });
 
             row.add_suffix(clearButton);
-
-            // Update clear button visibility when color changes
-            colorButton.connect('notify::rgba', () => {
-                clearButton.set_visible(true);
-            });
 
             return row;
         }
@@ -575,6 +590,11 @@ export const AppColorOverrides = GObject.registerClass(
 
         loadFromBlueprint(overrides) {
             this.setOverrides(overrides);
+        }
+
+        setPaletteColors(colors) {
+            // Update the palette colors from ColorSynthesizer
+            this._paletteColors = colors || {};
         }
     }
 );
