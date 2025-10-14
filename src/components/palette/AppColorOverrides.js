@@ -31,6 +31,12 @@ export const AppColorOverrides = GObject.registerClass(
             // Store references to count labels for each app
             this._countLabels = new Map();
 
+            // Store references to app rows for conditional visibility
+            this._appRows = new Map();
+
+            // Track if a Neovim theme is selected
+            this._neovimThemeSelected = false;
+
             // Get list of template files (excluding aether.override.css and gtk.css)
             this._apps = this._getAvailableApps();
 
@@ -74,7 +80,6 @@ export const AppColorOverrides = GObject.registerClass(
                         'alacritty.toml',
                         'ghostty.conf',
                         'kitty.conf',
-                        'neovim.lua',
                         'vencord.theme.css',
                         'btop.theme'
                     ];
@@ -240,6 +245,22 @@ export const AppColorOverrides = GObject.registerClass(
                 'icons': {
                     'color5': 'System icon accent color',
                 },
+                'neovim': {
+                    'background': 'Default background (base00)',
+                    'foreground': 'Default foreground text (base05)',
+                    'color0': 'Selection background (base02)',
+                    'color1': 'Variables, errors, red (base08)',
+                    'color2': 'Strings, green (base0B)',
+                    'color3': 'Classes, types, yellow (base0A)',
+                    'color4': 'Functions, keywords, blue (base0D)',
+                    'color5': 'Keywords, storage, magenta (base0E)',
+                    'color6': 'Support, regex, cyan (base0C)',
+                    'color7': 'Dark foreground, light bg (base04/07)',
+                    'color8': 'Lighter bg, comments (base01/03)',
+                    'color9': 'Integers, constants, orange (base09)',
+                    'color11': 'Deprecated, brown/yellow (base0F)',
+                    'color15': 'Light foreground (base06)',
+                },
             };
 
             // Get app-specific description if available
@@ -331,6 +352,11 @@ export const AppColorOverrides = GObject.registerClass(
                 activatable: true,
             });
 
+            // Hide neovim row if theme is selected
+            if (app.name === 'neovim' && this._neovimThemeSelected) {
+                row.set_visible(false);
+            }
+
             // Count indicator - shows number of overrides for this app
             const countLabel = new Gtk.Label({
                 css_classes: ['dim-label', 'caption'],
@@ -339,8 +365,9 @@ export const AppColorOverrides = GObject.registerClass(
             this._updateCountLabel(countLabel, app.name);
             row.add_suffix(countLabel);
 
-            // Store reference to count label
+            // Store reference to count label and row
             this._countLabels.set(app.name, countLabel);
+            this._appRows.set(app.name, row);
 
             // Arrow icon
             const arrow = new Gtk.Image({
@@ -591,6 +618,15 @@ export const AppColorOverrides = GObject.registerClass(
         setPaletteColors(colors) {
             // Update the palette colors from ColorSynthesizer
             this._paletteColors = colors || {};
+        }
+
+        setNeovimThemeSelected(selected) {
+            // Update visibility of neovim row based on theme selection
+            this._neovimThemeSelected = selected;
+            const neovimRow = this._appRows.get('neovim');
+            if (neovimRow) {
+                neovimRow.set_visible(!selected);
+            }
         }
     }
 );

@@ -84,6 +84,11 @@ const AetherWindow = GObject.registerClass(
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 const settings = this.settingsSidebar.getSettings();
                 this.paletteGenerator.setAppOverridesVisible(settings.enableAppOverrides || false);
+
+                // Set initial neovim theme selection state
+                const neovimThemeSelected = settings.selectedNeovimConfig !== null;
+                this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(neovimThemeSelected);
+
                 return GLib.SOURCE_REMOVE;
             });
         }
@@ -252,6 +257,13 @@ const AetherWindow = GObject.registerClass(
                 'app-overrides-enabled-changed',
                 (_, enabled) => {
                     this.paletteGenerator.setAppOverridesVisible(enabled);
+                }
+            );
+
+            this.settingsSidebar.connect(
+                'neovim-theme-changed',
+                (_, selected) => {
+                    this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(selected);
                 }
             );
         }

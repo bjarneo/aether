@@ -30,6 +30,7 @@ export const SettingsSidebar = GObject.registerClass(
                 param_types: [GObject.TYPE_JSOBJECT],
             },
             'app-overrides-enabled-changed': {param_types: [GObject.TYPE_BOOLEAN]},
+            'neovim-theme-changed': {param_types: [GObject.TYPE_BOOLEAN]},
         },
     },
     class SettingsSidebar extends Gtk.Box {
@@ -429,6 +430,7 @@ export const SettingsSidebar = GObject.registerClass(
                     if (isCurrentlySelected) {
                         this._selectedNeovimConfig = null;
                         checkIcon.set_visible(false);
+                        this.emit('neovim-theme-changed', false);
 
                         const toast = new Adw.Toast({
                             title: `${preset.name} theme deselected`,
@@ -451,6 +453,7 @@ export const SettingsSidebar = GObject.registerClass(
                         });
 
                         checkIcon.set_visible(true);
+                        this.emit('neovim-theme-changed', true);
 
                         const toast = new Adw.Toast({
                             title: `${preset.name} theme selected`,
@@ -866,11 +869,13 @@ export const SettingsSidebar = GObject.registerClass(
                         item.icon.set_visible(false);
                     }
                 });
+                this.emit('neovim-theme-changed', true);
             } else {
                 // Clear all selections
                 this._neovimPresetRows?.forEach(item => {
                     item.icon.set_visible(false);
                 });
+                this.emit('neovim-theme-changed', false);
             }
         }
 
