@@ -26,6 +26,9 @@ export const AppColorOverrides = GObject.registerClass(
             // Store current palette colors (from main palette)
             this._paletteColors = {};
 
+            // Store references to count labels for each app
+            this._countLabels = new Map();
+
             // Get list of template files (excluding aether.override.css and gtk.css)
             this._apps = this._getAvailableApps();
 
@@ -352,6 +355,9 @@ export const AppColorOverrides = GObject.registerClass(
             this._updateCountLabel(countLabel, app.name);
             row.add_suffix(countLabel);
 
+            // Store reference to count label
+            this._countLabels.set(app.name, countLabel);
+
             // Arrow icon
             const arrow = new Gtk.Image({
                 icon_name: 'go-next-symbolic',
@@ -569,6 +575,12 @@ export const AppColorOverrides = GObject.registerClass(
 
         _resetAllOverrides() {
             this._overrides = {};
+
+            // Update all count labels
+            this._countLabels.forEach((countLabel, appName) => {
+                this._updateCountLabel(countLabel, appName);
+            });
+
             this.emit('overrides-changed', this._overrides);
         }
 
