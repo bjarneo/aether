@@ -11,6 +11,7 @@ import {
 } from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
+import {getAppNameFromFileName} from '../constants/templates.js';
 
 export class ConfigWriter {
     constructor() {
@@ -188,25 +189,7 @@ export class ConfigWriter {
     }
 
     _getAppNameFromFileName(fileName) {
-        // Map template file names to app names used in AppColorOverrides
-        const fileNameMap = {
-            'alacritty.toml': 'alacritty',
-            'btop.theme': 'btop',
-            'chromium.theme': 'chromium',
-            'ghostty.conf': 'ghostty',
-            'hyprland.conf': 'hyprland',
-            'hyprlock.conf': 'hyprlock',
-            'icons.theme': 'icons',
-            'kitty.conf': 'kitty',
-            'mako.ini': 'mako',
-            'neovim.lua': 'neovim',
-            'swayosd.css': 'swayosd',
-            'vencord.theme.css': 'vencord',
-            'walker.css': 'walker',
-            'waybar.css': 'waybar',
-            'wofi.css': 'wofi',
-        };
-        return fileNameMap[fileName] || fileName;
+        return getAppNameFromFileName(fileName);
     }
 
     _replaceVariable(content, key, value) {

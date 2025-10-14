@@ -5,6 +5,8 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 
+import {getAppNameFromFileName} from '../../constants/templates.js';
+
 export const AppColorOverrides = GObject.registerClass(
     {
         Signals: {
@@ -106,25 +108,7 @@ export const AppColorOverrides = GObject.registerClass(
         }
 
         _getAppNameFromFileName(fileName) {
-            // Remove extension to get app name
-            const fileNameMap = {
-                'alacritty.toml': 'alacritty',
-                'btop.theme': 'btop',
-                'chromium.theme': 'chromium',
-                'ghostty.conf': 'ghostty',
-                'hyprland.conf': 'hyprland',
-                'hyprlock.conf': 'hyprlock',
-                'icons.theme': 'icons',
-                'kitty.conf': 'kitty',
-                'mako.ini': 'mako',
-                'neovim.lua': 'neovim',
-                'swayosd.css': 'swayosd',
-                'vencord.theme.css': 'vencord',
-                'walker.css': 'walker',
-                'waybar.css': 'waybar',
-                'wofi.css': 'wofi',
-            };
-            return fileNameMap[fileName] || fileName.split('.')[0];
+            return getAppNameFromFileName(fileName);
         }
 
         _getAppLabelFromFileName(fileName) {
