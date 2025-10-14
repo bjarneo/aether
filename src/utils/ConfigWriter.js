@@ -11,6 +11,7 @@ import {
 } from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
+import {getAppNameFromFileName} from '../constants/templates.js';
 
 export class ConfigWriter {
     constructor() {
@@ -37,7 +38,7 @@ export class ConfigWriter {
         this.wallpaperPath = null;
     }
 
-    applyTheme(colorRoles, wallpaperPath, settings = {}, lightMode = false) {
+    applyTheme(colorRoles, wallpaperPath, settings = {}, lightMode = false, appOverrides = {}) {
         try {
             this._createThemeDirectory();
 
@@ -46,7 +47,7 @@ export class ConfigWriter {
             }
 
             const variables = this._buildVariables(colorRoles);
-            this._processTemplates(variables, settings);
+            this._processTemplates(variables, settings, appOverrides);
             this._applyAetherThemeOverride(variables);
 
             // Only apply GTK theming if enabled
@@ -95,7 +96,7 @@ export class ConfigWriter {
         return variables;
     }
 
-    _processTemplates(variables, settings = {}) {
+    _processTemplates(variables, settings = {}, appOverrides = {}) {
         enumerateDirectory(
             this.templatesDir,
             (fileInfo, templatePath, fileName) => {
@@ -147,24 +148,35 @@ export class ConfigWriter {
                     return;
                 }
 
-                this._processTemplate(templatePath, outputPath, variables);
+                this._processTemplate(templatePath, outputPath, variables, fileName, appOverrides);
             }
         );
     }
 
-    _processTemplate(templatePath, outputPath, variables) {
+    _processTemplate(templatePath, outputPath, variables, fileName, appOverrides = {}) {
         try {
             const content = readFileAsText(templatePath);
             let processed = content;
 
-            Object.entries(variables).forEach(([key, value]) => {
+            // Check if there are app-specific overrides for this template
+            // Map fileName to app name (remove extension)
+            const appName = this._getAppNameFromFileName(fileName);
+            const appSpecificOverrides = appOverrides[appName] || {};
+
+            // Merge app-specific overrides with base variables
+            const mergedVariables = {...variables, ...appSpecificOverrides};
+
+            Object.entries(mergedVariables).forEach(([key, value]) => {
                 processed = this._replaceVariable(processed, key, value);
             });
 
             writeTextToFile(outputPath, processed);
 
+            if (Object.keys(appSpecificOverrides).length > 0) {
+                console.log(`Applied ${Object.keys(appSpecificOverrides).length} override(s) to ${fileName}`);
+            }
+
             // Set special permissions for gtk.css (chmod 644)
-            const fileName = GLib.path_get_basename(outputPath);
             if (fileName === 'gtk.css') {
                 this._setFilePermissions(outputPath, 0o644);
             }
@@ -174,6 +186,10 @@ export class ConfigWriter {
                 e.message
             );
         }
+    }
+
+    _getAppNameFromFileName(fileName) {
+        return getAppNameFromFileName(fileName);
     }
 
     _replaceVariable(content, key, value) {
@@ -229,7 +245,8 @@ export class ConfigWriter {
         exportPath,
         themeName,
         settings = {},
-        lightMode = false
+        lightMode = false,
+        appOverrides = {}
     ) {
         try {
             ensureDirectoryExists(exportPath);
@@ -245,7 +262,7 @@ export class ConfigWriter {
             }
 
             const variables = this._buildVariables(colorRoles);
-            this._processTemplatesToDirectory(variables, exportPath, settings);
+            this._processTemplatesToDirectory(variables, exportPath, settings, appOverrides);
             this._handleLightModeMarker(exportPath, lightMode);
 
             console.log(`Theme exported successfully to: ${exportPath}`);
@@ -256,7 +273,7 @@ export class ConfigWriter {
         }
     }
 
-    _processTemplatesToDirectory(variables, exportPath, settings = {}) {
+    _processTemplatesToDirectory(variables, exportPath, settings = {}, appOverrides = {}) {
         enumerateDirectory(
             this.templatesDir,
             (fileInfo, templatePath, fileName) => {
@@ -305,7 +322,7 @@ export class ConfigWriter {
                     return;
                 }
 
-                this._processTemplate(templatePath, outputPath, variables);
+                this._processTemplate(templatePath, outputPath, variables, fileName, appOverrides);
                 console.log(`Processed template: ${fileName}`);
             }
         );

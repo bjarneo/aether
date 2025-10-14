@@ -11,12 +11,14 @@ import {ColorSwatchGrid} from './palette/color-swatch-grid.js';
 import {ColorPickerDialog} from './palette/color-picker-dialog.js';
 import {WallpaperBrowser} from './WallpaperBrowser.js';
 import {WallpaperColorPicker} from './palette/wallpaper-color-picker.js';
+import {AppColorOverrides} from './palette/AppColorOverrides.js';
 
 export const PaletteGenerator = GObject.registerClass(
     {
         Signals: {
             'palette-generated': {param_types: [GObject.TYPE_JSOBJECT]},
             'adjustments-applied': {param_types: [GObject.TYPE_JSOBJECT]},
+            'overrides-changed': {param_types: [GObject.TYPE_JSOBJECT]},
         },
     },
     class PaletteGenerator extends Gtk.Box {
@@ -30,6 +32,7 @@ export const PaletteGenerator = GObject.registerClass(
             this._originalPalette = [];
             this._currentWallpaper = null;
             this._lightMode = false;
+            this._appOverrides = {};
 
             this._initializeUI();
         }
@@ -233,6 +236,19 @@ export const PaletteGenerator = GObject.registerClass(
                 this._openColorPicker(index, color, swatch);
             });
             viewBox.append(this._swatchGrid.widget);
+
+            // Advanced section: App Color Overrides (collapsed by default, hidden initially)
+            this._advancedGroup = new Adw.PreferencesGroup({
+                margin_top: 12,
+                visible: false, // Hidden by default (experimental feature)
+            });
+            this._appOverridesWidget = new AppColorOverrides();
+            this._appOverridesWidget.connect('overrides-changed', (_, overrides) => {
+                this._appOverrides = overrides;
+                this.emit('overrides-changed', overrides);
+            });
+            this._advancedGroup.add(this._appOverridesWidget);
+            viewBox.append(this._advancedGroup);
 
             return viewBox;
         }
@@ -550,7 +566,12 @@ export const PaletteGenerator = GObject.registerClass(
                 wallpaper: this._currentWallpaper,
                 colors: this._palette,
                 lightMode: this._lightMode,
+                appOverrides: this._appOverrides,
             };
+        }
+
+        getAppOverrides() {
+            return this._appOverrides;
         }
 
         switchToEditorTab() {
@@ -581,6 +602,12 @@ export const PaletteGenerator = GObject.registerClass(
                 this._lightMode = palette.lightMode;
             }
 
+            // Load app overrides
+            if (palette.appOverrides) {
+                this._appOverrides = palette.appOverrides;
+                this._appOverridesWidget.loadFromBlueprint(palette.appOverrides);
+            }
+
             // Reset all locks when loading blueprint
             this._swatchGrid.setLockedColors(new Array(16).fill(false));
         }
@@ -592,6 +619,12 @@ export const PaletteGenerator = GObject.registerClass(
 
         getLightMode() {
             return this._lightMode;
+        }
+
+        setAppOverridesVisible(visible) {
+            if (this._advancedGroup) {
+                this._advancedGroup.set_visible(visible);
+            }
         }
 
         get widget() {

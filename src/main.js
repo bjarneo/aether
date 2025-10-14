@@ -1,5 +1,6 @@
 #!/usr/bin/env gjs
 
+import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
@@ -78,6 +79,13 @@ const AetherWindow = GObject.registerClass(
 
             const mainContent = this._createMainContent();
             this.set_content(mainContent);
+
+            // Apply initial settings state (after UI is created)
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                const settings = this.settingsSidebar.getSettings();
+                this.paletteGenerator.setAppOverridesVisible(settings.enableAppOverrides || false);
+                return GLib.SOURCE_REMOVE;
+            });
         }
 
         _createMainContent() {
@@ -190,10 +198,12 @@ const AetherWindow = GObject.registerClass(
             this.paletteGenerator.connect('palette-generated', (_, colors) => {
                 this.colorSynthesizer.setPalette(colors);
                 this._updateAccessibility();
+                this._updateAppOverrideColors();
             });
 
             this.colorSynthesizer.connect('color-changed', (_, role, color) => {
                 this._updateAccessibility();
+                this._updateAppOverrideColors();
             });
 
             this.blueprintManager.connect(
@@ -237,11 +247,23 @@ const AetherWindow = GObject.registerClass(
                     this.paletteGenerator.applyHarmony(colors);
                 }
             );
+
+            this.settingsSidebar.connect(
+                'app-overrides-enabled-changed',
+                (_, enabled) => {
+                    this.paletteGenerator.setAppOverridesVisible(enabled);
+                }
+            );
         }
 
         _updateAccessibility() {
             const colors = this.colorSynthesizer.getColors();
             this.settingsSidebar.updateAccessibility(colors);
+        }
+
+        _updateAppOverrideColors() {
+            const colors = this.colorSynthesizer.getColors();
+            this.paletteGenerator._appOverridesWidget.setPaletteColors(colors);
         }
 
         _loadBlueprint(blueprint) {
@@ -260,11 +282,13 @@ const AetherWindow = GObject.registerClass(
                 const palette = this.paletteGenerator.getPalette();
                 const settings = this.settingsSidebar.getSettings();
                 const lightMode = this.settingsSidebar.getLightMode();
+                const appOverrides = this.paletteGenerator.getAppOverrides();
                 this.configWriter.applyTheme(
                     colors,
                     palette.wallpaper,
                     settings,
-                    lightMode
+                    lightMode,
+                    appOverrides
                 );
             } catch (e) {
                 console.error(`Error applying theme: ${e.message}`);
@@ -292,12 +316,14 @@ const AetherWindow = GObject.registerClass(
             const palette = this.paletteGenerator.getPalette();
             const settings = this.settingsSidebar.getSettings();
             const lightMode = this.settingsSidebar.getLightMode();
+            const appOverrides = this.paletteGenerator.getAppOverrides();
 
             this.themeExporter.setThemeData(
                 colors,
                 palette.wallpaper,
                 settings,
-                lightMode
+                lightMode,
+                appOverrides
             );
             this.themeExporter.startExport();
         }

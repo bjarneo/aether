@@ -29,6 +29,7 @@ export const SettingsSidebar = GObject.registerClass(
             'palette-from-color-generated': {
                 param_types: [GObject.TYPE_JSOBJECT],
             },
+            'app-overrides-enabled-changed': {param_types: [GObject.TYPE_BOOLEAN]},
         },
     },
     class SettingsSidebar extends Gtk.Box {
@@ -52,6 +53,7 @@ export const SettingsSidebar = GObject.registerClass(
             this._selectedNeovimConfig = null;
             this._neovimPresetRows = []; // Store references to preset rows for visual feedback
             this._baseColor = '#89b4fa'; // Default base color for palette generation
+            this._enableAppOverrides = false; // Per-app color overrides (experimental)
 
             // Load persisted settings
             this._loadSettings();
@@ -680,6 +682,45 @@ export const SettingsSidebar = GObject.registerClass(
 
             expanderRow.add_row(gtkRow);
 
+            // Per-Application Color Overrides row
+            const appOverridesRow = new Adw.ActionRow({
+                title: 'Per-Application Color Overrides',
+                subtitle: 'Customize colors for specific apps',
+            });
+
+            const appOverridesInfoButton = new Gtk.Button({
+                icon_name: 'help-about-symbolic',
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Override color variables for individual application templates',
+                css_classes: ['flat', 'circular'],
+            });
+
+            const appOverridesSuffixBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                valign: Gtk.Align.CENTER,
+            });
+
+            appOverridesSuffixBox.append(appOverridesInfoButton);
+
+            this._appOverridesSwitch = new Gtk.Switch({
+                active: this._enableAppOverrides,
+                valign: Gtk.Align.CENTER,
+            });
+
+            this._appOverridesSwitch.connect('notify::active', sw => {
+                this._enableAppOverrides = sw.get_active();
+                this.emit('app-overrides-enabled-changed', this._enableAppOverrides);
+                this.emit('settings-changed', this.getSettings());
+            });
+
+            appOverridesSuffixBox.append(this._appOverridesSwitch);
+
+            appOverridesRow.add_suffix(appOverridesSuffixBox);
+            appOverridesRow.set_activatable_widget(this._appOverridesSwitch);
+
+            expanderRow.add_row(appOverridesRow);
+
             return expanderRow;
         }
 
@@ -762,6 +803,7 @@ export const SettingsSidebar = GObject.registerClass(
                 includeGtk: this._includeGtk,
                 lightMode: this._lightMode,
                 selectedNeovimConfig: this._selectedNeovimConfig,
+                enableAppOverrides: this._enableAppOverrides,
             };
         }
 
@@ -777,6 +819,7 @@ export const SettingsSidebar = GObject.registerClass(
                 this._includeNeovim = settings.includeNeovim ?? true;
                 this._includeVencord = settings.includeVencord ?? false;
                 this._includeGtk = settings.includeGtk ?? false;
+                this._enableAppOverrides = settings.enableAppOverrides ?? false;
                 console.log('Loaded settings from', this._settingsPath);
             }
         }
@@ -792,6 +835,7 @@ export const SettingsSidebar = GObject.registerClass(
                 includeNeovim: this._includeNeovim,
                 includeVencord: this._includeVencord,
                 includeGtk: this._includeGtk,
+                enableAppOverrides: this._enableAppOverrides,
             };
 
             const success = saveJsonFile(this._settingsPath, settings);
