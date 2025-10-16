@@ -30,7 +30,7 @@ const AetherApplication = GObject.registerClass(
     class AetherApplication extends Adw.Application {
         _init() {
             super._init({
-                application_id: 'com.aether.DesktopSynthesizer',
+                application_id: 'li.oever.aether',
                 flags: Gio.ApplicationFlags.FLAGS_NONE,
             });
             this.themeManager = themeManager;
