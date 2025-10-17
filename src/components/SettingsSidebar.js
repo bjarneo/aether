@@ -92,6 +92,11 @@ export const SettingsSidebar = GObject.registerClass(
             const gradientSection = this._createGradientSection();
             contentBox.append(gradientSection);
 
+            // Palette from Single Color Section
+            const paletteFromColorSection =
+                this._createPaletteFromColorSection();
+            contentBox.append(paletteFromColorSection);
+
             // Presets Section
             const presetsSection = this._createPresetsSection();
             contentBox.append(presetsSection);
@@ -324,6 +329,83 @@ export const SettingsSidebar = GObject.registerClass(
             this.emit('gradient-generated', colors);
         }
 
+        _createPaletteFromColorSection() {
+            const expanderRow = new Adw.ExpanderRow({
+                title: 'Palette from Single Color',
+                subtitle: 'Generate full 16-color palette from one base color',
+            });
+
+            const controlsBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 12,
+                margin_start: 12,
+                margin_end: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+            });
+
+            // Base color selection row
+            const colorRow = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 8,
+                halign: Gtk.Align.FILL,
+            });
+
+            const colorLabel = new Gtk.Label({
+                label: 'Base Color',
+                xalign: 0,
+                hexpand: true,
+            });
+
+            // Color picker button
+            const pickColorButton = new Gtk.ColorDialogButton({
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Choose base color',
+            });
+
+            // Set initial color
+            const initialColor = new Gdk.RGBA();
+            initialColor.parse(this._baseColor);
+            pickColorButton.set_rgba(initialColor);
+
+            // Defer dialog creation until widget is realized
+            pickColorButton.connect('realize', btn => {
+                if (!btn.dialog) {
+                    btn.dialog = new Gtk.ColorDialog({with_alpha: false});
+                }
+            });
+
+            // Update base color when picker changes
+            pickColorButton.connect('notify::rgba', btn => {
+                const rgba = btn.get_rgba();
+                this._baseColor = rgbaToHex(rgba);
+            });
+
+            colorRow.append(colorLabel);
+            colorRow.append(pickColorButton);
+            controlsBox.append(colorRow);
+
+            // Generate button
+            const generateButton = new Gtk.Button({
+                label: 'Generate Palette',
+                halign: Gtk.Align.CENTER,
+                margin_top: 6,
+                css_classes: ['suggested-action'],
+            });
+            generateButton.connect('clicked', () => {
+                const generatedColors = generatePaletteFromColor(
+                    this._baseColor
+                );
+                this.emit('palette-from-color-generated', generatedColors);
+            });
+
+            controlsBox.append(generateButton);
+
+            expanderRow.add_row(new Adw.ActionRow({child: controlsBox}));
+
+            return expanderRow;
+        }
+
         _createPresetsSection() {
             const expanderRow = new Adw.ExpanderRow({
                 title: 'Presets',
@@ -544,91 +626,6 @@ export const SettingsSidebar = GObject.registerClass(
                 subtitle: 'Features that might or might not be part of Aether',
             });
 
-            // Single color palette generator
-            const colorGenBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_start: 12,
-                margin_end: 12,
-                margin_top: 12,
-                margin_bottom: 12,
-            });
-
-            // Title row with info button
-            const titleRow = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-            });
-
-            const titleLabel = new Gtk.Label({
-                label: 'Palette from a single color',
-                xalign: 0,
-                hexpand: true,
-            });
-
-            const colorGenInfoButton = new Gtk.Button({
-                icon_name: 'help-about-symbolic',
-                valign: Gtk.Align.CENTER,
-                tooltip_text:
-                    'Create full 16-color palette from one base color',
-                css_classes: ['flat', 'circular'],
-            });
-
-            titleRow.append(titleLabel);
-            titleRow.append(colorGenInfoButton);
-            colorGenBox.append(titleRow);
-
-            // Controls row
-            const controlsRow = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 8,
-                halign: Gtk.Align.END,
-            });
-
-            // Color preview box
-            this._baseColorPreview = new Gtk.Box({
-                width_request: 32,
-                height_request: 32,
-                valign: Gtk.Align.CENTER,
-                css_classes: ['card'],
-            });
-            applyCssToWidget(
-                this._baseColorPreview,
-                `
-                * {
-                    background-color: ${this._baseColor};
-                    border-radius: 0px;
-                    min-width: 32px;
-                    min-height: 32px;
-                }
-            `
-            );
-
-            // Color picker button
-            const pickColorButton = new Gtk.Button({
-                icon_name: 'color-select-symbolic',
-                valign: Gtk.Align.CENTER,
-                tooltip_text: 'Pick base color',
-            });
-            pickColorButton.connect('clicked', () => this._pickBaseColor());
-
-            // Generate button
-            const generateButton = new Gtk.Button({
-                label: 'Generate',
-                css_classes: ['suggested-action'],
-                valign: Gtk.Align.CENTER,
-            });
-            generateButton.connect('clicked', () =>
-                this._generateFromBaseColor()
-            );
-
-            controlsRow.append(this._baseColorPreview);
-            controlsRow.append(pickColorButton);
-            controlsRow.append(generateButton);
-            colorGenBox.append(controlsRow);
-
-            expanderRow.add_row(new Adw.ActionRow({child: colorGenBox}));
-
             // GTK Theming row
             const gtkRow = new Adw.ActionRow({
                 title: 'Include GTK Theming',
@@ -731,44 +728,6 @@ export const SettingsSidebar = GObject.registerClass(
             expanderRow.add_row(appOverridesRow);
 
             return expanderRow;
-        }
-
-        _pickBaseColor() {
-            const dialog = new Gtk.ColorDialog();
-            const currentRgba = new Gdk.RGBA();
-            currentRgba.parse(this._baseColor);
-
-            dialog.choose_rgba(
-                this.get_root(),
-                currentRgba,
-                null,
-                (source, result) => {
-                    const rgba = dialog.choose_rgba_finish(result);
-                    if (!rgba) return;
-
-                    // Convert RGBA to hex
-                    const r = Math.round(rgba.red * 255);
-                    const g = Math.round(rgba.green * 255);
-                    const b = Math.round(rgba.blue * 255);
-                    this._baseColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-
-                    // Update preview box
-                    applyCssToWidget(
-                        this._baseColorPreview,
-                        `
-                    * {
-                        background-color: ${this._baseColor};
-                        border-radius: 0px;
-                    }
-                `
-                    );
-                }
-            );
-        }
-
-        _generateFromBaseColor() {
-            const generatedColors = generatePaletteFromColor(this._baseColor);
-            this.emit('palette-from-color-generated', generatedColors);
         }
 
         _clearGtkTheme() {
