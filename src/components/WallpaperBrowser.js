@@ -6,12 +6,15 @@ import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 
 import {wallhavenService} from '../services/wallhaven-service.js';
+import {favoritesService} from '../services/favorites-service.js';
+import {createWallpaperCard} from './WallpaperCard.js';
 import {removeAllChildren} from '../utils/ui-helpers.js';
 
 export const WallpaperBrowser = GObject.registerClass(
     {
         Signals: {
             'wallpaper-selected': {param_types: [GObject.TYPE_STRING]},
+            'favorites-changed': {},
         },
     },
     class WallpaperBrowser extends Gtk.Box {
@@ -31,11 +34,8 @@ export const WallpaperBrowser = GObject.registerClass(
                 order: 'desc',
                 resolutions: '', // Resolution filter
             };
-            this._favorites = new Set();
-            this._showingFavorites = false;
 
             this._loadConfig();
-            this._loadFavorites();
             this._initializeUI();
             this._setupResponsiveColumns();
             this._loadInitialWallpapers();
@@ -154,13 +154,6 @@ export const WallpaperBrowser = GObject.registerClass(
             this._searchEntry.connect('activate', () => {
                 this._searchParams.q = this._searchEntry.get_text();
                 this._currentPage = 1;
-                if (this._showingFavorites) {
-                    this._showingFavorites = false;
-                    this._favoritesButton.set_active(false);
-                    this._paginationBox.set_visible(true);
-                    this._searchEntry.set_sensitive(true);
-                    this._filtersButton.set_sensitive(true);
-                }
                 this._performSearch();
             });
 
@@ -172,39 +165,7 @@ export const WallpaperBrowser = GObject.registerClass(
             searchButton.connect('clicked', () => {
                 this._searchParams.q = this._searchEntry.get_text();
                 this._currentPage = 1;
-                if (this._showingFavorites) {
-                    this._showingFavorites = false;
-                    this._favoritesButton.set_active(false);
-                    this._paginationBox.set_visible(true);
-                    this._searchEntry.set_sensitive(true);
-                    this._filtersButton.set_sensitive(true);
-                }
                 this._performSearch();
-            });
-
-            // Favorites button
-            this._favoritesButton = new Gtk.ToggleButton({
-                icon_name: 'emblem-favorite-symbolic',
-                tooltip_text: 'View Favorites',
-            });
-
-            this._favoritesCountLabel = new Gtk.Label({
-                label: '0',
-                css_classes: ['caption'],
-            });
-
-            const favBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 4,
-            });
-            favBox.append(
-                new Gtk.Image({icon_name: 'emblem-favorite-symbolic'})
-            );
-            favBox.append(this._favoritesCountLabel);
-            this._favoritesButton.set_child(favBox);
-
-            this._favoritesButton.connect('toggled', () => {
-                this._toggleFavoritesView();
             });
 
             // Filters button (toggle)
@@ -233,7 +194,6 @@ export const WallpaperBrowser = GObject.registerClass(
             actionBar.append(
                 new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
             );
-            actionBar.append(this._favoritesButton);
             actionBar.append(this._filtersButton);
             actionBar.append(settingsButton);
 
@@ -297,9 +257,7 @@ export const WallpaperBrowser = GObject.registerClass(
                         sortMethods[this._sortDropdown.get_selected()];
                     this._currentPage = 1;
                     this._persistFilters();
-                    if (!this._showingFavorites) {
-                        this._performSearch();
-                    }
+                    this._performSearch();
                 }
             );
 
@@ -345,9 +303,7 @@ export const WallpaperBrowser = GObject.registerClass(
                 this._searchParams.categories = cats;
                 this._currentPage = 1;
                 this._persistFilters();
-                if (!this._showingFavorites) {
-                    this._performSearch();
-                }
+                this._performSearch();
             };
 
             this._generalCheckSignalId = this._generalCheck.connect(
@@ -383,8 +339,6 @@ export const WallpaperBrowser = GObject.registerClass(
             toolbarBox.append(
                 new Gtk.Separator({orientation: Gtk.Orientation.HORIZONTAL})
             );
-
-            this._updateFavoritesCount();
 
             return toolbarBox;
         }
@@ -572,47 +526,6 @@ export const WallpaperBrowser = GObject.registerClass(
             }
         }
 
-        _toggleFavoritesView() {
-            this._showingFavorites = this._favoritesButton.get_active();
-
-            if (this._showingFavorites) {
-                this._displayFavorites();
-                this._paginationBox.set_visible(false);
-                this._searchEntry.set_sensitive(false);
-                this._filtersButton.set_sensitive(false);
-            } else {
-                this._currentPage = 1;
-                this._performSearch();
-                this._paginationBox.set_visible(true);
-                this._searchEntry.set_sensitive(true);
-                this._filtersButton.set_sensitive(true);
-            }
-        }
-
-        _displayFavorites() {
-            this._contentStack.set_visible_child_name('loading');
-
-            // Clear existing items
-            removeAllChildren(this._gridFlow);
-
-            if (this._favorites.size === 0) {
-                this._showError(
-                    'No favorites yet. Click the heart icon on wallpapers to add them.'
-                );
-                return;
-            }
-
-            // Convert favorites to array and display
-            const favArray = Array.from(this._favorites);
-            favArray.forEach(favData => {
-                const wallpaper = JSON.parse(favData);
-                const item = this._createWallpaperItem(wallpaper, true);
-                this._gridFlow.append(item);
-            });
-
-            this._contentStack.set_visible_child_name('content');
-        }
-
         async _performSearch() {
             this._contentStack.set_visible_child_name('loading');
 
@@ -654,114 +567,27 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         _createWallpaperItem(wallpaper, isFavorite) {
-            const mainBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 6,
-                width_request: 280,
-            });
+            const wallpaperData = {
+                path: wallpaper.path,
+                type: 'wallhaven',
+                name: wallpaper.id,
+                info: `${wallpaper.resolution} • ${this._formatFileSize(wallpaper.file_size)}`,
+                data: {
+                    id: wallpaper.id,
+                    resolution: wallpaper.resolution,
+                    file_size: wallpaper.file_size,
+                    thumbUrl: wallpaper.thumbs.small,
+                },
+            };
 
-            // Create a clickable area for the image without hover effect
-            const imageButton = new Gtk.Button({
-                css_classes: ['flat'],
-                overflow: Gtk.Overflow.HIDDEN,
-                hexpand: true,
-            });
-
-            // Add CSS to remove hover/active states from the button
-            const buttonCss = `
-                button.flat {
-                    background: none;
-                    border: none;
-                    box-shadow: none;
-                }
-                button.flat:hover,
-                button.flat:active,
-                button.flat:focus {
-                    background: none;
-                    border: none;
-                    box-shadow: none;
-                }
-            `;
-            const buttonProvider = new Gtk.CssProvider();
-            buttonProvider.load_from_data(buttonCss, -1);
-            imageButton
-                .get_style_context()
-                .add_provider(
-                    buttonProvider,
-                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-                );
-
-            // Thumbnail image
-            const picture = new Gtk.Picture({
-                height_request: 180,
-                can_shrink: true,
-                hexpand: true,
-                content_fit: Gtk.ContentFit.COVER,
-            });
+            const {mainBox, picture} = createWallpaperCard(
+                wallpaperData,
+                (wp) => this._downloadAndUseWallpaper(wallpaper),
+                () => this.emit('favorites-changed')
+            );
 
             // Load thumbnail asynchronously
             this._loadThumbnail(wallpaper.thumbs.small, picture);
-            imageButton.set_child(picture);
-
-            // Click handler to download and use wallpaper
-            imageButton.connect('clicked', () => {
-                this._downloadAndUseWallpaper(wallpaper);
-            });
-
-            mainBox.append(imageButton);
-
-            // Info row with resolution, file size, and favorite button
-            const infoRow = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 8,
-            });
-
-            // Info label with resolution and file size
-            const infoLabel = new Gtk.Label({
-                label: `${wallpaper.resolution} • ${this._formatFileSize(wallpaper.file_size)}`,
-                css_classes: ['caption', 'dim-label'],
-                xalign: 0,
-                hexpand: true,
-                ellipsize: 3, // PANGO_ELLIPSIZE_END
-            });
-
-            // Favorite button
-            const favButton = new Gtk.Button({
-                icon_name: 'emblem-favorite-symbolic',
-                css_classes: this._isFavorite(wallpaper)
-                    ? ['flat', 'favorite-active']
-                    : ['flat', 'favorite-inactive'],
-                halign: Gtk.Align.END,
-            });
-
-            // Add custom CSS for favorite button
-            const css = `
-            .favorite-active {
-                color: @accent_bg_color;
-            }
-            .favorite-inactive {
-                color: alpha(@window_fg_color, 0.5);
-            }
-            .favorite-inactive:hover {
-                color: @window_fg_color;
-            }
-        `;
-            const provider = new Gtk.CssProvider();
-            provider.load_from_data(css, -1);
-            favButton
-                .get_style_context()
-                .add_provider(
-                    provider,
-                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-                );
-
-            favButton.connect('clicked', () => {
-                this._toggleFavorite(wallpaper, favButton);
-            });
-
-            infoRow.append(infoLabel);
-            infoRow.append(favButton);
-            mainBox.append(infoRow);
 
             return mainBox;
         }
@@ -925,15 +751,6 @@ export const WallpaperBrowser = GObject.registerClass(
             }
 
             this._saveFavorites();
-            this._updateFavoritesCount();
-        }
-
-        _updateFavoritesCount() {
-            if (this._favoritesCountLabel) {
-                this._favoritesCountLabel.set_label(
-                    this._favorites.size.toString()
-                );
-            }
         }
 
         _loadFavorites() {

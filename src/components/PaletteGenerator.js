@@ -9,7 +9,7 @@ import {extractColorsFromWallpaper} from '../services/wallpaper-service.js';
 import {adjustColor} from '../utils/color-utils.js';
 import {ColorSwatchGrid} from './palette/color-swatch-grid.js';
 import {ColorPickerDialog} from './palette/color-picker-dialog.js';
-import {WallpaperBrowser} from './WallpaperBrowser.js';
+import {WallpaperBrowserTabs} from './WallpaperBrowserTabs.js';
 import {WallpaperColorPicker} from './palette/wallpaper-color-picker.js';
 import {AppColorOverrides} from './palette/AppColorOverrides.js';
 
@@ -46,21 +46,21 @@ export const PaletteGenerator = GObject.registerClass(
             const palettePage = this._viewStack.add_titled(
                 paletteView,
                 'editor',
-                'Palette Editor'
+                'Editor'
             );
             palettePage.set_icon_name('preferences-color-symbolic');
 
             // Tab 2: Find Wallpaper
-            this._wallpaperBrowser = new WallpaperBrowser();
+            this._wallpaperBrowser = new WallpaperBrowserTabs();
             this._wallpaperBrowser.connect('wallpaper-selected', (_, path) => {
                 this._onWallpaperBrowserSelected(path);
             });
             const browserPage = this._viewStack.add_titled(
                 this._wallpaperBrowser,
                 'browser',
-                'Find Wallpaper'
+                'Wallpaper'
             );
-            browserPage.set_icon_name('network-workgroup-symbolic');
+            browserPage.set_icon_name('system-search-symbolic');
 
             // Header box with view switcher
             const headerBox = new Gtk.Box({
