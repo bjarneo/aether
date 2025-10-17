@@ -243,10 +243,13 @@ export const PaletteGenerator = GObject.registerClass(
                 visible: false, // Hidden by default (experimental feature)
             });
             this._appOverridesWidget = new AppColorOverrides();
-            this._appOverridesWidget.connect('overrides-changed', (_, overrides) => {
-                this._appOverrides = overrides;
-                this.emit('overrides-changed', overrides);
-            });
+            this._appOverridesWidget.connect(
+                'overrides-changed',
+                (_, overrides) => {
+                    this._appOverrides = overrides;
+                    this.emit('overrides-changed', overrides);
+                }
+            );
             this._advancedGroup.add(this._appOverridesWidget);
             viewBox.append(this._advancedGroup);
 
@@ -605,7 +608,9 @@ export const PaletteGenerator = GObject.registerClass(
             // Load app overrides
             if (palette.appOverrides) {
                 this._appOverrides = palette.appOverrides;
-                this._appOverridesWidget.loadFromBlueprint(palette.appOverrides);
+                this._appOverridesWidget.loadFromBlueprint(
+                    palette.appOverrides
+                );
             }
 
             // Reset all locks when loading blueprint

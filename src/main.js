@@ -31,15 +31,57 @@ const AetherApplication = GObject.registerClass(
         _init() {
             super._init({
                 application_id: 'li.oever.aether',
-                flags: Gio.ApplicationFlags.FLAGS_NONE,
+                flags: Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
             });
             this.themeManager = themeManager;
+            this._wallpaperPath = null;
+
+            this.add_main_option(
+                'wallpaper',
+                'w'.charCodeAt(0),
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.STRING,
+                'Path to wallpaper image to load on startup',
+                'FILE'
+            );
+        }
+
+        vfunc_command_line(commandLine) {
+            const options = commandLine.get_options_dict();
+
+            if (options.contains('wallpaper')) {
+                const wallpaperPath = options
+                    .lookup_value('wallpaper', GLib.VariantType.new('s'))
+                    .get_string()[0];
+
+                // Validate that the file exists
+                const file = Gio.File.new_for_path(wallpaperPath);
+                if (file.query_exists(null)) {
+                    this._wallpaperPath = wallpaperPath;
+                } else {
+                    printerr(
+                        `Error: Wallpaper file not found: ${wallpaperPath}`
+                    );
+                }
+            }
+
+            this.activate();
+            return 0;
         }
 
         vfunc_activate() {
             let window = this.active_window;
             if (!window) {
                 window = new AetherWindow(this);
+
+                // Load wallpaper if provided via CLI
+                if (this._wallpaperPath) {
+                    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                        window.loadWallpaperFromCLI(this._wallpaperPath);
+                        this._wallpaperPath = null;
+                        return GLib.SOURCE_REMOVE;
+                    });
+                }
             }
             window.present();
         }
@@ -83,11 +125,16 @@ const AetherWindow = GObject.registerClass(
             // Apply initial settings state (after UI is created)
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 const settings = this.settingsSidebar.getSettings();
-                this.paletteGenerator.setAppOverridesVisible(settings.enableAppOverrides || false);
+                this.paletteGenerator.setAppOverridesVisible(
+                    settings.enableAppOverrides || false
+                );
 
                 // Set initial neovim theme selection state
-                const neovimThemeSelected = settings.selectedNeovimConfig !== null;
-                this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(neovimThemeSelected);
+                const neovimThemeSelected =
+                    settings.selectedNeovimConfig !== null;
+                this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(
+                    neovimThemeSelected
+                );
 
                 return GLib.SOURCE_REMOVE;
             });
@@ -263,7 +310,9 @@ const AetherWindow = GObject.registerClass(
             this.settingsSidebar.connect(
                 'neovim-theme-changed',
                 (_, selected) => {
-                    this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(selected);
+                    this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(
+                        selected
+                    );
                 }
             );
         }
@@ -339,9 +388,13 @@ const AetherWindow = GObject.registerClass(
             );
             this.themeExporter.startExport();
         }
+
+        loadWallpaperFromCLI(wallpaperPath) {
+            this.paletteGenerator.loadWallpaper(wallpaperPath);
+        }
     }
 );
 
 // Run the application
 const app = new AetherApplication();
-app.run([]);
+app.run([imports.system.programInvocationName].concat(ARGV));

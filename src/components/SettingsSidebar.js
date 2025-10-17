@@ -29,7 +29,9 @@ export const SettingsSidebar = GObject.registerClass(
             'palette-from-color-generated': {
                 param_types: [GObject.TYPE_JSOBJECT],
             },
-            'app-overrides-enabled-changed': {param_types: [GObject.TYPE_BOOLEAN]},
+            'app-overrides-enabled-changed': {
+                param_types: [GObject.TYPE_BOOLEAN],
+            },
             'neovim-theme-changed': {param_types: [GObject.TYPE_BOOLEAN]},
         },
     },
@@ -694,7 +696,8 @@ export const SettingsSidebar = GObject.registerClass(
             const appOverridesInfoButton = new Gtk.Button({
                 icon_name: 'help-about-symbolic',
                 valign: Gtk.Align.CENTER,
-                tooltip_text: 'Override color variables for individual application templates',
+                tooltip_text:
+                    'Override color variables for individual application templates',
                 css_classes: ['flat', 'circular'],
             });
 
@@ -713,7 +716,10 @@ export const SettingsSidebar = GObject.registerClass(
 
             this._appOverridesSwitch.connect('notify::active', sw => {
                 this._enableAppOverrides = sw.get_active();
-                this.emit('app-overrides-enabled-changed', this._enableAppOverrides);
+                this.emit(
+                    'app-overrides-enabled-changed',
+                    this._enableAppOverrides
+                );
                 this.emit('settings-changed', this.getSettings());
             });
 

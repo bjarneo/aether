@@ -52,12 +52,13 @@ export const AppColorOverrides = GObject.registerClass(
             ).get_path();
             const projectDir = GLib.path_get_dirname(
                 GLib.path_get_dirname(
-                    GLib.path_get_dirname(
-                        GLib.path_get_dirname(thisFilePath)
-                    )
+                    GLib.path_get_dirname(GLib.path_get_dirname(thisFilePath))
                 )
             );
-            const templatesDir = GLib.build_filenamev([projectDir, 'templates']);
+            const templatesDir = GLib.build_filenamev([
+                projectDir,
+                'templates',
+            ]);
 
             const apps = [];
             const dir = Gio.File.new_for_path(templatesDir);
@@ -81,7 +82,7 @@ export const AppColorOverrides = GObject.registerClass(
                         'ghostty.conf',
                         'kitty.conf',
                         'vencord.theme.css',
-                        'btop.theme'
+                        'btop.theme',
                     ];
 
                     if (excludedFiles.includes(fileName)) {
@@ -96,7 +97,7 @@ export const AppColorOverrides = GObject.registerClass(
                         apps.push({
                             name: appName,
                             label: label,
-                            file: fileName
+                            file: fileName,
                         });
                     }
                 }
@@ -135,7 +136,11 @@ export const AppColorOverrides = GObject.registerClass(
                     )
                 )
             );
-            const templatePath = GLib.build_filenamev([projectDir, 'templates', fileName]);
+            const templatePath = GLib.build_filenamev([
+                projectDir,
+                'templates',
+                fileName,
+            ]);
 
             try {
                 const file = Gio.File.new_for_path(templatePath);
@@ -150,7 +155,8 @@ export const AppColorOverrides = GObject.registerClass(
                 // Match patterns like {background}, {foreground}, {color0}, etc.
                 // Also match descriptive names: {red}, {bright_red}, {blue}, etc.
                 // Also match {color0.strip}, {color0.rgb}, {color0.rgba}, {color0.yaru}
-                const regex = /\{(background|foreground|color\d+|black|red|green|yellow|blue|magenta|cyan|white|bright_black|bright_red|bright_green|bright_yellow|bright_blue|bright_magenta|bright_cyan|bright_white)(?:\.[a-z]+)?(?::\d*\.?\d+)?\}/g;
+                const regex =
+                    /\{(background|foreground|color\d+|black|red|green|yellow|blue|magenta|cyan|white|bright_black|bright_red|bright_green|bright_yellow|bright_blue|bright_magenta|bright_cyan|bright_white)(?:\.[a-z]+)?(?::\d*\.?\d+)?\}/g;
                 let match;
                 while ((match = regex.exec(text)) !== null) {
                     colorVars.add(match[1]); // Add just the variable name without modifiers
@@ -182,128 +188,132 @@ export const AppColorOverrides = GObject.registerClass(
         _getColorVarLabel(colorVar, appName) {
             // App-specific color descriptions showing what each color does in that template
             const colorDescriptionsByApp = {
-                'hyprland': {
-                    'color0': 'Active window border gradient start',
-                    'color8': 'Active window border gradient end',
+                hyprland: {
+                    color0: 'Active window border gradient start',
+                    color8: 'Active window border gradient end',
                 },
-                'hyprlock': {
-                    'background': 'Screen and input field background',
-                    'foreground': 'Text and placeholder color',
-                    'color5': 'Outer ring color',
-                    'color6': 'Password check indicator color',
+                hyprlock: {
+                    background: 'Screen and input field background',
+                    foreground: 'Text and placeholder color',
+                    color5: 'Outer ring color',
+                    color6: 'Password check indicator color',
                 },
-                'waybar': {
-                    'background': 'Bar background color',
-                    'foreground': 'Text and icon color',
-                    'color0': 'Palette color 0',
-                    'color1': 'Palette color 1',
-                    'color2': 'Palette color 2',
-                    'color3': 'Palette color 3',
-                    'color4': 'Palette color 4',
-                    'color5': 'Palette color 5',
-                    'color6': 'Palette color 6',
-                    'color7': 'Palette color 7',
-                    'color8': 'Palette color 8',
-                    'color9': 'Palette color 9',
-                    'color10': 'Palette color 10',
-                    'color11': 'Palette color 11',
-                    'color12': 'Palette color 12',
-                    'color13': 'Palette color 13',
-                    'color14': 'Palette color 14',
-                    'color15': 'Palette color 15',
+                waybar: {
+                    background: 'Bar background color',
+                    foreground: 'Text and icon color',
+                    color0: 'Palette color 0',
+                    color1: 'Palette color 1',
+                    color2: 'Palette color 2',
+                    color3: 'Palette color 3',
+                    color4: 'Palette color 4',
+                    color5: 'Palette color 5',
+                    color6: 'Palette color 6',
+                    color7: 'Palette color 7',
+                    color8: 'Palette color 8',
+                    color9: 'Palette color 9',
+                    color10: 'Palette color 10',
+                    color11: 'Palette color 11',
+                    color12: 'Palette color 12',
+                    color13: 'Palette color 13',
+                    color14: 'Palette color 14',
+                    color15: 'Palette color 15',
                 },
-                'mako': {
-                    'foreground': 'Notification text color',
-                    'color5': 'Notification border color',
-                    'background': 'Notification background color',
+                mako: {
+                    foreground: 'Notification text color',
+                    color5: 'Notification border color',
+                    background: 'Notification background color',
                 },
-                'walker': {
-                    'foreground': 'Text color',
-                    'background': 'Window and input background',
-                    'color4': 'Selected item highlight color',
-                    'color8': 'Border and scrollbar color',
+                walker: {
+                    foreground: 'Text color',
+                    background: 'Window and input background',
+                    color4: 'Selected item highlight color',
+                    color8: 'Border and scrollbar color',
                 },
-                'wofi': {
-                    'background': 'Window and entry background',
-                    'foreground': 'Text and icon color',
-                    'color2': 'Input and entry selected background',
-                    'color8': 'Window border and scrollbar',
-                    'color4': 'Window border color',
-                    'color3': 'Scrollbar hover color',
-                    'color5': 'Unused color variable',
-                    'color15': 'Selected text bright color',
+                wofi: {
+                    background: 'Window and entry background',
+                    foreground: 'Text and icon color',
+                    color2: 'Input and entry selected background',
+                    color8: 'Window border and scrollbar',
+                    color4: 'Window border color',
+                    color3: 'Scrollbar hover color',
+                    color5: 'Unused color variable',
+                    color15: 'Selected text bright color',
                 },
-                'swayosd': {
-                    'background': 'OSD background color',
-                    'color8': 'OSD border color',
-                    'foreground': 'OSD label and icon color',
-                    'color3': 'OSD progress bar color',
+                swayosd: {
+                    background: 'OSD background color',
+                    color8: 'OSD border color',
+                    foreground: 'OSD label and icon color',
+                    color3: 'OSD progress bar color',
                 },
-                'chromium': {
-                    'background': 'Browser theme background color',
+                chromium: {
+                    background: 'Browser theme background color',
                 },
-                'icons': {
-                    'color5': 'System icon accent color',
+                icons: {
+                    color5: 'System icon accent color',
                 },
-                'neovim': {
-                    'background': 'Default background (base00)',
-                    'foreground': 'Default foreground text (base05)',
-                    'color0': 'Selection background (base02)',
-                    'color1': 'Variables, errors, red (base08)',
-                    'color2': 'Strings, green (base0B)',
-                    'color3': 'Classes, types, yellow (base0A)',
-                    'color4': 'Functions, keywords, blue (base0D)',
-                    'color5': 'Keywords, storage, magenta (base0E)',
-                    'color6': 'Support, regex, cyan (base0C)',
-                    'color7': 'Dark foreground, light bg (base04/07)',
-                    'color8': 'Lighter bg, comments (base01/03)',
-                    'color9': 'Integers, constants, orange (base09)',
-                    'color11': 'Deprecated, brown/yellow (base0F)',
-                    'color15': 'Light foreground (base06)',
+                neovim: {
+                    background: 'Default background (base00)',
+                    foreground: 'Default foreground text (base05)',
+                    color0: 'Selection background (base02)',
+                    color1: 'Variables, errors, red (base08)',
+                    color2: 'Strings, green (base0B)',
+                    color3: 'Classes, types, yellow (base0A)',
+                    color4: 'Functions, keywords, blue (base0D)',
+                    color5: 'Keywords, storage, magenta (base0E)',
+                    color6: 'Support, regex, cyan (base0C)',
+                    color7: 'Dark foreground, light bg (base04/07)',
+                    color8: 'Lighter bg, comments (base01/03)',
+                    color9: 'Integers, constants, orange (base09)',
+                    color11: 'Deprecated, brown/yellow (base0F)',
+                    color15: 'Light foreground (base06)',
                 },
             };
 
             // Get app-specific description if available
-            if (appName && colorDescriptionsByApp[appName] && colorDescriptionsByApp[appName][colorVar]) {
+            if (
+                appName &&
+                colorDescriptionsByApp[appName] &&
+                colorDescriptionsByApp[appName][colorVar]
+            ) {
                 return colorDescriptionsByApp[appName][colorVar];
             }
 
             // Fallback to generic color names
             const genericLabelMap = {
-                'background': 'Background',
-                'foreground': 'Foreground',
-                'color0': 'Black (0)',
-                'black': 'Black (0)',
-                'color1': 'Red (1)',
-                'red': 'Red (1)',
-                'color2': 'Green (2)',
-                'green': 'Green (2)',
-                'color3': 'Yellow (3)',
-                'yellow': 'Yellow (3)',
-                'color4': 'Blue (4)',
-                'blue': 'Blue (4)',
-                'color5': 'Magenta (5)',
-                'magenta': 'Magenta (5)',
-                'color6': 'Cyan (6)',
-                'cyan': 'Cyan (6)',
-                'color7': 'White (7)',
-                'white': 'White (7)',
-                'color8': 'Bright Black (8)',
-                'bright_black': 'Bright Black (8)',
-                'color9': 'Bright Red (9)',
-                'bright_red': 'Bright Red (9)',
-                'color10': 'Bright Green (10)',
-                'bright_green': 'Bright Green (10)',
-                'color11': 'Bright Yellow (11)',
-                'bright_yellow': 'Bright Yellow (11)',
-                'color12': 'Bright Blue (12)',
-                'bright_blue': 'Bright Blue (12)',
-                'color13': 'Bright Magenta (13)',
-                'bright_magenta': 'Bright Magenta (13)',
-                'color14': 'Bright Cyan (14)',
-                'bright_cyan': 'Bright Cyan (14)',
-                'color15': 'Bright White (15)',
-                'bright_white': 'Bright White (15)',
+                background: 'Background',
+                foreground: 'Foreground',
+                color0: 'Black (0)',
+                black: 'Black (0)',
+                color1: 'Red (1)',
+                red: 'Red (1)',
+                color2: 'Green (2)',
+                green: 'Green (2)',
+                color3: 'Yellow (3)',
+                yellow: 'Yellow (3)',
+                color4: 'Blue (4)',
+                blue: 'Blue (4)',
+                color5: 'Magenta (5)',
+                magenta: 'Magenta (5)',
+                color6: 'Cyan (6)',
+                cyan: 'Cyan (6)',
+                color7: 'White (7)',
+                white: 'White (7)',
+                color8: 'Bright Black (8)',
+                bright_black: 'Bright Black (8)',
+                color9: 'Bright Red (9)',
+                bright_red: 'Bright Red (9)',
+                color10: 'Bright Green (10)',
+                bright_green: 'Bright Green (10)',
+                color11: 'Bright Yellow (11)',
+                bright_yellow: 'Bright Yellow (11)',
+                color12: 'Bright Blue (12)',
+                bright_blue: 'Bright Blue (12)',
+                color13: 'Bright Magenta (13)',
+                bright_magenta: 'Bright Magenta (13)',
+                color14: 'Bright Cyan (14)',
+                bright_cyan: 'Bright Cyan (14)',
+                color15: 'Bright White (15)',
+                bright_white: 'Bright White (15)',
             };
 
             return genericLabelMap[colorVar] || colorVar;
@@ -451,7 +461,7 @@ export const AppColorOverrides = GObject.registerClass(
                     const row = this._createColorOverrideRow(
                         colorVar,
                         appOverrides[colorVar] || null,
-                        (newColor) => {
+                        newColor => {
                             this._updateOverride(app.name, colorVar, newColor);
                             this._updateCountLabel(countLabel, app.name);
                         },
@@ -496,10 +506,17 @@ export const AppColorOverrides = GObject.registerClass(
             dialog.present(this.get_root());
         }
 
-        _createColorOverrideRow(colorVar, currentValue, onColorChanged, appName) {
+        _createColorOverrideRow(
+            colorVar,
+            currentValue,
+            onColorChanged,
+            appName
+        ) {
             const row = new Adw.ActionRow({
                 title: this._getColorVarLabel(colorVar, appName),
-                subtitle: currentValue ? `Custom: ${currentValue}` : 'Using default',
+                subtitle: currentValue
+                    ? `Custom: ${currentValue}`
+                    : 'Using default',
             });
 
             // Color button
@@ -512,7 +529,8 @@ export const AppColorOverrides = GObject.registerClass(
             let isResetting = false;
 
             // Set initial color: use override if exists, otherwise use palette color
-            const displayColor = currentValue || this._paletteColors[colorVar] || '#808080';
+            const displayColor =
+                currentValue || this._paletteColors[colorVar] || '#808080';
             const rgba = new Gdk.RGBA();
             rgba.parse(displayColor);
             colorButton.set_rgba(rgba);

@@ -47,6 +47,13 @@ cd aether
 ./aether
 ```
 
+To open with a specific wallpaper:
+```bash
+./aether --wallpaper /path/to/image.png
+# or short form
+./aether -w /path/to/image.png
+```
+
 4. (Optional) Install desktop entry:
 ```bash
 cp li.oever.aether.desktop ~/.local/share/applications/
@@ -60,6 +67,21 @@ paru -S aether
 ```
 
 ## Usage
+
+### Command Line Options
+
+```bash
+./aether [OPTIONS]
+
+Options:
+  -h, --help              Show help message
+  -w, --wallpaper=FILE    Path to wallpaper image to load on startup
+```
+
+Example:
+```bash
+./aether --wallpaper ~/Pictures/wallpaper.jpg
+```
 
 ### Basic Workflow
 

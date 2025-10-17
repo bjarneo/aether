@@ -38,7 +38,13 @@ export class ConfigWriter {
         this.wallpaperPath = null;
     }
 
-    applyTheme(colorRoles, wallpaperPath, settings = {}, lightMode = false, appOverrides = {}) {
+    applyTheme(
+        colorRoles,
+        wallpaperPath,
+        settings = {},
+        lightMode = false,
+        appOverrides = {}
+    ) {
         try {
             this._createThemeDirectory();
 
@@ -148,12 +154,24 @@ export class ConfigWriter {
                     return;
                 }
 
-                this._processTemplate(templatePath, outputPath, variables, fileName, appOverrides);
+                this._processTemplate(
+                    templatePath,
+                    outputPath,
+                    variables,
+                    fileName,
+                    appOverrides
+                );
             }
         );
     }
 
-    _processTemplate(templatePath, outputPath, variables, fileName, appOverrides = {}) {
+    _processTemplate(
+        templatePath,
+        outputPath,
+        variables,
+        fileName,
+        appOverrides = {}
+    ) {
         try {
             const content = readFileAsText(templatePath);
             let processed = content;
@@ -173,7 +191,9 @@ export class ConfigWriter {
             writeTextToFile(outputPath, processed);
 
             if (Object.keys(appSpecificOverrides).length > 0) {
-                console.log(`Applied ${Object.keys(appSpecificOverrides).length} override(s) to ${fileName}`);
+                console.log(
+                    `Applied ${Object.keys(appSpecificOverrides).length} override(s) to ${fileName}`
+                );
             }
 
             // Set special permissions for gtk.css (chmod 644)
@@ -262,7 +282,12 @@ export class ConfigWriter {
             }
 
             const variables = this._buildVariables(colorRoles);
-            this._processTemplatesToDirectory(variables, exportPath, settings, appOverrides);
+            this._processTemplatesToDirectory(
+                variables,
+                exportPath,
+                settings,
+                appOverrides
+            );
             this._handleLightModeMarker(exportPath, lightMode);
 
             console.log(`Theme exported successfully to: ${exportPath}`);
@@ -273,7 +298,12 @@ export class ConfigWriter {
         }
     }
 
-    _processTemplatesToDirectory(variables, exportPath, settings = {}, appOverrides = {}) {
+    _processTemplatesToDirectory(
+        variables,
+        exportPath,
+        settings = {},
+        appOverrides = {}
+    ) {
         enumerateDirectory(
             this.templatesDir,
             (fileInfo, templatePath, fileName) => {
@@ -322,7 +352,13 @@ export class ConfigWriter {
                     return;
                 }
 
-                this._processTemplate(templatePath, outputPath, variables, fileName, appOverrides);
+                this._processTemplate(
+                    templatePath,
+                    outputPath,
+                    variables,
+                    fileName,
+                    appOverrides
+                );
                 console.log(`Processed template: ${fileName}`);
             }
         );
