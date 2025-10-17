@@ -9,7 +9,9 @@ import {extractColorsFromWallpaper} from '../services/wallpaper-service.js';
 import {adjustColor} from '../utils/color-utils.js';
 import {ColorSwatchGrid} from './palette/color-swatch-grid.js';
 import {ColorPickerDialog} from './palette/color-picker-dialog.js';
-import {WallpaperBrowserTabs} from './WallpaperBrowserTabs.js';
+import {WallpaperBrowser} from './WallpaperBrowser.js';
+import {LocalWallpaperBrowser} from './LocalWallpaperBrowser.js';
+import {FavoritesView} from './FavoritesView.js';
 import {WallpaperColorPicker} from './palette/wallpaper-color-picker.js';
 import {AppColorOverrides} from './palette/AppColorOverrides.js';
 
@@ -41,7 +43,7 @@ export const PaletteGenerator = GObject.registerClass(
             // View stack for the modes
             this._viewStack = new Adw.ViewStack();
 
-            // Tab 1: Unified Palette Editor (combines wallpaper + custom)
+            // Tab 1: Palette Editor
             const paletteView = this._createPaletteEditorView();
             const palettePage = this._viewStack.add_titled(
                 paletteView,
@@ -50,19 +52,69 @@ export const PaletteGenerator = GObject.registerClass(
             );
             palettePage.set_icon_name('preferences-color-symbolic');
 
-            // Tab 2: Find Wallpaper
-            this._wallpaperBrowser = new WallpaperBrowserTabs();
-            this._wallpaperBrowser.connect('wallpaper-selected', (_, path) => {
+            // Add invisible separator page (not clickable, just for visual grouping)
+            const separatorPage = this._viewStack.add_titled(
+                new Gtk.Box(),
+                'separator',
+                '│'
+            );
+            // Make separator non-interactive by not showing it in switcher
+            separatorPage.set_visible(false);
+
+            // Tab 2: Wallhaven Browser
+            this._wallhavenBrowser = new WallpaperBrowser();
+            this._wallhavenBrowser.connect('wallpaper-selected', (_, path) => {
                 this._onWallpaperBrowserSelected(path);
             });
-            const browserPage = this._viewStack.add_titled(
-                this._wallpaperBrowser,
-                'browser',
-                'Wallpaper'
+            this._wallhavenBrowser.connect('favorites-changed', () => {
+                if (this._favoritesView) {
+                    this._favoritesView.loadFavorites();
+                }
+            });
+            const wallhavenPage = this._viewStack.add_titled(
+                this._wallhavenBrowser,
+                'wallhaven',
+                'Wallhaven'
             );
-            browserPage.set_icon_name('system-search-symbolic');
+            wallhavenPage.set_icon_name('network-workgroup-symbolic');
 
-            // Header box with view switcher
+            // Tab 3: Local Wallpapers
+            this._localBrowser = new LocalWallpaperBrowser();
+            this._localBrowser.connect('wallpaper-selected', (_, path) => {
+                this._onWallpaperBrowserSelected(path);
+            });
+            this._localBrowser.connect('favorites-changed', () => {
+                if (this._favoritesView) {
+                    this._favoritesView.loadFavorites();
+                }
+            });
+            const localPage = this._viewStack.add_titled(
+                this._localBrowser,
+                'local',
+                'Local'
+            );
+            localPage.set_icon_name('folder-symbolic');
+
+            // Tab 4: Favorites
+            this._favoritesView = new FavoritesView();
+            this._favoritesView.connect('wallpaper-selected', (_, path) => {
+                this._onWallpaperBrowserSelected(path);
+            });
+            const favoritesPage = this._viewStack.add_titled(
+                this._favoritesView,
+                'favorites',
+                'Favorites'
+            );
+            favoritesPage.set_icon_name('emblem-favorite-symbolic');
+
+            // Monitor tab changes to reload favorites
+            this._viewStack.connect('notify::visible-child-name', () => {
+                if (this._viewStack.get_visible_child_name() === 'favorites') {
+                    this._favoritesView.loadFavorites();
+                }
+            });
+
+            // Custom header with separated tab groups
             const headerBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
@@ -74,12 +126,64 @@ export const PaletteGenerator = GObject.registerClass(
             });
             headerBox.append(spacer);
 
-            // View switcher title for tabs at the top
-            const viewSwitcherTitle = new Adw.ViewSwitcherTitle();
-            viewSwitcherTitle.set_stack(this._viewStack);
-            viewSwitcherTitle.set_title('Palette Source');
+            // Create custom tab bar with separator
+            const tabBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 12,
+                css_classes: ['linked'],
+            });
 
-            headerBox.append(viewSwitcherTitle);
+            // Editor tab button
+            const editorBtn = new Gtk.ToggleButton({
+                label: 'Editor',
+                active: true,
+            });
+            editorBtn.connect('clicked', () => {
+                this._viewStack.set_visible_child_name('editor');
+                this._updateTabButtons(editorBtn);
+            });
+            tabBox.append(editorBtn);
+
+            // Visual separator
+            const separator = new Gtk.Separator({
+                orientation: Gtk.Orientation.VERTICAL,
+            });
+            tabBox.append(separator);
+
+            // Wallhaven tab button
+            const wallhavenBtn = new Gtk.ToggleButton({
+                label: 'Wallhaven',
+            });
+            wallhavenBtn.connect('clicked', () => {
+                this._viewStack.set_visible_child_name('wallhaven');
+                this._updateTabButtons(wallhavenBtn);
+            });
+            tabBox.append(wallhavenBtn);
+
+            // Local tab button
+            const localBtn = new Gtk.ToggleButton({
+                label: 'Local',
+            });
+            localBtn.connect('clicked', () => {
+                this._viewStack.set_visible_child_name('local');
+                this._updateTabButtons(localBtn);
+            });
+            tabBox.append(localBtn);
+
+            // Favorites tab button
+            const favBtn = new Gtk.ToggleButton({
+                label: 'Favorites',
+            });
+            favBtn.connect('clicked', () => {
+                this._viewStack.set_visible_child_name('favorites');
+                this._updateTabButtons(favBtn);
+            });
+            tabBox.append(favBtn);
+
+            // Store button references
+            this._tabButtons = [editorBtn, wallhavenBtn, localBtn, favBtn];
+
+            headerBox.append(tabBox);
 
             this.append(headerBox);
             this.append(this._viewStack);
@@ -88,6 +192,15 @@ export const PaletteGenerator = GObject.registerClass(
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._loadDefaultCustomColors();
                 return GLib.SOURCE_REMOVE;
+            });
+        }
+
+        _updateTabButtons(activeButton) {
+            // Deactivate all buttons except the clicked one
+            this._tabButtons.forEach(btn => {
+                if (btn !== activeButton) {
+                    btn.set_active(false);
+                }
             });
         }
 
