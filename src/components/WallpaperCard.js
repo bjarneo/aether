@@ -24,10 +24,7 @@ export function createWallpaperCard(wallpaper, onSelect, onFavoriteToggle) {
     buttonProvider.load_from_data(buttonCss, -1);
     imageButton
         .get_style_context()
-        .add_provider(
-            buttonProvider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        );
+        .add_provider(buttonProvider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     // Thumbnail image
     const picture = new Gtk.Picture({

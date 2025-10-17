@@ -582,7 +582,7 @@ export const WallpaperBrowser = GObject.registerClass(
 
             const {mainBox, picture} = createWallpaperCard(
                 wallpaperData,
-                (wp) => this._downloadAndUseWallpaper(wallpaper),
+                wp => this._downloadAndUseWallpaper(wallpaper),
                 () => this.emit('favorites-changed')
             );
 

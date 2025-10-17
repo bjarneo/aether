@@ -24,7 +24,10 @@ class ThumbnailService {
             try {
                 dir.make_directory_with_parents(null);
             } catch (e) {
-                console.error('Failed to create thumbnail cache directory:', e.message);
+                console.error(
+                    'Failed to create thumbnail cache directory:',
+                    e.message
+                );
             }
         }
     }
@@ -65,7 +68,7 @@ class ThumbnailService {
     }
 
     async generateThumbnail(filePath, thumbPath) {
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             GLib.idle_add(GLib.PRIORITY_LOW, () => {
                 try {
                     const pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
@@ -77,7 +80,10 @@ class ThumbnailService {
                     pixbuf.savev(thumbPath, 'png', [], []);
                     resolve(thumbPath);
                 } catch (e) {
-                    console.error(`Failed to generate thumbnail for ${filePath}:`, e.message);
+                    console.error(
+                        `Failed to generate thumbnail for ${filePath}:`,
+                        e.message
+                    );
                     resolve(null);
                 }
                 return GLib.SOURCE_REMOVE;

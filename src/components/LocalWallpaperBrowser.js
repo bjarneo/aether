@@ -229,12 +229,14 @@ export const LocalWallpaperBrowser = GObject.registerClass(
 
             const {mainBox, picture} = createWallpaperCard(
                 wallpaperData,
-                (wp) => this.emit('wallpaper-selected', wp.path),
+                wp => this.emit('wallpaper-selected', wp.path),
                 () => this.emit('favorites-changed')
             );
 
             // Load thumbnail asynchronously using shared service
-            const thumbPath = await thumbnailService.getThumbnail(wallpaper.file);
+            const thumbPath = await thumbnailService.getThumbnail(
+                wallpaper.file
+            );
             if (thumbPath) {
                 try {
                     const pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbPath);
@@ -256,13 +258,17 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 file: Gio.File.new_for_path(this._wallpapersPath),
             });
 
-            launcher.open_containing_folder(this.get_root(), null, (source, result) => {
-                try {
-                    launcher.open_containing_folder_finish(result);
-                } catch (e) {
-                    console.error('Error opening folder:', e.message);
+            launcher.open_containing_folder(
+                this.get_root(),
+                null,
+                (source, result) => {
+                    try {
+                        launcher.open_containing_folder_finish(result);
+                    } catch (e) {
+                        console.error('Error opening folder:', e.message);
+                    }
                 }
-            });
+            );
         }
     }
 );

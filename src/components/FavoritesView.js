@@ -121,7 +121,8 @@ export const FavoritesView = GObject.registerClass(
             };
 
             if (favorite.type === 'local') {
-                wallpaper.name = favorite.data.name || GLib.path_get_basename(favorite.path);
+                wallpaper.name =
+                    favorite.data.name || GLib.path_get_basename(favorite.path);
                 wallpaper.info = wallpaper.name;
             } else if (favorite.type === 'wallhaven') {
                 wallpaper.info = `${favorite.data.resolution || ''} • ${this._formatFileSize(favorite.data.file_size || 0)}`;
@@ -129,7 +130,7 @@ export const FavoritesView = GObject.registerClass(
 
             const {mainBox, picture} = createWallpaperCard(
                 wallpaper,
-                (wp) => this.emit('wallpaper-selected', wp.path),
+                wp => this.emit('wallpaper-selected', wp.path),
                 () => this.loadFavorites() // Reload when unfavorited
             );
 
@@ -145,7 +146,8 @@ export const FavoritesView = GObject.registerClass(
                 const thumbPath = await thumbnailService.getThumbnail(file);
                 if (thumbPath) {
                     try {
-                        const pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbPath);
+                        const pixbuf =
+                            GdkPixbuf.Pixbuf.new_from_file(thumbPath);
                         const texture = Gdk.Texture.new_for_pixbuf(pixbuf);
                         picture.set_paintable(texture);
                     } catch (e) {
@@ -155,7 +157,10 @@ export const FavoritesView = GObject.registerClass(
                 } else {
                     picture.set_file(file);
                 }
-            } else if (favorite.type === 'wallhaven' && favorite.data.thumbUrl) {
+            } else if (
+                favorite.type === 'wallhaven' &&
+                favorite.data.thumbUrl
+            ) {
                 try {
                     const cacheDir = GLib.build_filenamev([
                         GLib.get_user_cache_dir(),
@@ -165,7 +170,10 @@ export const FavoritesView = GObject.registerClass(
                     GLib.mkdir_with_parents(cacheDir, 0o755);
 
                     const filename = favorite.data.thumbUrl.split('/').pop();
-                    const cachePath = GLib.build_filenamev([cacheDir, filename]);
+                    const cachePath = GLib.build_filenamev([
+                        cacheDir,
+                        filename,
+                    ]);
 
                     const file = Gio.File.new_for_path(cachePath);
                     if (file.query_exists(null)) {
@@ -178,7 +186,10 @@ export const FavoritesView = GObject.registerClass(
                         picture.set_file(Gio.File.new_for_path(cachePath));
                     }
                 } catch (e) {
-                    console.error('Failed to load wallhaven thumbnail:', e.message);
+                    console.error(
+                        'Failed to load wallhaven thumbnail:',
+                        e.message
+                    );
                 }
             }
         }

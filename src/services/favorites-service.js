@@ -9,13 +9,13 @@ import GObject from 'gi://GObject';
 export const FavoritesService = GObject.registerClass(
     {
         Signals: {
-            'changed': {},
+            changed: {},
         },
     },
     class FavoritesService extends GObject.Object {
         _init() {
             super._init();
-            
+
             this._favorites = new Set(); // Set of JSON strings
             this._pathIndex = new Map(); // path -> JSON string (for fast lookup)
             this._configPath = GLib.build_filenamev([
@@ -23,14 +23,14 @@ export const FavoritesService = GObject.registerClass(
                 'aether',
                 'favorites.json',
             ]);
-            
+
             this._loadFavorites();
         }
 
         _loadFavorites() {
             try {
                 const file = Gio.File.new_for_path(this._configPath);
-                
+
                 if (!file.query_exists(null)) {
                     return;
                 }
@@ -43,7 +43,7 @@ export const FavoritesService = GObject.registerClass(
                 const decoder = new TextDecoder('utf-8');
                 const text = decoder.decode(contents);
                 const favArray = JSON.parse(text);
-                
+
                 // Process favorites and build index
                 favArray.forEach(fav => {
                     if (typeof fav === 'string') {
@@ -78,7 +78,7 @@ export const FavoritesService = GObject.registerClass(
                 return JSON.stringify({
                     id: obj.data?.id,
                     path: obj.path,
-                    thumbs: { small: obj.data?.thumbUrl },
+                    thumbs: {small: obj.data?.thumbUrl},
                     resolution: obj.data?.resolution,
                     file_size: obj.data?.file_size,
                 });
@@ -88,7 +88,7 @@ export const FavoritesService = GObject.registerClass(
                     name: obj.data?.name || GLib.path_get_basename(obj.path),
                 });
             }
-            return JSON.stringify({ path: obj.path });
+            return JSON.stringify({path: obj.path});
         }
 
         _saveFavorites() {
@@ -123,13 +123,13 @@ export const FavoritesService = GObject.registerClass(
                 return false;
             }
 
-            const obj = { path, type, data };
+            const obj = {path, type, data};
             const jsonStr = this._objectToJsonString(obj);
-            
+
             this._favorites.add(jsonStr);
             this._pathIndex.set(path, jsonStr);
             this._saveFavorites();
-            
+
             return true;
         }
 
@@ -142,7 +142,7 @@ export const FavoritesService = GObject.registerClass(
             this._favorites.delete(jsonStr);
             this._pathIndex.delete(path);
             this._saveFavorites();
-            
+
             return true;
         }
 
@@ -158,11 +158,11 @@ export const FavoritesService = GObject.registerClass(
 
         getFavorites() {
             const favorites = [];
-            
+
             for (const jsonStr of this._favorites) {
                 try {
                     const obj = JSON.parse(jsonStr);
-                    
+
                     // Determine type and convert to standard format
                     if (obj.id && obj.thumbs) {
                         // Wallhaven format
@@ -190,7 +190,7 @@ export const FavoritesService = GObject.registerClass(
                     console.error('Failed to parse favorite:', e.message);
                 }
             }
-            
+
             return favorites;
         }
 
