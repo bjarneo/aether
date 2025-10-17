@@ -35,6 +35,11 @@ export const WallpaperEditor = GObject.registerClass(
                 brightness: 100,  // 0-200%
                 contrast: 100,    // 0-200%
                 saturation: 100,  // 0-200%
+                hueRotate: 0,     // 0-360 degrees
+                sepia: 0,         // 0-100%
+                invert: 0,        // 0-100%
+                tone: null,       // tone type (blue, red, etc.) or null
+                toneAmount: 0,    // 0-100%
             };
 
             this._initializeUI();
@@ -42,16 +47,23 @@ export const WallpaperEditor = GObject.registerClass(
         }
 
         _initializeUI() {
-            // Header
-            const headerBar = new Adw.HeaderBar({
-                show_title: false,
+            // Header without HeaderBar background
+            const headerBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 12,
+                margin_top: 18,
+                margin_bottom: 12,
+                margin_start: 18,
+                margin_end: 18,
             });
 
             const titleLabel = new Gtk.Label({
                 label: 'Wallpaper Editor',
                 css_classes: ['title-3'],
+                xalign: 0,
+                hexpand: true,
             });
-            headerBar.set_title_widget(titleLabel);
+            headerBox.append(titleLabel);
 
             // Apply button with spinner (right side)
             const applyBox = new Gtk.Box({
@@ -74,9 +86,9 @@ export const WallpaperEditor = GObject.registerClass(
 
             applyBox.append(this._applySpinner);
             applyBox.append(this._applyButton);
-            headerBar.pack_end(applyBox);
+            headerBox.append(applyBox);
 
-            this.append(headerBar);
+            this.append(headerBox);
 
             // Main content - side by side
             const paned = new Gtk.Paned({
@@ -87,7 +99,11 @@ export const WallpaperEditor = GObject.registerClass(
                 resize_end_child: false,
                 hexpand: true,
                 vexpand: true,
-                position: 500,
+                position: 650,
+                margin_top: 0,
+                margin_bottom: 18,
+                margin_start: 18,
+                margin_end: 6,
             });
 
             // Left: Preview
@@ -97,10 +113,10 @@ export const WallpaperEditor = GObject.registerClass(
             paned.set_end_child(this._createControlsArea());
 
             const mainBox = new Gtk.Box({
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                margin_top: 0,
+                margin_bottom: 0,
+                margin_start: 0,
+                margin_end: 0,
                 hexpand: true,
                 vexpand: true,
             });
@@ -112,32 +128,27 @@ export const WallpaperEditor = GObject.registerClass(
         _createPreviewArea() {
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
+                spacing: 18,
                 hexpand: true,
                 vexpand: true,
+                margin_start: 6,
+                margin_end: 18,
             });
 
             const headerBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-                margin_bottom: 6,
+                spacing: 12,
+                margin_bottom: 0,
             });
 
             const label = new Gtk.Label({
                 label: 'Preview',
-                css_classes: ['title-4'],
+                css_classes: ['title-3'],
                 xalign: 0,
                 hexpand: true,
             });
 
-            const infoLabel = new Gtk.Label({
-                label: 'Real-time CSS filters',
-                css_classes: ['dim-label', 'caption'],
-                xalign: 1,
-            });
-
             headerBox.append(label);
-            headerBox.append(infoLabel);
             box.append(headerBox);
 
             const scrolled = new Gtk.ScrolledWindow({
@@ -145,6 +156,7 @@ export const WallpaperEditor = GObject.registerClass(
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
                 hexpand: true,
                 vexpand: true,
+                margin_top: 0,
             });
 
             this._previewPicture = new Gtk.Picture({
@@ -167,7 +179,7 @@ export const WallpaperEditor = GObject.registerClass(
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 0,
-                width_request: 340,
+                width_request: 360,
             });
 
             const scrolled = new Gtk.ScrolledWindow({
@@ -178,9 +190,11 @@ export const WallpaperEditor = GObject.registerClass(
 
             const contentBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 18,
-                margin_top: 6,
-                margin_bottom: 6,
+                spacing: 24,
+                margin_top: 12,
+                margin_bottom: 18,
+                margin_start: 18,
+                margin_end: 18,
             });
 
             // Filters group
@@ -245,24 +259,88 @@ export const WallpaperEditor = GObject.registerClass(
                 )
             );
 
+            // Hue rotation
+            group.add(
+                this._createSliderRow(
+                    'Hue Shift',
+                    'hueRotate',
+                    0,
+                    360,
+                    1,
+                    0,
+                    '°',
+                    'Rotate colors around the color wheel'
+                )
+            );
+
             contentBox.append(group);
 
-            // Reset button at bottom of filters
-            const resetRow = new Adw.ActionRow({
-                title: 'Reset All Filters',
+            // Effects group
+            const effectsGroup = new Adw.PreferencesGroup({
+                title: 'Effects',
+                description: 'Additional creative filters',
             });
 
-            const resetButton = new Gtk.Button({
-                icon_name: 'edit-undo-symbolic',
-                valign: Gtk.Align.CENTER,
-                tooltip_text: 'Reset all filters to default',
-            });
-            resetButton.connect('clicked', () => this._resetFilters());
-            resetRow.add_suffix(resetButton);
+            // Sepia
+            effectsGroup.add(
+                this._createSliderRow(
+                    'Sepia',
+                    'sepia',
+                    0,
+                    100,
+                    1,
+                    0,
+                    '%',
+                    'Classic vintage brown tone'
+                )
+            );
 
-            const resetGroup = new Adw.PreferencesGroup();
-            resetGroup.add(resetRow);
-            contentBox.append(resetGroup);
+            // Invert
+            effectsGroup.add(
+                this._createSliderRow(
+                    'Invert',
+                    'invert',
+                    0,
+                    100,
+                    1,
+                    0,
+                    '%',
+                    'Invert colors'
+                )
+            );
+
+            contentBox.append(effectsGroup);
+
+            // Color tone group
+            const toneGroup = new Adw.PreferencesGroup({
+                title: 'Color Tone',
+                description: 'Apply a color tone to the image',
+            });
+
+            // Tone selector with color buttons
+            const toneRow = new Adw.ActionRow({
+                title: 'Tone Preset',
+            });
+
+            const toneGrid = this._createToneGrid();
+            toneRow.add_suffix(toneGrid);
+            toneGroup.add(toneRow);
+
+            // Tone amount slider
+            toneGroup.add(
+                this._createSliderRow(
+                    'Tone Strength',
+                    'toneAmount',
+                    0,
+                    100,
+                    1,
+                    0,
+                    '%',
+                    'Intensity of color tone'
+                )
+            );
+
+            contentBox.append(toneGroup);
 
             // Quick presets group
             const presetsGroup = new Adw.PreferencesGroup({
@@ -272,7 +350,7 @@ export const WallpaperEditor = GObject.registerClass(
 
             const presetsBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 6,
+                spacing: 8,
                 margin_top: 12,
                 margin_bottom: 12,
                 margin_start: 12,
@@ -288,7 +366,7 @@ export const WallpaperEditor = GObject.registerClass(
 
             const presetButtonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: 8,
                 homogeneous: true,
             });
 
@@ -305,6 +383,24 @@ export const WallpaperEditor = GObject.registerClass(
             presetsGroup.add(new Adw.ActionRow({child: presetsBox}));
             contentBox.append(presetsGroup);
 
+            // Reset button at bottom
+            const resetRow = new Adw.ActionRow({
+                title: 'Reset All Filters',
+                subtitle: 'Return to original image',
+            });
+
+            const resetButton = new Gtk.Button({
+                icon_name: 'edit-undo-symbolic',
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Reset all filters to default',
+            });
+            resetButton.connect('clicked', () => this._resetFilters());
+            resetRow.add_suffix(resetButton);
+
+            const resetGroup = new Adw.PreferencesGroup();
+            resetGroup.add(resetRow);
+            contentBox.append(resetGroup);
+
             scrolled.set_child(contentBox);
             box.append(scrolled);
 
@@ -319,18 +415,18 @@ export const WallpaperEditor = GObject.registerClass(
 
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 6,
-                margin_end: 6,
+                spacing: 16,
+                margin_top: 14,
+                margin_bottom: 14,
+                margin_start: 8,
+                margin_end: 8,
             });
 
             const scale = new Gtk.Scale({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 draw_value: false,
                 hexpand: true,
-                width_request: 180,
+                width_request: 200,
             });
             scale.set_range(min, max);
             scale.set_increments(step, step * 5);
@@ -359,6 +455,84 @@ export const WallpaperEditor = GObject.registerClass(
             this._sliders[key] = {scale, valueLabel, defaultValue, unit};
 
             return row;
+        }
+
+        _createToneGrid() {
+            const tones = [
+                {name: 'Blue', hue: 210, color: '#3b82f6'},
+                {name: 'Cyan', hue: 180, color: '#06b6d4'},
+                {name: 'Green', hue: 120, color: '#22c55e'},
+                {name: 'Yellow', hue: 50, color: '#eab308'},
+                {name: 'Orange', hue: 30, color: '#f97316'},
+                {name: 'Red', hue: 0, color: '#ef4444'},
+                {name: 'Pink', hue: 330, color: '#ec4899'},
+                {name: 'Purple', hue: 270, color: '#a855f7'},
+            ];
+
+            const grid = new Gtk.FlowBox({
+                max_children_per_line: 4,
+                selection_mode: Gtk.SelectionMode.NONE,
+                column_spacing: 8,
+                row_spacing: 8,
+                margin_top: 8,
+                margin_bottom: 8,
+            });
+
+            tones.forEach(tone => {
+                const button = new Gtk.Button({
+                    width_request: 52,
+                    height_request: 36,
+                    tooltip_text: `${tone.name} tone`,
+                });
+
+                // Style the button with the color
+                const css = `* { 
+                    background: ${tone.color}; 
+                    border: 2px solid alpha(white, 0.2);
+                    min-width: 52px;
+                    min-height: 36px;
+                }
+                *:hover { 
+                    border: 2px solid white;
+                    transform: scale(1.05);
+                }`;
+                applyCssToWidget(button, css);
+
+                button.connect('clicked', () => {
+                    this._filters.tone = tone.hue;
+                    // Auto-set amount to 30% if it's 0
+                    if (this._filters.toneAmount === 0) {
+                        this._filters.toneAmount = 30;
+                        if (this._sliders['toneAmount']) {
+                            this._sliders['toneAmount'].scale.set_value(30);
+                            this._sliders['toneAmount'].valueLabel.set_label('30%');
+                        }
+                    }
+                    this._updatePreviewCss();
+                });
+
+                grid.append(button);
+            });
+
+            // Clear button
+            const clearButton = new Gtk.Button({
+                icon_name: 'edit-clear-symbolic',
+                width_request: 52,
+                height_request: 36,
+                tooltip_text: 'Clear tone',
+            });
+            clearButton.connect('clicked', () => {
+                this._filters.tone = null;
+                this._filters.toneAmount = 0;
+                if (this._sliders['toneAmount']) {
+                    this._sliders['toneAmount'].scale.set_value(0);
+                    this._sliders['toneAmount'].valueLabel.set_label('0%');
+                }
+                this._updatePreviewCss();
+            });
+            grid.append(clearButton);
+
+            return grid;
         }
 
         _applyPreset(preset) {
@@ -410,7 +584,11 @@ export const WallpaperEditor = GObject.registerClass(
                 const hasFilters = this._filters.blur > 0 ||
                                    this._filters.brightness !== 100 ||
                                    this._filters.contrast !== 100 ||
-                                   this._filters.saturation !== 100;
+                                   this._filters.saturation !== 100 ||
+                                   this._filters.hueRotate !== 0 ||
+                                   this._filters.sepia > 0 ||
+                                   this._filters.invert > 0 ||
+                                   (this._filters.tone !== null && this._filters.toneAmount > 0);
 
                 if (!hasFilters) {
                     // No filters applied, just return original
@@ -437,7 +615,11 @@ export const WallpaperEditor = GObject.registerClass(
             const hasFilters = this._filters.blur > 0 ||
                                this._filters.brightness !== 100 ||
                                this._filters.contrast !== 100 ||
-                               this._filters.saturation !== 100;
+                               this._filters.saturation !== 100 ||
+                               this._filters.hueRotate !== 0 ||
+                               this._filters.sepia > 0 ||
+                               this._filters.invert > 0 ||
+                               (this._filters.tone !== null && this._filters.toneAmount > 0);
 
             if (!hasFilters) {
                 console.log('No filters to apply, using original');
@@ -479,6 +661,76 @@ export const WallpaperEditor = GObject.registerClass(
             // Apply blur
             if (this._filters.blur > 0) {
                 args.push('-blur', `0x${this._filters.blur}`);
+            }
+
+            // Apply hue rotation (modulate hue component)
+            if (this._filters.hueRotate !== 0) {
+                // ImageMagick hue is 0-200, CSS is 0-360
+                const hue = 100 + (this._filters.hueRotate / 360) * 200;
+                args.push('-modulate', `100,100,${hue}`);
+            }
+
+            // Apply sepia using color matrix (matches CSS sepia filter)
+            if (this._filters.sepia > 0) {
+                const amount = this._filters.sepia / 100;
+                
+                // CSS sepia matrix values
+                const s = amount;
+                const sepiaMatrix = `${0.393 * s + (1 - s)} ${0.769 * s} ${0.189 * s} ${0.349 * s} ${0.686 * s + (1 - s)} ${0.168 * s} ${0.272 * s} ${0.534 * s} ${0.131 * s + (1 - s)}`;
+                
+                args.push('-color-matrix', sepiaMatrix);
+            }
+
+            // Apply invert
+            if (this._filters.invert > 0) {
+                if (this._filters.invert >= 50) {
+                    args.push('-negate');
+                }
+            }
+
+            // Apply color tone
+            // Match CSS: sepia(x) + hue-rotate(y) + saturate(z)
+            if (this._filters.tone !== null && this._filters.toneAmount > 0) {
+                const amount = this._filters.toneAmount;
+                
+                // Step 1: Convert to sepia (matches CSS sepia filter)
+                // Sepia matrix in ImageMagick
+                const sepiaMatrix = '0.393 0.769 0.189 0.349 0.686 0.168 0.272 0.534 0.131';
+                
+                // Apply sepia effect with blending based on amount
+                if (amount < 100) {
+                    // Partial sepia: blend original with sepia
+                    args.push('(', '+clone', '-color-matrix', sepiaMatrix, ')');
+                    args.push('-compose', 'blend', '-define', `compose:args=${amount}`, '-composite');
+                } else {
+                    // Full sepia
+                    args.push('-color-matrix', sepiaMatrix);
+                }
+                
+                // Step 2: Hue rotate (matches CSS hue-rotate)
+                const sepiaHue = 38;
+                const hueDiff = this._filters.tone - sepiaHue;
+                const hueRadians = (hueDiff * Math.PI) / 180;
+                const cosA = Math.cos(hueRadians);
+                const sinA = Math.sin(hueRadians);
+                
+                const m00 = 0.213 + cosA * 0.787 - sinA * 0.213;
+                const m01 = 0.715 - cosA * 0.715 - sinA * 0.715;
+                const m02 = 0.072 - cosA * 0.072 + sinA * 0.928;
+                const m10 = 0.213 - cosA * 0.213 + sinA * 0.143;
+                const m11 = 0.715 + cosA * 0.285 + sinA * 0.140;
+                const m12 = 0.072 - cosA * 0.072 - sinA * 0.283;
+                const m20 = 0.213 - cosA * 0.213 - sinA * 0.787;
+                const m21 = 0.715 - cosA * 0.715 + sinA * 0.715;
+                const m22 = 0.072 + cosA * 0.928 + sinA * 0.072;
+                
+                args.push('-color-matrix', 
+                    `${m00} ${m01} ${m02} ${m10} ${m11} ${m12} ${m20} ${m21} ${m22}`
+                );
+                
+                // Step 3: Saturate (matches CSS saturate)
+                const satAmount = 100 + (amount / 2);
+                args.push('-modulate', `100,${satAmount},100`);
             }
 
             args.push(tempPath);
@@ -538,9 +790,31 @@ export const WallpaperEditor = GObject.registerClass(
             if (this._filters.saturation !== 100) {
                 filters.push(`saturate(${this._filters.saturation / 100})`);
             }
+            if (this._filters.hueRotate !== 0) {
+                filters.push(`hue-rotate(${this._filters.hueRotate}deg)`);
+            }
+            if (this._filters.sepia > 0) {
+                filters.push(`sepia(${this._filters.sepia / 100})`);
+            }
+            if (this._filters.invert > 0) {
+                filters.push(`invert(${this._filters.invert / 100})`);
+            }
+            
+            // Apply tone by using sepia (with amount) + hue-rotate
+            if (this._filters.tone !== null && this._filters.toneAmount > 0) {
+                // Apply sepia at the chosen amount (0-100% maps to 0-1)
+                filters.push(`sepia(${this._filters.toneAmount / 100})`);
+                // Then hue-rotate to shift from brown to the target color
+                // Sepia's natural hue is ~38 degrees (brown), so we adjust
+                const adjustedHue = this._filters.tone - 38;
+                filters.push(`hue-rotate(${adjustedHue}deg)`);
+                // Boost saturation slightly when tone is active
+                filters.push(`saturate(${1 + (this._filters.toneAmount / 200)})`);
+            }
 
             const filterString = filters.length > 0 ? filters.join(' ') : 'none';
             const css = `* { filter: ${filterString}; }`;
+
             applyCssToWidget(widget, css);
         }
     }
