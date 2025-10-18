@@ -4,6 +4,7 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
+import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {extractColorsFromWallpaper} from '../services/wallpaper-service.js';
 import {adjustColor} from '../utils/color-utils.js';
@@ -14,6 +15,7 @@ import {LocalWallpaperBrowser} from './LocalWallpaperBrowser.js';
 import {FavoritesView} from './FavoritesView.js';
 import {WallpaperColorPicker} from './palette/wallpaper-color-picker.js';
 import {AppColorOverrides} from './palette/AppColorOverrides.js';
+import {registerCustomIcons} from '../utils/icon-utils.js';
 
 export const PaletteGenerator = GObject.registerClass(
     {
@@ -21,6 +23,7 @@ export const PaletteGenerator = GObject.registerClass(
             'palette-generated': {param_types: [GObject.TYPE_JSOBJECT]},
             'adjustments-applied': {param_types: [GObject.TYPE_JSOBJECT]},
             'overrides-changed': {param_types: [GObject.TYPE_JSOBJECT]},
+            'open-wallpaper-editor': {param_types: [GObject.TYPE_STRING]},
         },
     },
     class PaletteGenerator extends Gtk.Box {
@@ -29,6 +32,9 @@ export const PaletteGenerator = GObject.registerClass(
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 12,
             });
+
+            // Register custom icons on first initialization
+            registerCustomIcons();
 
             this._palette = [];
             this._originalPalette = [];
@@ -220,13 +226,21 @@ export const PaletteGenerator = GObject.registerClass(
                 subtitle: 'Select an image for reference or extraction',
             });
 
+            const buttonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                valign: Gtk.Align.CENTER,
+            });
+
             const selectButton = new Gtk.Button({
                 icon_name: 'document-open-symbolic',
                 valign: Gtk.Align.CENTER,
                 tooltip_text: 'Select wallpaper',
             });
             selectButton.connect('clicked', () => this._selectWallpaper());
-            wallpaperRow.add_suffix(selectButton);
+            buttonBox.append(selectButton);
+
+            wallpaperRow.add_suffix(buttonBox);
 
             this._setupDropTarget(wallpaperRow);
             wallpaperGroup.add(wallpaperRow);
@@ -275,6 +289,17 @@ export const PaletteGenerator = GObject.registerClass(
                 }
             });
 
+            // Edit wallpaper button (appears next to Extract button)
+            this._editWallpaperBtn = new Gtk.Button({
+                icon_name: 'image-edit-symbolic',
+                tooltip_text:
+                    'Edit wallpaper (apply filters before extraction)',
+                visible: false,
+            });
+            this._editWallpaperBtn.connect('clicked', () =>
+                this._openWallpaperEditor()
+            );
+
             // Loading spinner (on same line as button)
             this._spinner = new Gtk.Spinner({
                 width_request: 24,
@@ -284,6 +309,7 @@ export const PaletteGenerator = GObject.registerClass(
             });
 
             extractActionRow.append(this._extractButton);
+            extractActionRow.append(this._editWallpaperBtn);
             extractActionRow.append(this._spinner);
 
             // Helper text below button
@@ -302,6 +328,7 @@ export const PaletteGenerator = GObject.registerClass(
             this._wallpaperPreview = new Gtk.Picture({
                 height_request: 200,
                 can_shrink: true,
+                content_fit: Gtk.ContentFit.CONTAIN,
                 css_classes: ['card'],
                 hexpand: true,
                 visible: false,
@@ -445,11 +472,24 @@ export const PaletteGenerator = GObject.registerClass(
             // Load wallpaper without extraction - user must click extract button
             this._currentWallpaper = path;
 
-            const file = Gio.File.new_for_path(path);
-            this._wallpaperPreview.set_file(file);
-            this._wallpaperPreview.set_visible(true);
+            // Force complete reload by using texture instead of file
+            // This ensures GTK doesn't cache the old image
+            try {
+                const pixbuf = GdkPixbuf.Pixbuf.new_from_file(path);
+                const texture = Gdk.Texture.new_for_pixbuf(pixbuf);
+                this._wallpaperPreview.set_paintable(texture);
+                this._wallpaperPreview.set_visible(true);
+            } catch (e) {
+                console.error('Failed to load wallpaper:', e.message);
+                // Fallback to file method
+                const file = Gio.File.new_for_path(path);
+                this._wallpaperPreview.set_file(file);
+                this._wallpaperPreview.set_visible(true);
+            }
+
             this._extractSection.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
+            this._editWallpaperBtn.set_visible(true);
         }
 
         _onWallpaperBrowserSelected(path) {
@@ -464,11 +504,23 @@ export const PaletteGenerator = GObject.registerClass(
             // For manual selection - just show wallpaper and extract button, don't auto-extract
             this._currentWallpaper = path;
 
-            const file = Gio.File.new_for_path(path);
-            this._wallpaperPreview.set_file(file);
-            this._wallpaperPreview.set_visible(true);
+            // Force complete reload by using texture instead of file
+            try {
+                const pixbuf = GdkPixbuf.Pixbuf.new_from_file(path);
+                const texture = Gdk.Texture.new_for_pixbuf(pixbuf);
+                this._wallpaperPreview.set_paintable(texture);
+                this._wallpaperPreview.set_visible(true);
+            } catch (e) {
+                console.error('Failed to load wallpaper:', e.message);
+                // Fallback to file method
+                const file = Gio.File.new_for_path(path);
+                this._wallpaperPreview.set_file(file);
+                this._wallpaperPreview.set_visible(true);
+            }
+
             this._extractSection.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
+            this._editWallpaperBtn.set_visible(true);
         }
 
         _extractColors(imagePath) {
@@ -560,6 +612,13 @@ export const PaletteGenerator = GObject.registerClass(
 
             dialog.set_child(dialogContent);
             dialog.present(this.get_root());
+        }
+
+        _openWallpaperEditor() {
+            if (!this._currentWallpaper) return;
+
+            // Emit signal to let main window handle the navigation
+            this.emit('open-wallpaper-editor', this._currentWallpaper);
         }
 
         _createColorPickerDialog() {

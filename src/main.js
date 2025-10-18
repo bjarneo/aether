@@ -11,6 +11,7 @@ import {ColorSynthesizer} from './components/ColorSynthesizer.js';
 import {BlueprintManager} from './components/BlueprintManager.js';
 import {SettingsSidebar} from './components/SettingsSidebar.js';
 import {ActionBar} from './components/ActionBar.js';
+import {WallpaperEditor} from './components/WallpaperEditor.js';
 import {ConfigWriter} from './utils/ConfigWriter.js';
 import {DialogManager} from './utils/DialogManager.js';
 import {ThemeManager} from './services/theme-manager.js';
@@ -143,6 +144,24 @@ const AetherWindow = GObject.registerClass(
         _createMainContent() {
             const contentPage = new Adw.NavigationPage({title: 'Synthesizer'});
 
+            // Create a stack to switch between main content and wallpaper editor
+            this.contentStack = new Gtk.Stack({
+                transition_type: Gtk.StackTransitionType.SLIDE_LEFT_RIGHT,
+                transition_duration: 200,
+            });
+
+            // Main content view
+            const mainContentView = this._createMainContentView();
+            this.contentStack.add_named(mainContentView, 'main');
+
+            // Wallpaper editor will be added dynamically when needed
+
+            contentPage.set_child(this.contentStack);
+
+            return contentPage;
+        }
+
+        _createMainContentView() {
             // Create main content with action bar
             const mainContent = new Adw.NavigationPage({title: 'Content'});
 
@@ -187,9 +206,7 @@ const AetherWindow = GObject.registerClass(
             this.settingsSplitView.set_content(mainContent);
             this.settingsSplitView.set_sidebar(settingsSidebarPage);
 
-            contentPage.set_child(this.settingsSplitView);
-
-            return contentPage;
+            return this.settingsSplitView;
         }
 
         _createMainContentBox() {
@@ -252,6 +269,13 @@ const AetherWindow = GObject.registerClass(
                 this._updateAccessibility();
                 this._updateAppOverrideColors();
             });
+
+            this.paletteGenerator.connect(
+                'open-wallpaper-editor',
+                (_, wallpaperPath) => {
+                    this._showWallpaperEditor(wallpaperPath);
+                }
+            );
 
             this.colorSynthesizer.connect('color-changed', (_, role, color) => {
                 this._updateAccessibility();
@@ -391,6 +415,39 @@ const AetherWindow = GObject.registerClass(
 
         loadWallpaperFromCLI(wallpaperPath) {
             this.paletteGenerator.loadWallpaper(wallpaperPath);
+        }
+
+        _showWallpaperEditor(wallpaperPath) {
+            // Create wallpaper editor if it doesn't exist
+            if (!this._wallpaperEditor) {
+                this._wallpaperEditor = new WallpaperEditor(wallpaperPath);
+
+                // Handle wallpaper applied - go back to main view
+                this._wallpaperEditor.connect(
+                    'wallpaper-applied',
+                    (_, processedPath) => {
+                        this._hideWallpaperEditor();
+                        // Small delay to ensure file is fully written
+                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+                            this.paletteGenerator.loadWallpaper(processedPath);
+                            return GLib.SOURCE_REMOVE;
+                        });
+                    }
+                );
+
+                this.contentStack.add_named(this._wallpaperEditor, 'editor');
+            } else {
+                // Reset editor with new wallpaper and clear all filters
+                this._wallpaperEditor.resetEditor(wallpaperPath);
+            }
+
+            // Switch to editor view
+            this.contentStack.set_visible_child_name('editor');
+        }
+
+        _hideWallpaperEditor() {
+            // Switch back to main view
+            this.contentStack.set_visible_child_name('main');
         }
     }
 );
