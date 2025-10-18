@@ -186,11 +186,13 @@ export const WallpaperEditor = GObject.registerClass(
                 // Check if any filters are active
                 if (!hasActiveFilters(this._filters)) {
                     // No filters applied, return original
+                    console.log('No filters active, returning original:', this._wallpaperPath);
                     this.emit('wallpaper-applied', this._wallpaperPath);
                     return;
                 }
 
                 const processedPath = await this._processWallpaper();
+                console.log('Filters applied, emitting processed path:', processedPath);
                 this.emit('wallpaper-applied', processedPath);
             } catch (e) {
                 console.error('Failed to apply wallpaper:', e.message);

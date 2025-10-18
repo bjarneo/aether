@@ -258,8 +258,61 @@ export async function applyFiltersWithImageMagick(inputPath, outputPath, filters
 }
 
 /**
+ * Clean up old processed wallpapers from cache directory
+ * Keeps only the most recent files to avoid disk space issues
+ * @param {number} keepCount - Number of recent files to keep (default: 3)
+ */
+function cleanupOldProcessedWallpapers(keepCount = 3) {
+    try {
+        const cacheDir = GLib.build_filenamev([
+            GLib.get_user_cache_dir(),
+            'aether',
+        ]);
+        
+        const dir = Gio.File.new_for_path(cacheDir);
+        const enumerator = dir.enumerate_children(
+            'standard::*',
+            Gio.FileQueryInfoFlags.NONE,
+            null
+        );
+        
+        const processedFiles = [];
+        let fileInfo;
+        
+        while ((fileInfo = enumerator.next_file(null)) !== null) {
+            const name = fileInfo.get_name();
+            if (name.startsWith('processed-wallpaper-') && name.endsWith('.png')) {
+                const filePath = GLib.build_filenamev([cacheDir, name]);
+                const file = Gio.File.new_for_path(filePath);
+                const info = file.query_info('time::modified', Gio.FileQueryInfoFlags.NONE, null);
+                const mtime = info.get_modification_date_time().to_unix();
+                
+                processedFiles.push({ path: filePath, mtime, name });
+            }
+        }
+        
+        // Sort by modification time (newest first)
+        processedFiles.sort((a, b) => b.mtime - a.mtime);
+        
+        // Delete all but the most recent N files
+        for (let i = keepCount; i < processedFiles.length; i++) {
+            try {
+                const file = Gio.File.new_for_path(processedFiles[i].path);
+                file.delete(null);
+                console.log('Cleaned up old processed wallpaper:', processedFiles[i].name);
+            } catch (e) {
+                console.warn('Failed to delete old file:', e.message);
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to cleanup old processed wallpapers:', e.message);
+    }
+}
+
+/**
  * Get the cache directory for processed wallpapers
- * @returns {string} Cache directory path
+ * Uses a unique timestamp-based filename to avoid pywal caching issues
+ * @returns {string} Cache file path with unique name
  */
 export function getProcessedWallpaperCachePath() {
     const cacheDir = GLib.build_filenamev([
@@ -268,5 +321,16 @@ export function getProcessedWallpaperCachePath() {
     ]);
     GLib.mkdir_with_parents(cacheDir, 0o755);
     
-    return GLib.build_filenamev([cacheDir, 'processed-wallpaper.png']);
+    // Clean up old processed wallpapers (keep last 3)
+    cleanupOldProcessedWallpapers(3);
+    
+    // Use timestamp to create unique filename each time
+    // This forces pywal to re-extract colors instead of using cache
+    const timestamp = Date.now();
+    const filename = `processed-wallpaper-${timestamp}.png`;
+    const outputPath = GLib.build_filenamev([cacheDir, filename]);
+    
+    console.log('Generated unique processed wallpaper path:', outputPath);
+    
+    return outputPath;
 }
