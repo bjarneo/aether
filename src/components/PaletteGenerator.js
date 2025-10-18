@@ -292,7 +292,8 @@ export const PaletteGenerator = GObject.registerClass(
             // Edit wallpaper button (appears next to Extract button)
             this._editWallpaperBtn = new Gtk.Button({
                 icon_name: 'image-edit-symbolic',
-                tooltip_text: 'Edit wallpaper (apply filters before extraction)',
+                tooltip_text:
+                    'Edit wallpaper (apply filters before extraction)',
                 visible: false,
             });
             this._editWallpaperBtn.connect('clicked', () =>
@@ -486,7 +487,7 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_file(file);
                 this._wallpaperPreview.set_visible(true);
             }
-            
+
             this._extractSection.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
@@ -518,7 +519,7 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_file(file);
                 this._wallpaperPreview.set_visible(true);
             }
-            
+
             this._extractSection.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
@@ -617,7 +618,7 @@ export const PaletteGenerator = GObject.registerClass(
 
         _openWallpaperEditor() {
             if (!this._currentWallpaper) return;
-            
+
             // Emit signal to let main window handle the navigation
             this.emit('open-wallpaper-editor', this._currentWallpaper);
         }

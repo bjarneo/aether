@@ -8,7 +8,7 @@ import {buildCssFilterString} from '../../utils/image-filter-utils.js';
 
 /**
  * PreviewArea - Displays wallpaper preview with CSS filters applied in real-time
- * 
+ *
  * Features:
  * - Click and hold to temporarily show original image without filters
  * - Real-time CSS filter updates
@@ -28,7 +28,7 @@ export const PreviewArea = GObject.registerClass(
             this._wallpaperPath = null;
             this._currentFilters = null;
             this._filtersTemporarilyDisabled = false;
-            
+
             this._buildUI();
         }
 
@@ -47,7 +47,7 @@ export const PreviewArea = GObject.registerClass(
             });
 
             headerBox.append(label);
-            
+
             // Hint label for click-and-hold feature
             const hintLabel = new Gtk.Label({
                 label: 'Hold click to view original',
@@ -55,7 +55,7 @@ export const PreviewArea = GObject.registerClass(
                 xalign: 1,
             });
             headerBox.append(hintLabel);
-            
+
             this.append(headerBox);
 
             const scrolled = new Gtk.ScrolledWindow({
@@ -77,27 +77,27 @@ export const PreviewArea = GObject.registerClass(
                 css_classes: ['card'],
                 child: scrolled,
             });
-            
+
             // Add click gesture for hold-to-show-original
             const gestureClick = new Gtk.GestureClick();
-            
+
             gestureClick.connect('pressed', () => {
                 this._filtersTemporarilyDisabled = true;
                 this._applyCurrentFilters();
             });
-            
+
             gestureClick.connect('released', () => {
                 this._filtersTemporarilyDisabled = false;
                 this._applyCurrentFilters();
             });
-            
+
             gestureClick.connect('cancel', () => {
                 this._filtersTemporarilyDisabled = false;
                 this._applyCurrentFilters();
             });
-            
+
             frame.add_controller(gestureClick);
-            
+
             this.append(frame);
         }
 
@@ -120,7 +120,7 @@ export const PreviewArea = GObject.registerClass(
             this._currentFilters = null;
             this._applyCurrentFilters();
         }
-        
+
         _applyCurrentFilters() {
             if (this._filtersTemporarilyDisabled || !this._currentFilters) {
                 applyCssToWidget(this._previewPicture, '* { filter: none; }');

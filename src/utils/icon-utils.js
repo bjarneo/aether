@@ -18,7 +18,7 @@ export function getIconsDir() {
     const scriptPath = import.meta.url.replace('file://', '');
     const scriptDir = GLib.path_get_dirname(scriptPath);
     const srcDir = GLib.path_get_dirname(scriptDir);
-    
+
     return GLib.build_filenamev([srcDir, 'icons']);
 }
 
@@ -28,14 +28,14 @@ export function getIconsDir() {
  */
 export function registerCustomIcons() {
     if (iconsRegistered) return;
-    
+
     const display = Gdk.Display.get_default();
     const iconTheme = Gtk.IconTheme.get_for_display(display);
     const iconsDir = getIconsDir();
-    
+
     iconTheme.add_search_path(iconsDir);
     console.log('Custom icons directory registered:', iconsDir);
-    
+
     iconsRegistered = true;
 }
 
@@ -57,7 +57,7 @@ export function getIconPath(iconName) {
 export function createImageFromIcon(iconName, size = 16) {
     const iconPath = getIconPath(iconName);
     const file = Gio.File.new_for_path(iconPath);
-    
+
     if (!file.query_exists(null)) {
         console.warn(`Icon file not found: ${iconPath}`);
         return new Gtk.Image({
@@ -65,12 +65,12 @@ export function createImageFromIcon(iconName, size = 16) {
             pixel_size: size,
         });
     }
-    
+
     const image = new Gtk.Image({
         file: iconPath,
         pixel_size: size,
     });
-    
+
     return image;
 }
 

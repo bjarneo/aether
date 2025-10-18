@@ -9,15 +9,15 @@ import Gio from 'gi://Gio';
  * Default filter values matching CSS filter defaults
  */
 export const DEFAULT_FILTERS = {
-    blur: 0,          // 0-10px
-    brightness: 100,  // 0-200%
-    contrast: 100,    // 0-200%
-    saturation: 100,  // 0-200%
-    hueRotate: 0,     // 0-360 degrees
-    sepia: 0,         // 0-100%
-    invert: 0,        // 0-100%
-    tone: null,       // tone type (hue value) or null
-    toneAmount: 0,    // 0-100%
+    blur: 0, // 0-10px
+    brightness: 100, // 0-200%
+    contrast: 100, // 0-200%
+    saturation: 100, // 0-200%
+    hueRotate: 0, // 0-360 degrees
+    sepia: 0, // 0-100%
+    invert: 0, // 0-100%
+    tone: null, // tone type (hue value) or null
+    toneAmount: 0, // 0-100%
 };
 
 /**
@@ -44,22 +44,38 @@ export const FILTER_PRESETS = [
     {name: 'Vintage', blur: 0, brightness: 95, contrast: 110, saturation: 70},
     {name: 'Vibrant', blur: 0, brightness: 105, contrast: 110, saturation: 130},
     {name: 'Faded', blur: 0, brightness: 110, contrast: 75, saturation: 70},
-    {name: 'Cool', blur: 0, brightness: 100, contrast: 105, saturation: 90, hueRotate: 200},
-    {name: 'Warm', blur: 0, brightness: 100, contrast: 105, saturation: 90, hueRotate: 20},
+    {
+        name: 'Cool',
+        blur: 0,
+        brightness: 100,
+        contrast: 105,
+        saturation: 90,
+        hueRotate: 200,
+    },
+    {
+        name: 'Warm',
+        blur: 0,
+        brightness: 100,
+        contrast: 105,
+        saturation: 90,
+        hueRotate: 20,
+    },
 ];
 
 /**
  * Check if any filters are active (different from defaults)
  */
 export function hasActiveFilters(filters) {
-    return filters.blur > 0 ||
-           filters.brightness !== 100 ||
-           filters.contrast !== 100 ||
-           filters.saturation !== 100 ||
-           filters.hueRotate !== 0 ||
-           filters.sepia > 0 ||
-           filters.invert > 0 ||
-           (filters.tone !== null && filters.toneAmount > 0);
+    return (
+        filters.blur > 0 ||
+        filters.brightness !== 100 ||
+        filters.contrast !== 100 ||
+        filters.saturation !== 100 ||
+        filters.hueRotate !== 0 ||
+        filters.sepia > 0 ||
+        filters.invert > 0 ||
+        (filters.tone !== null && filters.toneAmount > 0)
+    );
 }
 
 /**
@@ -91,14 +107,14 @@ export function buildCssFilterString(filters) {
     if (filters.invert > 0) {
         parts.push(`invert(${filters.invert / 100})`);
     }
-    
+
     // Apply tone by using sepia + hue-rotate + saturate
     if (filters.tone !== null && filters.toneAmount > 0) {
         parts.push(`sepia(${filters.toneAmount / 100})`);
         // Sepia's natural hue is ~38 degrees (brown)
         const adjustedHue = filters.tone - 38;
         parts.push(`hue-rotate(${adjustedHue}deg)`);
-        parts.push(`saturate(${1 + (filters.toneAmount / 200)})`);
+        parts.push(`saturate(${1 + filters.toneAmount / 200})`);
     }
 
     return parts.length > 0 ? parts.join(' ') : 'none';
@@ -125,25 +141,35 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
     const brightnessPercent = filters.brightness;
     const saturationPercent = filters.saturation;
     let huePercent = 100;
-    
+
     // Apply hue rotation (modulate hue component)
     if (filters.hueRotate !== 0) {
         // ImageMagick hue is 0-200, CSS is 0-360
         huePercent = 100 + (filters.hueRotate / 360) * 200;
     }
-    
+
     // Only add modulate if any of these changed
-    if (brightnessPercent !== 100 || saturationPercent !== 100 || huePercent !== 100) {
-        args.push('-modulate', `${brightnessPercent},${saturationPercent},${huePercent}`);
+    if (
+        brightnessPercent !== 100 ||
+        saturationPercent !== 100 ||
+        huePercent !== 100
+    ) {
+        args.push(
+            '-modulate',
+            `${brightnessPercent},${saturationPercent},${huePercent}`
+        );
     }
 
     // Apply contrast using sigmoidal contrast
     if (filters.contrast !== 100) {
-        const contrastFactor = (filters.contrast / 100) - 1;
+        const contrastFactor = filters.contrast / 100 - 1;
         if (contrastFactor > 0) {
             args.push('-sigmoidal-contrast', `${3 + contrastFactor * 7}x50%`);
         } else if (contrastFactor < 0) {
-            args.push('+sigmoidal-contrast', `${3 + Math.abs(contrastFactor) * 7}x50%`);
+            args.push(
+                '+sigmoidal-contrast',
+                `${3 + Math.abs(contrastFactor) * 7}x50%`
+            );
         }
     }
 
@@ -166,42 +192,50 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
     // Apply color tone (sepia + hue-rotate + saturate combination)
     if (filters.tone !== null && filters.toneAmount > 0) {
         const amount = filters.toneAmount;
-        
+
         // Step 1: Convert to sepia
-        const sepiaMatrix = '0.393 0.769 0.189 0.349 0.686 0.168 0.272 0.534 0.131';
-        
+        const sepiaMatrix =
+            '0.393 0.769 0.189 0.349 0.686 0.168 0.272 0.534 0.131';
+
         if (amount < 100) {
             // Partial sepia: blend original with sepia
             args.push('(', '+clone', '-color-matrix', sepiaMatrix, ')');
-            args.push('-compose', 'blend', '-define', `compose:args=${amount}`, '-composite');
+            args.push(
+                '-compose',
+                'blend',
+                '-define',
+                `compose:args=${amount}`,
+                '-composite'
+            );
         } else {
             // Full sepia
             args.push('-color-matrix', sepiaMatrix);
         }
-        
+
         // Step 2: Hue rotate
         const sepiaHue = 38;
         const hueDiff = filters.tone - sepiaHue;
         const hueRadians = (hueDiff * Math.PI) / 180;
         const cosA = Math.cos(hueRadians);
         const sinA = Math.sin(hueRadians);
-        
+
         const m00 = 0.213 + cosA * 0.787 - sinA * 0.213;
         const m01 = 0.715 - cosA * 0.715 - sinA * 0.715;
         const m02 = 0.072 - cosA * 0.072 + sinA * 0.928;
         const m10 = 0.213 - cosA * 0.213 + sinA * 0.143;
-        const m11 = 0.715 + cosA * 0.285 + sinA * 0.140;
+        const m11 = 0.715 + cosA * 0.285 + sinA * 0.14;
         const m12 = 0.072 - cosA * 0.072 - sinA * 0.283;
         const m20 = 0.213 - cosA * 0.213 - sinA * 0.787;
         const m21 = 0.715 - cosA * 0.715 + sinA * 0.715;
         const m22 = 0.072 + cosA * 0.928 + sinA * 0.072;
-        
-        args.push('-color-matrix', 
+
+        args.push(
+            '-color-matrix',
             `${m00} ${m01} ${m02} ${m10} ${m11} ${m12} ${m20} ${m21} ${m22}`
         );
-        
+
         // Step 3: Saturate
-        const satAmount = 100 + (amount / 2);
+        const satAmount = 100 + amount / 2;
         args.push('-modulate', `100,${satAmount},100`);
     }
 
@@ -216,14 +250,19 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
  * @param {Object} filters - Filter values
  * @returns {Promise<string>} Resolved with output path on success
  */
-export async function applyFiltersWithImageMagick(inputPath, outputPath, filters) {
+export async function applyFiltersWithImageMagick(
+    inputPath,
+    outputPath,
+    filters
+) {
     const args = buildImageMagickCommand(inputPath, outputPath, filters);
 
     return new Promise((resolve, reject) => {
         try {
             const proc = Gio.Subprocess.new(
                 args,
-                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
+                Gio.SubprocessFlags.STDOUT_PIPE |
+                    Gio.SubprocessFlags.STDERR_PIPE
             );
 
             proc.wait_async(null, (source, result) => {
@@ -234,7 +273,9 @@ export async function applyFiltersWithImageMagick(inputPath, outputPath, filters
                     if (exitCode !== 0) {
                         const stderr = source.get_stderr_pipe();
                         if (stderr) {
-                            const stream = new Gio.DataInputStream({base_stream: stderr});
+                            const stream = new Gio.DataInputStream({
+                                base_stream: stderr,
+                            });
                             const [line] = stream.read_line_utf8(null);
                             reject(new Error(`ImageMagick error: ${line}`));
                             return;
@@ -265,38 +306,48 @@ function cleanupOldProcessedWallpapers(keepCount = 3) {
             GLib.get_user_cache_dir(),
             'aether',
         ]);
-        
+
         const dir = Gio.File.new_for_path(cacheDir);
         const enumerator = dir.enumerate_children(
             'standard::*',
             Gio.FileQueryInfoFlags.NONE,
             null
         );
-        
+
         const processedFiles = [];
         let fileInfo;
-        
+
         while ((fileInfo = enumerator.next_file(null)) !== null) {
             const name = fileInfo.get_name();
-            if (name.startsWith('processed-wallpaper-') && name.endsWith('.png')) {
+            if (
+                name.startsWith('processed-wallpaper-') &&
+                name.endsWith('.png')
+            ) {
                 const filePath = GLib.build_filenamev([cacheDir, name]);
                 const file = Gio.File.new_for_path(filePath);
-                const info = file.query_info('time::modified', Gio.FileQueryInfoFlags.NONE, null);
+                const info = file.query_info(
+                    'time::modified',
+                    Gio.FileQueryInfoFlags.NONE,
+                    null
+                );
                 const mtime = info.get_modification_date_time().to_unix();
-                
-                processedFiles.push({ path: filePath, mtime, name });
+
+                processedFiles.push({path: filePath, mtime, name});
             }
         }
-        
+
         // Sort by modification time (newest first)
         processedFiles.sort((a, b) => b.mtime - a.mtime);
-        
+
         // Delete all but the most recent N files
         for (let i = keepCount; i < processedFiles.length; i++) {
             try {
                 const file = Gio.File.new_for_path(processedFiles[i].path);
                 file.delete(null);
-                console.log('Cleaned up old processed wallpaper:', processedFiles[i].name);
+                console.log(
+                    'Cleaned up old processed wallpaper:',
+                    processedFiles[i].name
+                );
             } catch (e) {
                 console.warn('Failed to delete old file:', e.message);
             }
@@ -317,15 +368,15 @@ export function getProcessedWallpaperCachePath() {
         'aether',
     ]);
     GLib.mkdir_with_parents(cacheDir, 0o755);
-    
+
     // Clean up old processed wallpapers (keep last 3)
     cleanupOldProcessedWallpapers(3);
-    
+
     // Use timestamp to create unique filename each time
     // This forces pywal to re-extract colors instead of using cache
     const timestamp = Date.now();
     const filename = `processed-wallpaper-${timestamp}.png`;
     const outputPath = GLib.build_filenamev([cacheDir, filename]);
-    
+
     return outputPath;
 }

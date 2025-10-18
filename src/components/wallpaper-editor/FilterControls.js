@@ -265,7 +265,16 @@ export const FilterControls = GObject.registerClass(
             return group;
         }
 
-        _createSliderRow(title, key, min, max, step, defaultValue, unit, subtitle) {
+        _createSliderRow(
+            title,
+            key,
+            min,
+            max,
+            step,
+            defaultValue,
+            unit,
+            subtitle
+        ) {
             const row = new Adw.ActionRow({
                 title: title,
                 subtitle: subtitle || '',

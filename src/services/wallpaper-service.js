@@ -26,7 +26,7 @@ export function extractColorsFromWallpaper(
             argv.push('-l');
         }
         argv.push('-i', imagePath);
-        
+
         const proc = Gio.Subprocess.new(
             argv,
             Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
