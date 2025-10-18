@@ -100,6 +100,11 @@ export class ColorPickerDialog {
     }
 
     _createShadeBox(shade, isActive, onClick) {
+        const overlay = new Gtk.Overlay({
+            width_request: SWATCH_DIMENSIONS.large.width,
+            height_request: SWATCH_DIMENSIONS.large.height,
+        });
+
         const shadeBox = new Gtk.Box({
             width_request: SWATCH_DIMENSIONS.large.width,
             height_request: SWATCH_DIMENSIONS.large.height,
@@ -108,7 +113,7 @@ export class ColorPickerDialog {
         });
 
         const borderStyle = isActive
-            ? 'border: 2px solid @accent_color;'
+            ? 'border: 2px solid rgba(255, 255, 255, 0.9);'
             : 'border: 2px solid alpha(@borders, 0.3);';
 
         const css = `
@@ -118,18 +123,39 @@ export class ColorPickerDialog {
                 ${borderStyle}
             }
             .color-swatch:hover {
-                border: 2px solid @accent_color;
+                border: 2px solid rgba(255, 255, 255, 0.9);
             }
         `;
 
         applyCssToWidget(shadeBox, css);
         shadeBox.set_cursor(Gdk.Cursor.new_from_name('pointer', null));
 
+        overlay.set_child(shadeBox);
+
+        // Add checkmark for selected shade
+        if (isActive) {
+            const checkmark = new Gtk.Image({
+                icon_name: 'object-select-symbolic',
+                pixel_size: 24,
+                halign: Gtk.Align.CENTER,
+                valign: Gtk.Align.CENTER,
+            });
+
+            const checkCss = `
+                image {
+                    color: rgba(255, 255, 255, 0.9);
+                    -gtk-icon-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+                }
+            `;
+            applyCssToWidget(checkmark, checkCss);
+            overlay.add_overlay(checkmark);
+        }
+
         const gesture = new Gtk.GestureClick();
         gesture.connect('pressed', () => onClick(shade));
         shadeBox.add_controller(gesture);
 
-        return shadeBox;
+        return overlay;
     }
 
     openFullColorPicker(index, currentColor, onColorSelected) {

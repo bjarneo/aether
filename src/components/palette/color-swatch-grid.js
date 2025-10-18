@@ -96,7 +96,7 @@ export class ColorSwatchGrid {
                 min-height: ${dimensions.height}px;
             }
             .color-swatch:hover {
-                border: 2px solid alpha(@accent_bg_color, 0.6);
+                border: 2px solid rgba(255, 255, 255, 0.9);
             }
         `;
 
