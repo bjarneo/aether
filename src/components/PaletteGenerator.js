@@ -93,11 +93,7 @@ export const PaletteGenerator = GObject.registerClass(
                     this._favoritesView.loadFavorites();
                 }
             });
-            this._viewStack.add_titled(
-                this._localBrowser,
-                'local',
-                'Local'
-            );
+            this._viewStack.add_titled(this._localBrowser, 'local', 'Local');
 
             // Tab 4: Favorites
             this._favoritesView = new FavoritesView();
@@ -144,10 +140,12 @@ export const PaletteGenerator = GObject.registerClass(
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
             });
-            editorBox.append(new Gtk.Image({
-                icon_name: 'edit-cover-symbolic',
-                icon_size: Gtk.IconSize.NORMAL,
-            }));
+            editorBox.append(
+                new Gtk.Image({
+                    icon_name: 'edit-cover-symbolic',
+                    icon_size: Gtk.IconSize.NORMAL,
+                })
+            );
             editorBox.append(new Gtk.Label({label: 'Editor'}));
             editorBtn.set_child(editorBox);
             editorBtn.connect('clicked', () => {
@@ -168,10 +166,12 @@ export const PaletteGenerator = GObject.registerClass(
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
             });
-            wallhavenBox.append(new Gtk.Image({
-                icon_name: 'system-search-symbolic',
-                icon_size: Gtk.IconSize.NORMAL,
-            }));
+            wallhavenBox.append(
+                new Gtk.Image({
+                    icon_name: 'system-search-symbolic',
+                    icon_size: Gtk.IconSize.NORMAL,
+                })
+            );
             wallhavenBox.append(new Gtk.Label({label: 'Wallhaven'}));
             wallhavenBtn.set_child(wallhavenBox);
             wallhavenBtn.connect('clicked', () => {
@@ -186,10 +186,12 @@ export const PaletteGenerator = GObject.registerClass(
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
             });
-            localBox.append(new Gtk.Image({
-                icon_name: 'wallpaper-symbolic',
-                icon_size: Gtk.IconSize.NORMAL,
-            }));
+            localBox.append(
+                new Gtk.Image({
+                    icon_name: 'wallpaper-symbolic',
+                    icon_size: Gtk.IconSize.NORMAL,
+                })
+            );
             localBox.append(new Gtk.Label({label: 'Local'}));
             localBtn.set_child(localBox);
             localBtn.connect('clicked', () => {
@@ -204,10 +206,12 @@ export const PaletteGenerator = GObject.registerClass(
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
             });
-            favBox.append(new Gtk.Image({
-                icon_name: 'emblem-favorite-symbolic',
-                icon_size: Gtk.IconSize.NORMAL,
-            }));
+            favBox.append(
+                new Gtk.Image({
+                    icon_name: 'emblem-favorite-symbolic',
+                    icon_size: Gtk.IconSize.NORMAL,
+                })
+            );
             favBox.append(new Gtk.Label({label: 'Favorites'}));
             favBtn.set_child(favBox);
             favBtn.connect('clicked', () => {

@@ -126,7 +126,7 @@ export const FavoritesView = GObject.registerClass(
                 wallpaper.info = wallpaper.name;
             } else if (favorite.type === 'wallhaven') {
                 wallpaper.info = `${favorite.data.resolution || ''} • ${this._formatFileSize(favorite.data.file_size || 0)}`;
-                
+
                 // Check if wallhaven image is already downloaded
                 const cacheDir = GLib.build_filenamev([
                     GLib.get_user_cache_dir(),
@@ -134,11 +134,11 @@ export const FavoritesView = GObject.registerClass(
                     'wallhaven-wallpapers',
                 ]);
                 GLib.mkdir_with_parents(cacheDir, 0o755);
-                
+
                 const filename = favorite.path.split('/').pop();
                 const cachePath = GLib.build_filenamev([cacheDir, filename]);
                 const file = Gio.File.new_for_path(cachePath);
-                
+
                 // If already cached, update path to local file
                 if (file.query_exists(null)) {
                     wallpaper.localPath = cachePath;
@@ -150,7 +150,8 @@ export const FavoritesView = GObject.registerClass(
                 async wp => {
                     // For wallhaven, download if needed before selecting
                     if (wp.type === 'wallhaven') {
-                        const localPath = await this._ensureWallhavenDownloaded(wp);
+                        const localPath =
+                            await this._ensureWallhavenDownloaded(wp);
                         if (localPath) {
                             this.emit('wallpaper-selected', localPath);
                         }
@@ -173,27 +174,36 @@ export const FavoritesView = GObject.registerClass(
                 if (wallpaper.localPath) {
                     return wallpaper.localPath;
                 }
-                
+
                 const cacheDir = GLib.build_filenamev([
                     GLib.get_user_cache_dir(),
                     'aether',
                     'wallhaven-wallpapers',
                 ]);
                 GLib.mkdir_with_parents(cacheDir, 0o755);
-                
+
                 const filename = wallpaper.path.split('/').pop();
                 const cachePath = GLib.build_filenamev([cacheDir, filename]);
                 const file = Gio.File.new_for_path(cachePath);
-                
+
                 // Download if not exists
                 if (!file.query_exists(null)) {
-                    console.log('Downloading wallhaven wallpaper:', wallpaper.path);
-                    await wallhavenService.downloadWallpaper(wallpaper.path, cachePath);
+                    console.log(
+                        'Downloading wallhaven wallpaper:',
+                        wallpaper.path
+                    );
+                    await wallhavenService.downloadWallpaper(
+                        wallpaper.path,
+                        cachePath
+                    );
                 }
-                
+
                 return cachePath;
             } catch (e) {
-                console.error('Failed to download wallhaven wallpaper:', e.message);
+                console.error(
+                    'Failed to download wallhaven wallpaper:',
+                    e.message
+                );
                 return null;
             }
         }
