@@ -638,14 +638,28 @@ export const WallpaperEditor = GObject.registerClass(
             ]);
 
             // Build ImageMagick command
-            const args = ['convert', this._wallpaperPath];
+            const args = ['magick', this._wallpaperPath];
 
-            // Apply modulate for brightness and saturation
+            // Apply blur FIRST (works on original pixels)
+            if (this._filters.blur > 0) {
+                args.push('-blur', `0x${this._filters.blur}`);
+            }
+
+            // Apply modulate for brightness and saturation (combined in one call)
+            // Also handles hue rotation if needed
             const brightnessPercent = this._filters.brightness;
             const saturationPercent = this._filters.saturation;
+            let huePercent = 100;
             
-            if (brightnessPercent !== 100 || saturationPercent !== 100) {
-                args.push('-modulate', `${brightnessPercent},${saturationPercent},100`);
+            // Apply hue rotation (modulate hue component)
+            if (this._filters.hueRotate !== 0) {
+                // ImageMagick hue is 0-200, CSS is 0-360
+                huePercent = 100 + (this._filters.hueRotate / 360) * 200;
+            }
+            
+            // Only add modulate if any of these changed
+            if (brightnessPercent !== 100 || saturationPercent !== 100 || huePercent !== 100) {
+                args.push('-modulate', `${brightnessPercent},${saturationPercent},${huePercent}`);
             }
 
             // Apply contrast
@@ -656,18 +670,6 @@ export const WallpaperEditor = GObject.registerClass(
                 } else if (contrastFactor < 0) {
                     args.push('+sigmoidal-contrast', `${3 + Math.abs(contrastFactor) * 7}x50%`);
                 }
-            }
-
-            // Apply blur
-            if (this._filters.blur > 0) {
-                args.push('-blur', `0x${this._filters.blur}`);
-            }
-
-            // Apply hue rotation (modulate hue component)
-            if (this._filters.hueRotate !== 0) {
-                // ImageMagick hue is 0-200, CSS is 0-360
-                const hue = 100 + (this._filters.hueRotate / 360) * 200;
-                args.push('-modulate', `100,100,${hue}`);
             }
 
             // Apply sepia using color matrix (matches CSS sepia filter)
