@@ -641,8 +641,11 @@ export const WallpaperEditor = GObject.registerClass(
             const args = ['magick', this._wallpaperPath];
 
             // Apply blur FIRST (works on original pixels)
+            // CSS blur(Npx) ≈ ImageMagick -blur 0x(N*5) for visual match
+            // CSS blur is less aggressive, so ImageMagick needs roughly 5x the sigma
             if (this._filters.blur > 0) {
-                args.push('-blur', `0x${this._filters.blur}`);
+                const sigma = this._filters.blur * 5;
+                args.push('-blur', `0x${sigma}`);
             }
 
             // Apply modulate for brightness and saturation (combined in one call)
@@ -781,6 +784,8 @@ export const WallpaperEditor = GObject.registerClass(
             const filters = [];
 
             if (this._filters.blur > 0) {
+                // 1:1 mapping with ImageMagick blur
+                // Both CSS and ImageMagick use the same blur value
                 filters.push(`blur(${this._filters.blur}px)`);
             }
             if (this._filters.brightness !== 100) {
