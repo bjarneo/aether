@@ -27,8 +27,6 @@ export function extractColorsFromWallpaper(
         }
         argv.push('-i', imagePath);
         
-        console.log('Calling pywal with command:', argv.join(' '));
-        
         const proc = Gio.Subprocess.new(
             argv,
             Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE

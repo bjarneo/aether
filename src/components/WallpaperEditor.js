@@ -109,7 +109,7 @@ export const WallpaperEditor = GObject.registerClass(
                 resize_end_child: false,
                 hexpand: true,
                 vexpand: true,
-                position: 650,
+                position: 900,
                 margin_top: 0,
                 margin_bottom: 18,
                 margin_start: 18,
@@ -125,7 +125,7 @@ export const WallpaperEditor = GObject.registerClass(
             const controlsBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 0,
-                width_request: 360,
+                width_request: 320,
             });
             controlsBox.append(this._filterControls);
             paned.set_end_child(controlsBox);
@@ -186,13 +186,11 @@ export const WallpaperEditor = GObject.registerClass(
                 // Check if any filters are active
                 if (!hasActiveFilters(this._filters)) {
                     // No filters applied, return original
-                    console.log('No filters active, returning original:', this._wallpaperPath);
                     this.emit('wallpaper-applied', this._wallpaperPath);
                     return;
                 }
 
                 const processedPath = await this._processWallpaper();
-                console.log('Filters applied, emitting processed path:', processedPath);
                 this.emit('wallpaper-applied', processedPath);
             } catch (e) {
                 console.error('Failed to apply wallpaper:', e.message);
@@ -205,8 +203,6 @@ export const WallpaperEditor = GObject.registerClass(
         }
 
         async _processWallpaper() {
-            console.log('Applying filters:', JSON.stringify(this._filters));
-
             const outputPath = getProcessedWallpaperCachePath();
             return await applyFiltersWithImageMagick(
                 this._wallpaperPath,

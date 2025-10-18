@@ -469,7 +469,6 @@ export const PaletteGenerator = GObject.registerClass(
 
         loadWallpaper(path) {
             // Load wallpaper without extraction - user must click extract button
-            console.log('PaletteGenerator.loadWallpaper() called with path:', path);
             this._currentWallpaper = path;
 
             // Force complete reload by using texture instead of file
@@ -491,8 +490,6 @@ export const PaletteGenerator = GObject.registerClass(
             this._extractSection.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
-            
-            console.log('Current wallpaper set to:', this._currentWallpaper);
         }
 
         _onWallpaperBrowserSelected(path) {
@@ -528,8 +525,6 @@ export const PaletteGenerator = GObject.registerClass(
         }
 
         _extractColors(imagePath) {
-            console.log('_extractColors() called with path:', imagePath);
-            console.log('Current wallpaper (_currentWallpaper):', this._currentWallpaper);
             this._showLoading(true);
 
             extractColorsFromWallpaper(

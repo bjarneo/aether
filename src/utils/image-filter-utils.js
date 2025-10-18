@@ -218,8 +218,6 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
  */
 export async function applyFiltersWithImageMagick(inputPath, outputPath, filters) {
     const args = buildImageMagickCommand(inputPath, outputPath, filters);
-    
-    console.log('Running ImageMagick:', args.join(' '));
 
     return new Promise((resolve, reject) => {
         try {
@@ -245,7 +243,6 @@ export async function applyFiltersWithImageMagick(inputPath, outputPath, filters
                         return;
                     }
 
-                    console.log('Saved successfully to:', outputPath);
                     resolve(outputPath);
                 } catch (e) {
                     reject(e);
@@ -329,8 +326,6 @@ export function getProcessedWallpaperCachePath() {
     const timestamp = Date.now();
     const filename = `processed-wallpaper-${timestamp}.png`;
     const outputPath = GLib.build_filenamev([cacheDir, filename]);
-    
-    console.log('Generated unique processed wallpaper path:', outputPath);
     
     return outputPath;
 }
