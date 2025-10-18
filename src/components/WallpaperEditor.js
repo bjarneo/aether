@@ -165,6 +165,21 @@ export const WallpaperEditor = GObject.registerClass(
             this._previewArea.setWallpaper(this._wallpaperPath);
         }
 
+        resetEditor(wallpaperPath) {
+            // Reset to new wallpaper and clear all filters
+            this._wallpaperPath = wallpaperPath;
+            this._filters = {...DEFAULT_FILTERS};
+            
+            // Reset filter controls to default
+            this._filterControls.setFilters(DEFAULT_FILTERS);
+            
+            // Load new wallpaper
+            this._loadWallpaper();
+            
+            // Clear preview filters
+            this._previewArea.clearFilters();
+        }
+
         _onResetClicked() {
             // Trigger reset on FilterControls
             this._filterControls._resetFilters();

@@ -431,9 +431,8 @@ const AetherWindow = GObject.registerClass(
                 
                 this.contentStack.add_named(this._wallpaperEditor, 'editor');
             } else {
-                // Update with new wallpaper path
-                this._wallpaperEditor._wallpaperPath = wallpaperPath;
-                this._wallpaperEditor._loadWallpaper();
+                // Reset editor with new wallpaper and clear all filters
+                this._wallpaperEditor.resetEditor(wallpaperPath);
             }
             
             // Switch to editor view
