@@ -9,6 +9,7 @@ import Adw from 'gi://Adw?version=1';
 import {PaletteGenerator} from './components/PaletteGenerator.js';
 import {ColorSynthesizer} from './components/ColorSynthesizer.js';
 import {BlueprintManager} from './components/BlueprintManager.js';
+import {BlueprintManagerWindow} from './components/BlueprintManagerWindow.js';
 import {SettingsSidebar} from './components/SettingsSidebar.js';
 import {ActionBar} from './components/ActionBar.js';
 import {WallpaperEditor} from './components/WallpaperEditor.js';
@@ -114,7 +115,11 @@ const AetherWindow = GObject.registerClass(
         _initializeUI() {
             this.blueprintManager = new BlueprintManager();
             this.dialogManager = new DialogManager(this);
-            this.blueprintService = new BlueprintService(this.blueprintManager);
+
+            // Blueprint service will use the window version for saving
+            // We'll initialize it after creating the blueprint window
+            this.blueprintService = null;
+
             this.themeExporter = new ThemeExporter(
                 this.configWriter,
                 this.dialogManager
@@ -142,7 +147,7 @@ const AetherWindow = GObject.registerClass(
         }
 
         _createMainContent() {
-            const contentPage = new Adw.NavigationPage({title: 'Synthesizer'});
+            this.contentPage = new Adw.NavigationPage({title: 'Synthesizer'});
 
             // Create a stack to switch between main content and wallpaper editor
             this.contentStack = new Gtk.Stack({
@@ -156,9 +161,9 @@ const AetherWindow = GObject.registerClass(
 
             // Wallpaper editor will be added dynamically when needed
 
-            contentPage.set_child(this.contentStack);
+            this.contentPage.set_child(this.contentStack);
 
-            return contentPage;
+            return this.contentPage;
         }
 
         _createMainContentView() {
@@ -241,7 +246,7 @@ const AetherWindow = GObject.registerClass(
             });
 
             this.actionBar.connect('show-blueprints', () => {
-                this.dialogManager.showBlueprintsDialog(this.blueprintManager);
+                this._showBlueprintManager();
             });
 
             this.actionBar.connect('export-theme', () => {
@@ -446,6 +451,55 @@ const AetherWindow = GObject.registerClass(
         }
 
         _hideWallpaperEditor() {
+            // Switch back to main view
+            this.contentStack.set_visible_child_name('main');
+        }
+
+        _showBlueprintManager() {
+            // Create blueprint manager window if it doesn't exist
+            if (!this._blueprintManagerWindow) {
+                this._blueprintManagerWindow = new BlueprintManagerWindow();
+
+                // Initialize blueprint service with the window
+                if (!this.blueprintService) {
+                    this.blueprintService = new BlueprintService(
+                        this._blueprintManagerWindow
+                    );
+                }
+
+                // Handle blueprint applied
+                this._blueprintManagerWindow.connect(
+                    'blueprint-applied',
+                    (_, blueprint) => {
+                        this._loadBlueprint(blueprint);
+                    }
+                );
+
+                // Handle close requested
+                this._blueprintManagerWindow.connect('close-requested', () => {
+                    this._hideBlueprintManager();
+                });
+
+                this.contentStack.add_named(
+                    this._blueprintManagerWindow,
+                    'blueprints'
+                );
+            } else {
+                // Reload blueprints when showing the window
+                this._blueprintManagerWindow.loadBlueprints();
+            }
+
+            // Update header title
+            this.contentPage.set_title('Blueprints');
+
+            // Switch to blueprint manager view
+            this.contentStack.set_visible_child_name('blueprints');
+        }
+
+        _hideBlueprintManager() {
+            // Update header title back to Synthesizer
+            this.contentPage.set_title('Synthesizer');
+
             // Switch back to main view
             this.contentStack.set_visible_child_name('main');
         }
