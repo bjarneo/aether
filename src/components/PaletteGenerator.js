@@ -138,9 +138,18 @@ export const PaletteGenerator = GObject.registerClass(
 
             // Editor tab button
             const editorBtn = new Gtk.ToggleButton({
-                label: 'Editor',
                 active: true,
             });
+            const editorBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+            });
+            editorBox.append(new Gtk.Image({
+                icon_name: 'edit-cover-symbolic',
+                icon_size: Gtk.IconSize.NORMAL,
+            }));
+            editorBox.append(new Gtk.Label({label: 'Editor'}));
+            editorBtn.set_child(editorBox);
             editorBtn.connect('clicked', () => {
                 this._viewStack.set_visible_child_name('editor');
                 this._updateTabButtons(editorBtn);
