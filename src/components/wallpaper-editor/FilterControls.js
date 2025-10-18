@@ -61,9 +61,6 @@ export const FilterControls = GObject.registerClass(
             // Color tone group
             contentBox.append(this._createToneGroup());
 
-            // Reset button
-            contentBox.append(this._createResetGroup());
-
             this.set_child(contentBox);
         }
 
@@ -264,26 +261,6 @@ export const FilterControls = GObject.registerClass(
             }
 
             group.add(new Adw.ActionRow({child: presetsBox}));
-
-            return group;
-        }
-
-        _createResetGroup() {
-            const resetRow = new Adw.ActionRow({
-                title: 'Reset All Filters',
-                subtitle: 'Return to original image',
-            });
-
-            const resetButton = new Gtk.Button({
-                icon_name: 'edit-undo-symbolic',
-                valign: Gtk.Align.CENTER,
-                tooltip_text: 'Reset all filters to default',
-            });
-            resetButton.connect('clicked', () => this._resetFilters());
-            resetRow.add_suffix(resetButton);
-
-            const group = new Adw.PreferencesGroup();
-            group.add(resetRow);
 
             return group;
         }

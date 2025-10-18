@@ -59,6 +59,15 @@ export const WallpaperEditor = GObject.registerClass(
             });
             headerBox.append(titleLabel);
 
+            // Reset button on the left side of Apply
+            const resetButton = new Gtk.Button({
+                icon_name: 'edit-undo-symbolic',
+                tooltip_text: 'Reset all filters to default',
+                valign: Gtk.Align.CENTER,
+            });
+            resetButton.connect('clicked', () => this._onResetClicked());
+            headerBox.append(resetButton);
+
             // Apply button with spinner
             const applyBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
@@ -147,6 +156,11 @@ export const WallpaperEditor = GObject.registerClass(
 
         _loadWallpaper() {
             this._previewArea.setWallpaper(this._wallpaperPath);
+        }
+
+        _onResetClicked() {
+            // Trigger reset on FilterControls
+            this._filterControls._resetFilters();
         }
 
         async _onApplyClicked() {
