@@ -77,12 +77,11 @@ export const PaletteGenerator = GObject.registerClass(
                     this._favoritesView.loadFavorites();
                 }
             });
-            const wallhavenPage = this._viewStack.add_titled(
+            this._viewStack.add_titled(
                 this._wallhavenBrowser,
                 'wallhaven',
                 'Wallhaven'
             );
-            wallhavenPage.set_icon_name('network-workgroup-symbolic');
 
             // Tab 3: Local Wallpapers
             this._localBrowser = new LocalWallpaperBrowser();
@@ -94,24 +93,22 @@ export const PaletteGenerator = GObject.registerClass(
                     this._favoritesView.loadFavorites();
                 }
             });
-            const localPage = this._viewStack.add_titled(
+            this._viewStack.add_titled(
                 this._localBrowser,
                 'local',
                 'Local'
             );
-            localPage.set_icon_name('folder-symbolic');
 
             // Tab 4: Favorites
             this._favoritesView = new FavoritesView();
             this._favoritesView.connect('wallpaper-selected', (_, path) => {
                 this._onWallpaperBrowserSelected(path);
             });
-            const favoritesPage = this._viewStack.add_titled(
+            this._viewStack.add_titled(
                 this._favoritesView,
                 'favorites',
                 'Favorites'
             );
-            favoritesPage.set_icon_name('emblem-favorite-symbolic');
 
             // Monitor tab changes to reload favorites
             this._viewStack.connect('notify::visible-child-name', () => {
@@ -157,9 +154,17 @@ export const PaletteGenerator = GObject.registerClass(
             tabBox.append(separator);
 
             // Wallhaven tab button
-            const wallhavenBtn = new Gtk.ToggleButton({
-                label: 'Wallhaven',
+            const wallhavenBtn = new Gtk.ToggleButton();
+            const wallhavenBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
             });
+            wallhavenBox.append(new Gtk.Image({
+                icon_name: 'system-search-symbolic',
+                icon_size: Gtk.IconSize.NORMAL,
+            }));
+            wallhavenBox.append(new Gtk.Label({label: 'Wallhaven'}));
+            wallhavenBtn.set_child(wallhavenBox);
             wallhavenBtn.connect('clicked', () => {
                 this._viewStack.set_visible_child_name('wallhaven');
                 this._updateTabButtons(wallhavenBtn);
@@ -167,9 +172,17 @@ export const PaletteGenerator = GObject.registerClass(
             tabBox.append(wallhavenBtn);
 
             // Local tab button
-            const localBtn = new Gtk.ToggleButton({
-                label: 'Local',
+            const localBtn = new Gtk.ToggleButton();
+            const localBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
             });
+            localBox.append(new Gtk.Image({
+                icon_name: 'wallpaper-symbolic',
+                icon_size: Gtk.IconSize.NORMAL,
+            }));
+            localBox.append(new Gtk.Label({label: 'Local'}));
+            localBtn.set_child(localBox);
             localBtn.connect('clicked', () => {
                 this._viewStack.set_visible_child_name('local');
                 this._updateTabButtons(localBtn);
@@ -177,9 +190,17 @@ export const PaletteGenerator = GObject.registerClass(
             tabBox.append(localBtn);
 
             // Favorites tab button
-            const favBtn = new Gtk.ToggleButton({
-                label: 'Favorites',
+            const favBtn = new Gtk.ToggleButton();
+            const favBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
             });
+            favBox.append(new Gtk.Image({
+                icon_name: 'emblem-favorite-symbolic',
+                icon_size: Gtk.IconSize.NORMAL,
+            }));
+            favBox.append(new Gtk.Label({label: 'Favorites'}));
+            favBtn.set_child(favBox);
             favBtn.connect('clicked', () => {
                 this._viewStack.set_visible_child_name('favorites');
                 this._updateTabButtons(favBtn);
