@@ -147,10 +147,13 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
         }
     }
 
-    // Apply sepia using color matrix (matches CSS sepia filter)
+    // Apply sepia using color matrix
+    // CSS sepia is more aggressive, so we need to boost the amount for ImageMagick
     if (filters.sepia > 0) {
         const amount = filters.sepia / 100;
-        const s = amount;
+        // Multiply by 1.5 to match CSS sepia intensity
+        const boostedAmount = Math.min(amount * 1.5, 1.0);
+        const s = boostedAmount;
         const sepiaMatrix = `${0.393 * s + (1 - s)} ${0.769 * s} ${0.189 * s} ${0.349 * s} ${0.686 * s + (1 - s)} ${0.168 * s} ${0.272 * s} ${0.534 * s} ${0.131 * s + (1 - s)}`;
         args.push('-color-matrix', sepiaMatrix);
     }
