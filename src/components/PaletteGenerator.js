@@ -232,17 +232,6 @@ export const PaletteGenerator = GObject.registerClass(
                 valign: Gtk.Align.CENTER,
             });
 
-            // Edit wallpaper button (only visible when wallpaper is loaded)
-            this._editWallpaperBtn = new Gtk.Button({
-                icon_name: 'image-edit-symbolic',
-                tooltip_text: 'Edit wallpaper (apply filters)',
-                visible: false,
-            });
-            this._editWallpaperBtn.connect('clicked', () =>
-                this._openWallpaperEditor()
-            );
-            buttonBox.append(this._editWallpaperBtn);
-
             const selectButton = new Gtk.Button({
                 icon_name: 'document-open-symbolic',
                 valign: Gtk.Align.CENTER,
@@ -300,6 +289,16 @@ export const PaletteGenerator = GObject.registerClass(
                 }
             });
 
+            // Edit wallpaper button (appears next to Extract button)
+            this._editWallpaperBtn = new Gtk.Button({
+                icon_name: 'image-edit-symbolic',
+                tooltip_text: 'Edit wallpaper (apply filters before extraction)',
+                visible: false,
+            });
+            this._editWallpaperBtn.connect('clicked', () =>
+                this._openWallpaperEditor()
+            );
+
             // Loading spinner (on same line as button)
             this._spinner = new Gtk.Spinner({
                 width_request: 24,
@@ -309,6 +308,7 @@ export const PaletteGenerator = GObject.registerClass(
             });
 
             extractActionRow.append(this._extractButton);
+            extractActionRow.append(this._editWallpaperBtn);
             extractActionRow.append(this._spinner);
 
             // Helper text below button
