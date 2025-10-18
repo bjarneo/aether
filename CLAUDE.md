@@ -7,10 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Aether is a GTK/Libadwaita theming application for Omarchy. It provides a visual interface for creating and applying desktop themes through pywal color extraction, wallhaven.cc wallpaper browsing, and template-based configuration generation.
 
 **Core workflow:**
-1. User selects wallpaper (local file/drag-drop OR wallhaven.cc browser) → pywal extracts 16 ANSI colors
-2. Colors auto-assign to UI roles (background, foreground, color0-15)
-3. User customizes colors/settings in GUI
-4. "Apply Theme" processes templates → writes to `~/.config/omarchy/themes/aether/` → runs `omarchy-theme-set aether`
+1. User selects wallpaper (local file/drag-drop OR wallhaven.cc browser)
+2. **(Optional)** Edit wallpaper with filters (blur, brightness, sepia, etc.) before extraction
+3. Pywal extracts 16 ANSI colors from wallpaper (or filtered version)
+4. Colors auto-assign to UI roles (background, foreground, color0-15)
+5. User customizes colors/settings in GUI
+6. "Apply Theme" processes templates → writes to `~/.config/omarchy/themes/aether/` → runs `omarchy-theme-set aether`
 
 ## Running the Application
 
@@ -39,13 +41,51 @@ npm run dev
 - Two-tab interface: "Palette Editor", "Find Wallpaper"
 - Tab 1 (Palette Editor): Unified interface for wallpaper + custom palette creation
   - File picker/drag-drop for wallpaper selection
+  - **Edit wallpaper button** (icon button next to Extract) - opens WallpaperEditor for filter application
   - Manual extract button (no auto-extraction)
   - 16-color swatch grid with click-to-edit and lock feature
   - Loads default Catppuccin-inspired colors on startup
 - Tab 2 (Find Wallpaper): WallpaperBrowser component for wallhaven.cc integration
 - Calls `extractColorsFromWallpaper()` which runs `wal -n -s -t -e -i <image>`
 - Light mode flag (`_lightMode`) controlled by SettingsSidebar, saved to blueprints, affects pywal extraction
-- Emits: `palette-generated` signal with 16 colors
+- Emits: `palette-generated` signal with 16 colors, `open-wallpaper-editor` signal with wallpaper path
+
+**WallpaperEditor** (`src/components/WallpaperEditor.js`)
+- **NEW FEATURE:** Apply image filters to wallpapers before color extraction
+- Full-screen editor view (replaces main content when active)
+- Real-time CSS preview + ImageMagick processing for final output
+- Features:
+  - **Preview area** (left): Large wallpaper preview with CSS filters applied in real-time
+    - Click-and-hold to temporarily view original (no filters)
+    - Hint: "Hold click to view original"
+  - **Filter controls** (right sidebar): Adjustable filters with sliders
+  - **Header actions**: Reset filters (undo icon), Apply (process and return), Cancel (discard and return)
+- **Available filters:**
+  - Blur (0-10px) - 5x multiplier for ImageMagick to match CSS preview
+  - Brightness (50-150%)
+  - Contrast (50-150%)
+  - Saturation (0-150%)
+  - Hue Shift (0-360°)
+  - Sepia (0-100%) - 1.5x boost for ImageMagick to match CSS intensity
+  - Invert (0-100%)
+  - Color Tone presets (Blue, Cyan, Green, Yellow, Orange, Red, Pink, Purple) with intensity control
+- **Quick presets** (8 total, displayed in 2 rows at top):
+  - Muted, Dramatic, Soft, Vintage
+  - Vibrant, Faded, Cool, Warm
+- **Processing:**
+  - Generates unique timestamped filename: `processed-wallpaper-{timestamp}.png`
+  - Saves to `~/.cache/aether/processed-wallpaper-*.png`
+  - Auto-cleanup: keeps only 3 most recent processed wallpapers
+  - Bypasses pywal cache with unique filenames (forces fresh color extraction)
+- **Sub-components:**
+  - `src/components/wallpaper-editor/FilterControls.js` - All filter UI controls
+  - `src/components/wallpaper-editor/PreviewArea.js` - Preview with click-and-hold gesture
+- **Filter utilities:**
+  - `src/utils/image-filter-utils.js` - Core filter logic, ImageMagick command building, cache management
+  - `src/utils/icon-utils.js` - Custom SVG icon loading and registration with GTK IconTheme
+- **Custom icon:** `src/icons/image-edit-symbolic.svg` - Registered with GTK for theme-aware coloring
+- **Reset behavior:** Filters automatically reset to defaults each time editor is opened
+- Emits: `wallpaper-applied` signal with processed wallpaper path (or original if cancelled)
 
 **WallpaperBrowser** (`src/components/WallpaperBrowser.js`)
 - Integrated wallhaven.cc API client for browsing/searching wallpapers
@@ -55,6 +95,37 @@ npm run dev
 - Click wallpaper → downloads to `~/.cache/aether/wallhaven-wallpapers/` → emits `wallpaper-selected` signal → switches to "Palette Editor" tab
 - Settings dialog (gear icon) for API key configuration (stored in `~/.config/aether/wallhaven.json`)
 - Thumbnail caching in `~/.cache/aether/wallhaven-thumbs/`
+
+**LocalWallpaperBrowser** (`src/components/LocalWallpaperBrowser.js`)
+- Browses local wallpapers from `~/Wallpapers` directory
+- Features:
+  - Automatic wallpaper discovery (scans for image files: jpg, jpeg, png, webp)
+  - Grid view with thumbnail previews (FlowBox, 2-3 columns)
+  - Thumbnail generation and caching via `thumbnailService`
+  - Favorites integration - star icon on cards to add/remove favorites
+  - Refresh button to rescan directory
+  - Empty state with helpful message if no wallpapers found
+- Click wallpaper → emits `wallpaper-selected` signal → switches to "Palette Editor" tab
+- Async loading with loading spinner
+- Emits: `wallpaper-selected`, `favorites-changed` signals
+
+**FavoritesView** (`src/components/FavoritesView.js`)
+- Displays favorited wallpapers from both local and wallhaven sources
+- Features:
+  - Grid view with thumbnail previews
+  - Remove from favorites button on each card
+  - Support for both local files and wallhaven URLs
+  - Auto-download for wallhaven favorites (if not already cached)
+  - Empty state with "No favorites yet" message
+- Click wallpaper → emits `wallpaper-selected` signal → switches to "Palette Editor" tab
+- Loads favorites from `~/.config/aether/favorites.json`
+- Emits: `wallpaper-selected` signal
+
+**Tab Navigation in "Find Wallpaper"**
+The "Find Wallpaper" tab contains a sub-navigation with 3 tabs:
+1. **Wallhaven** - Browse online wallpapers from wallhaven.cc
+2. **Local** - Browse wallpapers from ~/Wallpapers directory
+3. **Favorites** - Quick access to favorited wallpapers from any source
 
 **ColorSynthesizer** (`src/components/ColorSynthesizer.js`)
 - Displays color role assignments (background, foreground, color0-15) using Adw.ActionRow
@@ -99,6 +170,18 @@ npm run dev
 - Rate limiting: 45 requests/minute without API key
 - Returns JSON responses with wallpaper metadata (resolution, file size, tags, colors, URLs)
 
+**favorites-service.js**: Manages favorited wallpapers
+- Stores favorites in `~/.config/aether/favorites.json`
+- Supports both local file paths and wallhaven URLs
+- Methods: `addFavorite(wallpaper)`, `removeFavorite(path)`, `getFavorites()`, `isFavorite(path)`
+- Auto-saves on changes
+
+**thumbnail-service.js**: Generates and caches thumbnails for local wallpapers
+- Creates thumbnails for large images to improve UI performance
+- Caches generated thumbnails to avoid regeneration
+- Uses GdkPixbuf for image scaling
+- Async thumbnail generation
+
 **color-harmony.js**: Generates color harmonies (complementary, triadic, etc.) - used by SettingsSidebar
 
 ### Template System
@@ -119,6 +202,7 @@ ConfigWriter iterates all template files, performs string substitution, and writ
 - GTK 4 + Libadwaita 1
 - libsoup3 (HTTP client for wallhaven API)
 - pywal (`python-pywal` package)
+- ImageMagick (`magick` command) - required for wallpaper filter processing
 - omarchy theme manager (provides `omarchy-theme-set` command)
 
 **Import pattern:**
@@ -134,13 +218,24 @@ import Soup from 'gi://Soup?version=3.0';
 
 ```
 PaletteGenerator → 'palette-generated' → ColorSynthesizer.setPalette()
+PaletteGenerator → 'open-wallpaper-editor' → AetherWindow._showWallpaperEditor()
 WallpaperBrowser → 'wallpaper-selected' → PaletteGenerator._onWallpaperBrowserSelected()
+WallpaperEditor → 'wallpaper-applied' → AetherWindow._hideWallpaperEditor() → PaletteGenerator.loadWallpaper()
 ColorSynthesizer → 'color-changed' → AetherWindow._updateAccessibility()
 BlueprintManager → 'blueprint-applied' → AetherWindow._loadBlueprint()
 SettingsSidebar → 'adjustments-changed' → PaletteGenerator._applyAdjustments()
 SettingsSidebar → 'preset-applied' → PaletteGenerator.applyPreset()
 SettingsSidebar → 'harmony-generated' → PaletteGenerator.applyHarmony()
 "Apply Theme" button → ConfigWriter.applyTheme()
+```
+
+## Wallpaper Editor Signal Flow
+
+```
+FilterControls → 'filter-changed' → WallpaperEditor → PreviewArea.updateFilters()
+FilterControls → 'preset-applied' → WallpaperEditor → PreviewArea.updateFilters()
+FilterControls → 'reset-filters' → WallpaperEditor → PreviewArea.clearFilters()
+PreviewArea (click gesture) → temporarily disables filters → shows original
 ```
 
 ## AUR Packaging
@@ -160,10 +255,12 @@ SettingsSidebar → 'harmony-generated' → PaletteGenerator.applyHarmony()
 
 - Application ID is `com.aether.DesktopSynthesizer` (in main.js) but desktop file is `li.oever.aether.desktop`
 - Wallpaper extraction requires pywal installed and in PATH
+- **Wallpaper filter processing requires ImageMagick (`magick` command) installed**
 - Theme application requires `omarchy-theme-set` command available
 - Default colors defined in `src/constants/colors.js` as fallback
 - All file operations use GLib/Gio APIs (file-utils.js wrappers)
 - Color utilities in color-utils.js handle hex/RGB/HSL conversions and adjustments
+- **Custom icons registered with GTK IconTheme** (`src/icons/` directory)
 
 ## Color Lock System
 
@@ -178,10 +275,14 @@ SettingsSidebar → 'harmony-generated' → PaletteGenerator.applyHarmony()
 **User config locations:**
 - Blueprints: `~/.config/aether/blueprints/*.json`
 - Wallhaven API key: `~/.config/aether/wallhaven.json`
+- **Favorites:** `~/.config/aether/favorites.json`
+- Settings: `~/.config/aether/settings.json`
 
 **Cache locations:**
 - Wallhaven thumbnails: `~/.cache/aether/wallhaven-thumbs/`
 - Downloaded wallpapers: `~/.cache/aether/wallhaven-wallpapers/`
+- **Processed wallpapers:** `~/.cache/aether/processed-wallpaper-{timestamp}.png` (auto-cleaned, keeps 3)
+- **Local wallpaper thumbnails:** `~/.cache/aether/thumbnails/` (generated by thumbnailService)
 - Pywal colors: `~/.cache/wal/colors`
 
 **Theme output:**
