@@ -15,7 +15,6 @@ import {LocalWallpaperBrowser} from './LocalWallpaperBrowser.js';
 import {FavoritesView} from './FavoritesView.js';
 import {WallpaperColorPicker} from './palette/wallpaper-color-picker.js';
 import {AppColorOverrides} from './palette/AppColorOverrides.js';
-import {WallpaperEditor} from './WallpaperEditor.js';
 
 export const PaletteGenerator = GObject.registerClass(
     {
@@ -23,6 +22,7 @@ export const PaletteGenerator = GObject.registerClass(
             'palette-generated': {param_types: [GObject.TYPE_JSOBJECT]},
             'adjustments-applied': {param_types: [GObject.TYPE_JSOBJECT]},
             'overrides-changed': {param_types: [GObject.TYPE_JSOBJECT]},
+            'open-wallpaper-editor': {param_types: [GObject.TYPE_STRING]},
         },
     },
     class PaletteGenerator extends Gtk.Box {
@@ -613,27 +613,9 @@ export const PaletteGenerator = GObject.registerClass(
 
         _openWallpaperEditor() {
             if (!this._currentWallpaper) return;
-
-            const dialog = new Adw.Dialog({
-                title: 'Wallpaper Editor',
-                content_width: 1000,
-                content_height: 700,
-            });
-
-            const editor = new WallpaperEditor(this._currentWallpaper);
-
-            // Handle wallpaper applied - update preview with processed version
-            editor.connect('wallpaper-applied', (_, processedPath) => {
-                dialog.close();
-                // Small delay to ensure file is fully written
-                GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-                    this.loadWallpaper(processedPath);
-                    return GLib.SOURCE_REMOVE;
-                });
-            });
-
-            dialog.set_child(editor);
-            dialog.present(this.get_root());
+            
+            // Emit signal to let main window handle the navigation
+            this.emit('open-wallpaper-editor', this._currentWallpaper);
         }
 
         _createColorPickerDialog() {
