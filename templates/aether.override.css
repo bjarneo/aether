@@ -45,7 +45,7 @@
 
 /* Adwaita Color Overrides */
 @define-color accent_bg_color @color4;
-@define-color accent_fg_color @background;
+@define-color accent_fg_color @color15;
 @define-color accent_color @color6;
 
 @define-color window_bg_color @background;
@@ -82,16 +82,16 @@
 @define-color dialog_fg_color @foreground;
 
 @define-color destructive_bg_color @color1;
-@define-color destructive_fg_color @background;
+@define-color destructive_fg_color @color15;
 
 @define-color success_bg_color @color2;
-@define-color success_fg_color @background;
+@define-color success_fg_color @color15;
 
 @define-color warning_bg_color @color3;
-@define-color warning_fg_color @background;
+@define-color warning_fg_color @color15;
 
 @define-color error_bg_color @color1;
-@define-color error_fg_color @background;
+@define-color error_fg_color @color15;
 
 @define-color borders alpha(@foreground, 0.15);
 
