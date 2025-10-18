@@ -482,7 +482,6 @@ export const PaletteGenerator = GObject.registerClass(
             } catch (e) {
                 console.error('Failed to load wallpaper:', e.message);
                 // Fallback to file method
-                this._wallpaperPreview.set_file(null);
                 const file = Gio.File.new_for_path(path);
                 this._wallpaperPreview.set_file(file);
                 this._wallpaperPreview.set_visible(true);
@@ -514,7 +513,6 @@ export const PaletteGenerator = GObject.registerClass(
             } catch (e) {
                 console.error('Failed to load wallpaper:', e.message);
                 // Fallback to file method
-                this._wallpaperPreview.set_file(null);
                 const file = Gio.File.new_for_path(path);
                 this._wallpaperPreview.set_file(file);
                 this._wallpaperPreview.set_visible(true);
