@@ -324,8 +324,24 @@ export const PaletteGenerator = GObject.registerClass(
             });
 
             // Edit wallpaper button (appears next to Extract button)
-            this._editWallpaperBtn = new Gtk.Button({
+            const editButtonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+            });
+
+            const editIcon = new Gtk.Image({
                 icon_name: 'image-edit-symbolic',
+            });
+
+            const editLabel = new Gtk.Label({
+                label: 'Edit',
+            });
+
+            editButtonBox.append(editIcon);
+            editButtonBox.append(editLabel);
+
+            this._editWallpaperBtn = new Gtk.Button({
+                child: editButtonBox,
                 tooltip_text:
                     'Edit wallpaper (apply filters before extraction)',
                 visible: false,
