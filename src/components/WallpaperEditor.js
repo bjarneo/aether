@@ -68,8 +68,8 @@ export const WallpaperEditor = GObject.registerClass(
             resetButton.connect('clicked', () => this._onResetClicked());
             headerBox.append(resetButton);
 
-            // Apply button with spinner
-            const applyBox = new Gtk.Box({
+            // Action buttons box (Apply and Cancel)
+            const actionBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
             });
@@ -87,9 +87,16 @@ export const WallpaperEditor = GObject.registerClass(
             });
             this._applyButton.connect('clicked', () => this._onApplyClicked());
 
-            applyBox.append(this._applySpinner);
-            applyBox.append(this._applyButton);
-            headerBox.append(applyBox);
+            const cancelButton = new Gtk.Button({
+                label: 'Cancel',
+                tooltip_text: 'Cancel and return without applying filters',
+            });
+            cancelButton.connect('clicked', () => this._onCancelClicked());
+
+            actionBox.append(this._applySpinner);
+            actionBox.append(this._applyButton);
+            actionBox.append(cancelButton);
+            headerBox.append(actionBox);
 
             this.append(headerBox);
 
@@ -161,6 +168,12 @@ export const WallpaperEditor = GObject.registerClass(
         _onResetClicked() {
             // Trigger reset on FilterControls
             this._filterControls._resetFilters();
+        }
+
+        _onCancelClicked() {
+            // Return to main view without applying filters
+            // Emit wallpaper-applied with the original wallpaper path
+            this.emit('wallpaper-applied', this._wallpaperPath);
         }
 
         async _onApplyClicked() {

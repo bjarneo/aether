@@ -15,6 +15,7 @@ import {LocalWallpaperBrowser} from './LocalWallpaperBrowser.js';
 import {FavoritesView} from './FavoritesView.js';
 import {WallpaperColorPicker} from './palette/wallpaper-color-picker.js';
 import {AppColorOverrides} from './palette/AppColorOverrides.js';
+import {registerCustomIcons} from '../utils/icon-utils.js';
 
 export const PaletteGenerator = GObject.registerClass(
     {
@@ -31,6 +32,9 @@ export const PaletteGenerator = GObject.registerClass(
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 12,
             });
+
+            // Register custom icons on first initialization
+            registerCustomIcons();
 
             this._palette = [];
             this._originalPalette = [];
@@ -230,7 +234,7 @@ export const PaletteGenerator = GObject.registerClass(
 
             // Edit wallpaper button (only visible when wallpaper is loaded)
             this._editWallpaperBtn = new Gtk.Button({
-                icon_name: 'emblem-photos-symbolic',
+                icon_name: 'image-edit-symbolic',
                 tooltip_text: 'Edit wallpaper (apply filters)',
                 visible: false,
             });
