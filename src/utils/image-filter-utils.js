@@ -19,6 +19,8 @@ export const DEFAULT_FILTERS = {
     invert: 0, // 0-100%
     tone: null, // tone type (hue value) or null
     toneAmount: 0, // 0-100%
+    toneSaturation: 100, // Saturation for custom tones (0-100)
+    toneLightness: 50, // Lightness for custom tones (0-100)
     exposure: 0, // -100 to 100 (0 = no change)
 
     // Tier 1: Most useful filters

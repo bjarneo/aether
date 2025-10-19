@@ -1,6 +1,7 @@
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
+import Gdk from 'gi://Gdk?version=4.0';
 
 import {applyCssToWidget} from '../../utils/ui-helpers.js';
 import {
@@ -8,6 +9,7 @@ import {
     FILTER_PRESETS,
     DEFAULT_FILTERS,
 } from '../../utils/image-filter-utils.js';
+import {rgbToHsl, hslToHex} from '../../utils/color-utils.js';
 
 /**
  * FilterControls - UI controls for adjusting image filters
@@ -475,11 +477,28 @@ export const FilterControls = GObject.registerClass(
                     if (this._filters.toneAmount === 0) {
                         this._setSliderValue('toneAmount', 30);
                     }
+                    // Update custom color button to show this color too
+                    this._updateCustomColorButton();
                     this.emit('filter-changed', this._filters);
                 });
 
                 grid.append(button);
             });
+
+            // Custom color button
+            this._customColorButton = new Gtk.Button({
+                icon_name: 'color-select-symbolic',
+                width_request: 52,
+                height_request: 36,
+                tooltip_text: 'Pick custom tone color',
+            });
+            this._customColorButton.connect('clicked', () => {
+                this._openCustomColorPicker();
+            });
+            grid.append(this._customColorButton);
+
+            // Update custom button appearance if there's a selected tone
+            this._updateCustomColorButton();
 
             // Clear button
             const clearButton = new Gtk.Button({
@@ -491,11 +510,94 @@ export const FilterControls = GObject.registerClass(
             clearButton.connect('clicked', () => {
                 this._filters.tone = null;
                 this._setSliderValue('toneAmount', 0);
+                this._updateCustomColorButton();
                 this.emit('filter-changed', this._filters);
             });
             grid.append(clearButton);
 
             return grid;
+        }
+
+        _openCustomColorPicker() {
+            const colorDialog = new Gtk.ColorDialog();
+
+            // Set initial color if one is selected
+            let initialColor = new Gdk.RGBA();
+            if (this._filters.tone !== null) {
+                // Convert HSL to RGB using existing utility with stored values
+                const s = this._filters.toneSaturation || 100;
+                const l = this._filters.toneLightness || 50;
+                const hexColor = hslToHex(this._filters.tone, s, l);
+                initialColor.parse(hexColor);
+            } else {
+                // Default to blue
+                initialColor.red = 0.5;
+                initialColor.green = 0.5;
+                initialColor.blue = 1.0;
+                initialColor.alpha = 1.0;
+            }
+
+            colorDialog.choose_rgba(
+                this.get_root(),
+                initialColor,
+                null,
+                (dialog, result) => {
+                    try {
+                        const color = dialog.choose_rgba_finish(result);
+
+                        // Convert RGBA to HSL using existing utility
+                        const r = color.red * 255;
+                        const g = color.green * 255;
+                        const b = color.blue * 255;
+                        const hsl = rgbToHsl(r, g, b);
+
+                        // Store full HSL values for accurate color representation
+                        this._filters.tone = Math.round(hsl.h);
+                        this._filters.toneSaturation = Math.round(hsl.s);
+                        this._filters.toneLightness = Math.round(hsl.l);
+
+                        // Auto-set amount to 30% if it's 0
+                        if (this._filters.toneAmount === 0) {
+                            this._setSliderValue('toneAmount', 30);
+                        }
+
+                        // Update the custom color button to show the selected color
+                        this._updateCustomColorButton();
+
+                        this.emit('filter-changed', this._filters);
+                    } catch (e) {
+                        // User cancelled
+                    }
+                }
+            );
+        }
+
+        _updateCustomColorButton() {
+            if (!this._customColorButton) return;
+
+            if (this._filters.tone !== null) {
+                // Show the selected color as background using stored HSL values
+                const s = this._filters.toneSaturation || 100;
+                const l = this._filters.toneLightness || 50;
+                const hexColor = hslToHex(this._filters.tone, s, l);
+                const css = `* {
+                    background: ${hexColor};
+                    border: 2px solid alpha(white, 0.2);
+                    min-width: 52px;
+                    min-height: 36px;
+                }
+                *:hover {
+                    border: 2px solid white;
+                    transform: scale(1.05);
+                }`;
+                applyCssToWidget(this._customColorButton, css);
+                // Remove icon when showing color
+                this._customColorButton.set_icon_name(null);
+            } else {
+                // Reset to default icon appearance
+                applyCssToWidget(this._customColorButton, '');
+                this._customColorButton.set_icon_name('color-select-symbolic');
+            }
         }
 
         _setSliderValue(key, value) {
