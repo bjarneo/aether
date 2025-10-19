@@ -10,7 +10,7 @@ import Gio from 'gi://Gio';
  */
 export const DEFAULT_FILTERS = {
     // Basic adjustments
-    blur: 0, // 0-5px
+    blur: 0, // 0-100%
     brightness: 100, // 0-200%
     contrast: 100, // 0-200%
     saturation: 100, // 0-200%
@@ -229,10 +229,11 @@ export function buildCssFilterString(filters) {
 export function buildImageMagickCommand(inputPath, outputPath, filters) {
     const args = ['magick', inputPath];
 
-    // Apply blur (works on original pixels)
-    // CSS blur(Npx) ≈ ImageMagick -blur 0x(N*5) for visual match
+    // Apply blur (percentage-based)
+    // Map 0-100% to reasonable blur sigma values (0-20)
+    // Higher values create stronger blur effect
     if (filters.blur > 0) {
-        const sigma = filters.blur * 5;
+        const sigma = (filters.blur / 100) * 20; // 0-20 range
         args.push('-blur', `0x${sigma}`);
     }
 

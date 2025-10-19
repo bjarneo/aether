@@ -81,10 +81,10 @@ export const FilterControls = GObject.registerClass(
                     'Blur',
                     'blur',
                     0,
-                    5,
-                    0.1,
+                    100,
+                    1,
                     0,
-                    'px',
+                    '%',
                     'Soften the image'
                 )
             );
