@@ -343,7 +343,7 @@ export const PaletteGenerator = GObject.registerClass(
             });
 
             const applyWallpaperLabel = new Gtk.Label({
-                label: 'Apply Wallpaper',
+                label: 'Apply',
             });
 
             applyWallpaperButtonBox.append(applyWallpaperButtonIcon);
