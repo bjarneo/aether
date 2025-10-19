@@ -13,6 +13,7 @@ import {BlueprintManagerWindow} from './components/BlueprintManagerWindow.js';
 import {SettingsSidebar} from './components/SettingsSidebar.js';
 import {ActionBar} from './components/ActionBar.js';
 import {WallpaperEditor} from './components/WallpaperEditor.js';
+import {AboutDialog} from './components/AboutDialog.js';
 import {ConfigWriter} from './utils/ConfigWriter.js';
 import {DialogManager} from './utils/DialogManager.js';
 import {ThemeManager} from './services/theme-manager.js';
@@ -76,6 +77,9 @@ const AetherApplication = GObject.registerClass(
             if (!window) {
                 window = new AetherWindow(this);
 
+                // Set up application actions
+                this._setupActions(window);
+
                 // Load wallpaper if provided via CLI
                 if (this._wallpaperPath) {
                     GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
@@ -86,6 +90,15 @@ const AetherApplication = GObject.registerClass(
                 }
             }
             window.present();
+        }
+
+        _setupActions(window) {
+            // About action
+            const aboutAction = new Gio.SimpleAction({name: 'about'});
+            aboutAction.connect('activate', () => {
+                AboutDialog.show(window);
+            });
+            this.add_action(aboutAction);
         }
 
         vfunc_shutdown() {
@@ -126,7 +139,14 @@ const AetherWindow = GObject.registerClass(
             );
 
             const mainContent = this._createMainContent();
-            this.set_content(mainContent);
+
+            // Wrap content in ToolbarView with header bar
+            const toolbarView = new Adw.ToolbarView();
+            this._createHeaderBar();
+            toolbarView.add_top_bar(this.headerBar);
+            toolbarView.set_content(mainContent);
+
+            this.set_content(toolbarView);
 
             // Apply initial settings state (after UI is created)
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
@@ -144,6 +164,29 @@ const AetherWindow = GObject.registerClass(
 
                 return GLib.SOURCE_REMOVE;
             });
+        }
+
+        _createHeaderBar() {
+            this.headerBar = new Adw.HeaderBar();
+
+            // Menu button on the right
+            const menuButton = new Gtk.MenuButton({
+                icon_name: 'open-menu-symbolic',
+                tooltip_text: 'Main Menu',
+            });
+            menuButton.set_menu_model(this._createMenuModel());
+            this.headerBar.pack_end(menuButton);
+        }
+
+        _createMenuModel() {
+            const menu = new Gio.Menu();
+
+            // About section
+            const aboutSection = new Gio.Menu();
+            aboutSection.append('About Aether', 'app.about');
+            menu.append_section(null, aboutSection);
+
+            return menu;
         }
 
         _createMainContent() {
@@ -497,9 +540,6 @@ const AetherWindow = GObject.registerClass(
         }
 
         _hideBlueprintManager() {
-            // Update header title back to Synthesizer
-            this.contentPage.set_title('Synthesizer');
-
             // Switch back to main view
             this.contentStack.set_visible_child_name('main');
         }
