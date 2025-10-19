@@ -90,6 +90,19 @@ export const FilterControls = GObject.registerClass(
 
             group.add(
                 this._createSliderRow(
+                    'Exposure',
+                    'exposure',
+                    -100,
+                    100,
+                    1,
+                    0,
+                    '',
+                    'Simulate camera exposure'
+                )
+            );
+
+            group.add(
+                this._createSliderRow(
                     'Blur',
                     'blur',
                     0,
