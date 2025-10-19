@@ -38,11 +38,12 @@ export const TONE_PRESETS = [
 
 /**
  * Quick filter presets for common effects
+ * Note: Presets now auto-reset all filters to defaults before applying,
+ * so you only need to specify the filters you want to modify
  */
 export const FILTER_PRESETS = [
     {
         name: 'Muted',
-        blur: 0,
         brightness: 95,
         contrast: 85,
         saturation: 60,
@@ -50,22 +51,19 @@ export const FILTER_PRESETS = [
     },
     {
         name: 'Dramatic',
-        blur: 0,
         brightness: 90,
         contrast: 130,
         saturation: 110,
     },
     {
         name: 'Soft',
-        blur: 1,
         brightness: 105,
-        contrast: 85,
-        saturation: 90,
-        exposure: 15,
+        contrast: 90,
+        saturation: 95,
+        exposure: 10,
     },
     {
         name: 'Vintage',
-        blur: 0,
         brightness: 95,
         contrast: 110,
         saturation: 70,
@@ -73,34 +71,28 @@ export const FILTER_PRESETS = [
     },
     {
         name: 'Vibrant',
-        blur: 0,
         brightness: 105,
-        contrast: 110,
-        saturation: 130,
+        contrast: 115,
+        saturation: 140,
         exposure: 10,
     },
     {
         name: 'Faded',
-        blur: 0,
         brightness: 110,
         contrast: 75,
-        saturation: 70,
+        saturation: 65,
         exposure: 20,
     },
     {
         name: 'Cool',
-        blur: 0,
-        brightness: 100,
         contrast: 105,
-        saturation: 90,
+        saturation: 95,
         hueRotate: 200,
     },
     {
         name: 'Warm',
-        blur: 0,
-        brightness: 100,
         contrast: 105,
-        saturation: 90,
+        saturation: 95,
         hueRotate: 20,
     },
 ];

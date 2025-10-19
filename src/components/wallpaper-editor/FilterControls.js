@@ -88,8 +88,8 @@ export const FilterControls = GObject.registerClass(
                     'Blur',
                     'blur',
                     0,
-                    10,
-                    0.5,
+                    5,
+                    0.1,
                     0,
                     'px',
                     'Soften the image'
@@ -404,11 +404,22 @@ export const FilterControls = GObject.registerClass(
         }
 
         _applyPreset(preset) {
+            // First, reset all sliders to default values
+            Object.keys(this._sliders).forEach(key => {
+                const {defaultValue} = this._sliders[key];
+                this._setSliderValue(key, defaultValue);
+            });
+
+            // Then apply the preset values
             Object.keys(preset).forEach(key => {
                 if (key !== 'name' && this._sliders[key]) {
                     this._setSliderValue(key, preset[key]);
                 }
             });
+
+            // Reset tone to null (not in sliders)
+            this._filters.tone = null;
+
             this.emit('preset-applied', this._filters);
         }
 
