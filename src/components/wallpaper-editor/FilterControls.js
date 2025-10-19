@@ -463,8 +463,8 @@ export const FilterControls = GObject.registerClass(
             const scale = new Gtk.Scale({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 draw_value: false,
-                hexpand: true,
-                width_request: 200,
+                hexpand: false,
+                width_request: 180,
             });
             scale.set_range(min, max);
             scale.set_increments(step, step * 5);
