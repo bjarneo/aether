@@ -2,6 +2,7 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
+import GLib from 'gi://GLib';
 
 import {applyCssToWidget} from '../../utils/ui-helpers.js';
 import {
@@ -482,6 +483,31 @@ export const FilterControls = GObject.registerClass(
                 valueLabel.set_label(`${Math.round(value)}${unit}`);
                 this.emit('filter-changed', this._filters);
             });
+
+            // Double-click scale to reset to default
+            let clickCount = 0;
+            let clickTimeout = null;
+
+            const scaleGesture = new Gtk.GestureClick();
+            scaleGesture.connect('pressed', () => {
+                clickCount++;
+
+                if (clickTimeout) GLib.source_remove(clickTimeout);
+
+                clickTimeout = GLib.timeout_add(
+                    GLib.PRIORITY_DEFAULT,
+                    300,
+                    () => {
+                        if (clickCount === 2) {
+                            scale.set_value(defaultValue);
+                        }
+                        clickCount = 0;
+                        clickTimeout = null;
+                        return GLib.SOURCE_REMOVE;
+                    }
+                );
+            });
+            scale.add_controller(scaleGesture);
 
             box.append(scale);
             box.append(valueLabel);
