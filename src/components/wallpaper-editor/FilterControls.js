@@ -236,20 +236,6 @@ export const FilterControls = GObject.registerClass(
                 description: 'Professional-grade adjustments',
             });
 
-            // Exposure
-            group.add(
-                this._createSliderRow(
-                    'Exposure',
-                    'exposure',
-                    -100,
-                    100,
-                    1,
-                    0,
-                    '',
-                    'Simulate camera exposure'
-                )
-            );
-
             // Sharpen
             group.add(
                 this._createSliderRow(
