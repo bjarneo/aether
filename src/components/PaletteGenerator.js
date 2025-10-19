@@ -257,7 +257,7 @@ export const PaletteGenerator = GObject.registerClass(
 
             const wallpaperRow = new Adw.ActionRow({
                 title: 'Wallpaper',
-                subtitle: 'Select an image for reference or extraction',
+                subtitle: 'Select, edit, and extract colors from an image',
             });
 
             const buttonBox = new Gtk.Box({
@@ -274,29 +274,7 @@ export const PaletteGenerator = GObject.registerClass(
             selectButton.connect('clicked', () => this._selectWallpaper());
             buttonBox.append(selectButton);
 
-            wallpaperRow.add_suffix(buttonBox);
-
-            this._setupDropTarget(wallpaperRow);
-            wallpaperGroup.add(wallpaperRow);
-            viewBox.append(wallpaperGroup);
-
-            // Extract colors section (only visible when wallpaper is loaded)
-            this._extractSection = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 6,
-                halign: Gtk.Align.FILL,
-                hexpand: true,
-                margin_top: 12,
-                visible: false,
-            });
-
-            // Button and spinner row
-            const extractActionRow = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
-                halign: Gtk.Align.START,
-            });
-
+            // Extract button (initially hidden)
             const extractButtonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
@@ -316,14 +294,16 @@ export const PaletteGenerator = GObject.registerClass(
             this._extractButton = new Gtk.Button({
                 child: extractButtonBox,
                 css_classes: ['suggested-action'],
+                visible: false,
             });
             this._extractButton.connect('clicked', () => {
                 if (this._currentWallpaper) {
                     this._extractColors(this._currentWallpaper);
                 }
             });
+            buttonBox.append(this._extractButton);
 
-            // Edit wallpaper button (appears next to Extract button)
+            // Edit wallpaper button (initially hidden)
             const editButtonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
@@ -349,30 +329,22 @@ export const PaletteGenerator = GObject.registerClass(
             this._editWallpaperBtn.connect('clicked', () =>
                 this._openWallpaperEditor()
             );
+            buttonBox.append(this._editWallpaperBtn);
 
-            // Loading spinner (on same line as button)
+            // Loading spinner
             this._spinner = new Gtk.Spinner({
                 width_request: 24,
                 height_request: 24,
                 valign: Gtk.Align.CENTER,
                 visible: false,
             });
+            buttonBox.append(this._spinner);
 
-            extractActionRow.append(this._extractButton);
-            extractActionRow.append(this._editWallpaperBtn);
-            extractActionRow.append(this._spinner);
+            wallpaperRow.add_suffix(buttonBox);
 
-            // Helper text below button
-            const extractHelperText = new Gtk.Label({
-                label: 'Extract colors from the wallpaper using pywal',
-                css_classes: ['dim-label', 'caption'],
-                wrap: true,
-                xalign: 0,
-            });
-
-            this._extractSection.append(extractActionRow);
-            this._extractSection.append(extractHelperText);
-            viewBox.append(this._extractSection);
+            this._setupDropTarget(wallpaperRow);
+            wallpaperGroup.add(wallpaperRow);
+            viewBox.append(wallpaperGroup);
 
             // Wallpaper preview
             this._wallpaperPreview = new Gtk.Picture({
@@ -537,7 +509,7 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_visible(true);
             }
 
-            this._extractSection.set_visible(true);
+            this._extractButton.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
         }
@@ -568,7 +540,7 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_visible(true);
             }
 
-            this._extractSection.set_visible(true);
+            this._extractButton.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
         }
