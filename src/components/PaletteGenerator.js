@@ -275,48 +275,48 @@ export const PaletteGenerator = GObject.registerClass(
             selectButton.connect('clicked', () => this._selectWallpaper());
             buttonBox.append(selectButton);
 
-            // Extract button (initially hidden)
-            const extractButtonBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-            });
+            // Pywal extract button (COMMENTED OUT - keeping code for reference)
+            // const extractButtonBox = new Gtk.Box({
+            //     orientation: Gtk.Orientation.HORIZONTAL,
+            //     spacing: 6,
+            // });
 
-            const extractIcon = new Gtk.Image({
-                icon_name: 'color-select-symbolic',
-            });
+            // const extractIcon = new Gtk.Image({
+            //     icon_name: 'color-select-symbolic',
+            // });
 
-            const extractLabel = new Gtk.Label({
-                label: 'Extract',
-            });
+            // const extractLabel = new Gtk.Label({
+            //     label: 'Pywal Extract',
+            // });
 
-            extractButtonBox.append(extractIcon);
-            extractButtonBox.append(extractLabel);
+            // extractButtonBox.append(extractIcon);
+            // extractButtonBox.append(extractLabel);
 
-            this._extractButton = new Gtk.Button({
-                child: extractButtonBox,
-                css_classes: ['suggested-action'],
-                visible: false,
-                tooltip_text: 'Extract colors using pywal',
-            });
-            this._extractButton.connect('clicked', () => {
-                if (this._currentWallpaper) {
-                    this._extractColors(this._currentWallpaper);
-                }
-            });
-            buttonBox.append(this._extractButton);
+            // this._extractButton = new Gtk.Button({
+            //     child: extractButtonBox,
+            //     css_classes: ['suggested-action'],
+            //     visible: false,
+            //     tooltip_text: 'Extract colors using pywal',
+            // });
+            // this._extractButton.connect('clicked', () => {
+            //     if (this._currentWallpaper) {
+            //         this._extractColors(this._currentWallpaper);
+            //     }
+            // });
+            // buttonBox.append(this._extractButton);
 
-            // ImageMagick extract button
+            // ImageMagick extract button (primary extraction method)
             const imExtractButtonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
             });
 
             const imExtractIcon = new Gtk.Image({
-                icon_name: 'image-auto-adjust-symbolic',
+                icon_name: 'color-select-symbolic',
             });
 
             const imExtractLabel = new Gtk.Label({
-                label: 'IM Extract',
+                label: 'Extract',
             });
 
             imExtractButtonBox.append(imExtractIcon);
@@ -326,7 +326,7 @@ export const PaletteGenerator = GObject.registerClass(
                 child: imExtractButtonBox,
                 css_classes: ['suggested-action'],
                 visible: false,
-                tooltip_text: 'Extract colors using ImageMagick (dominant colors)',
+                tooltip_text: 'Extract colors from wallpaper',
             });
             this._imExtractButton.connect('clicked', () => {
                 if (this._currentWallpaper) {
@@ -541,7 +541,7 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_visible(true);
             }
 
-            this._extractButton.set_visible(true);
+            // this._extractButton.set_visible(true); // Pywal button commented out
             this._imExtractButton.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
@@ -573,7 +573,7 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_visible(true);
             }
 
-            this._extractButton.set_visible(true);
+            // this._extractButton.set_visible(true); // Pywal button commented out
             this._imExtractButton.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
