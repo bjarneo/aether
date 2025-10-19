@@ -349,15 +349,19 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
         args.push('-level', `0%,${whitePoint}%`);
     }
 
-    // Apply vignette (must be last as it's a composite operation)
+    // Apply vignette (darken edges)
     if (filters.vignette > 0) {
-        // Create a simple radial gradient vignette
-        const vignetteStrength = filters.vignette / 100; // 0-1
-        // Use -vignette which is a built-in ImageMagick effect
-        // Format: -vignette {radiusxsigma}{+-}x{+-}y
-        const radius = 0;
-        const sigma = vignetteStrength * 150; // 0-150
-        args.push('-vignette', `${radius}x${sigma}`);
+        // Create a dark vignette using radial gradient overlay
+        // Higher slider value = darker vignette
+        const vignetteAmount = filters.vignette / 100; // 0-1
+
+        // Create a radial gradient mask and multiply it with the image
+        args.push('(', '+clone');
+        args.push('-size', '%[fx:w]x%[fx:h]');
+        args.push('radial-gradient:white-black');
+        args.push('-evaluate', 'Pow', `${1 - vignetteAmount * 0.7}`); // Control darkness
+        args.push(')');
+        args.push('-compose', 'Multiply', '-composite');
     }
 
     // Add compression to reduce file size
