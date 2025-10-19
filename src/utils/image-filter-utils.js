@@ -18,6 +18,8 @@ export const DEFAULT_FILTERS = {
     invert: 0, // 0-100%
     tone: null, // tone type (hue value) or null
     toneAmount: 0, // 0-100%
+    // Tier 1 filters (CSS-compatible only)
+    exposure: 0, // -100 to 100 (0 = no change)
 };
 
 /**
@@ -38,12 +40,53 @@ export const TONE_PRESETS = [
  * Quick filter presets for common effects
  */
 export const FILTER_PRESETS = [
-    {name: 'Muted', blur: 0, brightness: 95, contrast: 85, saturation: 60},
-    {name: 'Dramatic', blur: 0, brightness: 90, contrast: 130, saturation: 110},
-    {name: 'Soft', blur: 0, brightness: 105, contrast: 85, saturation: 90},
-    {name: 'Vintage', blur: 0, brightness: 95, contrast: 110, saturation: 70},
-    {name: 'Vibrant', blur: 0, brightness: 105, contrast: 110, saturation: 130},
-    {name: 'Faded', blur: 0, brightness: 110, contrast: 75, saturation: 70},
+    {
+        name: 'Muted',
+        blur: 0,
+        brightness: 95,
+        contrast: 85,
+        saturation: 60,
+        exposure: -10,
+    },
+    {
+        name: 'Dramatic',
+        blur: 0,
+        brightness: 90,
+        contrast: 130,
+        saturation: 110,
+    },
+    {
+        name: 'Soft',
+        blur: 1,
+        brightness: 105,
+        contrast: 85,
+        saturation: 90,
+        exposure: 15,
+    },
+    {
+        name: 'Vintage',
+        blur: 0,
+        brightness: 95,
+        contrast: 110,
+        saturation: 70,
+        sepia: 30,
+    },
+    {
+        name: 'Vibrant',
+        blur: 0,
+        brightness: 105,
+        contrast: 110,
+        saturation: 130,
+        exposure: 10,
+    },
+    {
+        name: 'Faded',
+        blur: 0,
+        brightness: 110,
+        contrast: 75,
+        saturation: 70,
+        exposure: 20,
+    },
     {
         name: 'Cool',
         blur: 0,
@@ -74,7 +117,8 @@ export function hasActiveFilters(filters) {
         filters.hueRotate !== 0 ||
         filters.sepia > 0 ||
         filters.invert > 0 ||
-        (filters.tone !== null && filters.toneAmount > 0)
+        (filters.tone !== null && filters.toneAmount > 0) ||
+        filters.exposure !== 0
     );
 }
 
@@ -89,9 +133,18 @@ export function buildCssFilterString(filters) {
     if (filters.blur > 0) {
         parts.push(`blur(${filters.blur}px)`);
     }
+
+    // Exposure - applied as brightness multiplier (matches ImageMagick -evaluate Multiply)
+    if (filters.exposure !== 0) {
+        const exposureMult = 1 + filters.exposure / 100;
+        parts.push(`brightness(${exposureMult})`);
+    }
+
+    // Brightness adjustment (separate from exposure)
     if (filters.brightness !== 100) {
         parts.push(`brightness(${filters.brightness / 100})`);
     }
+
     if (filters.contrast !== 100) {
         parts.push(`contrast(${filters.contrast / 100})`);
     }
@@ -130,15 +183,21 @@ export function buildCssFilterString(filters) {
 export function buildImageMagickCommand(inputPath, outputPath, filters) {
     const args = ['magick', inputPath];
 
-    // Apply blur FIRST (works on original pixels)
+    // Apply blur (works on original pixels)
     // CSS blur(Npx) ≈ ImageMagick -blur 0x(N*5) for visual match
     if (filters.blur > 0) {
         const sigma = filters.blur * 5;
         args.push('-blur', `0x${sigma}`);
     }
 
+    // Apply exposure (affects overall brightness)
+    if (filters.exposure !== 0) {
+        const exposureMult = 1 + filters.exposure / 100;
+        args.push('-evaluate', 'Multiply', `${exposureMult}`);
+    }
+
     // Apply modulate for brightness, saturation, and hue rotation
-    const brightnessPercent = filters.brightness;
+    let brightnessPercent = filters.brightness;
     const saturationPercent = filters.saturation;
     let huePercent = 100;
 

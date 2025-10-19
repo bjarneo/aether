@@ -66,9 +66,22 @@ export const FilterControls = GObject.registerClass(
 
         _createFiltersGroup() {
             const group = new Adw.PreferencesGroup({
-                title: 'Filters',
-                description: 'Adjust to create the desired mood',
+                title: 'Basic Adjustments',
+                description: 'Fundamental color and tone controls',
             });
+
+            group.add(
+                this._createSliderRow(
+                    'Exposure',
+                    'exposure',
+                    -100,
+                    100,
+                    1,
+                    0,
+                    '',
+                    'Simulate camera exposure'
+                )
+            );
 
             group.add(
                 this._createSliderRow(
