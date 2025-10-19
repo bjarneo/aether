@@ -24,6 +24,7 @@ export const PaletteGenerator = GObject.registerClass(
             'adjustments-applied': {param_types: [GObject.TYPE_JSOBJECT]},
             'overrides-changed': {param_types: [GObject.TYPE_JSOBJECT]},
             'open-wallpaper-editor': {param_types: [GObject.TYPE_STRING]},
+            'apply-wallpaper': {},
         },
     },
     class PaletteGenerator extends Gtk.Box {
@@ -330,6 +331,30 @@ export const PaletteGenerator = GObject.registerClass(
                 this._openWallpaperEditor()
             );
             buttonBox.append(this._editWallpaperBtn);
+
+            // Apply only wallpaper button (right side)
+            const applyWallpaperButtonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+            });
+
+            const applyWallpaperButtonIcon = new Gtk.Image({
+                icon_name: 'wallpaper-symbolic',
+            });
+
+            const applyWallpaperLabel = new Gtk.Label({
+                label: 'Apply Wallpaper',
+            });
+
+            applyWallpaperButtonBox.append(applyWallpaperButtonIcon);
+            applyWallpaperButtonBox.append(applyWallpaperLabel);
+
+            this._applyWallpaperBtn = new Gtk.Button({
+                child: applyWallpaperButtonBox,
+                tooltip_text: 'Apply wallpaper to the desktop',
+            });
+            this._applyWallpaperBtn.connect('clicked', () => this.emit('apply-wallpaper'));
+            buttonBox.append(this._applyWallpaperBtn);
 
             // Loading spinner
             this._spinner = new Gtk.Spinner({

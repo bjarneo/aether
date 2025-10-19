@@ -282,6 +282,10 @@ const AetherWindow = GObject.registerClass(
                 }
             );
 
+            this.paletteGenerator.connect('apply-wallpaper', () => {
+                this._applyWallpaper();
+            });
+
             this.colorSynthesizer.connect('color-changed', (_, role, color) => {
                 this._updateAccessibility();
                 this._updateAppOverrideColors();
@@ -399,6 +403,15 @@ const AetherWindow = GObject.registerClass(
             const lightMode = this.settingsSidebar.getLightMode();
 
             this.blueprintService.saveBlueprint(palette, settings, lightMode);
+        }
+
+        _applyWallpaper() {
+            try {
+                const palette = this.paletteGenerator.getPalette();
+                this.configWriter.applyWallpaper(palette.wallpaper);
+            } catch (e) {
+                console.error(`Error applying wallpaper: ${e.message}`);
+            }
         }
 
         _exportTheme() {
