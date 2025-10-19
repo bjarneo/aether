@@ -201,6 +201,19 @@ export const FilterControls = GObject.registerClass(
                 )
             );
 
+            group.add(
+                this._createSliderRow(
+                    'Pixelate',
+                    'pixelate',
+                    0,
+                    100,
+                    1,
+                    0,
+                    '%',
+                    'Create pixel art effect'
+                )
+            );
+
             return group;
         }
 

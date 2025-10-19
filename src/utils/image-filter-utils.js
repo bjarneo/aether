@@ -29,6 +29,7 @@ export const DEFAULT_FILTERS = {
     sepia: 0, // 0-100%
     invert: 0, // 0-100%
     oilPaint: 0, // 0-10 (oil paint radius)
+    pixelate: 0, // 0-100% (pixelation amount)
 
     // Color tone system
     tone: null, // tone type (hue value) or null
@@ -166,6 +167,7 @@ export function hasActiveFilters(filters) {
         filters.sepia > 0 ||
         filters.invert > 0 ||
         filters.oilPaint > 0 ||
+        filters.pixelate > 0 ||
         (filters.tone !== null && filters.toneAmount > 0) ||
         filters.exposure !== 0 ||
         filters.vignette > 0 ||
@@ -310,6 +312,19 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
         // Map 0-10 to reasonable oil paint radius (0-5)
         const radius = filters.oilPaint / 2;
         args.push('-paint', `${radius}`);
+    }
+
+    // Apply pixelate effect
+    if (filters.pixelate > 0) {
+        // Map 0-100% to pixel block sizes
+        // At 0%, no effect. At 100%, very pixelated (1% of original size)
+        // Calculate scale percentage: 100% - (pixelate * 0.99)
+        const scalePercent = 100 - filters.pixelate * 0.99;
+        // Scale down to create pixelation, then scale back up to original size
+        args.push('-scale', `${scalePercent}%`);
+        // Calculate inverse scale to return to 100%
+        const scaleBackPercent = (100 / scalePercent) * 100;
+        args.push('-scale', `${scaleBackPercent}%`);
     }
 
     // Apply color tone (sepia + hue-rotate + saturate combination)
