@@ -427,8 +427,9 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
 
     // Add compression to reduce file size
     // Detect output format based on file extension
-    const isJpeg = outputPath.toLowerCase().endsWith('.jpg') ||
-                   outputPath.toLowerCase().endsWith('.jpeg');
+    const isJpeg =
+        outputPath.toLowerCase().endsWith('.jpg') ||
+        outputPath.toLowerCase().endsWith('.jpeg');
 
     if (isJpeg) {
         // JPEG quality: 95 for high quality output

@@ -171,7 +171,12 @@ export const PreviewArea = GObject.registerClass(
                 );
 
                 // Save scaled preview base as JPEG for faster processing and smaller size
-                scaledPixbuf.savev(this._previewBasePath, 'jpeg', ['quality'], ['95']);
+                scaledPixbuf.savev(
+                    this._previewBasePath,
+                    'jpeg',
+                    ['quality'],
+                    ['95']
+                );
 
                 // Load the preview base into the picture widget
                 const file = Gio.File.new_for_path(this._previewBasePath);
@@ -221,7 +226,10 @@ export const PreviewArea = GObject.registerClass(
                 if (file.query_exists(null)) {
                     // Use the ImageMagick-processed preview
                     this._previewPicture.set_file(file);
-                    applyCssToWidget(this._previewPicture, '* { filter: none; }');
+                    applyCssToWidget(
+                        this._previewPicture,
+                        '* { filter: none; }'
+                    );
                     return;
                 }
             }
