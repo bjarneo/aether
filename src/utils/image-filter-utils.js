@@ -313,23 +313,26 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
         args.push('-sharpen', `${radius}x${sigma}`);
     }
 
-    // Apply grain/noise (monochrome, subtle)
+    // Apply grain/noise (subtle monochrome grain, preserves colors)
     if (filters.grain > 0) {
-        // Create monochrome grain to avoid color noise
-        // Map 0-10 slider to subtle intensity
-        const attenuate = filters.grain * 0.5; // 0-5 range for subtle effect
+        // Create subtle monochrome grain overlay
+        // Map 0-10 slider to very subtle intensity
+        const attenuate = filters.grain * 0.3; // 0-3 range for very subtle effect
 
-        // Add monochrome (luminance) noise only
+        // Clone image, add noise to luminance channel only
+        args.push('(', '+clone');
+
+        // Create grayscale noise
+        args.push('-colorspace', 'Gray');
         args.push('-attenuate', `${attenuate}`);
-        args.push('-channel', 'All');
         args.push('+noise', 'Gaussian');
 
-        // Reduce saturation of the noise to keep it monochrome
-        args.push('-colorspace', 'HSL');
-        args.push('-channel', 'G');
-        args.push('-evaluate', 'multiply', '0.3');
-        args.push('+channel');
-        args.push('-colorspace', 'sRGB');
+        args.push(')');
+
+        // Blend using screen mode at low opacity for subtle grain
+        args.push('-compose', 'blend');
+        args.push('-define', `compose:args=20`); // 20% opacity for subtlety
+        args.push('-composite');
     }
 
     // Apply shadows adjustment (lift shadows)
