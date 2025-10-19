@@ -298,6 +298,22 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
         args.push('-modulate', `100,${satAmount},100`);
     }
 
+    // Add compression to reduce file size
+    // Detect output format based on file extension
+    const isJpeg = outputPath.toLowerCase().endsWith('.jpg') ||
+                   outputPath.toLowerCase().endsWith('.jpeg');
+
+    if (isJpeg) {
+        // JPEG quality: 95 for high quality output
+        args.push('-quality', '95');
+    } else {
+        // PNG quality: 75 sets compression level
+        args.push('-quality', '75');
+    }
+
+    // Strip metadata to reduce size
+    args.push('-strip');
+
     args.push(outputPath);
     return args;
 }
@@ -368,8 +384,9 @@ export function getProcessedWallpaperCachePath() {
 
     // Use timestamp to create unique filename each time
     // This forces pywal to re-extract colors instead of using cache
+    // Use JPEG format for smaller file size and faster processing
     const timestamp = Date.now();
-    const filename = `processed-wallpaper-${timestamp}.png`;
+    const filename = `processed-wallpaper-${timestamp}.jpg`;
     const outputPath = GLib.build_filenamev([cacheDir, filename]);
 
     return outputPath;
