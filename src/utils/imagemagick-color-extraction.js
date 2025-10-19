@@ -1,14 +1,104 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import {hexToRgb, rgbToHsl, hslToHex, rgbToHex} from './color-utils.js';
+import {readFileAsText, writeTextToFile, fileExists, ensureDirectoryExists} from './file-utils.js';
 
 /**
  * ImageMagick-based color extraction utility
  * Extracts dominant colors and generates ANSI palette with proper color mapping
+ * Includes caching for improved performance
  */
 
 /**
+ * Gets the cache directory for color extraction
+ * @returns {string} Cache directory path
+ */
+function getCacheDir() {
+    const homeDir = GLib.get_home_dir();
+    return GLib.build_filenamev([homeDir, '.cache', 'aether', 'color-cache']);
+}
+
+/**
+ * Generates a cache key based on image path and modification time
+ * @param {string} imagePath - Path to the image
+ * @param {boolean} lightMode - Light mode flag
+ * @returns {string|null} Cache key or null if error
+ */
+function getCacheKey(imagePath, lightMode) {
+    try {
+        const file = Gio.File.new_for_path(imagePath);
+        const info = file.query_info('time::modified', Gio.FileQueryInfoFlags.NONE, null);
+        const mtime = info.get_modification_date_time();
+        const mtimeSeconds = mtime.to_unix();
+
+        // Create hash from path and mtime
+        const dataString = `${imagePath}-${mtimeSeconds}-${lightMode ? 'light' : 'dark'}`;
+        const checksum = GLib.compute_checksum_for_string(GLib.ChecksumType.MD5, dataString, -1);
+
+        return checksum;
+    } catch (e) {
+        console.error('Error getting cache key:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Loads cached color palette if available
+ * @param {string} cacheKey - Cache key
+ * @returns {string[]|null} Cached palette or null
+ */
+function loadCachedPalette(cacheKey) {
+    try {
+        const cacheDir = getCacheDir();
+        const cachePath = GLib.build_filenamev([cacheDir, `${cacheKey}.json`]);
+
+        if (!fileExists(cachePath)) {
+            return null;
+        }
+
+        const content = readFileAsText(cachePath);
+        const data = JSON.parse(content);
+
+        // Validate palette structure
+        if (Array.isArray(data.palette) && data.palette.length === 16) {
+            console.log('Using cached color extraction result');
+            return data.palette;
+        }
+
+        return null;
+    } catch (e) {
+        console.error('Error loading cache:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Saves color palette to cache
+ * @param {string} cacheKey - Cache key
+ * @param {string[]} palette - Color palette to cache
+ */
+function savePaletteToCache(cacheKey, palette) {
+    try {
+        const cacheDir = getCacheDir();
+        ensureDirectoryExists(cacheDir);
+
+        const cachePath = GLib.build_filenamev([cacheDir, `${cacheKey}.json`]);
+        const data = {
+            palette: palette,
+            timestamp: Date.now(),
+            version: 1,
+        };
+
+        writeTextToFile(cachePath, JSON.stringify(data, null, 2));
+        console.log('Saved color extraction to cache');
+    } catch (e) {
+        console.error('Error saving to cache:', e.message);
+    }
+}
+
+/**
  * Extracts the N most dominant colors from an image using ImageMagick
+ * Optimized for speed with resize and quality settings
  * @param {string} imagePath - Path to the image file
  * @param {number} numColors - Number of colors to extract
  * @returns {Promise<string[]>} Array of hex colors
@@ -16,20 +106,22 @@ import {hexToRgb, rgbToHsl, hslToHex, rgbToHex} from './color-utils.js';
 function extractDominantColors(imagePath, numColors) {
     return new Promise((resolve, reject) => {
         try {
-            // Use ImageMagick to extract dominant colors
+            // Use ImageMagick to extract dominant colors with performance optimizations
+            // -resize 800x600>: Resize large images for faster processing (only if larger)
+            // -scale: Use faster scaling algorithm
             // -colors N: reduce to N colors
             // -depth 8: use 8-bit color depth
+            // -quality 85: Use lower quality for faster processing
             // -format "%c": output color histogram
-            // txt:- : output as text format
+            // histogram:info:- : output as text format
             const argv = [
                 'magick',
                 imagePath,
-                '-colors',
-                numColors.toString(),
-                '-depth',
-                '8',
-                '-format',
-                '%c',
+                '-scale', '800x600>',  // Fast resize for large images
+                '-colors', numColors.toString(),
+                '-depth', '8',
+                '-quality', '85',
+                '-format', '%c',
                 'histogram:info:-',
             ];
 
@@ -409,13 +501,137 @@ function generateBrightVersion(hexColor) {
 }
 
 /**
+ * Normalizes brightness of ANSI colors to match the overall theme
+ * Adjusts outlier colors that are too dark/bright compared to the majority
+ * Also ensures proper contrast against the background
+ * @param {string[]} palette - Palette with colors 0-15
+ * @returns {string[]} Normalized palette
+ */
+function normalizeBrightness(palette) {
+    // Get background lightness
+    const bg = hexToRgb(palette[0]);
+    const bgHsl = rgbToHsl(bg.r, bg.g, bg.b);
+    const bgLightness = bgHsl.l;
+
+    // Determine if background is very dark or very light
+    const isVeryDarkBg = bgLightness < 20;
+    const isVeryLightBg = bgLightness > 80;
+
+    // Analyze colors 1-7 (main ANSI colors + foreground, excluding 0 and 8)
+    const colorIndices = [1, 2, 3, 4, 5, 6, 7];
+    const ansiColors = colorIndices.map(i => {
+        const rgb = hexToRgb(palette[i]);
+        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+        return {index: i, lightness: hsl.l, hue: hsl.h, saturation: hsl.s};
+    });
+
+    // Calculate average lightness
+    const avgLightness = ansiColors.reduce((sum, c) => sum + c.lightness, 0) / ansiColors.length;
+
+    // Determine if theme is mostly bright or mostly dark
+    const isBrightTheme = avgLightness > 50;
+
+    // Adjust based on background brightness first
+    if (isVeryDarkBg) {
+        // Very dark background - ensure colors 1-7 are bright enough
+        const minLightness = 55; // Minimum lightness for readability
+
+        for (const colorInfo of ansiColors) {
+            if (colorInfo.lightness < minLightness) {
+                const rgb = hexToRgb(palette[colorInfo.index]);
+                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+                const adjustedLightness = minLightness + (colorInfo.index * 3); // Vary slightly
+                console.log(`Adjusting color ${colorInfo.index} for dark background: ${hsl.l.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
+
+                palette[colorInfo.index] = hslToHex(hsl.h, hsl.s, adjustedLightness);
+
+                // Update bright versions for colors 1-6
+                if (colorInfo.index >= 1 && colorInfo.index <= 6) {
+                    const brightIndex = colorInfo.index + 8;
+                    palette[brightIndex] = generateBrightVersion(palette[colorInfo.index]);
+                }
+            }
+        }
+    } else if (isVeryLightBg) {
+        // Very light background - ensure colors 1-7 are dark enough
+        const maxLightness = 45; // Maximum lightness for readability
+
+        for (const colorInfo of ansiColors) {
+            if (colorInfo.lightness > maxLightness) {
+                const rgb = hexToRgb(palette[colorInfo.index]);
+                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+                const adjustedLightness = maxLightness - (colorInfo.index * 2); // Vary slightly
+                console.log(`Adjusting color ${colorInfo.index} for light background: ${hsl.l.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
+
+                palette[colorInfo.index] = hslToHex(hsl.h, hsl.s, Math.max(25, adjustedLightness));
+
+                // Update bright versions for colors 1-6
+                if (colorInfo.index >= 1 && colorInfo.index <= 6) {
+                    const brightIndex = colorInfo.index + 8;
+                    palette[brightIndex] = generateBrightVersion(palette[colorInfo.index]);
+                }
+            }
+        }
+    } else {
+        // Normal background - apply outlier detection
+        // Find outliers (colors that differ by more than 25% from average)
+        const threshold = 25;
+        const outliers = ansiColors.filter(c =>
+            Math.abs(c.lightness - avgLightness) > threshold
+        );
+
+        // Adjust outliers
+        for (const outlier of outliers) {
+            const rgb = hexToRgb(palette[outlier.index]);
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+            let adjustedLightness;
+
+            if (isBrightTheme && hsl.l < avgLightness - threshold) {
+                // Bright theme with dark outlier - make it brighter
+                adjustedLightness = avgLightness - 10; // Slightly below average for variety
+                console.log(`Adjusting dark outlier color ${outlier.index} from ${hsl.l.toFixed(1)}% to ${adjustedLightness.toFixed(1)}%`);
+            } else if (!isBrightTheme && hsl.l > avgLightness + threshold) {
+                // Dark theme with bright outlier - make it darker
+                adjustedLightness = avgLightness + 10; // Slightly above average for variety
+                console.log(`Adjusting bright outlier color ${outlier.index} from ${hsl.l.toFixed(1)}% to ${adjustedLightness.toFixed(1)}%`);
+            } else {
+                continue; // No adjustment needed
+            }
+
+            palette[outlier.index] = hslToHex(hsl.h, hsl.s, adjustedLightness);
+
+            // Also adjust the corresponding bright version (colors 9-14)
+            if (outlier.index >= 1 && outlier.index <= 6) {
+                const brightIndex = outlier.index + 8;
+                palette[brightIndex] = generateBrightVersion(palette[outlier.index]);
+            }
+        }
+    }
+
+    return palette;
+}
+
+/**
  * Extracts colors from wallpaper using ImageMagick and generates ANSI palette
+ * Uses caching to avoid re-processing the same image
  * @param {string} imagePath - Path to wallpaper image
  * @param {boolean} lightMode - Whether to generate light mode palette
  * @returns {Promise<string[]>} Array of 16 ANSI colors
  */
 export async function extractColorsWithImageMagick(imagePath, lightMode = false) {
     try {
+        // Check cache first
+        const cacheKey = getCacheKey(imagePath, lightMode);
+        if (cacheKey) {
+            const cachedPalette = loadCachedPalette(cacheKey);
+            if (cachedPalette) {
+                return cachedPalette;
+            }
+        }
+
         // Extract more colors than we need for better selection
         const dominantColors = await extractDominantColors(imagePath, 32);
 
@@ -426,13 +642,17 @@ export async function extractColorsWithImageMagick(imagePath, lightMode = false)
         // Check if image is mostly monochrome/grayscale
         if (isMonochromeImage(dominantColors)) {
             console.log('Detected monochrome/grayscale image - generating grayscale palette');
-            return generateMonochromePalette(dominantColors, lightMode);
+            const palette = generateMonochromePalette(dominantColors, lightMode);
+            if (cacheKey) savePaletteToCache(cacheKey, palette);
+            return palette;
         }
 
         // Check if chromatic image has low color diversity (similar colors)
         if (hasLowColorDiversity(dominantColors)) {
             console.log('Detected low color diversity - generating subtle balanced palette');
-            return generateSubtleBalancedPalette(dominantColors, lightMode);
+            const palette = generateSubtleBalancedPalette(dominantColors, lightMode);
+            if (cacheKey) savePaletteToCache(cacheKey, palette);
+            return palette;
         }
 
         console.log('Detected diverse chromatic image - generating vibrant colorful palette');
@@ -510,7 +730,7 @@ export async function extractColorsWithImageMagick(imagePath, lightMode = false)
         usedIndices.add(fgIndex);
 
         // Find best matches for ANSI colors 1-6
-        const palette = new Array(16);
+        let palette = new Array(16);
         palette[0] = color0;
         palette[7] = color7;
 
@@ -548,6 +768,12 @@ export async function extractColorsWithImageMagick(imagePath, lightMode = false)
 
         // Generate color15 (bright white) - brighter version of foreground
         palette[15] = generateBrightVersion(color7);
+
+        // Normalize brightness to ensure consistency across all colors
+        palette = normalizeBrightness(palette);
+
+        // Save to cache
+        if (cacheKey) savePaletteToCache(cacheKey, palette);
 
         return palette;
     } catch (e) {
