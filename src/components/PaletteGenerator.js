@@ -7,6 +7,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {extractColorsFromWallpaper} from '../services/wallpaper-service.js';
+import {extractColorsFromWallpaperIM} from '../utils/imagemagick-color-extraction.js';
 import {adjustColor} from '../utils/color-utils.js';
 import {ColorSwatchGrid} from './palette/color-swatch-grid.js';
 import {ColorPickerDialog} from './palette/color-picker-dialog.js';
@@ -295,6 +296,7 @@ export const PaletteGenerator = GObject.registerClass(
                 child: extractButtonBox,
                 css_classes: ['suggested-action'],
                 visible: false,
+                tooltip_text: 'Extract colors using pywal',
             });
             this._extractButton.connect('clicked', () => {
                 if (this._currentWallpaper) {
@@ -302,6 +304,36 @@ export const PaletteGenerator = GObject.registerClass(
                 }
             });
             buttonBox.append(this._extractButton);
+
+            // ImageMagick extract button
+            const imExtractButtonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+            });
+
+            const imExtractIcon = new Gtk.Image({
+                icon_name: 'image-auto-adjust-symbolic',
+            });
+
+            const imExtractLabel = new Gtk.Label({
+                label: 'IM Extract',
+            });
+
+            imExtractButtonBox.append(imExtractIcon);
+            imExtractButtonBox.append(imExtractLabel);
+
+            this._imExtractButton = new Gtk.Button({
+                child: imExtractButtonBox,
+                css_classes: ['suggested-action'],
+                visible: false,
+                tooltip_text: 'Extract colors using ImageMagick (dominant colors)',
+            });
+            this._imExtractButton.connect('clicked', () => {
+                if (this._currentWallpaper) {
+                    this._extractColorsIM(this._currentWallpaper);
+                }
+            });
+            buttonBox.append(this._imExtractButton);
 
             // Edit wallpaper button (initially hidden)
             const editButtonBox = new Gtk.Box({
@@ -510,6 +542,7 @@ export const PaletteGenerator = GObject.registerClass(
             }
 
             this._extractButton.set_visible(true);
+            this._imExtractButton.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
         }
@@ -541,6 +574,7 @@ export const PaletteGenerator = GObject.registerClass(
             }
 
             this._extractButton.set_visible(true);
+            this._imExtractButton.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
         }
@@ -559,6 +593,25 @@ export const PaletteGenerator = GObject.registerClass(
                 },
                 error => {
                     console.error('Error extracting colors:', error.message);
+                    this._showLoading(false);
+                }
+            );
+        }
+
+        _extractColorsIM(imagePath) {
+            this._showLoading(true);
+
+            extractColorsFromWallpaperIM(
+                imagePath,
+                this._lightMode,
+                colors => {
+                    this._originalPalette = [...colors];
+                    this.setPalette(colors);
+                    this.emit('palette-generated', colors);
+                    this._showLoading(false);
+                },
+                error => {
+                    console.error('Error extracting colors with ImageMagick:', error.message);
                     this._showLoading(false);
                 }
             );
