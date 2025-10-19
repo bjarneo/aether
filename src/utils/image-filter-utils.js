@@ -525,7 +525,7 @@ export async function applyFiltersWithImageMagick(
 
 /**
  * Get the cache directory for processed wallpapers
- * Uses a unique timestamp-based filename to avoid pywal caching issues
+ * Uses a unique timestamp-based filename to ensure fresh color extraction
  * @returns {string} Cache file path with unique name
  */
 export function getProcessedWallpaperCachePath() {
@@ -536,7 +536,7 @@ export function getProcessedWallpaperCachePath() {
     GLib.mkdir_with_parents(cacheDir, 0o755);
 
     // Use timestamp to create unique filename each time
-    // This forces pywal to re-extract colors instead of using cache
+    // This ensures color extraction always processes the new filtered image
     // Use JPEG format for smaller file size and faster processing
     const timestamp = Date.now();
     const filename = `processed-wallpaper-${timestamp}.jpg`;

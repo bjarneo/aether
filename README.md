@@ -10,8 +10,10 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 
 ## Key Features
 
-- **Wallpaper Integration** - Extract colors with pywal or browse wallhaven.cc directly
+- **Intelligent Color Extraction** - Advanced ImageMagick-based algorithm with automatic image classification (monochrome, low-diversity, chromatic)
+- **Smart Palette Generation** - Adaptive strategies ensure readability and preserve image aesthetics
 - **Image Filter Editor** - Apply blur, exposure, vignette, grain, and 12 presets before color extraction
+- **Wallpaper Browsing** - Integrated wallhaven.cc browser, local wallpaper manager, and favorites system
 - **Color Presets** - 10 popular themes: Dracula, Nord, Gruvbox, Tokyo Night, Catppuccin, and more
 - **Advanced Color Tools** - Harmony generator, gradients, and adjustment sliders (vibrance, contrast, temperature)
 - **Color Lock System** - Protect specific colors while experimenting with adjustments
@@ -27,15 +29,14 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - GTK 4
 - Libadwaita 1
 - libsoup3 - HTTP client library for wallhaven API
-- **pywal** - Color extraction from wallpapers
-- **ImageMagick** - Image filter processing
+- **ImageMagick** - Intelligent color extraction and image filter processing
 - **Omarchy** - Distro
 
 ## Installation
 
 1. Install system dependencies:
 ```bash
-sudo pacman -S gjs gtk4 libadwaita libsoup3 python-pywal imagemagick
+sudo pacman -S gjs gtk4 libadwaita libsoup3 imagemagick
 ```
 
 2. Clone the repository:
@@ -88,9 +89,9 @@ Example:
 ### Basic Workflow
 
 1. **Create a palette:**
-   - Upload a wallpaper and extract colors with pywal
+   - Upload a wallpaper and extract colors with intelligent ImageMagick algorithm
    - (Optional) Edit wallpaper with filters before extraction
-   - Browse wallhaven.cc and download wallpapers
+   - Browse wallhaven.cc, local wallpapers, or favorites
    - Choose from 10 color presets
    - Generate color harmonies or gradients
 
@@ -105,6 +106,16 @@ Example:
    - Runs `omarchy-theme-set aether` to apply across all configured applications
 
 Changes apply instantly via live reload.
+
+### Color Extraction Algorithm
+
+Aether uses an advanced ImageMagick-based extraction system that:
+
+- **Automatically classifies images** as monochrome, low-diversity, or chromatic
+- **Adapts palette generation** strategy based on image characteristics
+- **Ensures readability** through intelligent brightness normalization
+- **Preserves image aesthetics** by prioritizing hue accuracy
+- **Caches results** for instant re-extraction (< 0.1s)
 
 ## Development
 
@@ -149,10 +160,10 @@ pacman -S gjs gtk4 libadwaita libsoup3
 gjs -m src/main.js  # Check for errors
 ```
 
-**pywal not found:**
+**ImageMagick not found:**
 ```bash
-pacman -S python-pywal
-which wal  # Verify installation
+pacman -S imagemagick
+magick --version  # Verify installation
 ```
 
 **Wallhaven not loading:**

@@ -4,12 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Aether is a GTK/Libadwaita theming application for Omarchy. It provides a visual interface for creating and applying desktop themes through pywal color extraction, wallhaven.cc wallpaper browsing, and template-based configuration generation.
+Aether is a GTK/Libadwaita theming application for Omarchy. It provides a visual interface for creating and applying desktop themes through intelligent ImageMagick-based color extraction, wallhaven.cc wallpaper browsing, and template-based configuration generation.
 
 **Core workflow:**
-1. User selects wallpaper (local file/drag-drop OR wallhaven.cc browser)
+1. User selects wallpaper (local file/drag-drop OR wallhaven.cc/local browser)
 2. **(Optional)** Edit wallpaper with filters (blur, brightness, sepia, etc.) before extraction
-3. Pywal extracts 16 ANSI colors from wallpaper (or filtered version)
+3. ImageMagick intelligently extracts 16 ANSI colors from wallpaper (or filtered version)
+   - Automatically classifies image type (monochrome, low-diversity, chromatic)
+   - Adapts palette generation strategy for optimal results
+   - Ensures readability through brightness normalization
+   - Caches results for instant re-extraction
 4. Colors auto-assign to UI roles (background, foreground, color0-15)
 5. User customizes colors/settings in GUI
 6. "Apply Theme" processes templates → writes to `~/.config/omarchy/themes/aether/` → runs `omarchy-theme-set aether`
@@ -42,12 +46,15 @@ npm run dev
 - Tab 1 (Palette Editor): Unified interface for wallpaper + custom palette creation
   - File picker/drag-drop for wallpaper selection
   - **Edit wallpaper button** (icon button next to Extract) - opens WallpaperEditor for filter application
-  - Manual extract button (no auto-extraction)
+  - **Extract button** - Intelligent ImageMagick-based color extraction
   - 16-color swatch grid with click-to-edit and lock feature
   - Loads default Catppuccin-inspired colors on startup
-- Tab 2 (Find Wallpaper): WallpaperBrowser component for wallhaven.cc integration
-- Calls `extractColorsFromWallpaper()` which runs `wal -n -s -t -e -i <image>`
-- Light mode flag (`_lightMode`) controlled by SettingsSidebar, saved to blueprints, affects pywal extraction
+- Tab 2 (Find Wallpaper): Three sub-tabs (Wallhaven, Local, Favorites)
+  - WallpaperBrowser - wallhaven.cc API integration
+  - LocalWallpaperBrowser - ~/Wallpapers directory browser
+  - FavoritesView - Favorited wallpapers from any source
+- Calls `extractColorsFromWallpaperIM()` which uses advanced ImageMagick algorithm
+- Light mode flag (`_lightMode`) controlled by SettingsSidebar, saved to blueprints, affects extraction
 - Emits: `palette-generated` signal with 16 colors, `open-wallpaper-editor` signal with wallpaper path
 
 **WallpaperEditor** (`src/components/WallpaperEditor.js`)
@@ -102,7 +109,7 @@ npm run dev
 - JPEG format (quality 95) for both preview and final output
 - Unique timestamped filename: `processed-wallpaper-{timestamp}.jpg`
 - Saves to `~/.cache/aether/`
-- Bypasses pywal cache (forces fresh color extraction)
+- Bypasses color extraction cache (forces fresh extraction)
 
 **Sub-components:**
 - `src/components/wallpaper-editor/FilterControls.js` - All filter UI controls, presets, tone picker
@@ -164,7 +171,7 @@ The "Find Wallpaper" tab contains a sub-navigation with 3 tabs:
 **SettingsSidebar** (`src/components/SettingsSidebar.js`)
 - Collapsible right sidebar with Adw.NavigationSplitView
 - Contains multiple sections:
-  - Light Mode toggle (for pywal light/dark scheme extraction)
+  - Light Mode toggle (for light/dark color scheme extraction)
   - Color adjustments (vibrance, contrast, brightness, hue shift, temperature, gamma)
   - Color harmony generator (complementary, analogous, triadic, split-complementary, tetradic, monochromatic)
   - Gradient generator (smooth transitions between two colors)
@@ -188,8 +195,6 @@ The "Find Wallpaper" tab contains a sub-navigation with 3 tabs:
 - Executes `omarchy-theme-set aether` via `GLib.spawn_command_line_async()`
 
 ### Services
-
-**wallpaper-service.js**: Executes pywal via `Gio.Subprocess`, reads colors from `~/.cache/wal/colors`, brightens colors 9-15 for better terminal contrast
 
 **wallhaven-service.js**: HTTP client for wallhaven.cc API v1
 - Uses `Soup.Session` (libsoup3) for async HTTP requests
@@ -229,8 +234,7 @@ ConfigWriter iterates all template files, performs string substitution, and writ
 - GJS (GNOME JavaScript bindings)
 - GTK 4 + Libadwaita 1
 - libsoup3 (HTTP client for wallhaven API)
-- pywal (`python-pywal` package)
-- ImageMagick (`magick` command) - required for wallpaper filter processing
+- ImageMagick (`magick` command) - required for color extraction and wallpaper filter processing
 - omarchy theme manager (provides `omarchy-theme-set` command)
 
 **Import pattern:**
@@ -282,8 +286,7 @@ PreviewArea (click gesture) → temporarily disables filters → shows original
 ## Important Notes
 
 - Application ID is `com.aether.DesktopSynthesizer` (in main.js) but desktop file is `li.oever.aether.desktop`
-- Wallpaper extraction requires pywal installed and in PATH
-- **Wallpaper filter processing requires ImageMagick (`magick` command) installed**
+- **Color extraction and wallpaper filter processing require ImageMagick (`magick` command) installed**
 - Theme application requires `omarchy-theme-set` command available
 - Default colors defined in `src/constants/colors.js` as fallback
 - All file operations use GLib/Gio APIs (file-utils.js wrappers)

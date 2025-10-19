@@ -274,37 +274,7 @@ export const PaletteGenerator = GObject.registerClass(
             selectButton.connect('clicked', () => this._selectWallpaper());
             buttonBox.append(selectButton);
 
-            // Pywal extract button (COMMENTED OUT - keeping code for reference)
-            // const extractButtonBox = new Gtk.Box({
-            //     orientation: Gtk.Orientation.HORIZONTAL,
-            //     spacing: 6,
-            // });
-
-            // const extractIcon = new Gtk.Image({
-            //     icon_name: 'color-select-symbolic',
-            // });
-
-            // const extractLabel = new Gtk.Label({
-            //     label: 'Pywal Extract',
-            // });
-
-            // extractButtonBox.append(extractIcon);
-            // extractButtonBox.append(extractLabel);
-
-            // this._extractButton = new Gtk.Button({
-            //     child: extractButtonBox,
-            //     css_classes: ['suggested-action'],
-            //     visible: false,
-            //     tooltip_text: 'Extract colors using pywal',
-            // });
-            // this._extractButton.connect('clicked', () => {
-            //     if (this._currentWallpaper) {
-            //         this._extractColors(this._currentWallpaper);
-            //     }
-            // });
-            // buttonBox.append(this._extractButton);
-
-            // ImageMagick extract button (primary extraction method)
+            // ImageMagick extract button
             const imExtractButtonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
