@@ -11,13 +11,25 @@ import {
 } from '../utils/image-filter-utils.js';
 
 /**
- * WallpaperEditor - Apply filters to wallpapers before color extraction
+ * WallpaperEditor - Professional wallpaper filter editor
+ *
+ * Architecture:
+ * - PreviewArea: Displays wallpaper with debounced ImageMagick preview (75ms)
+ * - FilterControls: All filter sliders, presets, and tone selection
  *
  * Features:
- * - Real-time CSS filter preview
- * - ImageMagick-based filter application for final output
- * - Multiple filter types: blur, brightness, contrast, saturation, etc.
- * - Quick presets and color tone effects
+ * - Debounced ImageMagick preview (75ms after user stops adjusting)
+ * - Scaled preview base (max 800px) for fast processing
+ * - 12 quick presets (Muted, Dramatic, Soft, Vintage, etc.)
+ * - Basic filters: Blur, Brightness, Contrast, Saturation, Hue Shift
+ * - Effects: Sepia, Invert
+ * - Advanced filters: Exposure, Sharpen, Vignette, Grain, Shadows, Highlights
+ * - Color tone system: 8 presets + custom color picker
+ * - JPEG output (quality 95) for smaller file size
+ * - Click & hold preview to view original
+ *
+ * Signals:
+ * - 'wallpaper-applied': Emitted with processed wallpaper path (or original if cancelled)
  */
 export const WallpaperEditor = GObject.registerClass(
     {
@@ -181,7 +193,8 @@ export const WallpaperEditor = GObject.registerClass(
         }
 
         _onResetClicked() {
-            // Trigger reset on FilterControls
+            // Reset all filters to defaults
+            // Note: Accessing _resetFilters() directly - could be made public via signal
             this._filterControls._resetFilters();
         }
 
