@@ -356,6 +356,27 @@ export const FilterControls = GObject.registerClass(
                 presetsBox.append(presetButtonBox2);
             }
 
+            // Third row of presets (4 buttons)
+            if (FILTER_PRESETS.length > 8) {
+                const presetButtonBox3 = new Gtk.Box({
+                    orientation: Gtk.Orientation.HORIZONTAL,
+                    spacing: 8,
+                    homogeneous: true,
+                });
+
+                for (let i = 8; i < 12 && i < FILTER_PRESETS.length; i++) {
+                    const preset = FILTER_PRESETS[i];
+                    const btn = new Gtk.Button({
+                        label: preset.name,
+                        hexpand: true,
+                    });
+                    btn.connect('clicked', () => this._applyPreset(preset));
+                    presetButtonBox3.append(btn);
+                }
+
+                presetsBox.append(presetButtonBox3);
+            }
+
             group.add(new Adw.ActionRow({child: presetsBox}));
 
             return group;

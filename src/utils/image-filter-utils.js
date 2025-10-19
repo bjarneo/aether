@@ -102,6 +102,37 @@ export const FILTER_PRESETS = [
         saturation: 95,
         hueRotate: 20,
     },
+    {
+        name: 'Cinematic',
+        contrast: 120,
+        saturation: 85,
+        shadows: 20,
+        highlights: -15,
+        vignette: 35,
+    },
+    {
+        name: 'Film',
+        contrast: 95,
+        saturation: 90,
+        grain: 2.5,
+        sepia: 15,
+        vignette: 20,
+    },
+    {
+        name: 'Crisp',
+        contrast: 110,
+        saturation: 105,
+        sharpen: 40,
+        exposure: 5,
+    },
+    {
+        name: 'Portrait',
+        brightness: 102,
+        contrast: 95,
+        saturation: 92,
+        shadows: 15,
+        vignette: 25,
+    },
 ];
 
 /**
