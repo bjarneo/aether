@@ -9,6 +9,133 @@ import {readFileAsText, writeTextToFile, fileExists, ensureDirectoryExists} from
  * Includes caching for improved performance
  */
 
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/** Number of ANSI colors in a complete palette */
+const ANSI_PALETTE_SIZE = 16;
+
+/** Number of dominant colors to extract from image for analysis */
+const DOMINANT_COLORS_TO_EXTRACT = 32;
+
+/** Cache version number - increment when cache format changes */
+const CACHE_VERSION = 1;
+
+// Color detection thresholds
+/** Saturation threshold below which a color is considered grayscale (0-100) */
+const MONOCHROME_SATURATION_THRESHOLD = 15;
+
+/** Percentage of low-saturation colors needed to classify image as monochrome (0-1) */
+const MONOCHROME_IMAGE_THRESHOLD = 0.7;
+
+/** Percentage of similar color pairs needed to classify as low diversity (0-1) */
+const LOW_DIVERSITY_THRESHOLD = 0.6;
+
+/** Hue difference (degrees) within which colors are considered similar (0-360) */
+const SIMILAR_HUE_RANGE = 30;
+
+/** Lightness difference (%) within which colors are considered similar (0-100) */
+const SIMILAR_LIGHTNESS_RANGE = 20;
+
+// Color quality preferences for chromatic extraction
+/** Minimum saturation for chromatic ANSI colors (0-100) */
+const MIN_CHROMATIC_SATURATION = 15;
+
+/** Ideal saturation range for vibrant colors - lower bound (0-100) */
+const IDEAL_SATURATION_MIN = 30;
+
+/** Ideal saturation range for vibrant colors - upper bound (0-100) */
+const IDEAL_SATURATION_MAX = 100;
+
+/** Ideal lightness range for readable colors - lower bound (0-100) */
+const IDEAL_LIGHTNESS_MIN = 30;
+
+/** Ideal lightness range for readable colors - upper bound (0-100) */
+const IDEAL_LIGHTNESS_MAX = 80;
+
+/** Lightness below which a color is considered too dark (0-100) */
+const TOO_DARK_THRESHOLD = 20;
+
+/** Lightness above which a color is considered too bright (0-100) */
+const TOO_BRIGHT_THRESHOLD = 85;
+
+// Brightness normalization
+/** Lightness below which background is considered very dark (0-100) */
+const VERY_DARK_BACKGROUND_THRESHOLD = 20;
+
+/** Lightness above which background is considered very light (0-100) */
+const VERY_LIGHT_BACKGROUND_THRESHOLD = 80;
+
+/** Minimum lightness for colors on very dark backgrounds (0-100) */
+const MIN_LIGHTNESS_ON_DARK_BG = 55;
+
+/** Maximum lightness for colors on very light backgrounds (0-100) */
+const MAX_LIGHTNESS_ON_LIGHT_BG = 45;
+
+/** Absolute minimum lightness to prevent invisible colors (0-100) */
+const ABSOLUTE_MIN_LIGHTNESS = 25;
+
+/** Lightness difference threshold for outlier detection (0-100) */
+const OUTLIER_LIGHTNESS_THRESHOLD = 25;
+
+/** Lightness threshold to determine if theme is bright vs dark (0-100) */
+const BRIGHT_THEME_THRESHOLD = 50;
+
+/** Lightness threshold to determine if a color is dark (0-100) */
+const DARK_COLOR_THRESHOLD = 50;
+
+// Palette generation settings
+/** Base saturation for subtle balanced palettes (0-100) */
+const SUBTLE_PALETTE_SATURATION = 28;
+
+/** Saturation for monochrome palette colors (0-100) */
+const MONOCHROME_SATURATION = 5;
+
+/** Saturation multiplier for color8 in monochrome (0-1) */
+const MONOCHROME_COLOR8_SATURATION_FACTOR = 0.5;
+
+/** Lightness increase for bright ANSI colors (9-14) */
+const BRIGHT_COLOR_LIGHTNESS_BOOST = 18;
+
+/** Saturation multiplier for bright ANSI colors (9-14) */
+const BRIGHT_COLOR_SATURATION_BOOST = 1.1;
+
+// Standard ANSI color hues (in degrees, 0-360)
+/** ANSI color hue targets for proper color mapping */
+const ANSI_COLOR_HUES = {
+    RED: 0,
+    GREEN: 120,
+    YELLOW: 60,
+    BLUE: 240,
+    MAGENTA: 300,
+    CYAN: 180,
+};
+
+/** Ordered array of ANSI hue targets for colors 1-6 */
+const ANSI_HUE_ARRAY = [
+    ANSI_COLOR_HUES.RED,    // color1
+    ANSI_COLOR_HUES.GREEN,  // color2
+    ANSI_COLOR_HUES.YELLOW, // color3
+    ANSI_COLOR_HUES.BLUE,   // color4
+    ANSI_COLOR_HUES.MAGENTA,// color5
+    ANSI_COLOR_HUES.CYAN,   // color6
+];
+
+// ImageMagick performance settings
+/** Maximum image dimensions for fast processing */
+const IMAGE_SCALE_SIZE = '800x600>';
+
+/** Image quality for faster processing (0-100) */
+const IMAGE_PROCESSING_QUALITY = 85;
+
+/** Image bit depth */
+const IMAGE_BIT_DEPTH = 8;
+
+// ============================================================================
+// CACHE MANAGEMENT
+// ============================================================================
+
 /**
  * Gets the cache directory for color extraction
  * @returns {string} Cache directory path
@@ -31,13 +158,12 @@ function getCacheKey(imagePath, lightMode) {
         const mtime = info.get_modification_date_time();
         const mtimeSeconds = mtime.to_unix();
 
-        // Create hash from path and mtime
         const dataString = `${imagePath}-${mtimeSeconds}-${lightMode ? 'light' : 'dark'}`;
         const checksum = GLib.compute_checksum_for_string(GLib.ChecksumType.MD5, dataString, -1);
 
         return checksum;
     } catch (e) {
-        console.error('Error getting cache key:', e.message);
+        console.error('Error generating cache key:', e.message);
         return null;
     }
 }
@@ -59,8 +185,7 @@ function loadCachedPalette(cacheKey) {
         const content = readFileAsText(cachePath);
         const data = JSON.parse(content);
 
-        // Validate palette structure
-        if (Array.isArray(data.palette) && data.palette.length === 16) {
+        if (Array.isArray(data.palette) && data.palette.length === ANSI_PALETTE_SIZE) {
             console.log('Using cached color extraction result');
             return data.palette;
         }
@@ -86,7 +211,7 @@ function savePaletteToCache(cacheKey, palette) {
         const data = {
             palette: palette,
             timestamp: Date.now(),
-            version: 1,
+            version: CACHE_VERSION,
         };
 
         writeTextToFile(cachePath, JSON.stringify(data, null, 2));
@@ -96,31 +221,27 @@ function savePaletteToCache(cacheKey, palette) {
     }
 }
 
+// ============================================================================
+// IMAGE MAGICK COLOR EXTRACTION
+// ============================================================================
+
 /**
  * Extracts the N most dominant colors from an image using ImageMagick
  * Optimized for speed with resize and quality settings
  * @param {string} imagePath - Path to the image file
  * @param {number} numColors - Number of colors to extract
- * @returns {Promise<string[]>} Array of hex colors
+ * @returns {Promise<string[]>} Array of hex colors sorted by dominance
  */
 function extractDominantColors(imagePath, numColors) {
     return new Promise((resolve, reject) => {
         try {
-            // Use ImageMagick to extract dominant colors with performance optimizations
-            // -resize 800x600>: Resize large images for faster processing (only if larger)
-            // -scale: Use faster scaling algorithm
-            // -colors N: reduce to N colors
-            // -depth 8: use 8-bit color depth
-            // -quality 85: Use lower quality for faster processing
-            // -format "%c": output color histogram
-            // histogram:info:- : output as text format
             const argv = [
                 'magick',
                 imagePath,
-                '-scale', '800x600>',  // Fast resize for large images
+                '-scale', IMAGE_SCALE_SIZE,
                 '-colors', numColors.toString(),
-                '-depth', '8',
-                '-quality', '85',
+                '-depth', IMAGE_BIT_DEPTH.toString(),
+                '-quality', IMAGE_PROCESSING_QUALITY.toString(),
                 '-format', '%c',
                 'histogram:info:-',
             ];
@@ -140,7 +261,6 @@ function extractDominantColors(imagePath, numColors) {
                         return;
                     }
 
-                    // Parse the histogram output
                     const colors = parseHistogramOutput(stdout);
                     if (colors.length === 0) {
                         reject(new Error('No colors extracted from image'));
@@ -168,7 +288,6 @@ function parseHistogramOutput(output) {
     const colorData = [];
 
     for (const line of lines) {
-        // Match lines like: "123456: (255,128,64) #FF8040 srgb(255,128,64)"
         const match = line.match(/^\s*(\d+):\s*\([^)]+\)\s*(#[0-9A-Fa-f]{6})/);
         if (match) {
             const count = parseInt(match[1], 10);
@@ -177,11 +296,13 @@ function parseHistogramOutput(output) {
         }
     }
 
-    // Sort by frequency (most dominant first)
     colorData.sort((a, b) => b.count - a.count);
-
     return colorData.map(c => c.hex);
 }
+
+// ============================================================================
+// COLOR ANALYSIS UTILITIES
+// ============================================================================
 
 /**
  * Determines if a color is considered "dark" based on lightness
@@ -191,7 +312,29 @@ function parseHistogramOutput(output) {
 function isDarkColor(hexColor) {
     const rgb = hexToRgb(hexColor);
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    return hsl.l < 50; // Colors with lightness < 50% are dark
+    return hsl.l < DARK_COLOR_THRESHOLD;
+}
+
+/**
+ * Extracts HSL values from a hex color
+ * @param {string} hexColor - Hex color string
+ * @returns {{h: number, s: number, l: number}} HSL object
+ */
+function getColorHSL(hexColor) {
+    const rgb = hexToRgb(hexColor);
+    return rgbToHsl(rgb.r, rgb.g, rgb.b);
+}
+
+/**
+ * Calculates circular hue distance between two hues
+ * @param {number} hue1 - First hue (0-360)
+ * @param {number} hue2 - Second hue (0-360)
+ * @returns {number} Minimum distance between hues (0-180)
+ */
+function calculateHueDistance(hue1, hue2) {
+    let diff = Math.abs(hue1 - hue2);
+    if (diff > 180) diff = 360 - diff;
+    return diff;
 }
 
 /**
@@ -203,17 +346,13 @@ function isMonochromeImage(colors) {
     let lowSaturationCount = 0;
 
     for (const color of colors) {
-        const rgb = hexToRgb(color);
-        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-
-        // Count colors with very low saturation (< 15%)
-        if (hsl.s < 15) {
+        const hsl = getColorHSL(color);
+        if (hsl.s < MONOCHROME_SATURATION_THRESHOLD) {
             lowSaturationCount++;
         }
     }
 
-    // If more than 70% of dominant colors are desaturated, it's monochrome
-    return lowSaturationCount / colors.length > 0.7;
+    return lowSaturationCount / colors.length > MONOCHROME_IMAGE_THRESHOLD;
 }
 
 /**
@@ -222,258 +361,148 @@ function isMonochromeImage(colors) {
  * @returns {boolean} True if colors lack diversity
  */
 function hasLowColorDiversity(colors) {
-    const hueList = colors.map(color => {
-        const rgb = hexToRgb(color);
-        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    const hslColors = colors.map(color => {
+        const hsl = getColorHSL(color);
         return {hue: hsl.h, saturation: hsl.s, lightness: hsl.l};
     });
 
     let similarCount = 0;
+    let totalComparisons = 0;
 
-    // Compare each color with every other color
-    for (let i = 0; i < hueList.length; i++) {
-        for (let j = i + 1; j < hueList.length; j++) {
-            const color1 = hueList[i];
-            const color2 = hueList[j];
+    for (let i = 0; i < hslColors.length; i++) {
+        for (let j = i + 1; j < hslColors.length; j++) {
+            const color1 = hslColors[i];
+            const color2 = hslColors[j];
 
-            // Skip if either is grayscale (very low saturation)
-            if (color1.saturation < 15 || color2.saturation < 15) continue;
+            // Skip grayscale colors
+            if (color1.saturation < MONOCHROME_SATURATION_THRESHOLD ||
+                color2.saturation < MONOCHROME_SATURATION_THRESHOLD) {
+                continue;
+            }
 
-            // Calculate hue distance (circular)
-            let hueDiff = Math.abs(color1.hue - color2.hue);
-            if (hueDiff > 180) hueDiff = 360 - hueDiff;
+            totalComparisons++;
 
-            // Calculate lightness difference
+            const hueDiff = calculateHueDistance(color1.hue, color2.hue);
             const lightnessDiff = Math.abs(color1.lightness - color2.lightness);
 
-            // Colors are similar if hue is within 30° and lightness within 20%
-            if (hueDiff < 30 && lightnessDiff < 20) {
+            if (hueDiff < SIMILAR_HUE_RANGE && lightnessDiff < SIMILAR_LIGHTNESS_RANGE) {
                 similarCount++;
             }
         }
     }
 
-    // Calculate total possible comparisons (excluding grayscale)
-    const chromaticColors = hueList.filter(c => c.saturation >= 15).length;
-    const totalComparisons = (chromaticColors * (chromaticColors - 1)) / 2;
-
     if (totalComparisons === 0) return false;
 
-    // If more than 60% of color pairs are similar, diversity is low
-    return similarCount / totalComparisons > 0.6;
+    return similarCount / totalComparisons > LOW_DIVERSITY_THRESHOLD;
 }
 
-/**
- * Generates a subtle, balanced chromatic palette for low-diversity images
- * All colors get similar saturation levels to avoid some being strong and others subtle
- * @param {string[]} dominantColors - Array of dominant colors
- * @param {boolean} lightMode - Whether to generate light mode palette
- * @returns {string[]} Array of 16 ANSI colors with balanced saturation
- */
-function generateSubtleBalancedPalette(dominantColors, lightMode) {
-    // Find the average hue and saturation of dominant colors
-    const colorData = dominantColors.map(color => {
-        const rgb = hexToRgb(color);
-        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-        return {color, hue: hsl.h, saturation: hsl.s, lightness: hsl.l};
-    });
-
-    // Sort by lightness
-    const sortedByLightness = [...colorData].sort(
-        (a, b) => a.lightness - b.lightness
-    );
-
-    // Find background and foreground
-    const darkest = sortedByLightness[0];
-    const lightest = sortedByLightness[sortedByLightness.length - 1];
-
-    // Calculate average hue from chromatic colors
-    const chromaticColors = colorData.filter(c => c.saturation > 15);
-    const avgHue = chromaticColors.length > 0
-        ? chromaticColors.reduce((sum, c) => sum + c.hue, 0) / chromaticColors.length
-        : darkest.hue;
-
-    // Use subtle, balanced saturation (20-35% range)
-    const baseSaturation = 28;
-
-    const palette = new Array(16);
-
-    // Color 0 (background) and Color 7 (foreground)
-    if (lightMode) {
-        palette[0] = lightest.color;
-        palette[7] = darkest.color;
-    } else {
-        palette[0] = darkest.color;
-        palette[7] = lightest.color;
-    }
-
-    // ANSI color hues
-    const ansiHues = [
-        0,      // red
-        120,    // green
-        60,     // yellow
-        240,    // blue
-        300,    // magenta
-        180,    // cyan
-    ];
-
-    // Generate ANSI colors 1-6 with balanced subtle saturation
-    // Use medium lightness range (45-65%)
-    for (let i = 0; i < 6; i++) {
-        const targetHue = ansiHues[i];
-        const lightness = 50 + (i - 2.5) * 4; // Vary lightness slightly (42-58%)
-        palette[i + 1] = hslToHex(targetHue, baseSaturation, lightness);
-    }
-
-    // Color 8: gray between background and colors
-    const color8Lightness = lightMode
-        ? Math.max(0, lightest.lightness - 20)
-        : Math.min(100, darkest.lightness + 20);
-    palette[8] = hslToHex(avgHue, baseSaturation * 0.5, color8Lightness);
-
-    // Colors 9-14: Slightly more saturated and lighter/darker versions of 1-6
-    const brightSaturation = baseSaturation + 8; // Still subtle, just slightly more
-    for (let i = 0; i < 6; i++) {
-        const targetHue = ansiHues[i];
-        const baseLightness = 50 + (i - 2.5) * 4;
-        const adjustment = lightMode ? -8 : 8;
-        const lightness = Math.max(0, Math.min(100, baseLightness + adjustment));
-        palette[i + 9] = hslToHex(targetHue, brightSaturation, lightness);
-    }
-
-    // Color 15: Bright foreground
-    palette[15] = lightMode
-        ? hslToHex(avgHue, baseSaturation * 0.3, Math.max(0, darkest.lightness - 5))
-        : hslToHex(avgHue, baseSaturation * 0.3, Math.min(100, lightest.lightness + 5));
-
-    return palette;
-}
+// ============================================================================
+// COLOR SELECTION AND MATCHING
+// ============================================================================
 
 /**
- * Generates a monochrome/grayscale ANSI palette
- * @param {string[]} grayColors - Array of grayscale colors sorted by dominance
- * @param {boolean} lightMode - Whether to generate light mode palette
- * @returns {string[]} Array of 16 monochrome ANSI colors
+ * Finds background color - darkest or lightest based on mode
+ * @param {string[]} colors - Array of hex colors
+ * @param {boolean} lightMode - Light mode flag
+ * @returns {{color: string, index: number}} Background color and its index
  */
-function generateMonochromePalette(grayColors, lightMode) {
-    // Sort by lightness
-    const sortedByLightness = [...grayColors]
-        .map(color => {
-            const rgb = hexToRgb(color);
-            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-            return {color, lightness: hsl.l, hue: hsl.h};
-        })
-        .sort((a, b) => a.lightness - b.lightness);
+function findBackgroundColor(colors, lightMode) {
+    let bgIndex = 0;
+    let bgLightness = lightMode ? -1 : 101;
 
-    const darkest = sortedByLightness[0];
-    const lightest = sortedByLightness[sortedByLightness.length - 1];
+    for (let i = 0; i < colors.length; i++) {
+        const hsl = getColorHSL(colors[i]);
 
-    // Use the dominant hue (even if desaturated) for subtle tinting
-    const baseHue = darkest.hue;
-
-    // Generate grayscale palette with subtle tint
-    const palette = new Array(16);
-
-    if (lightMode) {
-        // Light mode: light background, dark foreground
-        palette[0] = lightest.color; // Background (lightest)
-        palette[7] = darkest.color; // Foreground (darkest)
-    } else {
-        // Dark mode: dark background, light foreground
-        palette[0] = darkest.color; // Background (darkest)
-        palette[7] = lightest.color; // Foreground (lightest)
-    }
-
-    // Generate grayscale shades for ANSI colors 1-6
-    // If background is dark, use lighter colors
-    // If background is light, use darker colors
-    if (lightMode) {
-        // Light mode: dark background (foreground), so use darker shades for colors 1-6
-        const startL = darkest.lightness + 10;
-        const endL = Math.min(darkest.lightness + 40, lightest.lightness - 10);
-        const step = (endL - startL) / 5;
-
-        for (let i = 1; i <= 6; i++) {
-            const lightness = startL + (i - 1) * step;
-            palette[i] = hslToHex(baseHue, 5, lightness);
-        }
-    } else {
-        // Dark mode: dark background, so use lighter shades for colors 1-6
-        const startL = Math.max(darkest.lightness + 30, lightest.lightness - 40);
-        const endL = lightest.lightness - 10;
-        const step = (endL - startL) / 5;
-
-        for (let i = 1; i <= 6; i++) {
-            const lightness = startL + (i - 1) * step;
-            palette[i] = hslToHex(baseHue, 5, lightness);
+        if (lightMode) {
+            if (hsl.l > bgLightness) {
+                bgLightness = hsl.l;
+                bgIndex = i;
+            }
+        } else {
+            if (hsl.l < bgLightness) {
+                bgLightness = hsl.l;
+                bgIndex = i;
+            }
         }
     }
 
-    // Color 8: gray between background and first color
-    // Dark background (dark mode) → lighter shade
-    // Light background (light mode) → darker shade
-    let color8Lightness;
-    if (lightMode) {
-        // Light background → darker color 8
-        color8Lightness = Math.max(0, darkest.lightness + 5);
-    } else {
-        // Dark background → lighter color 8
-        color8Lightness = Math.min(100, lightest.lightness - 25);
-    }
-    palette[8] = hslToHex(baseHue, 3, color8Lightness);
-
-    // Colors 9-14: Slightly lighter/darker versions of 1-6
-    for (let i = 1; i <= 6; i++) {
-        const rgb = hexToRgb(palette[i]);
-        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-        const adjustment = lightMode ? -10 : 10;
-        const newL = Math.max(0, Math.min(100, hsl.l + adjustment));
-        palette[i + 8] = hslToHex(baseHue, 5, newL);
-    }
-
-    // Color 15: Bright white/black (opposite extreme)
-    palette[15] = lightMode
-        ? hslToHex(baseHue, 2, Math.max(0, darkest.lightness - 5))
-        : hslToHex(baseHue, 2, Math.min(100, lightest.lightness + 5));
-
-    return palette;
+    return {color: colors[bgIndex], index: bgIndex};
 }
 
 /**
- * Finds the best matching color for a specific ANSI color role from a pool
- * Prefers vibrant, well-saturated colors with good lightness (not too bright, not too dark)
- * @param {number} hueTarget - Target hue (0-360)
+ * Finds foreground color - opposite of background
+ * @param {string[]} colors - Array of hex colors
+ * @param {boolean} lightMode - Light mode flag
+ * @param {Set<number>} usedIndices - Already used color indices
+ * @returns {{color: string, index: number}} Foreground color and its index
+ */
+function findForegroundColor(colors, lightMode, usedIndices) {
+    let fgIndex = 0;
+    let fgLightness = lightMode ? 101 : -1;
+
+    for (let i = 0; i < colors.length; i++) {
+        if (usedIndices.has(i)) continue;
+
+        const hsl = getColorHSL(colors[i]);
+
+        if (lightMode) {
+            if (hsl.l < fgLightness) {
+                fgLightness = hsl.l;
+                fgIndex = i;
+            }
+        } else {
+            if (hsl.l > fgLightness) {
+                fgLightness = hsl.l;
+                fgIndex = i;
+            }
+        }
+    }
+
+    return {color: colors[fgIndex], index: fgIndex};
+}
+
+/**
+ * Calculates color quality score for ANSI color selection
+ * Prioritizes hue accuracy to stay close to extracted colors
+ * @param {{h: number, s: number, l: number}} hsl - HSL color values
+ * @param {number} targetHue - Target hue (0-360)
+ * @returns {number} Score (lower is better)
+ */
+function calculateColorScore(hsl, targetHue) {
+    // Hue difference is the primary factor - multiply by 3 to prioritize it
+    const hueDiff = calculateHueDistance(hsl.h, targetHue) * 3;
+
+    // Only penalize extremely desaturated colors
+    const saturationPenalty = hsl.s < MIN_CHROMATIC_SATURATION ? 50 : 0;
+
+    // Very minimal lightness penalties - just avoid extremes
+    let lightnessPenalty = 0;
+    if (hsl.l < TOO_DARK_THRESHOLD) {
+        lightnessPenalty = 10;
+    } else if (hsl.l > TOO_BRIGHT_THRESHOLD) {
+        lightnessPenalty = 10;
+    }
+
+    // Hue is 3x more important than other factors
+    return hueDiff + saturationPenalty + lightnessPenalty;
+}
+
+/**
+ * Finds the best matching color for a specific ANSI color role
+ * @param {number} targetHue - Target hue (0-360)
  * @param {string[]} colorPool - Available colors to choose from
  * @param {Set<number>} usedIndices - Already used color indices
  * @returns {number} Index of best match in colorPool
  */
-function findBestColorMatch(hueTarget, colorPool, usedIndices) {
+function findBestColorMatch(targetHue, colorPool, usedIndices) {
     let bestIndex = -1;
     let bestScore = Infinity;
 
     for (let i = 0; i < colorPool.length; i++) {
         if (usedIndices.has(i)) continue;
 
-        const rgb = hexToRgb(colorPool[i]);
-        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-
-        // Calculate hue distance (circular)
-        let hueDiff = Math.abs(hsl.h - hueTarget);
-        if (hueDiff > 180) hueDiff = 360 - hueDiff;
-
-        // Penalize very desaturated colors for chromatic slots
-        const saturationPenalty = hsl.s < 25 ? 100 : 0;
-
-        // Prefer colors with good saturation (40-90% is ideal)
-        const saturationBonus = hsl.s >= 40 && hsl.s <= 90 ? -10 : 0;
-
-        // Prefer colors with medium lightness (40-70% is ideal, not too bright)
-        const lightnessPenalty =
-            hsl.l < 30 ? 20 :  // Too dark
-            hsl.l > 75 ? 30 :  // Too bright
-            hsl.l >= 40 && hsl.l <= 70 ? -15 : 0; // Sweet spot
-
-        const score = hueDiff + saturationPenalty + saturationBonus + lightnessPenalty;
+        const hsl = getColorHSL(colorPool[i]);
+        const score = calculateColorScore(hsl, targetHue);
 
         if (score < bestScore) {
             bestScore = score;
@@ -484,135 +513,251 @@ function findBestColorMatch(hueTarget, colorPool, usedIndices) {
     return bestIndex !== -1 ? bestIndex : 0;
 }
 
+// ============================================================================
+// COLOR GENERATION UTILITIES
+// ============================================================================
+
 /**
  * Generates a lighter version of a color for bright ANSI slots
  * @param {string} hexColor - Base hex color
  * @returns {string} Lightened hex color
  */
 function generateBrightVersion(hexColor) {
-    const rgb = hexToRgb(hexColor);
-    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-
-    // Increase lightness by 15-20%, increase saturation slightly
-    const newLightness = Math.min(100, hsl.l + 18);
-    const newSaturation = Math.min(100, hsl.s * 1.1);
-
+    const hsl = getColorHSL(hexColor);
+    const newLightness = Math.min(100, hsl.l + BRIGHT_COLOR_LIGHTNESS_BOOST);
+    const newSaturation = Math.min(100, hsl.s * BRIGHT_COLOR_SATURATION_BOOST);
     return hslToHex(hsl.h, newSaturation, newLightness);
 }
 
 /**
- * Normalizes brightness of ANSI colors to match the overall theme
- * Adjusts outlier colors that are too dark/bright compared to the majority
- * Also ensures proper contrast against the background
+ * Adjusts a single color for background contrast
+ * @param {string} hexColor - Hex color to adjust
+ * @param {number} targetLightness - Target lightness value
+ * @returns {string} Adjusted hex color
+ */
+function adjustColorLightness(hexColor, targetLightness) {
+    const hsl = getColorHSL(hexColor);
+    return hslToHex(hsl.h, hsl.s, targetLightness);
+}
+
+/**
+ * Sorts colors by lightness
+ * @param {string[]} colors - Array of hex colors
+ * @returns {Array<{color: string, lightness: number, hue: number}>} Sorted color data
+ */
+function sortColorsByLightness(colors) {
+    return colors
+        .map(color => {
+            const hsl = getColorHSL(color);
+            return {color, lightness: hsl.l, hue: hsl.h};
+        })
+        .sort((a, b) => a.lightness - b.lightness);
+}
+
+// ============================================================================
+// PALETTE GENERATORS
+// ============================================================================
+
+/**
+ * Generates a subtle, balanced chromatic palette for low-diversity images
+ * All colors get similar saturation levels to avoid imbalance
+ * @param {string[]} dominantColors - Array of dominant colors
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 ANSI colors with balanced saturation
+ */
+function generateSubtleBalancedPalette(dominantColors, lightMode) {
+    const sortedByLightness = sortColorsByLightness(dominantColors);
+    const darkest = sortedByLightness[0];
+    const lightest = sortedByLightness[sortedByLightness.length - 1];
+
+    // Calculate average hue from chromatic colors
+    const chromaticColors = dominantColors.filter(c => getColorHSL(c).s > MONOCHROME_SATURATION_THRESHOLD);
+    const avgHue = chromaticColors.length > 0
+        ? chromaticColors.reduce((sum, c) => sum + getColorHSL(c).h, 0) / chromaticColors.length
+        : darkest.hue;
+
+    const palette = new Array(ANSI_PALETTE_SIZE);
+
+    // Set background and foreground
+    palette[0] = lightMode ? lightest.color : darkest.color;
+    palette[7] = lightMode ? darkest.color : lightest.color;
+
+    // Generate ANSI colors 1-6 with balanced subtle saturation
+    for (let i = 0; i < ANSI_HUE_ARRAY.length; i++) {
+        const lightness = 50 + (i - 2.5) * 4; // Vary slightly (42-58%)
+        palette[i + 1] = hslToHex(ANSI_HUE_ARRAY[i], SUBTLE_PALETTE_SATURATION, lightness);
+    }
+
+    // Color 8: gray between background and colors
+    const color8Lightness = lightMode
+        ? Math.max(0, lightest.lightness - 20)
+        : Math.min(100, darkest.lightness + 20);
+    palette[8] = hslToHex(avgHue, SUBTLE_PALETTE_SATURATION * 0.5, color8Lightness);
+
+    // Colors 9-14: Slightly more saturated versions of 1-6
+    const brightSaturation = SUBTLE_PALETTE_SATURATION + 8;
+    for (let i = 0; i < ANSI_HUE_ARRAY.length; i++) {
+        const baseLightness = 50 + (i - 2.5) * 4;
+        const adjustment = lightMode ? -8 : 8;
+        const lightness = Math.max(0, Math.min(100, baseLightness + adjustment));
+        palette[i + 9] = hslToHex(ANSI_HUE_ARRAY[i], brightSaturation, lightness);
+    }
+
+    // Color 15: Bright foreground
+    palette[15] = lightMode
+        ? hslToHex(avgHue, SUBTLE_PALETTE_SATURATION * 0.3, Math.max(0, darkest.lightness - 5))
+        : hslToHex(avgHue, SUBTLE_PALETTE_SATURATION * 0.3, Math.min(100, lightest.lightness + 5));
+
+    return palette;
+}
+
+/**
+ * Generates a monochrome/grayscale ANSI palette
+ * @param {string[]} grayColors - Array of grayscale colors
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 monochrome ANSI colors
+ */
+function generateMonochromePalette(grayColors, lightMode) {
+    const sortedByLightness = sortColorsByLightness(grayColors);
+    const darkest = sortedByLightness[0];
+    const lightest = sortedByLightness[sortedByLightness.length - 1];
+    const baseHue = darkest.hue;
+
+    const palette = new Array(ANSI_PALETTE_SIZE);
+
+    // Set background and foreground
+    palette[0] = lightMode ? lightest.color : darkest.color;
+    palette[7] = lightMode ? darkest.color : lightest.color;
+
+    // Generate grayscale shades for ANSI colors 1-6
+    if (lightMode) {
+        // Light mode: darker shades for light background
+        const startL = darkest.lightness + 10;
+        const endL = Math.min(darkest.lightness + 40, lightest.lightness - 10);
+        const step = (endL - startL) / 5;
+
+        for (let i = 1; i <= 6; i++) {
+            const lightness = startL + (i - 1) * step;
+            palette[i] = hslToHex(baseHue, MONOCHROME_SATURATION, lightness);
+        }
+    } else {
+        // Dark mode: lighter shades for dark background
+        const startL = Math.max(darkest.lightness + 30, lightest.lightness - 40);
+        const endL = lightest.lightness - 10;
+        const step = (endL - startL) / 5;
+
+        for (let i = 1; i <= 6; i++) {
+            const lightness = startL + (i - 1) * step;
+            palette[i] = hslToHex(baseHue, MONOCHROME_SATURATION, lightness);
+        }
+    }
+
+    // Color 8: gray between background and colors
+    const color8Lightness = lightMode
+        ? Math.max(0, darkest.lightness + 5)
+        : Math.min(100, lightest.lightness - 25);
+    palette[8] = hslToHex(baseHue, MONOCHROME_SATURATION * MONOCHROME_COLOR8_SATURATION_FACTOR, color8Lightness);
+
+    // Colors 9-14: Slightly lighter/darker versions of 1-6
+    for (let i = 1; i <= 6; i++) {
+        const hsl = getColorHSL(palette[i]);
+        const adjustment = lightMode ? -10 : 10;
+        const newL = Math.max(0, Math.min(100, hsl.l + adjustment));
+        palette[i + 8] = hslToHex(baseHue, MONOCHROME_SATURATION, newL);
+    }
+
+    // Color 15: Bright white/black
+    palette[15] = lightMode
+        ? hslToHex(baseHue, 2, Math.max(0, darkest.lightness - 5))
+        : hslToHex(baseHue, 2, Math.min(100, lightest.lightness + 5));
+
+    return palette;
+}
+
+/**
+ * Normalizes brightness of ANSI colors to ensure readability
+ * Adjusts colors based on background brightness and overall theme
  * @param {string[]} palette - Palette with colors 0-15
  * @returns {string[]} Normalized palette
  */
 function normalizeBrightness(palette) {
-    // Get background lightness
-    const bg = hexToRgb(palette[0]);
-    const bgHsl = rgbToHsl(bg.r, bg.g, bg.b);
+    const bgHsl = getColorHSL(palette[0]);
     const bgLightness = bgHsl.l;
 
-    // Determine if background is very dark or very light
-    const isVeryDarkBg = bgLightness < 20;
-    const isVeryLightBg = bgLightness > 80;
+    const isVeryDarkBg = bgLightness < VERY_DARK_BACKGROUND_THRESHOLD;
+    const isVeryLightBg = bgLightness > VERY_LIGHT_BACKGROUND_THRESHOLD;
 
-    // Analyze colors 1-7 (main ANSI colors + foreground, excluding 0 and 8)
+    // Analyze colors 1-7
     const colorIndices = [1, 2, 3, 4, 5, 6, 7];
     const ansiColors = colorIndices.map(i => {
-        const rgb = hexToRgb(palette[i]);
-        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+        const hsl = getColorHSL(palette[i]);
         return {index: i, lightness: hsl.l, hue: hsl.h, saturation: hsl.s};
     });
 
-    // Calculate average lightness
     const avgLightness = ansiColors.reduce((sum, c) => sum + c.lightness, 0) / ansiColors.length;
+    const isBrightTheme = avgLightness > BRIGHT_THEME_THRESHOLD;
 
-    // Determine if theme is mostly bright or mostly dark
-    const isBrightTheme = avgLightness > 50;
-
-    // Adjust based on background brightness first
     if (isVeryDarkBg) {
-        // Very dark background - ensure colors 1-7 are bright enough
-        const minLightness = 55; // Minimum lightness for readability
-
+        // Very dark background - ensure all colors are bright enough
         for (const colorInfo of ansiColors) {
-            if (colorInfo.lightness < minLightness) {
-                const rgb = hexToRgb(palette[colorInfo.index]);
-                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            if (colorInfo.lightness < MIN_LIGHTNESS_ON_DARK_BG) {
+                const adjustedLightness = MIN_LIGHTNESS_ON_DARK_BG + (colorInfo.index * 3);
+                console.log(`Adjusting color ${colorInfo.index} for dark background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
 
-                const adjustedLightness = minLightness + (colorInfo.index * 3); // Vary slightly
-                console.log(`Adjusting color ${colorInfo.index} for dark background: ${hsl.l.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
+                palette[colorInfo.index] = adjustColorLightness(palette[colorInfo.index], adjustedLightness);
 
-                palette[colorInfo.index] = hslToHex(hsl.h, hsl.s, adjustedLightness);
-
-                // Update bright versions for colors 1-6
                 if (colorInfo.index >= 1 && colorInfo.index <= 6) {
-                    const brightIndex = colorInfo.index + 8;
-                    palette[brightIndex] = generateBrightVersion(palette[colorInfo.index]);
+                    palette[colorInfo.index + 8] = generateBrightVersion(palette[colorInfo.index]);
                 }
             }
         }
     } else if (isVeryLightBg) {
-        // Very light background - ensure colors 1-7 are dark enough
-        const maxLightness = 45; // Maximum lightness for readability
-
+        // Very light background - ensure all colors are dark enough
         for (const colorInfo of ansiColors) {
-            if (colorInfo.lightness > maxLightness) {
-                const rgb = hexToRgb(palette[colorInfo.index]);
-                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            if (colorInfo.lightness > MAX_LIGHTNESS_ON_LIGHT_BG) {
+                const adjustedLightness = Math.max(ABSOLUTE_MIN_LIGHTNESS, MAX_LIGHTNESS_ON_LIGHT_BG - (colorInfo.index * 2));
+                console.log(`Adjusting color ${colorInfo.index} for light background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
 
-                const adjustedLightness = maxLightness - (colorInfo.index * 2); // Vary slightly
-                console.log(`Adjusting color ${colorInfo.index} for light background: ${hsl.l.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
+                palette[colorInfo.index] = adjustColorLightness(palette[colorInfo.index], adjustedLightness);
 
-                palette[colorInfo.index] = hslToHex(hsl.h, hsl.s, Math.max(25, adjustedLightness));
-
-                // Update bright versions for colors 1-6
                 if (colorInfo.index >= 1 && colorInfo.index <= 6) {
-                    const brightIndex = colorInfo.index + 8;
-                    palette[brightIndex] = generateBrightVersion(palette[colorInfo.index]);
+                    palette[colorInfo.index + 8] = generateBrightVersion(palette[colorInfo.index]);
                 }
             }
         }
     } else {
         // Normal background - apply outlier detection
-        // Find outliers (colors that differ by more than 25% from average)
-        const threshold = 25;
         const outliers = ansiColors.filter(c =>
-            Math.abs(c.lightness - avgLightness) > threshold
+            Math.abs(c.lightness - avgLightness) > OUTLIER_LIGHTNESS_THRESHOLD
         );
 
-        // Adjust outliers
         for (const outlier of outliers) {
-            const rgb = hexToRgb(palette[outlier.index]);
-            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-
             let adjustedLightness;
 
-            if (isBrightTheme && hsl.l < avgLightness - threshold) {
-                // Bright theme with dark outlier - make it brighter
-                adjustedLightness = avgLightness - 10; // Slightly below average for variety
-                console.log(`Adjusting dark outlier color ${outlier.index} from ${hsl.l.toFixed(1)}% to ${adjustedLightness.toFixed(1)}%`);
-            } else if (!isBrightTheme && hsl.l > avgLightness + threshold) {
-                // Dark theme with bright outlier - make it darker
-                adjustedLightness = avgLightness + 10; // Slightly above average for variety
-                console.log(`Adjusting bright outlier color ${outlier.index} from ${hsl.l.toFixed(1)}% to ${adjustedLightness.toFixed(1)}%`);
+            if (isBrightTheme && outlier.lightness < avgLightness - OUTLIER_LIGHTNESS_THRESHOLD) {
+                adjustedLightness = avgLightness - 10;
+                console.log(`Adjusting dark outlier color ${outlier.index}: ${outlier.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
+            } else if (!isBrightTheme && outlier.lightness > avgLightness + OUTLIER_LIGHTNESS_THRESHOLD) {
+                adjustedLightness = avgLightness + 10;
+                console.log(`Adjusting bright outlier color ${outlier.index}: ${outlier.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
             } else {
-                continue; // No adjustment needed
+                continue;
             }
 
-            palette[outlier.index] = hslToHex(hsl.h, hsl.s, adjustedLightness);
+            palette[outlier.index] = adjustColorLightness(palette[outlier.index], adjustedLightness);
 
-            // Also adjust the corresponding bright version (colors 9-14)
             if (outlier.index >= 1 && outlier.index <= 6) {
-                const brightIndex = outlier.index + 8;
-                palette[brightIndex] = generateBrightVersion(palette[outlier.index]);
+                palette[outlier.index + 8] = generateBrightVersion(palette[outlier.index]);
             }
         }
     }
 
     return palette;
 }
+
+// ============================================================================
+// MAIN EXTRACTION FUNCTION
+// ============================================================================
 
 /**
  * Extracts colors from wallpaper using ImageMagick and generates ANSI palette
@@ -632,148 +777,34 @@ export async function extractColorsWithImageMagick(imagePath, lightMode = false)
             }
         }
 
-        // Extract more colors than we need for better selection
-        const dominantColors = await extractDominantColors(imagePath, 32);
+        // Extract dominant colors
+        const dominantColors = await extractDominantColors(imagePath, DOMINANT_COLORS_TO_EXTRACT);
 
         if (dominantColors.length < 8) {
             throw new Error('Not enough colors extracted from image');
         }
 
-        // Check if image is mostly monochrome/grayscale
+        let palette;
+
+        // Generate palette based on image characteristics
         if (isMonochromeImage(dominantColors)) {
             console.log('Detected monochrome/grayscale image - generating grayscale palette');
-            const palette = generateMonochromePalette(dominantColors, lightMode);
-            if (cacheKey) savePaletteToCache(cacheKey, palette);
-            return palette;
-        }
-
-        // Check if chromatic image has low color diversity (similar colors)
-        if (hasLowColorDiversity(dominantColors)) {
+            palette = generateMonochromePalette(dominantColors, lightMode);
+        } else if (hasLowColorDiversity(dominantColors)) {
             console.log('Detected low color diversity - generating subtle balanced palette');
-            const palette = generateSubtleBalancedPalette(dominantColors, lightMode);
-            if (cacheKey) savePaletteToCache(cacheKey, palette);
-            return palette;
-        }
-
-        console.log('Detected diverse chromatic image - generating vibrant colorful palette');
-
-        // ANSI color slots and their target hues
-        // 0: background (darkest or lightest depending on mode)
-        // 1: red (0°)
-        // 2: green (120°)
-        // 3: yellow (60°)
-        // 4: blue (240°)
-        // 5: magenta (300°)
-        // 6: cyan (180°)
-        // 7: foreground (lightest or darkest depending on mode)
-        // 8: bright background
-        // 9-14: bright versions of 1-6
-        // 15: bright foreground
-
-        const ansiTargets = [
-            {slot: 1, hue: 0, name: 'red'},
-            {slot: 2, hue: 120, name: 'green'},
-            {slot: 3, hue: 60, name: 'yellow'},
-            {slot: 4, hue: 240, name: 'blue'},
-            {slot: 5, hue: 300, name: 'magenta'},
-            {slot: 6, hue: 180, name: 'cyan'},
-        ];
-
-        // Find background color (color0) - darkest if dark mode, lightest if light mode
-        let bgIndex = 0;
-        let bgLightness = lightMode ? -1 : 101;
-
-        for (let i = 0; i < dominantColors.length; i++) {
-            const rgb = hexToRgb(dominantColors[i]);
-            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-
-            if (lightMode) {
-                if (hsl.l > bgLightness) {
-                    bgLightness = hsl.l;
-                    bgIndex = i;
-                }
-            } else {
-                if (hsl.l < bgLightness) {
-                    bgLightness = hsl.l;
-                    bgIndex = i;
-                }
-            }
-        }
-
-        const color0 = dominantColors[bgIndex];
-        const usedIndices = new Set([bgIndex]);
-
-        // Find foreground color (color7) - opposite of background
-        let fgIndex = 0;
-        let fgLightness = lightMode ? 101 : -1;
-
-        for (let i = 0; i < dominantColors.length; i++) {
-            if (usedIndices.has(i)) continue;
-
-            const rgb = hexToRgb(dominantColors[i]);
-            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-
-            if (lightMode) {
-                if (hsl.l < fgLightness) {
-                    fgLightness = hsl.l;
-                    fgIndex = i;
-                }
-            } else {
-                if (hsl.l > fgLightness) {
-                    fgLightness = hsl.l;
-                    fgIndex = i;
-                }
-            }
-        }
-
-        const color7 = dominantColors[fgIndex];
-        usedIndices.add(fgIndex);
-
-        // Find best matches for ANSI colors 1-6
-        let palette = new Array(16);
-        palette[0] = color0;
-        palette[7] = color7;
-
-        for (const target of ansiTargets) {
-            const matchIndex = findBestColorMatch(
-                target.hue,
-                dominantColors,
-                usedIndices
-            );
-            palette[target.slot] = dominantColors[matchIndex];
-            usedIndices.add(matchIndex);
-        }
-
-        // Generate color8 (bright black/gray)
-        // If color0 is dark, make color8 brighter
-        // If color0 is light, make color8 darker
-        const rgb0 = hexToRgb(color0);
-        const hsl0 = rgbToHsl(rgb0.r, rgb0.g, rgb0.b);
-
-        let color8Lightness;
-        if (isDarkColor(color0)) {
-            // Dark background - make color8 a lighter gray
-            color8Lightness = Math.min(100, hsl0.l + 20);
+            palette = generateSubtleBalancedPalette(dominantColors, lightMode);
         } else {
-            // Light background - make color8 a darker gray
-            color8Lightness = Math.max(0, hsl0.l - 20);
+            console.log('Detected diverse chromatic image - generating vibrant colorful palette');
+            palette = generateChromaticPalette(dominantColors, lightMode);
         }
 
-        palette[8] = hslToHex(hsl0.h, hsl0.s * 0.5, color8Lightness);
-
-        // Generate bright versions (9-14) of colors 1-6
-        for (let i = 1; i <= 6; i++) {
-            palette[i + 8] = generateBrightVersion(palette[i]);
-        }
-
-        // Generate color15 (bright white) - brighter version of foreground
-        palette[15] = generateBrightVersion(color7);
-
-        // Normalize brightness to ensure consistency across all colors
+        // Normalize brightness for readability
         palette = normalizeBrightness(palette);
 
         // Save to cache
-        if (cacheKey) savePaletteToCache(cacheKey, palette);
+        if (cacheKey) {
+            savePaletteToCache(cacheKey, palette);
+        }
 
         return palette;
     } catch (e) {
@@ -782,18 +813,55 @@ export async function extractColorsWithImageMagick(imagePath, lightMode = false)
 }
 
 /**
+ * Generates a vibrant chromatic palette from diverse colors
+ * @param {string[]} dominantColors - Array of dominant colors
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 ANSI colors
+ */
+function generateChromaticPalette(dominantColors, lightMode) {
+    const background = findBackgroundColor(dominantColors, lightMode);
+    const usedIndices = new Set([background.index]);
+
+    const foreground = findForegroundColor(dominantColors, lightMode, usedIndices);
+    usedIndices.add(foreground.index);
+
+    const palette = new Array(ANSI_PALETTE_SIZE);
+    palette[0] = background.color;
+    palette[7] = foreground.color;
+
+    // Find best matches for ANSI colors 1-6
+    for (let i = 0; i < ANSI_HUE_ARRAY.length; i++) {
+        const matchIndex = findBestColorMatch(ANSI_HUE_ARRAY[i], dominantColors, usedIndices);
+        palette[i + 1] = dominantColors[matchIndex];
+        usedIndices.add(matchIndex);
+    }
+
+    // Generate color8 (bright black/gray)
+    const bgHsl = getColorHSL(background.color);
+    const color8Lightness = isDarkColor(background.color)
+        ? Math.min(100, bgHsl.l + 20)
+        : Math.max(0, bgHsl.l - 20);
+    palette[8] = hslToHex(bgHsl.h, bgHsl.s * 0.5, color8Lightness);
+
+    // Generate bright versions (9-14) of colors 1-6
+    for (let i = 1; i <= 6; i++) {
+        palette[i + 8] = generateBrightVersion(palette[i]);
+    }
+
+    // Generate color15 (bright white)
+    palette[15] = generateBrightVersion(foreground.color);
+
+    return palette;
+}
+
+/**
  * Callback-based wrapper for extractColorsWithImageMagick
  * @param {string} imagePath - Path to wallpaper image
  * @param {boolean} lightMode - Whether to generate light mode palette
- * @param {Function} onSuccess - Callback when colors are extracted (colors)
- * @param {Function} onError - Callback when extraction fails (error)
+ * @param {Function} onSuccess - Callback when colors are extracted
+ * @param {Function} onError - Callback when extraction fails
  */
-export function extractColorsFromWallpaperIM(
-    imagePath,
-    lightMode,
-    onSuccess,
-    onError
-) {
+export function extractColorsFromWallpaperIM(imagePath, lightMode, onSuccess, onError) {
     extractColorsWithImageMagick(imagePath, lightMode)
         .then(colors => onSuccess(colors))
         .catch(error => onError(error));
