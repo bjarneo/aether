@@ -12,6 +12,17 @@ import {
 } from '../../utils/image-filter-utils.js';
 import {rgbToHsl, hslToHex} from '../../utils/color-utils.js';
 
+// UI constants
+const SLIDER_WIDTH = 180; // Fixed width for all filter sliders
+const DOUBLE_CLICK_TIMEOUT_MS = 300; // Time window for detecting double-clicks
+
+/**
+ * Helper function to convert RGB (0-255) to hex color
+ */
+function rgbToHex(r, g, b) {
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 /**
  * FilterControls - UI controls for adjusting image filters
  * Emits 'filter-changed' signal when any filter value changes
@@ -312,8 +323,7 @@ export const FilterControls = GObject.registerClass(
                 const r = Math.round(color.red * 255);
                 const g = Math.round(color.green * 255);
                 const b = Math.round(color.blue * 255);
-                const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-                this._filters.tintColor = hex;
+                this._filters.tintColor = rgbToHex(r, g, b);
                 this.emit('filter-changed', this._filters);
             });
 
@@ -464,7 +474,7 @@ export const FilterControls = GObject.registerClass(
                 orientation: Gtk.Orientation.HORIZONTAL,
                 draw_value: false,
                 hexpand: false,
-                width_request: 180,
+                width_request: SLIDER_WIDTH,
             });
             scale.set_range(min, max);
             scale.set_increments(step, step * 5);
@@ -496,7 +506,7 @@ export const FilterControls = GObject.registerClass(
 
                 clickTimeout = GLib.timeout_add(
                     GLib.PRIORITY_DEFAULT,
-                    300,
+                    DOUBLE_CLICK_TIMEOUT_MS,
                     () => {
                         if (clickCount === 2) {
                             scale.set_value(defaultValue);

@@ -8,6 +8,10 @@ import GdkPixbuf from 'gi://GdkPixbuf';
 import {applyCssToWidget} from '../../utils/ui-helpers.js';
 import {applyFiltersWithImageMagick} from '../../utils/image-filter-utils.js';
 
+// Preview performance constants
+const PREVIEW_MAX_WIDTH = 800; // Maximum preview width for performance vs quality balance
+const PREVIEW_DEBOUNCE_MS = 75; // Debounce delay for ImageMagick preview updates
+
 /**
  * PreviewArea - Displays wallpaper preview with ImageMagick filters
  *
@@ -152,15 +156,14 @@ export const PreviewArea = GObject.registerClass(
                 const originalWidth = pixbuf.get_width();
                 const originalHeight = pixbuf.get_height();
 
-                // Scale to max 800px width while maintaining aspect ratio
-                const maxWidth = 800;
+                // Scale to max width while maintaining aspect ratio
                 let newWidth = originalWidth;
                 let newHeight = originalHeight;
 
-                if (originalWidth > maxWidth) {
-                    newWidth = maxWidth;
+                if (originalWidth > PREVIEW_MAX_WIDTH) {
+                    newWidth = PREVIEW_MAX_WIDTH;
                     newHeight = Math.round(
-                        (originalHeight * maxWidth) / originalWidth
+                        (originalHeight * PREVIEW_MAX_WIDTH) / originalWidth
                     );
                 }
 
@@ -258,10 +261,10 @@ export const PreviewArea = GObject.registerClass(
                 return;
             }
 
-            // Set a new timer to run the ImageMagick preview after 75ms
+            // Set a new timer to run the ImageMagick preview after debounce delay
             this._debounceTimer = GLib.timeout_add(
                 GLib.PRIORITY_DEFAULT,
-                75,
+                PREVIEW_DEBOUNCE_MS,
                 () => {
                     this._runImageMagickPreview();
                     this._debounceTimer = null;

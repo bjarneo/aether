@@ -5,6 +5,15 @@ import Gio from 'gi://Gio';
  * Utility functions for applying image filters using ImageMagick
  */
 
+// ImageMagick filter constants for tuning visual quality
+const MAX_BLUR_SIGMA = 20; // Maximum blur sigma for 100% blur
+const SHARPEN_DIVISOR = 20; // Divisor to map 0-100 slider to 0-5 sigma range
+const GRAIN_INTENSITY_MULTIPLIER = 0.3; // Attenuate multiplier for subtle grain (0-3 range)
+const GRAIN_BLEND_OPACITY = 20; // Opacity percentage for grain blend composition
+const SHADOW_ADJUSTMENT_DIVISOR = 2; // Divisor to map -100 to 100 range to -50 to 50
+const HIGHLIGHT_ADJUSTMENT_DIVISOR = 2; // Divisor for highlight white point adjustment
+const VIGNETTE_DARKNESS_FACTOR = 0.7; // Multiplier controlling vignette darkness intensity
+
 /**
  * Default filter values matching CSS filter defaults
  */
@@ -230,10 +239,9 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
     const args = ['magick', inputPath];
 
     // Apply blur (percentage-based)
-    // Map 0-100% to reasonable blur sigma values (0-20)
-    // Higher values create stronger blur effect
+    // Map 0-100% to reasonable blur sigma values
     if (filters.blur > 0) {
-        const sigma = (filters.blur / 100) * 20; // 0-20 range
+        const sigma = (filters.blur / 100) * MAX_BLUR_SIGMA;
         args.push('-blur', `0x${sigma}`);
     }
 
@@ -359,17 +367,15 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
     // Apply sharpen
     if (filters.sharpen > 0) {
         // -sharpen radius x sigma
-        // Map 0-100 to reasonable sharpening values
         const radius = 0;
-        const sigma = filters.sharpen / 20; // 0-5 range
+        const sigma = filters.sharpen / SHARPEN_DIVISOR;
         args.push('-sharpen', `${radius}x${sigma}`);
     }
 
     // Apply grain/noise (subtle monochrome grain, preserves colors)
     if (filters.grain > 0) {
         // Create subtle monochrome grain overlay
-        // Map 0-10 slider to very subtle intensity
-        const attenuate = filters.grain * 0.3; // 0-3 range for very subtle effect
+        const attenuate = filters.grain * GRAIN_INTENSITY_MULTIPLIER;
 
         // Clone image, add noise to luminance channel only
         args.push('(', '+clone');
@@ -383,7 +389,7 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
 
         // Blend using screen mode at low opacity for subtle grain
         args.push('-compose', 'blend');
-        args.push('-define', `compose:args=20`); // 20% opacity for subtlety
+        args.push('-define', `compose:args=${GRAIN_BLEND_OPACITY}`);
         args.push('-composite');
     }
 
@@ -391,30 +397,33 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
     if (filters.shadows !== 0) {
         // Use -brightness-contrast with shadow-mask technique
         // Positive values lift shadows, negative crushes them
-        const shadowAdj = filters.shadows / 2; // -50 to 50
+        const shadowAdj = filters.shadows / SHADOW_ADJUSTMENT_DIVISOR;
         args.push('-brightness-contrast', `${shadowAdj}x0`);
     }
 
     // Apply highlights adjustment (recover highlights)
     if (filters.highlights !== 0) {
         // Use level adjustment to recover/blow highlights
-        // Negative values recover (compress), positive blows out
+        // Negative values recover (compress white point to 150%), positive blows out (compress to 50%)
         const highlightAdj = filters.highlights;
-        const whitePoint = 100 - highlightAdj / 2; // 150% to 50%
+        const whitePoint = 100 - highlightAdj / HIGHLIGHT_ADJUSTMENT_DIVISOR;
         args.push('-level', `0%,${whitePoint}%`);
     }
 
     // Apply vignette (darken edges)
     if (filters.vignette > 0) {
         // Create a dark vignette using radial gradient overlay
-        // Higher slider value = darker vignette
         const vignetteAmount = filters.vignette / 100; // 0-1
 
         // Create a radial gradient mask and multiply it with the image
         args.push('(', '+clone');
         args.push('-size', '%[fx:w]x%[fx:h]');
         args.push('radial-gradient:white-black');
-        args.push('-evaluate', 'Pow', `${1 - vignetteAmount * 0.7}`); // Control darkness
+        args.push(
+            '-evaluate',
+            'Pow',
+            `${1 - vignetteAmount * VIGNETTE_DARKNESS_FACTOR}`
+        );
         args.push(')');
         args.push('-compose', 'Multiply', '-composite');
     }
