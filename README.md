@@ -11,6 +11,7 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 ## Key Features
 
 - **Wallpaper Integration** - Extract colors with pywal or browse wallhaven.cc directly
+- **Image Filter Editor** - Apply blur, exposure, vignette, grain, and 12 presets before color extraction
 - **Color Presets** - 10 popular themes: Dracula, Nord, Gruvbox, Tokyo Night, Catppuccin, and more
 - **Advanced Color Tools** - Harmony generator, gradients, and adjustment sliders (vibrance, contrast, temperature)
 - **Color Lock System** - Protect specific colors while experimenting with adjustments
@@ -27,13 +28,14 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - Libadwaita 1
 - libsoup3 - HTTP client library for wallhaven API
 - **pywal** - Color extraction from wallpapers
+- **ImageMagick** - Image filter processing
 - **Omarchy** - Distro
 
 ## Installation
 
 1. Install system dependencies:
 ```bash
-sudo pacman -S gjs gtk4 libadwaita libsoup3 python-pywal
+sudo pacman -S gjs gtk4 libadwaita libsoup3 python-pywal imagemagick
 ```
 
 2. Clone the repository:
@@ -87,6 +89,7 @@ Example:
 
 1. **Create a palette:**
    - Upload a wallpaper and extract colors with pywal
+   - (Optional) Edit wallpaper with filters before extraction
    - Browse wallhaven.cc and download wallpapers
    - Choose from 10 color presets
    - Generate color harmonies or gradients

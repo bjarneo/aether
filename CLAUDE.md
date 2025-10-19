@@ -51,40 +51,69 @@ npm run dev
 - Emits: `palette-generated` signal with 16 colors, `open-wallpaper-editor` signal with wallpaper path
 
 **WallpaperEditor** (`src/components/WallpaperEditor.js`)
-- **NEW FEATURE:** Apply image filters to wallpapers before color extraction
+- Professional filter editor for wallpapers before color extraction
 - Full-screen editor view (replaces main content when active)
-- Real-time CSS preview + ImageMagick processing for final output
-- Features:
-  - **Preview area** (left): Large wallpaper preview with CSS filters applied in real-time
-    - Click-and-hold to temporarily view original (no filters)
-    - Hint: "Hold click to view original"
-  - **Filter controls** (right sidebar): Adjustable filters with sliders
-  - **Header actions**: Reset filters (undo icon), Apply (process and return), Cancel (discard and return)
-- **Available filters:**
-  - Blur (0-10px) - 5x multiplier for ImageMagick to match CSS preview
-  - Brightness (50-150%)
-  - Contrast (50-150%)
-  - Saturation (0-150%)
-  - Hue Shift (0-360°)
-  - Sepia (0-100%) - 1.5x boost for ImageMagick to match CSS intensity
-  - Invert (0-100%)
-  - Color Tone presets (Blue, Cyan, Green, Yellow, Orange, Red, Pink, Purple) with intensity control
-- **Quick presets** (8 total, displayed in 2 rows at top):
-  - Muted, Dramatic, Soft, Vintage
-  - Vibrant, Faded, Cool, Warm
-- **Processing:**
-  - Generates unique timestamped filename: `processed-wallpaper-{timestamp}.png`
-  - Saves to `~/.cache/aether/processed-wallpaper-*.png`
-  - Bypasses pywal cache with unique filenames (forces fresh color extraction)
-- **Sub-components:**
-  - `src/components/wallpaper-editor/FilterControls.js` - All filter UI controls
-  - `src/components/wallpaper-editor/PreviewArea.js` - Preview with click-and-hold gesture
-- **Filter utilities:**
-  - `src/utils/image-filter-utils.js` - Core filter logic, ImageMagick command building, cache management
-  - `src/utils/icon-utils.js` - Custom SVG icon loading and registration with GTK IconTheme
-- **Custom icon:** `src/icons/image-edit-symbolic.svg` - Registered with GTK for theme-aware coloring
-- **Reset behavior:** Filters automatically reset to defaults each time editor is opened
-- Emits: `wallpaper-applied` signal with processed wallpaper path (or original if cancelled)
+- **Debounced preview system**: ImageMagick preview updates 75ms after user stops adjusting sliders
+- **Optimized performance**: Uses scaled preview base (max 800px) for 3-5x faster processing
+
+**Architecture:**
+- **PreviewArea** (left): Large wallpaper preview with debounced ImageMagick rendering
+  - Click-and-hold to temporarily view original wallpaper
+  - Preview base created on load (800px max width)
+  - Debounced ImageMagick preview (75ms delay)
+  - JPEG preview images (quality 95) for faster I/O
+- **FilterControls** (right sidebar): Scrollable filter controls organized in groups
+- **Header**: Title + Reset button + Apply/Cancel actions
+
+**Filter Categories:**
+
+*Basic Adjustments:*
+- Blur (0-5px, step 0.1)
+- Brightness (50-150%)
+- Contrast (50-150%)
+- Saturation (0-150%)
+- Hue Shift (0-360°)
+
+*Effects:*
+- Sepia (0-100%)
+- Invert (0-100%)
+
+*Advanced (Professional):*
+- Exposure (-100 to 100) - Camera exposure simulation
+- Sharpen (0-100) - Edge enhancement
+- Vignette (0-100%) - Darken edges for focus
+- Grain (0-10, step 0.1) - Monochrome film grain overlay
+- Shadows (-100 to 100) - Lift or crush shadow detail
+- Highlights (-100 to 100) - Recover or blow out highlights
+
+*Color Tone:*
+- 8 preset tone colors (Blue, Cyan, Green, Yellow, Orange, Red, Pink, Purple)
+- Custom color picker with HSL preservation
+- Tone intensity slider (0-100%)
+
+**Quick Presets** (12 total, 3 rows of 4):
+- Row 1: Muted, Dramatic, Soft, Vintage
+- Row 2: Vibrant, Faded, Cool, Warm
+- Row 3: Cinematic, Film, Crisp, Portrait (NEW)
+- Presets auto-reset all filters before applying
+- Each preset showcases different filter combinations
+
+**Output Format:**
+- JPEG format (quality 95) for both preview and final output
+- Unique timestamped filename: `processed-wallpaper-{timestamp}.jpg`
+- Saves to `~/.cache/aether/`
+- Bypasses pywal cache (forces fresh color extraction)
+
+**Sub-components:**
+- `src/components/wallpaper-editor/FilterControls.js` - All filter UI controls, presets, tone picker
+- `src/components/wallpaper-editor/PreviewArea.js` - Preview with debounced IM rendering
+
+**Utilities:**
+- `src/utils/image-filter-utils.js` - ImageMagick command building, filter logic, cache management
+- `src/utils/color-utils.js` - Color conversions (HSL/RGB/Hex) for tone picker
+
+**Signals:**
+- Emits: `wallpaper-applied` with processed path (or original if cancelled/no filters)
 
 **WallpaperBrowser** (`src/components/WallpaperBrowser.js`)
 - Integrated wallhaven.cc API client for browsing/searching wallpapers

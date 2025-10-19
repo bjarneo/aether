@@ -5,19 +5,47 @@ import Gio from 'gi://Gio';
  * Utility functions for applying image filters using ImageMagick
  */
 
+// ImageMagick filter constants for tuning visual quality
+const MAX_BLUR_SIGMA = 20; // Maximum blur sigma for 100% blur
+const SHARPEN_DIVISOR = 20; // Divisor to map 0-100 slider to 0-5 sigma range
+const GRAIN_INTENSITY_MULTIPLIER = 0.3; // Attenuate multiplier for subtle grain (0-3 range)
+const GRAIN_BLEND_OPACITY = 20; // Opacity percentage for grain blend composition
+const SHADOW_ADJUSTMENT_DIVISOR = 2; // Divisor to map -100 to 100 range to -50 to 50
+const HIGHLIGHT_ADJUSTMENT_DIVISOR = 2; // Divisor for highlight white point adjustment
+const VIGNETTE_DARKNESS_FACTOR = 0.7; // Multiplier controlling vignette darkness intensity
+
 /**
  * Default filter values matching CSS filter defaults
  */
 export const DEFAULT_FILTERS = {
-    blur: 0, // 0-10px
+    // Basic adjustments
+    blur: 0, // 0-100%
     brightness: 100, // 0-200%
     contrast: 100, // 0-200%
     saturation: 100, // 0-200%
     hueRotate: 0, // 0-360 degrees
+
+    // Effects
     sepia: 0, // 0-100%
     invert: 0, // 0-100%
+    oilPaint: 0, // 0-10 (oil paint radius)
+    pixelate: 0, // 0-100% (pixelation amount)
+
+    // Color tone system
     tone: null, // tone type (hue value) or null
     toneAmount: 0, // 0-100%
+    toneSaturation: 100, // Saturation for custom tones (0-100)
+    toneLightness: 50, // Lightness for custom tones (0-100)
+
+    // Advanced filters
+    exposure: 0, // -100 to 100 (0 = no change)
+    vignette: 0, // 0-100% (darkness of vignette)
+    sharpen: 0, // 0-100 (sharpening intensity)
+    grain: 0, // 0-10 (monochrome grain amount)
+    shadows: 0, // -100 to 100 (lift shadows)
+    highlights: 0, // -100 to 100 (recover highlights)
+    tint: 0, // 0-100% (colorize amount)
+    tintColor: '#3b82f6', // Tint color (hex)
 };
 
 /**
@@ -36,29 +64,93 @@ export const TONE_PRESETS = [
 
 /**
  * Quick filter presets for common effects
+ * Note: Presets now auto-reset all filters to defaults before applying,
+ * so you only need to specify the filters you want to modify
  */
 export const FILTER_PRESETS = [
-    {name: 'Muted', blur: 0, brightness: 95, contrast: 85, saturation: 60},
-    {name: 'Dramatic', blur: 0, brightness: 90, contrast: 130, saturation: 110},
-    {name: 'Soft', blur: 0, brightness: 105, contrast: 85, saturation: 90},
-    {name: 'Vintage', blur: 0, brightness: 95, contrast: 110, saturation: 70},
-    {name: 'Vibrant', blur: 0, brightness: 105, contrast: 110, saturation: 130},
-    {name: 'Faded', blur: 0, brightness: 110, contrast: 75, saturation: 70},
+    {
+        name: 'Muted',
+        brightness: 95,
+        contrast: 85,
+        saturation: 60,
+        exposure: -10,
+    },
+    {
+        name: 'Dramatic',
+        brightness: 90,
+        contrast: 130,
+        saturation: 110,
+    },
+    {
+        name: 'Soft',
+        brightness: 105,
+        contrast: 90,
+        saturation: 95,
+        exposure: 10,
+    },
+    {
+        name: 'Vintage',
+        brightness: 95,
+        contrast: 110,
+        saturation: 70,
+        sepia: 30,
+    },
+    {
+        name: 'Vibrant',
+        brightness: 105,
+        contrast: 115,
+        saturation: 140,
+        exposure: 10,
+    },
+    {
+        name: 'Faded',
+        brightness: 110,
+        contrast: 75,
+        saturation: 65,
+        exposure: 20,
+    },
     {
         name: 'Cool',
-        blur: 0,
-        brightness: 100,
         contrast: 105,
-        saturation: 90,
+        saturation: 95,
         hueRotate: 200,
     },
     {
         name: 'Warm',
-        blur: 0,
-        brightness: 100,
         contrast: 105,
-        saturation: 90,
+        saturation: 95,
         hueRotate: 20,
+    },
+    {
+        name: 'Cinematic',
+        contrast: 120,
+        saturation: 85,
+        shadows: 20,
+        highlights: -15,
+        vignette: 35,
+    },
+    {
+        name: 'Film',
+        contrast: 95,
+        saturation: 90,
+        grain: 2.5,
+        sepia: 15,
+        vignette: 20,
+    },
+    {
+        name: 'Crisp',
+        contrast: 110,
+        saturation: 105,
+        sharpen: 40,
+        exposure: 5,
+    },
+    {
+        name: 'Portrait',
+        brightness: 102,
+        contrast: 95,
+        saturation: 92,
+        shadows: 15,
+        vignette: 25,
     },
 ];
 
@@ -74,7 +166,16 @@ export function hasActiveFilters(filters) {
         filters.hueRotate !== 0 ||
         filters.sepia > 0 ||
         filters.invert > 0 ||
-        (filters.tone !== null && filters.toneAmount > 0)
+        filters.oilPaint > 0 ||
+        filters.pixelate > 0 ||
+        (filters.tone !== null && filters.toneAmount > 0) ||
+        filters.exposure !== 0 ||
+        filters.vignette > 0 ||
+        filters.sharpen > 0 ||
+        filters.grain > 0 ||
+        filters.shadows !== 0 ||
+        filters.highlights !== 0 ||
+        filters.tint > 0
     );
 }
 
@@ -89,9 +190,18 @@ export function buildCssFilterString(filters) {
     if (filters.blur > 0) {
         parts.push(`blur(${filters.blur}px)`);
     }
+
+    // Exposure - applied as brightness multiplier (matches ImageMagick -evaluate Multiply)
+    if (filters.exposure !== 0) {
+        const exposureMult = 1 + filters.exposure / 100;
+        parts.push(`brightness(${exposureMult})`);
+    }
+
+    // Brightness adjustment (separate from exposure)
     if (filters.brightness !== 100) {
         parts.push(`brightness(${filters.brightness / 100})`);
     }
+
     if (filters.contrast !== 100) {
         parts.push(`contrast(${filters.contrast / 100})`);
     }
@@ -130,15 +240,21 @@ export function buildCssFilterString(filters) {
 export function buildImageMagickCommand(inputPath, outputPath, filters) {
     const args = ['magick', inputPath];
 
-    // Apply blur FIRST (works on original pixels)
-    // CSS blur(Npx) ≈ ImageMagick -blur 0x(N*5) for visual match
+    // Apply blur (percentage-based)
+    // Map 0-100% to reasonable blur sigma values
     if (filters.blur > 0) {
-        const sigma = filters.blur * 5;
+        const sigma = (filters.blur / 100) * MAX_BLUR_SIGMA;
         args.push('-blur', `0x${sigma}`);
     }
 
+    // Apply exposure (affects overall brightness)
+    if (filters.exposure !== 0) {
+        const exposureMult = 1 + filters.exposure / 100;
+        args.push('-evaluate', 'Multiply', `${exposureMult}`);
+    }
+
     // Apply modulate for brightness, saturation, and hue rotation
-    const brightnessPercent = filters.brightness;
+    let brightnessPercent = filters.brightness;
     const saturationPercent = filters.saturation;
     let huePercent = 100;
 
@@ -187,6 +303,28 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
     // Apply invert
     if (filters.invert > 0 && filters.invert >= 50) {
         args.push('-negate');
+    }
+
+    // ===== EFFECTS FILTERS =====
+
+    // Apply oil paint effect (artistic painterly look)
+    if (filters.oilPaint > 0) {
+        // Map 0-10 to reasonable oil paint radius (0-5)
+        const radius = filters.oilPaint / 2;
+        args.push('-paint', `${radius}`);
+    }
+
+    // Apply pixelate effect
+    if (filters.pixelate > 0) {
+        // Map 0-100% to pixel block sizes
+        // At 0%, no effect. At 100%, very pixelated (1% of original size)
+        // Calculate scale percentage: 100% - (pixelate * 0.99)
+        const scalePercent = 100 - filters.pixelate * 0.99;
+        // Scale down to create pixelation, then scale back up to original size
+        args.push('-scale', `${scalePercent}%`);
+        // Calculate inverse scale to return to 100%
+        const scaleBackPercent = (100 / scalePercent) * 100;
+        args.push('-scale', `${scaleBackPercent}%`);
     }
 
     // Apply color tone (sepia + hue-rotate + saturate combination)
@@ -238,6 +376,96 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
         const satAmount = 100 + amount / 2;
         args.push('-modulate', `100,${satAmount},100`);
     }
+
+    // ===== TIER 1 FILTERS =====
+
+    // Apply sharpen
+    if (filters.sharpen > 0) {
+        // -sharpen radius x sigma
+        const radius = 0;
+        const sigma = filters.sharpen / SHARPEN_DIVISOR;
+        args.push('-sharpen', `${radius}x${sigma}`);
+    }
+
+    // Apply grain/noise (subtle monochrome grain, preserves colors)
+    if (filters.grain > 0) {
+        // Create subtle monochrome grain overlay
+        const attenuate = filters.grain * GRAIN_INTENSITY_MULTIPLIER;
+
+        // Clone image, add noise to luminance channel only
+        args.push('(', '+clone');
+
+        // Create grayscale noise
+        args.push('-colorspace', 'Gray');
+        args.push('-attenuate', `${attenuate}`);
+        args.push('+noise', 'Gaussian');
+
+        args.push(')');
+
+        // Blend using screen mode at low opacity for subtle grain
+        args.push('-compose', 'blend');
+        args.push('-define', `compose:args=${GRAIN_BLEND_OPACITY}`);
+        args.push('-composite');
+    }
+
+    // Apply shadows adjustment (lift shadows)
+    if (filters.shadows !== 0) {
+        // Use -brightness-contrast with shadow-mask technique
+        // Positive values lift shadows, negative crushes them
+        const shadowAdj = filters.shadows / SHADOW_ADJUSTMENT_DIVISOR;
+        args.push('-brightness-contrast', `${shadowAdj}x0`);
+    }
+
+    // Apply highlights adjustment (recover highlights)
+    if (filters.highlights !== 0) {
+        // Use level adjustment to recover/blow highlights
+        // Negative values recover (compress white point to 150%), positive blows out (compress to 50%)
+        const highlightAdj = filters.highlights;
+        const whitePoint = 100 - highlightAdj / HIGHLIGHT_ADJUSTMENT_DIVISOR;
+        args.push('-level', `0%,${whitePoint}%`);
+    }
+
+    // Apply vignette (darken edges)
+    if (filters.vignette > 0) {
+        // Create a dark vignette using radial gradient overlay
+        const vignetteAmount = filters.vignette / 100; // 0-1
+
+        // Create a radial gradient mask and multiply it with the image
+        args.push('(', '+clone');
+        args.push('-size', '%[fx:w]x%[fx:h]');
+        args.push('radial-gradient:white-black');
+        args.push(
+            '-evaluate',
+            'Pow',
+            `${1 - vignetteAmount * VIGNETTE_DARKNESS_FACTOR}`
+        );
+        args.push(')');
+        args.push('-compose', 'Multiply', '-composite');
+    }
+
+    // Apply tint/colorize (overlay a translucent color wash)
+    if (filters.tint > 0) {
+        // Use fill + colorize to tint the image
+        args.push('-fill', filters.tintColor);
+        args.push('-colorize', `${filters.tint}%`);
+    }
+
+    // Add compression to reduce file size
+    // Detect output format based on file extension
+    const isJpeg =
+        outputPath.toLowerCase().endsWith('.jpg') ||
+        outputPath.toLowerCase().endsWith('.jpeg');
+
+    if (isJpeg) {
+        // JPEG quality: 95 for high quality output
+        args.push('-quality', '95');
+    } else {
+        // PNG quality: 75 sets compression level
+        args.push('-quality', '75');
+    }
+
+    // Strip metadata to reduce size
+    args.push('-strip');
 
     args.push(outputPath);
     return args;
@@ -309,8 +537,9 @@ export function getProcessedWallpaperCachePath() {
 
     // Use timestamp to create unique filename each time
     // This forces pywal to re-extract colors instead of using cache
+    // Use JPEG format for smaller file size and faster processing
     const timestamp = Date.now();
-    const filename = `processed-wallpaper-${timestamp}.png`;
+    const filename = `processed-wallpaper-${timestamp}.jpg`;
     const outputPath = GLib.build_filenamev([cacheDir, filename]);
 
     return outputPath;
