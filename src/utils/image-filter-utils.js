@@ -9,7 +9,8 @@ import Gio from 'gi://Gio';
  * Default filter values matching CSS filter defaults
  */
 export const DEFAULT_FILTERS = {
-    blur: 0, // 0-10px
+    // Basic adjustments
+    blur: 0, // 0-5px
     brightness: 100, // 0-200%
     contrast: 100, // 0-200%
     saturation: 100, // 0-200%
@@ -18,8 +19,14 @@ export const DEFAULT_FILTERS = {
     invert: 0, // 0-100%
     tone: null, // tone type (hue value) or null
     toneAmount: 0, // 0-100%
-    // Tier 1 filters (CSS-compatible only)
     exposure: 0, // -100 to 100 (0 = no change)
+
+    // Tier 1: Most useful filters
+    vignette: 0, // 0-100% (darkness of vignette)
+    sharpen: 0, // 0-100 (sharpening intensity)
+    grain: 0, // 0-10 (monochrome grain amount)
+    shadows: 0, // -100 to 100 (lift shadows)
+    highlights: 0, // -100 to 100 (recover highlights)
 };
 
 /**
@@ -110,7 +117,12 @@ export function hasActiveFilters(filters) {
         filters.sepia > 0 ||
         filters.invert > 0 ||
         (filters.tone !== null && filters.toneAmount > 0) ||
-        filters.exposure !== 0
+        filters.exposure !== 0 ||
+        filters.vignette > 0 ||
+        filters.sharpen > 0 ||
+        filters.grain > 0 ||
+        filters.shadows !== 0 ||
+        filters.highlights !== 0
     );
 }
 
@@ -288,6 +300,64 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
         // Step 3: Saturate
         const satAmount = 100 + amount / 2;
         args.push('-modulate', `100,${satAmount},100`);
+    }
+
+    // ===== TIER 1 FILTERS =====
+
+    // Apply sharpen
+    if (filters.sharpen > 0) {
+        // -sharpen radius x sigma
+        // Map 0-100 to reasonable sharpening values
+        const radius = 0;
+        const sigma = filters.sharpen / 20; // 0-5 range
+        args.push('-sharpen', `${radius}x${sigma}`);
+    }
+
+    // Apply grain/noise (monochrome, subtle)
+    if (filters.grain > 0) {
+        // Create monochrome grain to avoid color noise
+        // Map 0-10 slider to subtle intensity
+        const attenuate = filters.grain * 0.5; // 0-5 range for subtle effect
+
+        // Add monochrome (luminance) noise only
+        args.push('-attenuate', `${attenuate}`);
+        args.push('-channel', 'All');
+        args.push('+noise', 'Gaussian');
+
+        // Reduce saturation of the noise to keep it monochrome
+        args.push('-colorspace', 'HSL');
+        args.push('-channel', 'G');
+        args.push('-evaluate', 'multiply', '0.3');
+        args.push('+channel');
+        args.push('-colorspace', 'sRGB');
+    }
+
+    // Apply shadows adjustment (lift shadows)
+    if (filters.shadows !== 0) {
+        // Use -brightness-contrast with shadow-mask technique
+        // Positive values lift shadows, negative crushes them
+        const shadowAdj = filters.shadows / 2; // -50 to 50
+        args.push('-brightness-contrast', `${shadowAdj}x0`);
+    }
+
+    // Apply highlights adjustment (recover highlights)
+    if (filters.highlights !== 0) {
+        // Use level adjustment to recover/blow highlights
+        // Negative values recover (compress), positive blows out
+        const highlightAdj = filters.highlights;
+        const whitePoint = 100 - highlightAdj / 2; // 150% to 50%
+        args.push('-level', `0%,${whitePoint}%`);
+    }
+
+    // Apply vignette (must be last as it's a composite operation)
+    if (filters.vignette > 0) {
+        // Create a simple radial gradient vignette
+        const vignetteStrength = filters.vignette / 100; // 0-1
+        // Use -vignette which is a built-in ImageMagick effect
+        // Format: -vignette {radiusxsigma}{+-}x{+-}y
+        const radius = 0;
+        const sigma = vignetteStrength * 150; // 0-150
+        args.push('-vignette', `${radius}x${sigma}`);
     }
 
     // Add compression to reduce file size

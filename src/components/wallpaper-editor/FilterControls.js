@@ -52,11 +52,14 @@ export const FilterControls = GObject.registerClass(
             // Quick presets group - MOVED TO TOP
             contentBox.append(this._createPresetsGroup());
 
-            // Filters group
+            // Basic Filters group
             contentBox.append(this._createFiltersGroup());
 
             // Effects group
             contentBox.append(this._createEffectsGroup());
+
+            // Tier 1: Advanced Filters (collapsible)
+            contentBox.append(this._createAdvancedFiltersGroup());
 
             // Color tone group
             contentBox.append(this._createToneGroup());
@@ -180,6 +183,85 @@ export const FilterControls = GObject.registerClass(
                     0,
                     '%',
                     'Invert colors'
+                )
+            );
+
+            return group;
+        }
+
+        _createAdvancedFiltersGroup() {
+            const group = new Adw.PreferencesGroup({
+                title: 'Advanced',
+                description: 'Professional-grade adjustments',
+            });
+
+            // Sharpen
+            group.add(
+                this._createSliderRow(
+                    'Sharpen',
+                    'sharpen',
+                    0,
+                    100,
+                    1,
+                    0,
+                    '',
+                    'Increase image sharpness'
+                )
+            );
+
+            // Vignette
+            group.add(
+                this._createSliderRow(
+                    'Vignette',
+                    'vignette',
+                    0,
+                    100,
+                    1,
+                    0,
+                    '%',
+                    'Darken edges for focus'
+                )
+            );
+
+            // Grain
+            group.add(
+                this._createSliderRow(
+                    'Grain',
+                    'grain',
+                    0,
+                    10,
+                    0.1,
+                    0,
+                    '',
+                    'Add film-like grain texture'
+                )
+            );
+
+            // Shadows
+            group.add(
+                this._createSliderRow(
+                    'Shadows',
+                    'shadows',
+                    -100,
+                    100,
+                    1,
+                    0,
+                    '',
+                    'Lift or crush shadow detail'
+                )
+            );
+
+            // Highlights
+            group.add(
+                this._createSliderRow(
+                    'Highlights',
+                    'highlights',
+                    -100,
+                    100,
+                    1,
+                    0,
+                    '',
+                    'Recover or blow out highlights'
                 )
             );
 
