@@ -27,6 +27,9 @@ export class BlueprintService {
             // Reset adjustment sliders when loading a blueprint
             settingsSidebar.resetAdjustments();
 
+            // Reset per-application overrides when loading a blueprint
+            paletteGenerator.resetAppOverrides();
+
             // Switch to custom tab for blueprint editing
             paletteGenerator.switchToCustomTab();
 

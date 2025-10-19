@@ -771,6 +771,13 @@ export const PaletteGenerator = GObject.registerClass(
             return this._appOverrides;
         }
 
+        resetAppOverrides() {
+            this._appOverrides = {};
+            if (this._appOverridesWidget) {
+                this._appOverridesWidget.setOverrides({});
+            }
+        }
+
         switchToEditorTab() {
             if (this._viewStack) {
                 this._viewStack.set_visible_child_name('editor');
