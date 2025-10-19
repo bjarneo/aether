@@ -173,10 +173,6 @@ export const PreviewArea = GObject.registerClass(
                 // Save scaled preview base as JPEG for faster processing and smaller size
                 scaledPixbuf.savev(this._previewBasePath, 'jpeg', ['quality'], ['95']);
 
-                console.log(
-                    `Created preview base: ${newWidth}x${newHeight} (original: ${originalWidth}x${originalHeight})`
-                );
-
                 // Load the preview base into the picture widget
                 const file = Gio.File.new_for_path(this._previewBasePath);
                 this._previewPicture.set_file(file);
@@ -290,8 +286,6 @@ export const PreviewArea = GObject.registerClass(
 
                 // Clear CSS filters since we now have the ImageMagick-processed version
                 applyCssToWidget(this._previewPicture, '* { filter: none; }');
-
-                console.log('ImageMagick preview updated');
             } catch (e) {
                 console.error('Failed to generate IM preview:', e.message);
             } finally {

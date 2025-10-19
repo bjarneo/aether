@@ -15,20 +15,27 @@ export const DEFAULT_FILTERS = {
     contrast: 100, // 0-200%
     saturation: 100, // 0-200%
     hueRotate: 0, // 0-360 degrees
+
+    // Effects
     sepia: 0, // 0-100%
     invert: 0, // 0-100%
+    oilPaint: 0, // 0-10 (oil paint radius)
+
+    // Color tone system
     tone: null, // tone type (hue value) or null
     toneAmount: 0, // 0-100%
     toneSaturation: 100, // Saturation for custom tones (0-100)
     toneLightness: 50, // Lightness for custom tones (0-100)
-    exposure: 0, // -100 to 100 (0 = no change)
 
-    // Tier 1: Most useful filters
+    // Advanced filters
+    exposure: 0, // -100 to 100 (0 = no change)
     vignette: 0, // 0-100% (darkness of vignette)
     sharpen: 0, // 0-100 (sharpening intensity)
     grain: 0, // 0-10 (monochrome grain amount)
     shadows: 0, // -100 to 100 (lift shadows)
     highlights: 0, // -100 to 100 (recover highlights)
+    tint: 0, // 0-100% (colorize amount)
+    tintColor: '#3b82f6', // Tint color (hex)
 };
 
 /**
@@ -149,13 +156,15 @@ export function hasActiveFilters(filters) {
         filters.hueRotate !== 0 ||
         filters.sepia > 0 ||
         filters.invert > 0 ||
+        filters.oilPaint > 0 ||
         (filters.tone !== null && filters.toneAmount > 0) ||
         filters.exposure !== 0 ||
         filters.vignette > 0 ||
         filters.sharpen > 0 ||
         filters.grain > 0 ||
         filters.shadows !== 0 ||
-        filters.highlights !== 0
+        filters.highlights !== 0 ||
+        filters.tint > 0
     );
 }
 
@@ -285,6 +294,15 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
         args.push('-negate');
     }
 
+    // ===== EFFECTS FILTERS =====
+
+    // Apply oil paint effect (artistic painterly look)
+    if (filters.oilPaint > 0) {
+        // Map 0-10 to reasonable oil paint radius (0-5)
+        const radius = filters.oilPaint / 2;
+        args.push('-paint', `${radius}`);
+    }
+
     // Apply color tone (sepia + hue-rotate + saturate combination)
     if (filters.tone !== null && filters.toneAmount > 0) {
         const amount = filters.toneAmount;
@@ -398,6 +416,13 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
         args.push('-evaluate', 'Pow', `${1 - vignetteAmount * 0.7}`); // Control darkness
         args.push(')');
         args.push('-compose', 'Multiply', '-composite');
+    }
+
+    // Apply tint/colorize (overlay a translucent color wash)
+    if (filters.tint > 0) {
+        // Use fill + colorize to tint the image
+        args.push('-fill', filters.tintColor);
+        args.push('-colorize', `${filters.tint}%`);
     }
 
     // Add compression to reduce file size

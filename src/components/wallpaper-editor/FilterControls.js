@@ -37,6 +37,7 @@ export const FilterControls = GObject.registerClass(
 
             this._sliders = {};
             this._filters = {...DEFAULT_FILTERS};
+            this._tintColorButton = null;
 
             this._buildUI();
         }
@@ -146,7 +147,7 @@ export const FilterControls = GObject.registerClass(
         _createEffectsGroup() {
             const group = new Adw.PreferencesGroup({
                 title: 'Effects',
-                description: 'Additional creative filters',
+                description: 'Creative and artistic filters',
             });
 
             group.add(
@@ -172,6 +173,19 @@ export const FilterControls = GObject.registerClass(
                     0,
                     '%',
                     'Invert colors'
+                )
+            );
+
+            group.add(
+                this._createSliderRow(
+                    'Oil Paint',
+                    'oilPaint',
+                    0,
+                    10,
+                    0.1,
+                    0,
+                    '',
+                    'Painterly artistic effect'
                 )
             );
 
@@ -267,6 +281,43 @@ export const FilterControls = GObject.registerClass(
                     'Recover or blow out highlights'
                 )
             );
+
+            // Tint/Colorize with color picker
+            const tintRow = this._createSliderRow(
+                'Tint',
+                'tint',
+                0,
+                100,
+                1,
+                0,
+                '%',
+                'Overlay a color wash'
+            );
+
+            // Add color picker button to tint row
+            this._tintColorButton = new Gtk.ColorButton({
+                rgba: new Gdk.RGBA({
+                    red: 59 / 255,
+                    green: 130 / 255,
+                    blue: 246 / 255,
+                    alpha: 1.0,
+                }),
+                valign: Gtk.Align.CENTER,
+                tooltip_text: 'Choose tint color',
+            });
+
+            this._tintColorButton.connect('color-set', () => {
+                const color = this._tintColorButton.get_rgba();
+                const r = Math.round(color.red * 255);
+                const g = Math.round(color.green * 255);
+                const b = Math.round(color.blue * 255);
+                const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+                this._filters.tintColor = hex;
+                this.emit('filter-changed', this._filters);
+            });
+
+            tintRow.add_suffix(this._tintColorButton);
+            group.add(tintRow);
 
             return group;
         }
