@@ -6,7 +6,6 @@ import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 import GdkPixbuf from 'gi://GdkPixbuf';
 
-import {extractColorsFromWallpaper} from '../services/wallpaper-service.js';
 import {extractColorsFromWallpaperIM} from '../utils/imagemagick-color-extraction.js';
 import {adjustColor} from '../utils/color-utils.js';
 import {ColorSwatchGrid} from './palette/color-swatch-grid.js';
@@ -577,25 +576,6 @@ export const PaletteGenerator = GObject.registerClass(
             this._imExtractButton.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
-        }
-
-        _extractColors(imagePath) {
-            this._showLoading(true);
-
-            extractColorsFromWallpaper(
-                imagePath,
-                this._lightMode,
-                colors => {
-                    this._originalPalette = [...colors];
-                    this.setPalette(colors);
-                    this.emit('palette-generated', colors);
-                    this._showLoading(false);
-                },
-                error => {
-                    console.error('Error extracting colors:', error.message);
-                    this._showLoading(false);
-                }
-            );
         }
 
         _extractColorsIM(imagePath) {
