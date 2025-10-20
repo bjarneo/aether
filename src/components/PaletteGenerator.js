@@ -510,7 +510,6 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_visible(true);
             }
 
-            // this._extractButton.set_visible(true); // Pywal button commented out
             this._imExtractButton.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
@@ -542,7 +541,6 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_visible(true);
             }
 
-            // this._extractButton.set_visible(true); // Pywal button commented out
             this._imExtractButton.set_visible(true);
             this._pickFromWallpaperBtn.set_visible(true);
             this._editWallpaperBtn.set_visible(true);
