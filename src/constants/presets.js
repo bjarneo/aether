@@ -176,6 +176,28 @@ export const COLOR_PRESETS = [
         ],
     },
     {
+        name: 'Gruvbox Material Dark Hard',
+        author: 'Soft Contrast Gruvbox',
+        colors: [
+            '#1d2021',
+            '#ea6962',
+            '#a9b665',
+            '#d8a657',
+            '#7daea3',
+            '#d3869b',
+            '#89b482',
+            '#d4be98',
+            '#32302f',
+            '#ea6962',
+            '#a9b665',
+            '#d8a657',
+            '#7daea3',
+            '#d3869b',
+            '#89b482',
+            '#ddc7a1',
+        ],
+    },
+    {
         name: 'Solarized Dark',
         author: 'Precision Colors',
         colors: [
