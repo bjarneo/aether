@@ -8,6 +8,8 @@ import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {extractColorsFromWallpaperIM} from '../utils/imagemagick-color-extraction.js';
 import {adjustColor} from '../utils/color-utils.js';
+import {uploadWallpaper} from '../utils/wallpaper-utils.js';
+import {copyFile} from '../utils/file-utils.js';
 import {ColorSwatchGrid} from './palette/color-swatch-grid.js';
 import {ColorPickerDialog} from './palette/color-picker-dialog.js';
 import {WallpaperBrowser} from './WallpaperBrowser.js';
@@ -253,8 +255,14 @@ export const PaletteGenerator = GObject.registerClass(
                 hexpand: true,
             });
 
+            // Empty state - shown when no wallpaper is loaded
+            this._emptyStateBox = this._createEmptyState();
+            viewBox.append(this._emptyStateBox);
+
             // Wallpaper selection row - wrapped in PreferencesGroup for full width
-            const wallpaperGroup = new Adw.PreferencesGroup();
+            this._wallpaperGroup = new Adw.PreferencesGroup({
+                visible: false, // Hidden initially until wallpaper is loaded
+            });
 
             const wallpaperRow = new Adw.ActionRow({
                 title: 'Wallpaper',
@@ -266,14 +274,6 @@ export const PaletteGenerator = GObject.registerClass(
                 spacing: 6,
                 valign: Gtk.Align.CENTER,
             });
-
-            const selectButton = new Gtk.Button({
-                icon_name: 'document-open-symbolic',
-                valign: Gtk.Align.CENTER,
-                tooltip_text: 'Select wallpaper',
-            });
-            selectButton.connect('clicked', () => this._selectWallpaper());
-            buttonBox.append(selectButton);
 
             // ImageMagick extract button
             const imExtractButtonBox = new Gtk.Box({
@@ -295,7 +295,6 @@ export const PaletteGenerator = GObject.registerClass(
             this._imExtractButton = new Gtk.Button({
                 child: imExtractButtonBox,
                 css_classes: ['suggested-action'],
-                visible: false,
                 tooltip_text: 'Extract colors from wallpaper',
             });
             this._imExtractButton.connect('clicked', () => {
@@ -326,7 +325,6 @@ export const PaletteGenerator = GObject.registerClass(
                 child: editButtonBox,
                 tooltip_text:
                     'Edit wallpaper (apply filters before extraction)',
-                visible: false,
             });
             this._editWallpaperBtn.connect('clicked', () =>
                 this._openWallpaperEditor()
@@ -368,20 +366,20 @@ export const PaletteGenerator = GObject.registerClass(
 
             wallpaperRow.add_suffix(buttonBox);
 
-            this._setupDropTarget(wallpaperRow);
-            wallpaperGroup.add(wallpaperRow);
-            viewBox.append(wallpaperGroup);
+            this._wallpaperGroup.add(wallpaperRow);
 
-            // Wallpaper preview
+            // Wallpaper preview (hidden with wallpaperGroup)
             this._wallpaperPreview = new Gtk.Picture({
                 height_request: 200,
                 can_shrink: true,
                 content_fit: Gtk.ContentFit.CONTAIN,
                 css_classes: ['card'],
                 hexpand: true,
-                visible: false,
+                visible: false, // Hidden by default, shown when wallpaper loads
             });
-            viewBox.append(this._wallpaperPreview);
+            this._wallpaperGroup.add(this._wallpaperPreview);
+
+            viewBox.append(this._wallpaperGroup);
 
             // Color swatch grid section
             const colorsHeaderBox = new Gtk.Box({
@@ -402,7 +400,6 @@ export const PaletteGenerator = GObject.registerClass(
             this._pickFromWallpaperBtn = new Gtk.Button({
                 icon_name: 'color-select-symbolic',
                 tooltip_text: 'Pick colors from wallpaper',
-                visible: false,
             });
             this._pickFromWallpaperBtn.connect('clicked', () => {
                 this._openWallpaperColorPicker();
@@ -470,55 +467,68 @@ export const PaletteGenerator = GObject.registerClass(
             this.emit('palette-generated', defaultColors);
         }
 
-        _setupDropTarget(widget) {
-            const dropTarget = Gtk.DropTarget.new(
-                Gio.File.$gtype,
-                Gdk.DragAction.COPY
-            );
-
-            dropTarget.connect('drop', (target, value) => {
-                if (value instanceof Gio.File) {
-                    this.loadWallpaperWithoutExtraction(value.get_path());
-                    return true;
-                }
-                return false;
+        _createEmptyState() {
+            const emptyBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                valign: Gtk.Align.CENTER,
+                halign: Gtk.Align.CENTER,
+                spacing: 24,
+                margin_top: 48,
+                margin_bottom: 48,
+                hexpand: true,
+                vexpand: true,
             });
 
-            widget.add_controller(dropTarget);
+            const icon = new Gtk.Image({
+                icon_name: 'folder-pictures-symbolic',
+                pixel_size: 72,
+                css_classes: ['dim-label'],
+            });
+
+            const titleLabel = new Gtk.Label({
+                label: 'No Wallpaper Selected',
+                css_classes: ['title-2'],
+            });
+
+            const subtitleLabel = new Gtk.Label({
+                label: 'Choose a wallpaper to begin creating your theme',
+                css_classes: ['dim-label'],
+            });
+
+            const uploadButton = new Gtk.Button({
+                label: 'Select Wallpaper',
+                css_classes: ['pill', 'suggested-action'],
+                halign: Gtk.Align.CENTER,
+            });
+            uploadButton.connect('clicked', () => {
+                this._uploadWallpaper();
+            });
+
+            emptyBox.append(icon);
+            emptyBox.append(titleLabel);
+            emptyBox.append(subtitleLabel);
+            emptyBox.append(uploadButton);
+
+            return emptyBox;
         }
 
-        _selectWallpaper() {
-            const dialog = new Gtk.FileDialog({title: 'Select Wallpaper'});
-
-            const filter = new Gtk.FileFilter();
-            filter.add_mime_type('image/png');
-            filter.add_mime_type('image/jpeg');
-            filter.add_mime_type('image/webp');
-            filter.set_name('Images');
-
-            const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
-            filterList.append(filter);
-            dialog.set_filters(filterList);
-
-            dialog.open(this.get_root(), null, (source, result) => {
-                try {
-                    const file = dialog.open_finish(result);
-                    if (file) {
-                        this.loadWallpaperWithoutExtraction(file.get_path());
-                    }
-                } catch (e) {
-                    if (
-                        !e.matches(Gtk.DialogError, Gtk.DialogError.DISMISSED)
-                    ) {
-                        console.error('Error selecting file:', e.message);
-                    }
+        _uploadWallpaper() {
+            uploadWallpaper(
+                this.get_root(),
+                (destPath) => {
+                    // Load the wallpaper from ~/Wallpapers
+                    this.loadWallpaperWithoutExtraction(destPath);
                 }
-            });
+            );
         }
 
         loadWallpaper(path) {
             // Load wallpaper without extraction - user must click extract button
             this._currentWallpaper = path;
+
+            // Hide empty state, show wallpaper controls
+            this._emptyStateBox.set_visible(false);
+            this._wallpaperGroup.set_visible(true);
 
             // Force complete reload by using texture instead of file
             // This ensures GTK doesn't cache the old image
@@ -534,10 +544,6 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_file(file);
                 this._wallpaperPreview.set_visible(true);
             }
-
-            this._imExtractButton.set_visible(true);
-            this._pickFromWallpaperBtn.set_visible(true);
-            this._editWallpaperBtn.set_visible(true);
         }
 
         _onWallpaperBrowserSelected(path) {
@@ -552,6 +558,10 @@ export const PaletteGenerator = GObject.registerClass(
             // For manual selection - just show wallpaper and extract button, don't auto-extract
             this._currentWallpaper = path;
 
+            // Hide empty state, show wallpaper controls
+            this._emptyStateBox.set_visible(false);
+            this._wallpaperGroup.set_visible(true);
+
             // Force complete reload by using texture instead of file
             try {
                 const pixbuf = GdkPixbuf.Pixbuf.new_from_file(path);
@@ -565,10 +575,6 @@ export const PaletteGenerator = GObject.registerClass(
                 this._wallpaperPreview.set_file(file);
                 this._wallpaperPreview.set_visible(true);
             }
-
-            this._imExtractButton.set_visible(true);
-            this._pickFromWallpaperBtn.set_visible(true);
-            this._editWallpaperBtn.set_visible(true);
         }
 
         _extractColorsIM(imagePath) {
@@ -776,11 +782,12 @@ export const PaletteGenerator = GObject.registerClass(
             this._wallpaperPreview.set_visible(false);
             if (this._customWallpaperPreview) {
                 this._customWallpaperPreview.set_file(null);
-                this._customWallpaperPreview.set_visible(false);
             }
-            this._imExtractButton.set_visible(false);
-            this._pickFromWallpaperBtn.set_visible(false);
-            this._editWallpaperBtn.set_visible(false);
+
+            // Show empty state, hide wallpaper controls
+            this._emptyStateBox.set_visible(true);
+            this._wallpaperGroup.set_visible(false);
+
             this._swatchGrid.setLockedColors(new Array(16).fill(false)); // Reset all locks
             this._showLoading(false);
 

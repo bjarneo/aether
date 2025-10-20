@@ -9,6 +9,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import {favoritesService} from '../services/favorites-service.js';
 import {thumbnailService} from '../services/thumbnail-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
+import {uploadWallpaper} from '../utils/wallpaper-utils.js';
 
 export const LocalWallpaperBrowser = GObject.registerClass(
     {
@@ -153,6 +154,14 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             openFolderButton.connect('clicked', () => this._openFolder());
             toolbarBox.append(openFolderButton);
 
+            // Upload/Select wallpaper button
+            const uploadButton = new Gtk.Button({
+                icon_name: 'upload-symbolic',
+                tooltip_text: 'Upload wallpaper',
+            });
+            uploadButton.connect('clicked', () => this._selectWallpaper());
+            toolbarBox.append(uploadButton);
+
             return toolbarBox;
         }
 
@@ -267,6 +276,19 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                     } catch (e) {
                         console.error('Error opening folder:', e.message);
                     }
+                }
+            );
+        }
+
+        _selectWallpaper() {
+            uploadWallpaper(
+                this.get_root(),
+                (destPath) => {
+                    // Refresh the browser to show the new wallpaper
+                    this._loadWallpapersAsync();
+
+                    // Emit signal with the new path in ~/Wallpapers
+                    this.emit('wallpaper-selected', destPath);
                 }
             );
         }
