@@ -746,17 +746,21 @@ export const PaletteGenerator = GObject.registerClass(
         }
 
         reset() {
-            this._palette = [];
-            this._originalPalette = [];
             this._currentWallpaper = null;
             this._wallpaperPreview.set_file(null);
+            this._wallpaperPreview.set_visible(false);
             if (this._customWallpaperPreview) {
                 this._customWallpaperPreview.set_file(null);
                 this._customWallpaperPreview.set_visible(false);
             }
-            this._swatchGrid.setPalette([]);
+            this._imExtractButton.set_visible(false);
+            this._pickFromWallpaperBtn.set_visible(false);
+            this._editWallpaperBtn.set_visible(false);
             this._swatchGrid.setLockedColors(new Array(16).fill(false)); // Reset all locks
             this._showLoading(false);
+
+            // Reload default colors
+            this._loadDefaultCustomColors();
         }
 
         getPalette() {
