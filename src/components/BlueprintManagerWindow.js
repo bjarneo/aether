@@ -38,15 +38,35 @@ export const BlueprintManagerWindow = GObject.registerClass(
             });
 
             this._blueprints = [];
+            this._blueprintsCache = null; // Cache for loaded blueprints
             this._blueprintsDir = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
                 'aether',
                 'blueprints',
             ]);
 
+            // Thumbnail loading queue
+            this._thumbnailQueue = [];
+            this._thumbnailLoadInProgress = false;
+            this._maxConcurrentLoads = 2; // Load 2 thumbnails at a time
+
+            // CSS cache for color classes
+            this._colorCSSCache = {};
+
             this._ensureBlueprintsDirectory();
             this._initializeUI();
+            this._setupColorCSS();
             this._loadBlueprintsAsync();
+        }
+
+        _setupColorCSS() {
+            // Create a CSS provider for dynamic color classes
+            this._cssProvider = new Gtk.CssProvider();
+            Gtk.StyleContext.add_provider_for_display(
+                this.get_display(),
+                this._cssProvider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            );
         }
 
         _ensureBlueprintsDirectory() {
@@ -75,6 +95,13 @@ export const BlueprintManagerWindow = GObject.registerClass(
             });
             importButton.connect('clicked', () => this._importBlueprint());
             headerBar.pack_end(importButton);
+
+            const refreshButton = new Gtk.Button({
+                icon_name: 'view-refresh-symbolic',
+                tooltip_text: 'Refresh Blueprints',
+            });
+            refreshButton.connect('clicked', () => this.loadBlueprints(true));
+            headerBar.pack_end(refreshButton);
 
             this._searchButton = new Gtk.ToggleButton({
                 icon_name: 'system-search-symbolic',
@@ -154,7 +181,18 @@ export const BlueprintManagerWindow = GObject.registerClass(
             });
         }
 
-        loadBlueprints() {
+        loadBlueprints(forceReload = false) {
+            // Use cached blueprints if available and not forcing reload
+            if (!forceReload && this._blueprintsCache) {
+                this._blueprints = this._blueprintsCache;
+                this._updateUI();
+                return;
+            }
+
+            // Clear thumbnail queue when reloading
+            this._thumbnailQueue = [];
+            this._thumbnailLoadInProgress = false;
+
             this._blueprints = [];
 
             enumerateDirectory(
@@ -168,6 +206,9 @@ export const BlueprintManagerWindow = GObject.registerClass(
                     }
                 }
             );
+
+            // Cache the loaded blueprints
+            this._blueprintsCache = this._blueprints;
 
             this._updateUI();
         }
@@ -273,6 +314,64 @@ export const BlueprintManagerWindow = GObject.registerClass(
             spinner,
             blueprint
         ) {
+            // Add to queue instead of loading immediately
+            this._thumbnailQueue.push({
+                wallpaperPath,
+                previewBox,
+                spinner,
+                blueprint,
+            });
+
+            // Start processing queue if not already in progress
+            if (!this._thumbnailLoadInProgress) {
+                this._processThumbnailQueue();
+            }
+        }
+
+        _processThumbnailQueue() {
+            if (this._thumbnailQueue.length === 0) {
+                this._thumbnailLoadInProgress = false;
+                return;
+            }
+
+            this._thumbnailLoadInProgress = true;
+
+            // Process up to maxConcurrentLoads items
+            const batch = this._thumbnailQueue.splice(
+                0,
+                this._maxConcurrentLoads
+            );
+
+            let completedCount = 0;
+            const onComplete = () => {
+                completedCount++;
+                if (completedCount === batch.length) {
+                    // Process next batch after a short delay
+                    GLib.timeout_add(GLib.PRIORITY_LOW, 50, () => {
+                        this._processThumbnailQueue();
+                        return GLib.SOURCE_REMOVE;
+                    });
+                }
+            };
+
+            batch.forEach(item => {
+                this._loadSingleThumbnail(
+                    item.wallpaperPath,
+                    item.previewBox,
+                    item.spinner,
+                    item.blueprint,
+                    onComplete
+                );
+            });
+        }
+
+        _loadSingleThumbnail(
+            wallpaperPath,
+            previewBox,
+            spinner,
+            blueprint,
+            callback
+        ) {
             GLib.idle_add(GLib.PRIORITY_LOW, () => {
                 if (!GLib.file_test(wallpaperPath, GLib.FileTest.EXISTS)) {
                     this._replacePreview(
@@ -280,6 +379,7 @@ export const BlueprintManagerWindow = GObject.registerClass(
                         spinner,
                         this._createColorPreviewFallback(blueprint)
                     );
+                    callback();
                     return GLib.SOURCE_REMOVE;
                 }
 
@@ -295,6 +395,7 @@ export const BlueprintManagerWindow = GObject.registerClass(
                     );
                 }
 
+                callback();
                 return GLib.SOURCE_REMOVE;
             });
         }
@@ -331,12 +432,27 @@ export const BlueprintManagerWindow = GObject.registerClass(
                 return colorGrid;
             }
 
+            const colorHash = this._getColorHash(blueprint);
+
             colors.slice(0, PREVIEW_COLORS_COUNT).forEach((color, i) => {
+                const className = `blueprint-preview-${colorHash}-${i}`;
+
+                // Add CSS class if not already cached
+                if (!this._colorCSSCache) {
+                    this._colorCSSCache = {};
+                }
+                if (!this._colorCSSCache[`${colorHash}-preview-${i}`]) {
+                    this._colorCSSCache[`${colorHash}-preview-${i}`] = true;
+                    const css = `.${className} { background-color: ${color}; }\n`;
+                    const currentCSS = this._cssProvider.to_string() || '';
+                    this._cssProvider.load_from_data(currentCSS + css, -1);
+                }
+
                 const colorBox = new Gtk.Box({
                     hexpand: true,
                     vexpand: true,
+                    css_classes: [className],
                 });
-                applyCssToWidget(colorBox, `* { background-color: ${color}; }`);
                 colorGrid.attach(colorBox, i % 2, Math.floor(i / 2), 1, 1);
             });
 
@@ -350,13 +466,49 @@ export const BlueprintManagerWindow = GObject.registerClass(
                 height_request: 8,
             });
 
-            blueprint.palette?.colors?.forEach(color => {
-                const colorBar = new Gtk.Box({hexpand: true});
-                applyCssToWidget(colorBar, `* { background-color: ${color}; }`);
+            if (!blueprint.palette?.colors) {
+                return colorBox;
+            }
+
+            // Generate a unique ID for this blueprint's colors
+            const colorHash = this._getColorHash(blueprint);
+
+            // Build CSS for all colors in this strip at once
+            let css = '';
+            blueprint.palette.colors.forEach((color, index) => {
+                const className = `blueprint-color-${colorHash}-${index}`;
+                css += `.${className} { background-color: ${color}; }\n`;
+
+                const colorBar = new Gtk.Box({
+                    hexpand: true,
+                    css_classes: [className],
+                });
                 colorBox.append(colorBar);
             });
 
+            // Update CSS provider with new color classes if needed
+            if (css && !this._colorCSSCache) {
+                this._colorCSSCache = {};
+            }
+            if (css && !this._colorCSSCache[colorHash]) {
+                this._colorCSSCache[colorHash] = true;
+                const currentCSS = this._cssProvider.to_string() || '';
+                this._cssProvider.load_from_data(currentCSS + css, -1);
+            }
+
             return colorBox;
+        }
+
+        _getColorHash(blueprint) {
+            // Simple hash of blueprint path for unique CSS class names
+            if (!blueprint.path) return 'default';
+
+            let hash = 0;
+            for (let i = 0; i < blueprint.path.length; i++) {
+                hash = ((hash << 5) - hash) + blueprint.path.charCodeAt(i);
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            return Math.abs(hash).toString(36);
         }
 
         _createInfoSection(blueprint) {
@@ -466,7 +618,7 @@ export const BlueprintManagerWindow = GObject.registerClass(
 
         _deleteBlueprint(blueprint) {
             if (deleteFile(blueprint.path)) {
-                this.loadBlueprints();
+                this.loadBlueprints(true); // Force reload after deletion
             }
         }
 
@@ -538,7 +690,7 @@ export const BlueprintManagerWindow = GObject.registerClass(
             const path = GLib.build_filenamev([this._blueprintsDir, filename]);
 
             if (saveJsonFile(path, blueprint)) {
-                this.loadBlueprints();
+                this.loadBlueprints(true); // Force reload after saving
             }
         }
 
