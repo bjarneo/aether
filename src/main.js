@@ -441,6 +441,12 @@ const AetherWindow = GObject.registerClass(
             const settings = this.settingsSidebar.getSettings();
             const lightMode = this.settingsSidebar.getLightMode();
 
+            // Initialize blueprint service if not already initialized
+            if (!this.blueprintService) {
+                // Show blueprint manager first to initialize the service
+                this._showBlueprintManager();
+            }
+
             this.blueprintService.saveBlueprint(palette, settings, lightMode);
         }
 
