@@ -1,7 +1,12 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import {hexToRgb, rgbToHsl, hslToHex, rgbToHex} from './color-utils.js';
-import {readFileAsText, writeTextToFile, fileExists, ensureDirectoryExists} from './file-utils.js';
+import {
+    readFileAsText,
+    writeTextToFile,
+    fileExists,
+    ensureDirectoryExists,
+} from './file-utils.js';
 
 /**
  * ImageMagick-based color extraction utility
@@ -114,12 +119,12 @@ const ANSI_COLOR_HUES = {
 
 /** Ordered array of ANSI hue targets for colors 1-6 */
 const ANSI_HUE_ARRAY = [
-    ANSI_COLOR_HUES.RED,    // color1
-    ANSI_COLOR_HUES.GREEN,  // color2
+    ANSI_COLOR_HUES.RED, // color1
+    ANSI_COLOR_HUES.GREEN, // color2
     ANSI_COLOR_HUES.YELLOW, // color3
-    ANSI_COLOR_HUES.BLUE,   // color4
-    ANSI_COLOR_HUES.MAGENTA,// color5
-    ANSI_COLOR_HUES.CYAN,   // color6
+    ANSI_COLOR_HUES.BLUE, // color4
+    ANSI_COLOR_HUES.MAGENTA, // color5
+    ANSI_COLOR_HUES.CYAN, // color6
 ];
 
 // ImageMagick performance settings
@@ -154,12 +159,20 @@ function getCacheDir() {
 function getCacheKey(imagePath, lightMode) {
     try {
         const file = Gio.File.new_for_path(imagePath);
-        const info = file.query_info('time::modified', Gio.FileQueryInfoFlags.NONE, null);
+        const info = file.query_info(
+            'time::modified',
+            Gio.FileQueryInfoFlags.NONE,
+            null
+        );
         const mtime = info.get_modification_date_time();
         const mtimeSeconds = mtime.to_unix();
 
         const dataString = `${imagePath}-${mtimeSeconds}-${lightMode ? 'light' : 'dark'}`;
-        const checksum = GLib.compute_checksum_for_string(GLib.ChecksumType.MD5, dataString, -1);
+        const checksum = GLib.compute_checksum_for_string(
+            GLib.ChecksumType.MD5,
+            dataString,
+            -1
+        );
 
         return checksum;
     } catch (e) {
@@ -185,7 +198,10 @@ function loadCachedPalette(cacheKey) {
         const content = readFileAsText(cachePath);
         const data = JSON.parse(content);
 
-        if (Array.isArray(data.palette) && data.palette.length === ANSI_PALETTE_SIZE) {
+        if (
+            Array.isArray(data.palette) &&
+            data.palette.length === ANSI_PALETTE_SIZE
+        ) {
             console.log('Using cached color extraction result');
             return data.palette;
         }
@@ -238,22 +254,29 @@ function extractDominantColors(imagePath, numColors) {
             const argv = [
                 'magick',
                 imagePath,
-                '-scale', IMAGE_SCALE_SIZE,
-                '-colors', numColors.toString(),
-                '-depth', IMAGE_BIT_DEPTH.toString(),
-                '-quality', IMAGE_PROCESSING_QUALITY.toString(),
-                '-format', '%c',
+                '-scale',
+                IMAGE_SCALE_SIZE,
+                '-colors',
+                numColors.toString(),
+                '-depth',
+                IMAGE_BIT_DEPTH.toString(),
+                '-quality',
+                IMAGE_PROCESSING_QUALITY.toString(),
+                '-format',
+                '%c',
                 'histogram:info:-',
             ];
 
             const proc = Gio.Subprocess.new(
                 argv,
-                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
+                Gio.SubprocessFlags.STDOUT_PIPE |
+                    Gio.SubprocessFlags.STDERR_PIPE
             );
 
             proc.communicate_utf8_async(null, null, (source, result) => {
                 try {
-                    const [, stdout, stderr] = source.communicate_utf8_finish(result);
+                    const [, stdout, stderr] =
+                        source.communicate_utf8_finish(result);
                     const exitCode = source.get_exit_status();
 
                     if (exitCode !== 0) {
@@ -375,8 +398,10 @@ function hasLowColorDiversity(colors) {
             const color2 = hslColors[j];
 
             // Skip grayscale colors
-            if (color1.saturation < MONOCHROME_SATURATION_THRESHOLD ||
-                color2.saturation < MONOCHROME_SATURATION_THRESHOLD) {
+            if (
+                color1.saturation < MONOCHROME_SATURATION_THRESHOLD ||
+                color2.saturation < MONOCHROME_SATURATION_THRESHOLD
+            ) {
                 continue;
             }
 
@@ -385,7 +410,10 @@ function hasLowColorDiversity(colors) {
             const hueDiff = calculateHueDistance(color1.hue, color2.hue);
             const lightnessDiff = Math.abs(color1.lightness - color2.lightness);
 
-            if (hueDiff < SIMILAR_HUE_RANGE && lightnessDiff < SIMILAR_LIGHTNESS_RANGE) {
+            if (
+                hueDiff < SIMILAR_HUE_RANGE &&
+                lightnessDiff < SIMILAR_LIGHTNESS_RANGE
+            ) {
                 similarCount++;
             }
         }
@@ -571,10 +599,14 @@ function generateSubtleBalancedPalette(dominantColors, lightMode) {
     const lightest = sortedByLightness[sortedByLightness.length - 1];
 
     // Calculate average hue from chromatic colors
-    const chromaticColors = dominantColors.filter(c => getColorHSL(c).s > MONOCHROME_SATURATION_THRESHOLD);
-    const avgHue = chromaticColors.length > 0
-        ? chromaticColors.reduce((sum, c) => sum + getColorHSL(c).h, 0) / chromaticColors.length
-        : darkest.hue;
+    const chromaticColors = dominantColors.filter(
+        c => getColorHSL(c).s > MONOCHROME_SATURATION_THRESHOLD
+    );
+    const avgHue =
+        chromaticColors.length > 0
+            ? chromaticColors.reduce((sum, c) => sum + getColorHSL(c).h, 0) /
+              chromaticColors.length
+            : darkest.hue;
 
     const palette = new Array(ANSI_PALETTE_SIZE);
 
@@ -585,28 +617,51 @@ function generateSubtleBalancedPalette(dominantColors, lightMode) {
     // Generate ANSI colors 1-6 with balanced subtle saturation
     for (let i = 0; i < ANSI_HUE_ARRAY.length; i++) {
         const lightness = 50 + (i - 2.5) * 4; // Vary slightly (42-58%)
-        palette[i + 1] = hslToHex(ANSI_HUE_ARRAY[i], SUBTLE_PALETTE_SATURATION, lightness);
+        palette[i + 1] = hslToHex(
+            ANSI_HUE_ARRAY[i],
+            SUBTLE_PALETTE_SATURATION,
+            lightness
+        );
     }
 
     // Color 8: gray between background and colors
     const color8Lightness = lightMode
         ? Math.max(0, lightest.lightness - 20)
         : Math.min(100, darkest.lightness + 20);
-    palette[8] = hslToHex(avgHue, SUBTLE_PALETTE_SATURATION * 0.5, color8Lightness);
+    palette[8] = hslToHex(
+        avgHue,
+        SUBTLE_PALETTE_SATURATION * 0.5,
+        color8Lightness
+    );
 
     // Colors 9-14: Slightly more saturated versions of 1-6
     const brightSaturation = SUBTLE_PALETTE_SATURATION + 8;
     for (let i = 0; i < ANSI_HUE_ARRAY.length; i++) {
         const baseLightness = 50 + (i - 2.5) * 4;
         const adjustment = lightMode ? -8 : 8;
-        const lightness = Math.max(0, Math.min(100, baseLightness + adjustment));
-        palette[i + 9] = hslToHex(ANSI_HUE_ARRAY[i], brightSaturation, lightness);
+        const lightness = Math.max(
+            0,
+            Math.min(100, baseLightness + adjustment)
+        );
+        palette[i + 9] = hslToHex(
+            ANSI_HUE_ARRAY[i],
+            brightSaturation,
+            lightness
+        );
     }
 
     // Color 15: Bright foreground
     palette[15] = lightMode
-        ? hslToHex(avgHue, SUBTLE_PALETTE_SATURATION * 0.3, Math.max(0, darkest.lightness - 5))
-        : hslToHex(avgHue, SUBTLE_PALETTE_SATURATION * 0.3, Math.min(100, lightest.lightness + 5));
+        ? hslToHex(
+              avgHue,
+              SUBTLE_PALETTE_SATURATION * 0.3,
+              Math.max(0, darkest.lightness - 5)
+          )
+        : hslToHex(
+              avgHue,
+              SUBTLE_PALETTE_SATURATION * 0.3,
+              Math.min(100, lightest.lightness + 5)
+          );
 
     return palette;
 }
@@ -642,7 +697,10 @@ function generateMonochromePalette(grayColors, lightMode) {
         }
     } else {
         // Dark mode: lighter shades for dark background
-        const startL = Math.max(darkest.lightness + 30, lightest.lightness - 40);
+        const startL = Math.max(
+            darkest.lightness + 30,
+            lightest.lightness - 40
+        );
         const endL = lightest.lightness - 10;
         const step = (endL - startL) / 5;
 
@@ -656,7 +714,11 @@ function generateMonochromePalette(grayColors, lightMode) {
     const color8Lightness = lightMode
         ? Math.max(0, darkest.lightness + 5)
         : Math.min(100, lightest.lightness - 25);
-    palette[8] = hslToHex(baseHue, MONOCHROME_SATURATION * MONOCHROME_COLOR8_SATURATION_FACTOR, color8Lightness);
+    palette[8] = hslToHex(
+        baseHue,
+        MONOCHROME_SATURATION * MONOCHROME_COLOR8_SATURATION_FACTOR,
+        color8Lightness
+    );
 
     // Colors 9-14: Slightly lighter/darker versions of 1-6
     for (let i = 1; i <= 6; i++) {
@@ -694,20 +756,29 @@ function normalizeBrightness(palette) {
         return {index: i, lightness: hsl.l, hue: hsl.h, saturation: hsl.s};
     });
 
-    const avgLightness = ansiColors.reduce((sum, c) => sum + c.lightness, 0) / ansiColors.length;
+    const avgLightness =
+        ansiColors.reduce((sum, c) => sum + c.lightness, 0) / ansiColors.length;
     const isBrightTheme = avgLightness > BRIGHT_THEME_THRESHOLD;
 
     if (isVeryDarkBg) {
         // Very dark background - ensure all colors are bright enough
         for (const colorInfo of ansiColors) {
             if (colorInfo.lightness < MIN_LIGHTNESS_ON_DARK_BG) {
-                const adjustedLightness = MIN_LIGHTNESS_ON_DARK_BG + (colorInfo.index * 3);
-                console.log(`Adjusting color ${colorInfo.index} for dark background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
+                const adjustedLightness =
+                    MIN_LIGHTNESS_ON_DARK_BG + colorInfo.index * 3;
+                console.log(
+                    `Adjusting color ${colorInfo.index} for dark background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
+                );
 
-                palette[colorInfo.index] = adjustColorLightness(palette[colorInfo.index], adjustedLightness);
+                palette[colorInfo.index] = adjustColorLightness(
+                    palette[colorInfo.index],
+                    adjustedLightness
+                );
 
                 if (colorInfo.index >= 1 && colorInfo.index <= 6) {
-                    palette[colorInfo.index + 8] = generateBrightVersion(palette[colorInfo.index]);
+                    palette[colorInfo.index + 8] = generateBrightVersion(
+                        palette[colorInfo.index]
+                    );
                 }
             }
         }
@@ -715,39 +786,66 @@ function normalizeBrightness(palette) {
         // Very light background - ensure all colors are dark enough
         for (const colorInfo of ansiColors) {
             if (colorInfo.lightness > MAX_LIGHTNESS_ON_LIGHT_BG) {
-                const adjustedLightness = Math.max(ABSOLUTE_MIN_LIGHTNESS, MAX_LIGHTNESS_ON_LIGHT_BG - (colorInfo.index * 2));
-                console.log(`Adjusting color ${colorInfo.index} for light background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
+                const adjustedLightness = Math.max(
+                    ABSOLUTE_MIN_LIGHTNESS,
+                    MAX_LIGHTNESS_ON_LIGHT_BG - colorInfo.index * 2
+                );
+                console.log(
+                    `Adjusting color ${colorInfo.index} for light background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
+                );
 
-                palette[colorInfo.index] = adjustColorLightness(palette[colorInfo.index], adjustedLightness);
+                palette[colorInfo.index] = adjustColorLightness(
+                    palette[colorInfo.index],
+                    adjustedLightness
+                );
 
                 if (colorInfo.index >= 1 && colorInfo.index <= 6) {
-                    palette[colorInfo.index + 8] = generateBrightVersion(palette[colorInfo.index]);
+                    palette[colorInfo.index + 8] = generateBrightVersion(
+                        palette[colorInfo.index]
+                    );
                 }
             }
         }
     } else {
         // Normal background - apply outlier detection
-        const outliers = ansiColors.filter(c =>
-            Math.abs(c.lightness - avgLightness) > OUTLIER_LIGHTNESS_THRESHOLD
+        const outliers = ansiColors.filter(
+            c =>
+                Math.abs(c.lightness - avgLightness) >
+                OUTLIER_LIGHTNESS_THRESHOLD
         );
 
         for (const outlier of outliers) {
             let adjustedLightness;
 
-            if (isBrightTheme && outlier.lightness < avgLightness - OUTLIER_LIGHTNESS_THRESHOLD) {
+            if (
+                isBrightTheme &&
+                outlier.lightness < avgLightness - OUTLIER_LIGHTNESS_THRESHOLD
+            ) {
                 adjustedLightness = avgLightness - 10;
-                console.log(`Adjusting dark outlier color ${outlier.index}: ${outlier.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
-            } else if (!isBrightTheme && outlier.lightness > avgLightness + OUTLIER_LIGHTNESS_THRESHOLD) {
+                console.log(
+                    `Adjusting dark outlier color ${outlier.index}: ${outlier.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
+                );
+            } else if (
+                !isBrightTheme &&
+                outlier.lightness > avgLightness + OUTLIER_LIGHTNESS_THRESHOLD
+            ) {
                 adjustedLightness = avgLightness + 10;
-                console.log(`Adjusting bright outlier color ${outlier.index}: ${outlier.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`);
+                console.log(
+                    `Adjusting bright outlier color ${outlier.index}: ${outlier.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
+                );
             } else {
                 continue;
             }
 
-            palette[outlier.index] = adjustColorLightness(palette[outlier.index], adjustedLightness);
+            palette[outlier.index] = adjustColorLightness(
+                palette[outlier.index],
+                adjustedLightness
+            );
 
             if (outlier.index >= 1 && outlier.index <= 6) {
-                palette[outlier.index + 8] = generateBrightVersion(palette[outlier.index]);
+                palette[outlier.index + 8] = generateBrightVersion(
+                    palette[outlier.index]
+                );
             }
         }
     }
@@ -766,7 +864,10 @@ function normalizeBrightness(palette) {
  * @param {boolean} lightMode - Whether to generate light mode palette
  * @returns {Promise<string[]>} Array of 16 ANSI colors
  */
-export async function extractColorsWithImageMagick(imagePath, lightMode = false) {
+export async function extractColorsWithImageMagick(
+    imagePath,
+    lightMode = false
+) {
     try {
         // Check cache first
         const cacheKey = getCacheKey(imagePath, lightMode);
@@ -778,7 +879,10 @@ export async function extractColorsWithImageMagick(imagePath, lightMode = false)
         }
 
         // Extract dominant colors
-        const dominantColors = await extractDominantColors(imagePath, DOMINANT_COLORS_TO_EXTRACT);
+        const dominantColors = await extractDominantColors(
+            imagePath,
+            DOMINANT_COLORS_TO_EXTRACT
+        );
 
         if (dominantColors.length < 8) {
             throw new Error('Not enough colors extracted from image');
@@ -788,13 +892,19 @@ export async function extractColorsWithImageMagick(imagePath, lightMode = false)
 
         // Generate palette based on image characteristics
         if (isMonochromeImage(dominantColors)) {
-            console.log('Detected monochrome/grayscale image - generating grayscale palette');
+            console.log(
+                'Detected monochrome/grayscale image - generating grayscale palette'
+            );
             palette = generateMonochromePalette(dominantColors, lightMode);
         } else if (hasLowColorDiversity(dominantColors)) {
-            console.log('Detected low color diversity - generating subtle balanced palette');
+            console.log(
+                'Detected low color diversity - generating subtle balanced palette'
+            );
             palette = generateSubtleBalancedPalette(dominantColors, lightMode);
         } else {
-            console.log('Detected diverse chromatic image - generating vibrant colorful palette');
+            console.log(
+                'Detected diverse chromatic image - generating vibrant colorful palette'
+            );
             palette = generateChromaticPalette(dominantColors, lightMode);
         }
 
@@ -822,7 +932,11 @@ function generateChromaticPalette(dominantColors, lightMode) {
     const background = findBackgroundColor(dominantColors, lightMode);
     const usedIndices = new Set([background.index]);
 
-    const foreground = findForegroundColor(dominantColors, lightMode, usedIndices);
+    const foreground = findForegroundColor(
+        dominantColors,
+        lightMode,
+        usedIndices
+    );
     usedIndices.add(foreground.index);
 
     const palette = new Array(ANSI_PALETTE_SIZE);
@@ -831,7 +945,11 @@ function generateChromaticPalette(dominantColors, lightMode) {
 
     // Find best matches for ANSI colors 1-6
     for (let i = 0; i < ANSI_HUE_ARRAY.length; i++) {
-        const matchIndex = findBestColorMatch(ANSI_HUE_ARRAY[i], dominantColors, usedIndices);
+        const matchIndex = findBestColorMatch(
+            ANSI_HUE_ARRAY[i],
+            dominantColors,
+            usedIndices
+        );
         palette[i + 1] = dominantColors[matchIndex];
         usedIndices.add(matchIndex);
     }
@@ -861,7 +979,12 @@ function generateChromaticPalette(dominantColors, lightMode) {
  * @param {Function} onSuccess - Callback when colors are extracted
  * @param {Function} onError - Callback when extraction fails
  */
-export function extractColorsFromWallpaperIM(imagePath, lightMode, onSuccess, onError) {
+export function extractColorsFromWallpaperIM(
+    imagePath,
+    lightMode,
+    onSuccess,
+    onError
+) {
     extractColorsWithImageMagick(imagePath, lightMode)
         .then(colors => onSuccess(colors))
         .catch(error => onError(error));

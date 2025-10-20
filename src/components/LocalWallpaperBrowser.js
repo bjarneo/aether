@@ -281,16 +281,13 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         }
 
         _selectWallpaper() {
-            uploadWallpaper(
-                this.get_root(),
-                (destPath) => {
-                    // Refresh the browser to show the new wallpaper
-                    this._loadWallpapersAsync();
+            uploadWallpaper(this.get_root(), destPath => {
+                // Refresh the browser to show the new wallpaper
+                this._loadWallpapersAsync();
 
-                    // Emit signal with the new path in ~/Wallpapers
-                    this.emit('wallpaper-selected', destPath);
-                }
-            );
+                // Emit signal with the new path in ~/Wallpapers
+                this.emit('wallpaper-selected', destPath);
+            });
         }
     }
 );

@@ -242,7 +242,10 @@ export function createSymlink(sourcePath, symlinkPath, label = 'symlink') {
                 symlinkFile.delete(null);
                 console.log(`Removed existing ${label} symlink`);
             } catch (e) {
-                console.error(`Error removing existing ${label} symlink:`, e.message);
+                console.error(
+                    `Error removing existing ${label} symlink:`,
+                    e.message
+                );
             }
         }
 
@@ -250,7 +253,9 @@ export function createSymlink(sourcePath, symlinkPath, label = 'symlink') {
         try {
             const symlinkGFile = Gio.File.new_for_path(symlinkPath);
             symlinkGFile.make_symbolic_link(sourcePath, null);
-            console.log(`Created ${label} symlink: ${symlinkPath} -> ${sourcePath}`);
+            console.log(
+                `Created ${label} symlink: ${symlinkPath} -> ${sourcePath}`
+            );
             return true;
         } catch (e) {
             console.error(`Error creating ${label} symlink:`, e.message);

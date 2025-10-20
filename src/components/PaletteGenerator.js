@@ -352,7 +352,9 @@ export const PaletteGenerator = GObject.registerClass(
                 child: applyWallpaperButtonBox,
                 tooltip_text: 'Apply wallpaper to the desktop',
             });
-            this._applyWallpaperBtn.connect('clicked', () => this.emit('apply-wallpaper'));
+            this._applyWallpaperBtn.connect('clicked', () =>
+                this.emit('apply-wallpaper')
+            );
             buttonBox.append(this._applyWallpaperBtn);
 
             // Loading spinner
@@ -513,13 +515,10 @@ export const PaletteGenerator = GObject.registerClass(
         }
 
         _uploadWallpaper() {
-            uploadWallpaper(
-                this.get_root(),
-                (destPath) => {
-                    // Load the wallpaper from ~/Wallpapers
-                    this.loadWallpaperWithoutExtraction(destPath);
-                }
-            );
+            uploadWallpaper(this.get_root(), destPath => {
+                // Load the wallpaper from ~/Wallpapers
+                this.loadWallpaperWithoutExtraction(destPath);
+            });
         }
 
         loadWallpaper(path) {
@@ -590,7 +589,10 @@ export const PaletteGenerator = GObject.registerClass(
                     this._showLoading(false);
                 },
                 error => {
-                    console.error('Error extracting colors with ImageMagick:', error.message);
+                    console.error(
+                        'Error extracting colors with ImageMagick:',
+                        error.message
+                    );
                     this._showLoading(false);
                 }
             );
