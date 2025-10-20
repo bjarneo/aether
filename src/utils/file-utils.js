@@ -221,3 +221,48 @@ export function saveJsonFile(path, data, pretty = true) {
         return false;
     }
 }
+
+/**
+ * Creates a symbolic link, with fallback to file copy if symlink fails
+ * @param {string} sourcePath - Source file path (target of the symlink)
+ * @param {string} symlinkPath - Path where symlink should be created
+ * @param {string} label - Optional label for logging (default: 'symlink')
+ * @returns {boolean} Success status
+ */
+export function createSymlink(sourcePath, symlinkPath, label = 'symlink') {
+    try {
+        // Ensure parent directory exists
+        const parentDir = GLib.path_get_dirname(symlinkPath);
+        ensureDirectoryExists(parentDir);
+
+        // Remove existing symlink or file if it exists
+        const symlinkFile = Gio.File.new_for_path(symlinkPath);
+        if (symlinkFile.query_exists(null)) {
+            try {
+                symlinkFile.delete(null);
+                console.log(`Removed existing ${label} symlink`);
+            } catch (e) {
+                console.error(`Error removing existing ${label} symlink:`, e.message);
+            }
+        }
+
+        // Create symlink
+        try {
+            const symlinkGFile = Gio.File.new_for_path(symlinkPath);
+            symlinkGFile.make_symbolic_link(sourcePath, null);
+            console.log(`Created ${label} symlink: ${symlinkPath} -> ${sourcePath}`);
+            return true;
+        } catch (e) {
+            console.error(`Error creating ${label} symlink:`, e.message);
+            // Fallback: copy the file if symlink fails
+            const copied = copyFile(sourcePath, symlinkPath);
+            if (copied) {
+                console.log(`Fallback: Copied file to ${symlinkPath}`);
+            }
+            return copied;
+        }
+    } catch (e) {
+        console.error(`Error creating ${label} symlink:`, e.message);
+        return false;
+    }
+}

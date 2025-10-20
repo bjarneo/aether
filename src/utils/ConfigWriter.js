@@ -8,8 +8,10 @@ import {
     ensureDirectoryExists,
     cleanDirectory,
     enumerateDirectory,
+    createSymlink,
 } from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
+import {restartSwaybg} from './service-manager.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
 import {getAppNameFromFileName} from '../constants/templates.js';
 
@@ -418,35 +420,8 @@ export class ConfigWriter {
                 'theme.override.css',
             ]);
 
-            // Ensure aether config directory exists
-            ensureDirectoryExists(aetherConfigDir);
-
-            // Remove existing symlink or file if it exists
-            const symlinkFile = Gio.File.new_for_path(symlinkPath);
-            if (symlinkFile.query_exists(null)) {
-                try {
-                    symlinkFile.delete(null);
-                } catch (e) {
-                    console.error(
-                        'Error removing existing theme.override.css:',
-                        e.message
-                    );
-                }
-            }
-
-            // Create symlink
-            try {
-                const symlinkGFile = Gio.File.new_for_path(symlinkPath);
-                symlinkGFile.make_symbolic_link(themeOverridePath, null);
-                console.log(
-                    `Created symlink: ${symlinkPath} -> ${themeOverridePath}`
-                );
-            } catch (e) {
-                console.error('Error creating symlink:', e.message);
-                // Fallback: copy the file if symlink fails
-                copyFile(themeOverridePath, symlinkPath);
-                console.log(`Fallback: Copied file to ${symlinkPath}`);
-            }
+            // Create symlink from ~/.config/aether/theme.override.css to the generated file
+            createSymlink(themeOverridePath, symlinkPath, 'theme override');
 
             console.log(
                 `Applied Aether theme override to ${themeOverridePath}`
@@ -599,45 +574,11 @@ export class ConfigWriter {
                     'current',
                     'background',
                 ]);
-                this._createSymlink(wallpaperPath, symlinkPath, 'wallpaper');
-                GLib.spawn_command_line_async('pkill -x swaybg');
-                GLib.spawn_command_line_async(`swaybg -i "${wallpaperPath}" -m fill`);
+                createSymlink(wallpaperPath, symlinkPath, 'wallpaper');
+                restartSwaybg(wallpaperPath);
             }
         } catch (e) {
             console.error('Error applying wallpaper:', e.message);
-        }
-    }
-
-    _createSymlink(sourcePath, symlinkPath, label = 'symlink') {
-        try {
-            // Ensure parent directory exists
-            const parentDir = GLib.path_get_dirname(symlinkPath);
-            ensureDirectoryExists(parentDir);
-
-            // Remove existing symlink or file if it exists
-            const symlinkFile = Gio.File.new_for_path(symlinkPath);
-            if (symlinkFile.query_exists(null)) {
-                try {
-                    symlinkFile.delete(null);
-                    console.log(`Removed existing ${label} symlink`);
-                } catch (e) {
-                    console.error(`Error removing existing ${label} symlink:`, e.message);
-                }
-            }
-
-            // Create symlink
-            try {
-                const symlinkGFile = Gio.File.new_for_path(symlinkPath);
-                symlinkGFile.make_symbolic_link(sourcePath, null);
-                console.log(`Created ${label} symlink: ${symlinkPath} -> ${sourcePath}`);
-            } catch (e) {
-                console.error(`Error creating ${label} symlink:`, e.message);
-                // Fallback: copy the file if symlink fails
-                copyFile(sourcePath, symlinkPath);
-                console.log(`Fallback: Copied file to ${symlinkPath}`);
-            }
-        } catch (e) {
-            console.error(`Error creating ${label} symlink:`, e.message);
         }
     }
 }
