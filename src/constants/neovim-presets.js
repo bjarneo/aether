@@ -62,6 +62,26 @@ export const NEOVIM_PRESETS = [
 }`,
     },
     {
+        name: 'Gruvbox Material',
+        author: 'sainnhe',
+        config: `return {
+\t{
+\t\t"sainnhe/gruvbox-material",
+\t\tpriority = 1000,
+\t\tconfig = function()
+\t\t\tvim.g.gruvbox_material_background = "hard"
+\t\t\tvim.g.gruvbox_material_transparent_background = 1
+\t\tend,
+\t},
+\t{
+\t\t"LazyVim/LazyVim",
+\t\topts = {
+\t\t\tcolorscheme = "gruvbox-material",
+\t\t},
+\t},
+}`,
+    },
+    {
         name: 'Rose Pine',
         author: 'rose-pine',
         config: `return {
