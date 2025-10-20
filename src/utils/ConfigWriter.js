@@ -587,4 +587,57 @@ export class ConfigWriter {
             console.error('Error applying omarchy theme:', e.message);
         }
     }
+
+    applyWallpaper(wallpaperPath) {
+        try {
+            console.log('Applying wallpaper from path:', wallpaperPath);
+            if (wallpaperPath) {
+                // Create symlink ~/.config/omarchy/current/background -> wallpaperPath
+                const symlinkPath = GLib.build_filenamev([
+                    this.configDir,
+                    'omarchy',
+                    'current',
+                    'background',
+                ]);
+                this._createSymlink(wallpaperPath, symlinkPath, 'wallpaper');
+                GLib.spawn_command_line_async('pkill -x swaybg');
+                GLib.spawn_command_line_async(`swaybg -i "${wallpaperPath}" -m fill`);
+            }
+        } catch (e) {
+            console.error('Error applying wallpaper:', e.message);
+        }
+    }
+
+    _createSymlink(sourcePath, symlinkPath, label = 'symlink') {
+        try {
+            // Ensure parent directory exists
+            const parentDir = GLib.path_get_dirname(symlinkPath);
+            ensureDirectoryExists(parentDir);
+
+            // Remove existing symlink or file if it exists
+            const symlinkFile = Gio.File.new_for_path(symlinkPath);
+            if (symlinkFile.query_exists(null)) {
+                try {
+                    symlinkFile.delete(null);
+                    console.log(`Removed existing ${label} symlink`);
+                } catch (e) {
+                    console.error(`Error removing existing ${label} symlink:`, e.message);
+                }
+            }
+
+            // Create symlink
+            try {
+                const symlinkGFile = Gio.File.new_for_path(symlinkPath);
+                symlinkGFile.make_symbolic_link(sourcePath, null);
+                console.log(`Created ${label} symlink: ${symlinkPath} -> ${sourcePath}`);
+            } catch (e) {
+                console.error(`Error creating ${label} symlink:`, e.message);
+                // Fallback: copy the file if symlink fails
+                copyFile(sourcePath, symlinkPath);
+                console.log(`Fallback: Copied file to ${symlinkPath}`);
+            }
+        } catch (e) {
+            console.error(`Error creating ${label} symlink:`, e.message);
+        }
+    }
 }
