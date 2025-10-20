@@ -19,20 +19,34 @@ jobs:
 
       - name: Generate Changelog
         id: changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Get the previous tag
           PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n 1)
-          
+
           if [ -z "$PREVIOUS_TAG" ]; then
             echo "No previous tag found, showing all commits"
             PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
           fi
-          
+
           echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
-          
-          # Generate changelog with commit title, author, and link
-          CHANGELOG=$(git log $PREVIOUS_TAG..${{ github.ref_name }} --pretty=format:"- %s by %an ([%h](https://github.com/${{ github.repository }}/commit/%H))" --no-merges)
-          
+
+          # Generate changelog with commit title, author name, username, and link
+          CHANGELOG=""
+          while IFS='|' read -r hash title author email; do
+            # Try to get GitHub username from commit
+            username=$(gh api "repos/${{ github.repository }}/commits/$hash" --jq '.author.login' 2>/dev/null || echo "")
+
+            if [ -n "$username" ]; then
+              author_info="$author (@$username)"
+            else
+              author_info="$author"
+            fi
+
+            CHANGELOG="${CHANGELOG}- $title by $author_info ([$hash](https://github.com/${{ github.repository }}/commit/$hash))"$'\n'
+          done < <(git log $PREVIOUS_TAG..${{ github.ref_name }} --pretty=format:"%H|%s|%an|%ae" --no-merges)
+
           # Save to file and environment variable
           echo "$CHANGELOG" > changelog.md
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
