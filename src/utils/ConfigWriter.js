@@ -11,7 +11,7 @@ import {
     createSymlink,
 } from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
-import {restartSwaybg} from './service-manager.js';
+import {restartSwaybg, copyVencordTheme} from './service-manager.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
 import {getAppNameFromFileName} from '../constants/templates.js';
 
@@ -61,6 +61,11 @@ export class ConfigWriter {
             // Only apply GTK theming if enabled
             if (settings.includeGtk === true) {
                 this._createGtkSymlinks();
+            }
+
+            // Copy Vencord theme to all existing installations if enabled
+            if (settings.includeVencord === true) {
+                this._copyVencordTheme();
             }
 
             this._handleLightModeMarker(this.themeDir, lightMode);
@@ -408,7 +413,12 @@ export class ConfigWriter {
             ]);
 
             // Process the template with color variables
-            this._processTemplate(templatePath, themeOverridePath, variables);
+            this._processTemplate(
+                templatePath,
+                themeOverridePath,
+                variables,
+                'aether.override.css'
+            );
 
             // Create symlink from ~/.config/aether/theme.override.css to the generated file
             const aetherConfigDir = GLib.build_filenamev([
@@ -481,6 +491,29 @@ export class ConfigWriter {
             console.log('GTK files copied successfully');
         } catch (e) {
             console.error('Error copying GTK files:', e.message);
+        }
+    }
+
+    _copyVencordTheme() {
+        try {
+            const vencordSourcePath = GLib.build_filenamev([
+                this.themeDir,
+                'vencord.theme.css',
+            ]);
+
+            // Check if source file exists
+            const sourceFile = Gio.File.new_for_path(vencordSourcePath);
+            if (!sourceFile.query_exists(null)) {
+                console.log(
+                    'vencord.theme.css not found in theme directory, skipping Vencord copy'
+                );
+                return;
+            }
+
+            // Copy to all existing Vencord/Vesktop installations
+            copyVencordTheme(vencordSourcePath);
+        } catch (e) {
+            console.error('Error copying Vencord theme:', e.message);
         }
     }
 
