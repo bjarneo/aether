@@ -459,3 +459,498 @@ Actions: destructive_bg_color, success_bg_color, warning_bg_color, error_bg_colo
 ```
 
 See `templates/aether.override.css` for complete color → GTK variable mappings.
+
+---
+
+## Code Quality Standards & Refactoring Principles
+
+This section defines the coding standards and best practices for maintaining Aether's codebase. All contributions should follow these principles.
+
+### Type Safety & Documentation (JSDoc)
+
+**Requirements:**
+- Add comprehensive JSDoc to all exported functions and classes
+- Document parameters with types, return values, and potential exceptions
+- Describe complex data structures with inline type definitions
+- Document GLib/Gio/GTK-specific behavior and requirements
+
+**Example:**
+```javascript
+/**
+ * Extracts colors from a wallpaper using ImageMagick
+ * @param {string} wallpaperPath - Absolute path to wallpaper image
+ * @param {boolean} lightMode - Whether to extract for light theme
+ * @param {Object} options - Extraction options
+ * @param {number} [options.vibrance=0] - Vibrance adjustment (-100 to 100)
+ * @param {number} [options.contrast=0] - Contrast adjustment (-100 to 100)
+ * @returns {Promise<string[]>} Array of 16 hex color strings
+ * @throws {Error} If ImageMagick is not installed or wallpaper doesn't exist
+ */
+async function extractColorsFromWallpaperIM(wallpaperPath, lightMode, options = {}) {
+    // Implementation
+}
+```
+
+### Modern Immutability & Functional Purity
+
+**Rules:**
+- Use `const` and `let` exclusively. Never use `var`
+- Minimize direct mutation of objects or arrays
+- Favor non-mutating array methods: `map()`, `filter()`, `reduce()`, `slice()`, `concat()`
+- Use spread operator (`...`) for cloning/updating state
+- Keep helper functions pure (no side effects) when possible
+
+**Good:**
+```javascript
+// Immutable array operations
+const newColors = [...existingColors, newColor];
+const filtered = colors.filter(c => c !== targetColor);
+const updated = colors.map(c => c === oldColor ? newColor : c);
+
+// Object immutability
+const newState = { ...oldState, isLoading: false };
+```
+
+**Bad:**
+```javascript
+// Direct mutation
+existingColors.push(newColor);
+colors[5] = newColor;
+oldState.isLoading = false;
+```
+
+### Asynchronous Code Flow
+
+**Requirements:**
+- Use `async`/`await` for all asynchronous operations
+- Avoid callback patterns and `.then()` chains
+- Use `Promise.all()` for parallel operations
+- Handle errors with `try...catch` blocks
+
+**Good:**
+```javascript
+async function loadMultipleImages(paths) {
+    try {
+        const images = await Promise.all(
+            paths.map(path => loadImage(path))
+        );
+        return images;
+    } catch (error) {
+        console.error('Failed to load images:', error);
+        throw error;
+    }
+}
+```
+
+**Bad:**
+```javascript
+function loadMultipleImages(paths, callback) {
+    let loaded = 0;
+    const images = [];
+    paths.forEach(path => {
+        loadImage(path).then(img => {
+            images.push(img);
+            loaded++;
+            if (loaded === paths.length) {
+                callback(images);
+            }
+        }).catch(err => {
+            console.error(err);
+        });
+    });
+}
+```
+
+### Modularity (ES Modules)
+
+**Requirements:**
+- Structure code using clear ES Module syntax (`import`/`export`)
+- Group related functionality into small, single-purpose modules
+- Avoid circular dependencies
+- Use named exports for utilities, default export for main class/component
+
+**File organization:**
+```javascript
+// utils/color-operations.js - Single responsibility
+export function hexToRgb(hex) { /* ... */ }
+export function rgbToHsl(r, g, b) { /* ... */ }
+export function hslToRgb(h, s, l) { /* ... */ }
+
+// components/ColorPicker.js - Default export for main component
+import { hexToRgb, rgbToHsl } from '../utils/color-operations.js';
+
+export default class ColorPicker extends Gtk.Widget {
+    // Implementation
+}
+```
+
+### Robust Error Handling
+
+**Requirements:**
+- Implement strategic `try...catch` blocks around I/O, network requests, and error-prone operations
+- Errors must be logged clearly with context
+- Re-throw errors or handle gracefully with sensible defaults
+- Use custom error classes for specific error types
+
+**Pattern:**
+```javascript
+class WallpaperNotFoundError extends Error {
+    constructor(path) {
+        super(`Wallpaper not found: ${path}`);
+        this.name = 'WallpaperNotFoundError';
+        this.path = path;
+    }
+}
+
+async function loadWallpaper(path) {
+    try {
+        const file = Gio.File.new_for_path(path);
+
+        if (!file.query_exists(null)) {
+            throw new WallpaperNotFoundError(path);
+        }
+
+        const [success, contents] = file.load_contents(null);
+        if (!success) {
+            throw new Error(`Failed to load wallpaper: ${path}`);
+        }
+
+        return contents;
+    } catch (error) {
+        console.error(`Error loading wallpaper from ${path}:`, error);
+
+        if (error instanceof WallpaperNotFoundError) {
+            // Handle missing file gracefully
+            return getDefaultWallpaper();
+        }
+
+        throw error; // Re-throw unexpected errors
+    }
+}
+```
+
+### Readability & Conciseness
+
+**Naming conventions:**
+- Use descriptive camelCase names for variables, functions, and parameters
+- Use PascalCase for classes and components
+- Prefix private methods with underscore: `_privateMethod()`
+- Use SCREAMING_SNAKE_CASE for constants
+
+**Good practices:**
+- Use object and array destructuring for clarity
+- Use optional chaining (`?.`) and nullish coalescing (`??`) appropriately
+- Prefer ternary operators only when they improve readability
+- Keep functions small and focused (ideally < 50 lines)
+
+**Examples:**
+```javascript
+// Destructuring
+const { wallpaper, colors, lightMode } = blueprint.palette;
+const [red, green, blue] = hexToRgb(color);
+
+// Optional chaining
+const apiKey = config?.wallhaven?.apiKey ?? null;
+
+// Clear ternary
+const brightness = lightMode ? 0.9 : 0.1;
+```
+
+### Separation of Concerns (SoC)
+
+**Principle:** Each module, class, or function should have a single, well-defined responsibility.
+
+**Component responsibilities:**
+- **UI Components**: Rendering, user interaction, signal emission only
+- **Services**: Business logic, API communication, data persistence
+- **Utils**: Pure functions, data transformations, calculations
+- **Managers**: Orchestration, lifecycle management, state coordination
+
+**Red flags (violations):**
+- UI components performing file I/O directly
+- Utility functions with side effects (logging, network calls)
+- Components managing their own persistence
+- Mixed rendering and business logic in same method
+
+**Refactoring strategy:**
+```javascript
+// BAD: Mixed concerns
+class WallpaperBrowser extends Gtk.Widget {
+    async _onWallpaperClick(wallpaper) {
+        // Concern 1: Network I/O
+        const response = await fetch(wallpaper.url);
+        const blob = await response.blob();
+
+        // Concern 2: File system I/O
+        const cachePath = GLib.build_filenamev([GLib.get_user_cache_dir(), 'aether']);
+        GLib.mkdir_with_parents(cachePath, 0o755);
+        const file = Gio.File.new_for_path(`${cachePath}/${wallpaper.id}.jpg`);
+        file.replace_contents(blob, null, false, Gio.FileCreateFlags.NONE, null);
+
+        // Concern 3: State update
+        this._currentWallpaper = wallpaper;
+
+        // Concern 4: Signal emission
+        this.emit('wallpaper-selected', file.get_path());
+    }
+}
+
+// GOOD: Separated concerns
+class WallpaperBrowser extends Gtk.Widget {
+    async _onWallpaperClick(wallpaper) {
+        try {
+            // Delegate to service
+            const localPath = await this._downloadService.downloadWallpaper(wallpaper);
+
+            // Update state
+            this._currentWallpaper = wallpaper;
+
+            // Emit signal
+            this.emit('wallpaper-selected', localPath);
+        } catch (error) {
+            this._showError(`Failed to download wallpaper: ${error.message}`);
+        }
+    }
+}
+
+// Separate service handles download logic
+class WallpaperDownloadService {
+    async downloadWallpaper(wallpaper) {
+        const response = await this._fetchWallpaper(wallpaper.url);
+        const cachePath = this._ensureCacheDirectory();
+        return await this._saveToCache(response, cachePath, wallpaper.id);
+    }
+}
+```
+
+### DRY (Don't Repeat Yourself)
+
+**Principle:** Avoid code duplication. Extract common patterns into reusable functions.
+
+**Common violations in Aether:**
+1. File I/O patterns (loading JSON, saving configs)
+2. Toast notifications
+3. Signal handler blocking/unblocking
+4. Directory creation
+5. Color conversions
+
+**Solutions:**
+```javascript
+// utils/file-helpers.js - Consolidated file operations
+export async function loadJsonFile(path, defaultValue = null) {
+    try {
+        const file = Gio.File.new_for_path(path);
+        if (!file.query_exists(null)) return defaultValue;
+
+        const [success, contents] = file.load_contents(null);
+        if (!success) return defaultValue;
+
+        const text = new TextDecoder('utf-8').decode(contents);
+        return JSON.parse(text);
+    } catch (error) {
+        console.error(`Failed to load JSON from ${path}:`, error);
+        return defaultValue;
+    }
+}
+
+// utils/ui-helpers.js - Toast notification helper
+export function showToast(widget, message, timeout = 2) {
+    const toast = new Adw.Toast({ title: message, timeout });
+    const toastOverlay = findAncestor(widget, Adw.ToastOverlay);
+
+    if (toastOverlay) {
+        toastOverlay.add_toast(toast);
+    }
+}
+
+// utils/signal-helpers.js - Signal management
+export function updateWithoutSignal(widget, signalId, updateFn) {
+    GObject.signal_handler_block(widget, signalId);
+    updateFn();
+    GObject.signal_handler_unblock(widget, signalId);
+}
+```
+
+### Avoid Nested If Statements
+
+**Principle:** Reduce cognitive complexity by avoiding deep nesting (3+ levels).
+
+**Techniques:**
+1. **Early returns (guard clauses)**
+2. **Extract to separate functions**
+3. **Use logical operators**
+4. **Invert conditions**
+
+**Bad (3-level nesting):**
+```javascript
+async function processWallpaper(path) {
+    if (path) {
+        const file = Gio.File.new_for_path(path);
+        if (file.query_exists(null)) {
+            const [success, contents] = file.load_contents(null);
+            if (success) {
+                return processImage(contents);
+            } else {
+                console.error('Failed to load file');
+            }
+        } else {
+            console.error('File does not exist');
+        }
+    } else {
+        console.error('No path provided');
+    }
+}
+```
+
+**Good (early returns):**
+```javascript
+async function processWallpaper(path) {
+    if (!path) {
+        console.error('No path provided');
+        return null;
+    }
+
+    const file = Gio.File.new_for_path(path);
+    if (!file.query_exists(null)) {
+        console.error('File does not exist');
+        return null;
+    }
+
+    const [success, contents] = file.load_contents(null);
+    if (!success) {
+        console.error('Failed to load file');
+        return null;
+    }
+
+    return processImage(contents);
+}
+```
+
+**Good (extracted functions):**
+```javascript
+function validateWallpaperPath(path) {
+    if (!path) throw new Error('No path provided');
+
+    const file = Gio.File.new_for_path(path);
+    if (!file.query_exists(null)) throw new Error('File does not exist');
+
+    return file;
+}
+
+function loadFileContents(file) {
+    const [success, contents] = file.load_contents(null);
+    if (!success) throw new Error('Failed to load file');
+    return contents;
+}
+
+async function processWallpaper(path) {
+    try {
+        const file = validateWallpaperPath(path);
+        const contents = loadFileContents(file);
+        return processImage(contents);
+    } catch (error) {
+        console.error(`Failed to process wallpaper: ${error.message}`);
+        return null;
+    }
+}
+```
+
+### Performance Considerations
+
+**GJS-specific optimizations:**
+- Minimize GObject property lookups in loops
+- Cache widget references instead of repeated lookups
+- Use `GLib.idle_add()` for deferred UI updates
+- Batch DOM-like operations when possible
+- Disconnect signal handlers when widgets are destroyed
+
+**Example:**
+```javascript
+// Bad: Repeated property access
+for (let i = 0; i < 1000; i++) {
+    this.get_parent().get_parent().do_something(i);
+}
+
+// Good: Cache reference
+const target = this.get_parent().get_parent();
+for (let i = 0; i < 1000; i++) {
+    target.do_something(i);
+}
+```
+
+### File Size Guidelines
+
+**Target maximum file sizes:**
+- **Components**: 400-500 lines (split if larger)
+- **Services**: 300-400 lines
+- **Utils**: 300-400 lines
+- **Data files** (presets, constants): No limit
+
+**If a file exceeds guidelines:**
+1. Identify separate concerns
+2. Extract to separate modules
+3. Use composition over inheritance
+4. Create manager classes for orchestration
+
+### Testing & Validation
+
+**Before committing code:**
+- [ ] All functions have JSDoc documentation
+- [ ] No nested if statements (3+ levels)
+- [ ] No code duplication (DRY violations)
+- [ ] Single responsibility per module (SoC)
+- [ ] Used `async`/`await` instead of callbacks
+- [ ] Proper error handling with `try...catch`
+- [ ] Descriptive variable and function names
+- [ ] File size under recommended limits
+
+---
+
+## Known Refactoring Opportunities
+
+This section tracks identified areas needing improvement. When refactoring, prioritize items marked **[HIGH PRIORITY]**.
+
+### Large Files Needing Splitting
+
+1. **[HIGH PRIORITY]** `src/components/WallpaperBrowser.js` (1,246 lines)
+   - Extract: `WallhavenCacheManager`, `WallpaperDownloadManager`, `ResponsiveGridManager`
+
+2. **[HIGH PRIORITY]** `src/utils/imagemagick-color-extraction.js` (991 lines)
+   - Extract: Brightness normalization functions, color classification logic
+
+3. `src/components/SettingsSidebar.js` (900 lines)
+   - Extract: `SettingsManager`, `SettingsUIBuilder`, `PresetHandler`
+
+4. `src/components/PaletteGenerator.js` (879 lines)
+   - Extract: `WallpaperBrowserManager` for tab management
+
+5. `src/utils/ConfigWriter.js` (771 lines)
+   - Extract: Theme applier classes (`GtkThemeApplier`, `VencordThemeApplier`, etc.)
+
+### Common Pattern Extraction Needed
+
+- [ ] File I/O patterns (15+ duplications) → Use `file-utils.js` consistently
+- [ ] Toast notifications (8+ duplications) → Create `showToast()` helper
+- [ ] Signal blocking/unblocking (7+ duplications) → Create `updateWithoutSignal()` helper
+- [ ] Directory creation (10+ duplications) → Use `ensureDirectoryExists()` consistently
+- [ ] Color HSL conversion (20+ duplications) → Consolidate in `color-utils.js`
+
+### Documentation Gaps
+
+Files missing JSDoc documentation:
+- `src/components/WallpaperBrowser.js`
+- `src/components/SettingsSidebar.js`
+- `src/components/PaletteGenerator.js`
+- `src/main.js`
+- `src/components/BlueprintManagerWindow.js`
+- `src/utils/ConfigWriter.js`
+- `src/utils/image-filter-utils.js`
+- `src/services/theme-manager.js`
+
+### Nested Conditionals to Refactor
+
+- `src/utils/imagemagick-color-extraction.js:763-851` (brightness normalization)
+- `src/components/WallpaperBrowser.js:824-846` (config loading)
+- `src/utils/ConfigWriter.js:129-200` (template processing)
+
+---
