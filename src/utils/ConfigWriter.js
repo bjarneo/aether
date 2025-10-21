@@ -58,7 +58,7 @@ export class ConfigWriter {
                 this._copyWallpaper(wallpaperPath);
             }
 
-            const variables = this._buildVariables(colorRoles);
+            const variables = this._buildVariables(colorRoles, lightMode);
             this._processTemplates(variables, settings, appOverrides);
             this._applyAetherThemeOverride(variables);
 
@@ -75,6 +75,11 @@ export class ConfigWriter {
             // Copy Zed theme if enabled
             if (settings.includeZed === true) {
                 this._copyZedTheme();
+            }
+
+            // Copy VSCode theme if enabled
+            if (settings.includeVscode === true) {
+                this._copyVscodeTheme(variables);
             }
 
             this._handleLightModeMarker(this.themeDir, lightMode);
@@ -107,13 +112,16 @@ export class ConfigWriter {
         return destPath;
     }
 
-    _buildVariables(colorRoles) {
+    _buildVariables(colorRoles, lightMode = false) {
         const variables = {};
 
         // Use default colors as fallback
         Object.keys(DEFAULT_COLORS).forEach(key => {
             variables[key] = colorRoles[key] || DEFAULT_COLORS[key];
         });
+
+        // Add theme type for VSCode and other templates
+        variables.theme_type = lightMode ? 'light' : 'dark';
 
         return variables;
     }
@@ -155,6 +163,25 @@ export class ConfigWriter {
                     this.themeDir,
                     fileName,
                 ]);
+
+                // Handle vscode.empty.json - use when VSCode is disabled
+                if (fileName === 'vscode.empty.json') {
+                    if (settings.includeVscode === false) {
+                        // Write empty vscode.json when disabled
+                        const vscodeOutputPath = GLib.build_filenamev([
+                            this.themeDir,
+                            'vscode.json',
+                        ]);
+                        this._processTemplate(
+                            templatePath,
+                            vscodeOutputPath,
+                            variables,
+                            'vscode.empty.json',
+                            appOverrides
+                        );
+                    }
+                    return;
+                }
 
                 // If this is neovim.lua and a custom config is selected, write it directly
                 if (
@@ -305,7 +332,7 @@ export class ConfigWriter {
                 console.log(`Copied wallpaper to: ${destPath}`);
             }
 
-            const variables = this._buildVariables(colorRoles);
+            const variables = this._buildVariables(colorRoles, lightMode);
             this._processTemplatesToDirectory(
                 variables,
                 exportPath,
@@ -361,6 +388,25 @@ export class ConfigWriter {
                 }
 
                 const outputPath = GLib.build_filenamev([exportPath, fileName]);
+
+                // Handle vscode.empty.json - use when VSCode is disabled
+                if (fileName === 'vscode.empty.json') {
+                    if (settings.includeVscode === false) {
+                        // Write empty vscode.json when disabled
+                        const vscodeOutputPath = GLib.build_filenamev([
+                            exportPath,
+                            'vscode.json',
+                        ]);
+                        this._processTemplate(
+                            templatePath,
+                            vscodeOutputPath,
+                            variables,
+                            'vscode.empty.json',
+                            appOverrides
+                        );
+                    }
+                    return;
+                }
 
                 // If this is neovim.lua and a custom config is selected, write it directly
                 if (
@@ -563,6 +609,66 @@ export class ConfigWriter {
         } catch (e) {
             console.error('Error copying Zed theme:', e.message);
         }
+    }
+
+    _copyVscodeTheme(variables) {
+        try {
+            const homeDir = GLib.get_home_dir();
+            const vscodeExtensionPath = GLib.build_filenamev([
+                homeDir,
+                '.vscode',
+                'extensions',
+                'theme-aether',
+            ]);
+
+            // Ensure the extension directory exists
+            ensureDirectoryExists(vscodeExtensionPath);
+
+            // Process the entire vscode-extension folder from templates
+            const vscodeTemplateDir = GLib.build_filenamev([
+                this.templatesDir,
+                'vscode-extension',
+            ]);
+
+            // Copy and process all files from vscode-extension template
+            this._copyVscodeExtensionDirectory(
+                vscodeTemplateDir,
+                vscodeExtensionPath,
+                variables
+            );
+
+            console.log(
+                `Installed VSCode extension to: ${vscodeExtensionPath}`
+            );
+        } catch (e) {
+            console.error('Error copying VSCode theme:', e.message);
+        }
+    }
+
+    _copyVscodeExtensionDirectory(sourceDir, destDir, variables) {
+        enumerateDirectory(sourceDir, (fileInfo, filePath, fileName) => {
+            const fileType = fileInfo.get_file_type();
+
+            if (fileType === Gio.FileType.DIRECTORY) {
+                // Recursively process subdirectories
+                const subSourceDir = GLib.build_filenamev([
+                    sourceDir,
+                    fileName,
+                ]);
+                const subDestDir = GLib.build_filenamev([destDir, fileName]);
+                ensureDirectoryExists(subDestDir);
+                this._copyVscodeExtensionDirectory(
+                    subSourceDir,
+                    subDestDir,
+                    variables
+                );
+            } else if (fileType === Gio.FileType.REGULAR) {
+                // Process and copy file
+                const destPath = GLib.build_filenamev([destDir, fileName]);
+                this._processTemplate(filePath, destPath, variables, fileName);
+                console.log(`Processed VSCode extension file: ${fileName}`);
+            }
+        });
     }
 
     _copyGtkFile(sourcePath, destPath, label) {

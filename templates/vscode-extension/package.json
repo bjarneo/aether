@@ -1,0 +1,19 @@
+{
+    "name": "theme-aether",
+    "displayName": "Aether Theme",
+    "description": "Aether color theme generated from wallpaper",
+    "version": "1.0.0",
+    "engines": {
+        "vscode": "^1.70.0"
+    },
+    "categories": ["Themes"],
+    "contributes": {
+        "themes": [
+            {
+                "label": "Aether",
+                "uiTheme": "vs-{theme_type}",
+                "path": "./themes/aether-color-theme.json"
+            }
+        ]
+    }
+}
