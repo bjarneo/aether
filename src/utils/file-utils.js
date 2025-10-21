@@ -179,17 +179,22 @@ export function fileExists(path) {
 }
 
 /**
- * Loads JSON from a file
+ * Loads JSON from a file with optional default value
  * @param {string} path - File path
- * @returns {Object|null} Parsed JSON object or null if error
+ * @param {*} [defaultValue=null] - Default value if file doesn't exist or can't be parsed
+ * @returns {Object|*} Parsed JSON object or defaultValue
  */
-export function loadJsonFile(path) {
+export function loadJsonFile(path, defaultValue = null) {
     try {
+        if (!fileExists(path)) {
+            return defaultValue;
+        }
+
         const content = readFileAsText(path);
         return JSON.parse(content);
     } catch (e) {
         console.error(`Error loading JSON from ${path}:`, e.message);
-        return null;
+        return defaultValue;
     }
 }
 

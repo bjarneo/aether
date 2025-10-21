@@ -8,7 +8,17 @@ import Gdk from 'gi://Gdk?version=4.0';
 import {wallhavenService} from '../services/wallhaven-service.js';
 import {favoritesService} from '../services/favorites-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
-import {removeAllChildren} from '../utils/ui-helpers.js';
+import {
+    removeAllChildren,
+    showToast,
+    withSignalBlocked,
+    updateWithoutSignal,
+} from '../utils/ui-helpers.js';
+import {
+    ensureDirectoryExists,
+    loadJsonFile,
+    saveJsonFile,
+} from '../utils/file-utils.js';
 
 export const WallpaperBrowser = GObject.registerClass(
     {
@@ -592,6 +602,12 @@ export const WallpaperBrowser = GObject.registerClass(
             return mainBox;
         }
 
+        /**
+         * Loads a thumbnail from cache or downloads it
+         * @param {string} url - Thumbnail URL
+         * @param {Gtk.Picture} picture - Picture widget to update
+         * @private
+         */
         async _loadThumbnail(url, picture) {
             try {
                 const cacheDir = GLib.build_filenamev([
@@ -600,10 +616,8 @@ export const WallpaperBrowser = GObject.registerClass(
                     'wallhaven-thumbs',
                 ]);
 
-                // Create cache directory if it doesn't exist
-                GLib.mkdir_with_parents(cacheDir, 0o755);
+                ensureDirectoryExists(cacheDir);
 
-                // Generate cache filename from URL
                 const filename = url.split('/').pop();
                 const cachePath = GLib.build_filenamev([cacheDir, filename]);
 
@@ -622,27 +636,22 @@ export const WallpaperBrowser = GObject.registerClass(
             }
         }
 
+        /**
+         * Downloads wallpaper and emits wallpaper-selected signal
+         * @param {Object} wallpaper - Wallpaper metadata from wallhaven API
+         * @private
+         */
         async _downloadAndUseWallpaper(wallpaper) {
             try {
-                // Show loading state
-                const toast = new Adw.Toast({
-                    title: 'Downloading wallpaper...',
-                    timeout: 0,
-                });
+                showToast(this, 'Downloading wallpaper...', 0);
 
-                const toastOverlay = this._findToastOverlay();
-                if (toastOverlay) {
-                    toastOverlay.add_toast(toast);
-                }
-
-                // Download wallpaper to cache
                 const cacheDir = GLib.build_filenamev([
                     GLib.get_user_cache_dir(),
                     'aether',
                     'wallhaven-wallpapers',
                 ]);
 
-                GLib.mkdir_with_parents(cacheDir, 0o755);
+                ensureDirectoryExists(cacheDir);
 
                 const filename = wallpaper.path.split('/').pop();
                 const wallpaperPath = GLib.build_filenamev([
@@ -655,32 +664,15 @@ export const WallpaperBrowser = GObject.registerClass(
                     wallpaperPath
                 );
 
-                // Emit signal with wallpaper path
                 this.emit('wallpaper-selected', wallpaperPath);
-
-                // Update toast
-                if (toastOverlay) {
-                    const successToast = new Adw.Toast({
-                        title: 'Wallpaper downloaded successfully',
-                        timeout: 2,
-                    });
-                    toastOverlay.add_toast(successToast);
-                }
+                showToast(this, 'Wallpaper downloaded successfully');
             } catch (e) {
                 console.error(
                     '[WallpaperBrowser] Failed to download wallpaper:',
                     e.message
                 );
                 console.error('[WallpaperBrowser] Stack:', e.stack);
-
-                const toastOverlay = this._findToastOverlay();
-                if (toastOverlay) {
-                    const errorToast = new Adw.Toast({
-                        title: `Download failed: ${e.message}`,
-                        timeout: 3,
-                    });
-                    toastOverlay.add_toast(errorToast);
-                }
+                showToast(this, `Download failed: ${e.message}`, 3);
             }
         }
 
@@ -809,47 +801,40 @@ export const WallpaperBrowser = GObject.registerClass(
             }
         }
 
+        /**
+         * Loads wallhaven configuration from disk
+         * @private
+         */
         _loadConfig() {
-            try {
-                const configDir = GLib.build_filenamev([
-                    GLib.get_user_config_dir(),
-                    'aether',
-                ]);
-                const configPath = GLib.build_filenamev([
-                    configDir,
-                    'wallhaven.json',
-                ]);
-                const file = Gio.File.new_for_path(configPath);
+            const configPath = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'aether',
+                'wallhaven.json',
+            ]);
 
-                if (file.query_exists(null)) {
-                    const [success, contents] = file.load_contents(null);
-                    if (success) {
-                        const decoder = new TextDecoder('utf-8');
-                        const text = decoder.decode(contents);
-                        const config = JSON.parse(text);
+            const config = loadJsonFile(configPath, {});
 
-                        if (config.apiKey) {
-                            wallhavenService.setApiKey(config.apiKey);
-                        }
+            if (config.apiKey) {
+                wallhavenService.setApiKey(config.apiKey);
+            }
 
-                        if (config.resolutions) {
-                            this._searchParams.resolutions = config.resolutions;
-                        }
+            if (config.resolutions) {
+                this._searchParams.resolutions = config.resolutions;
+            }
 
-                        if (config.sorting) {
-                            this._searchParams.sorting = config.sorting;
-                        }
+            if (config.sorting) {
+                this._searchParams.sorting = config.sorting;
+            }
 
-                        if (config.categories) {
-                            this._searchParams.categories = config.categories;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load config:', e.message);
+            if (config.categories) {
+                this._searchParams.categories = config.categories;
             }
         }
 
+        /**
+         * Updates UI elements to match loaded configuration
+         * @private
+         */
         _updateUIFromConfig() {
             if (this._sortDropdown) {
                 const sortMethods = [
@@ -862,154 +847,114 @@ export const WallpaperBrowser = GObject.registerClass(
                 ];
                 const index = sortMethods.indexOf(this._searchParams.sorting);
                 if (index !== -1) {
-                    GObject.signal_handler_block(
+                    updateWithoutSignal(
                         this._sortDropdown,
-                        this._sortDropdownSignalId
-                    );
-                    this._sortDropdown.set_selected(index);
-                    GObject.signal_handler_unblock(
-                        this._sortDropdown,
-                        this._sortDropdownSignalId
+                        this._sortDropdownSignalId,
+                        index
                     );
                 }
             }
 
-            if (this._generalCheck && this._animeCheck && this._peopleCheck) {
-                const cats = this._searchParams.categories;
-
-                GObject.signal_handler_block(
-                    this._generalCheck,
-                    this._generalCheckSignalId
-                );
-                GObject.signal_handler_block(
-                    this._animeCheck,
-                    this._animeCheckSignalId
-                );
-                GObject.signal_handler_block(
-                    this._peopleCheck,
-                    this._peopleCheckSignalId
-                );
-
-                this._generalCheck.set_active(cats[0] === '1');
-                this._animeCheck.set_active(cats[1] === '1');
-                this._peopleCheck.set_active(cats[2] === '1');
-
-                GObject.signal_handler_unblock(
-                    this._generalCheck,
-                    this._generalCheckSignalId
-                );
-                GObject.signal_handler_unblock(
-                    this._animeCheck,
-                    this._animeCheckSignalId
-                );
-                GObject.signal_handler_unblock(
-                    this._peopleCheck,
-                    this._peopleCheckSignalId
-                );
+            if (
+                !this._generalCheck ||
+                !this._animeCheck ||
+                !this._peopleCheck
+            ) {
+                return;
             }
+
+            const cats = this._searchParams.categories;
+
+            withSignalBlocked(
+                this._generalCheck,
+                this._generalCheckSignalId,
+                () => {
+                    this._generalCheck.set_active(cats[0] === '1');
+                }
+            );
+
+            withSignalBlocked(
+                this._animeCheck,
+                this._animeCheckSignalId,
+                () => {
+                    this._animeCheck.set_active(cats[1] === '1');
+                }
+            );
+
+            withSignalBlocked(
+                this._peopleCheck,
+                this._peopleCheckSignalId,
+                () => {
+                    this._peopleCheck.set_active(cats[2] === '1');
+                }
+            );
         }
 
+        /**
+         * Persists current filter settings to disk
+         * @private
+         */
         _persistFilters() {
-            try {
-                const configDir = GLib.build_filenamev([
-                    GLib.get_user_config_dir(),
-                    'aether',
-                ]);
-                GLib.mkdir_with_parents(configDir, 0o755);
+            const configDir = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'aether',
+            ]);
+            ensureDirectoryExists(configDir);
 
-                const configPath = GLib.build_filenamev([
-                    configDir,
-                    'wallhaven.json',
-                ]);
+            const configPath = GLib.build_filenamev([
+                configDir,
+                'wallhaven.json',
+            ]);
 
-                let config = {
-                    apiKey: '',
-                    resolutions: '',
-                    sorting: 'date_added',
-                    categories: '111',
-                };
-                const file = Gio.File.new_for_path(configPath);
+            const defaultConfig = {
+                apiKey: '',
+                resolutions: '',
+                sorting: 'date_added',
+                categories: '111',
+            };
 
-                if (file.query_exists(null)) {
-                    try {
-                        const [success, contents] = file.load_contents(null);
-                        if (success) {
-                            const decoder = new TextDecoder('utf-8');
-                            const text = decoder.decode(contents);
-                            config = JSON.parse(text);
-                        }
-                    } catch (e) {
-                        console.warn(
-                            'Failed to load existing config, using defaults'
-                        );
-                    }
-                }
+            const config = loadJsonFile(configPath, defaultConfig);
 
-                config.sorting = this._searchParams.sorting;
-                config.categories = this._searchParams.categories;
+            config.sorting = this._searchParams.sorting;
+            config.categories = this._searchParams.categories;
 
-                const contents = JSON.stringify(config, null, 2);
-                file.replace_contents(
-                    contents,
-                    null,
-                    false,
-                    Gio.FileCreateFlags.REPLACE_DESTINATION,
-                    null
-                );
-            } catch (e) {
-                console.error('Failed to persist filters:', e.message);
-            }
+            saveJsonFile(configPath, config);
         }
 
+        /**
+         * Saves wallhaven configuration (API key and resolutions)
+         * @param {string} apiKey - Wallhaven API key
+         * @param {string} resolutions - Resolution filter string
+         * @private
+         */
         _saveConfig(apiKey, resolutions) {
             try {
                 const configDir = GLib.build_filenamev([
                     GLib.get_user_config_dir(),
                     'aether',
                 ]);
-                GLib.mkdir_with_parents(configDir, 0o755);
+                ensureDirectoryExists(configDir);
 
                 const configPath = GLib.build_filenamev([
                     configDir,
                     'wallhaven.json',
                 ]);
 
-                let config = {
+                const defaultConfig = {
                     apiKey: '',
                     resolutions: '',
                     sorting: 'date_added',
                     categories: '111',
                 };
-                const file = Gio.File.new_for_path(configPath);
 
-                if (file.query_exists(null)) {
-                    try {
-                        const [success, contents] = file.load_contents(null);
-                        if (success) {
-                            const decoder = new TextDecoder('utf-8');
-                            const text = decoder.decode(contents);
-                            config = JSON.parse(text);
-                        }
-                    } catch (e) {
-                        console.warn(
-                            'Failed to load existing config, using defaults'
-                        );
-                    }
-                }
+                const config = loadJsonFile(configPath, defaultConfig);
 
                 config.apiKey = apiKey;
                 config.resolutions = resolutions;
                 config.sorting = this._searchParams.sorting;
                 config.categories = this._searchParams.categories;
 
-                const contents = JSON.stringify(config, null, 2);
-                file.replace_contents(
-                    contents,
-                    null,
-                    false,
-                    Gio.FileCreateFlags.REPLACE_DESTINATION,
-                    null
-                );
+                saveJsonFile(configPath, config);
 
                 wallhavenService.setApiKey(apiKey);
                 this._searchParams.resolutions = resolutions;
