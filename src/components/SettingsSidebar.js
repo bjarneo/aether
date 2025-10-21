@@ -52,6 +52,7 @@ export const SettingsSidebar = GObject.registerClass(
             this._includeNeovim = true;
             this._includeVencord = false;
             this._includeZed = false;
+            this._includeVscode = false;
             this._includeGtk = false;
             this._lightMode = false;
             this._selectedNeovimConfig = null;
@@ -638,6 +639,27 @@ export const SettingsSidebar = GObject.registerClass(
 
             expanderRow.add_row(zedRow);
 
+            const vscodeRow = new Adw.ActionRow({
+                title: 'Include VSCode Theme',
+                subtitle:
+                    'Copy vscode.json to ~/.vscode/extensions/theme-aether/themes/',
+            });
+
+            this._vscodeSwitch = new Gtk.Switch({
+                active: this._includeVscode,
+                valign: Gtk.Align.CENTER,
+            });
+
+            this._vscodeSwitch.connect('notify::active', sw => {
+                this._includeVscode = sw.get_active();
+                this.emit('settings-changed', this.getSettings());
+            });
+
+            vscodeRow.add_suffix(this._vscodeSwitch);
+            vscodeRow.set_activatable_widget(this._vscodeSwitch);
+
+            expanderRow.add_row(vscodeRow);
+
             return expanderRow;
         }
 
@@ -790,6 +812,7 @@ export const SettingsSidebar = GObject.registerClass(
                 includeNeovim: this._includeNeovim,
                 includeVencord: this._includeVencord,
                 includeZed: this._includeZed,
+                includeVscode: this._includeVscode,
                 includeGtk: this._includeGtk,
                 lightMode: this._lightMode,
                 selectedNeovimConfig: this._selectedNeovimConfig,
@@ -809,6 +832,7 @@ export const SettingsSidebar = GObject.registerClass(
                 this._includeNeovim = settings.includeNeovim ?? true;
                 this._includeVencord = settings.includeVencord ?? false;
                 this._includeZed = settings.includeZed ?? false;
+                this._includeVscode = settings.includeVscode ?? false;
                 this._includeGtk = settings.includeGtk ?? false;
                 this._enableAppOverrides = settings.enableAppOverrides ?? false;
                 console.log('Loaded settings from', this._settingsPath);
@@ -826,6 +850,7 @@ export const SettingsSidebar = GObject.registerClass(
                 includeNeovim: this._includeNeovim,
                 includeVencord: this._includeVencord,
                 includeZed: this._includeZed,
+                includeVscode: this._includeVscode,
                 includeGtk: this._includeGtk,
                 enableAppOverrides: this._enableAppOverrides,
             };
