@@ -11,7 +11,11 @@ import {
     createSymlink,
 } from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
-import {restartSwaybg, copyVencordTheme} from './service-manager.js';
+import {
+    restartSwaybg,
+    copyVencordTheme,
+    copyZedTheme,
+} from './service-manager.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
 import {getAppNameFromFileName} from '../constants/templates.js';
 
@@ -66,6 +70,11 @@ export class ConfigWriter {
             // Copy Vencord theme to all existing installations if enabled
             if (settings.includeVencord === true) {
                 this._copyVencordTheme();
+            }
+
+            // Copy Zed theme if enabled
+            if (settings.includeZed === true) {
+                this._copyZedTheme();
             }
 
             this._handleLightModeMarker(this.themeDir, lightMode);
@@ -125,6 +134,14 @@ export class ConfigWriter {
                 if (
                     fileName === 'vencord.theme.css' &&
                     settings.includeVencord === false
+                ) {
+                    return;
+                }
+
+                // Skip aether.zed.json if includeZed is false
+                if (
+                    fileName === 'aether.zed.json' &&
+                    settings.includeZed === false
                 ) {
                     return;
                 }
@@ -330,6 +347,14 @@ export class ConfigWriter {
                     return;
                 }
 
+                // Skip aether.zed.json if includeZed is false
+                if (
+                    fileName === 'aether.zed.json' &&
+                    settings.includeZed === false
+                ) {
+                    return;
+                }
+
                 // Skip gtk.css if includeGtk is false
                 if (fileName === 'gtk.css' && settings.includeGtk === false) {
                     return;
@@ -514,6 +539,29 @@ export class ConfigWriter {
             copyVencordTheme(vencordSourcePath);
         } catch (e) {
             console.error('Error copying Vencord theme:', e.message);
+        }
+    }
+
+    _copyZedTheme() {
+        try {
+            const zedSourcePath = GLib.build_filenamev([
+                this.themeDir,
+                'aether.zed.json',
+            ]);
+
+            // Check if source file exists
+            const sourceFile = Gio.File.new_for_path(zedSourcePath);
+            if (!sourceFile.query_exists(null)) {
+                console.log(
+                    'aether.zed.json not found in theme directory, skipping Zed copy'
+                );
+                return;
+            }
+
+            // Copy to ~/.config/zed/themes/
+            copyZedTheme(zedSourcePath);
+        } catch (e) {
+            console.error('Error copying Zed theme:', e.message);
         }
     }
 
