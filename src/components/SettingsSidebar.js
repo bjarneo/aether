@@ -51,6 +51,7 @@ export const SettingsSidebar = GObject.registerClass(
             // Default values
             this._includeNeovim = true;
             this._includeVencord = false;
+            this._includeZed = false;
             this._includeGtk = false;
             this._lightMode = false;
             this._selectedNeovimConfig = null;
@@ -617,6 +618,26 @@ export const SettingsSidebar = GObject.registerClass(
 
             expanderRow.add_row(vencordRow);
 
+            const zedRow = new Adw.ActionRow({
+                title: 'Include Zed Theme',
+                subtitle: 'Copy aether.zed.json to ~/.config/zed/themes/',
+            });
+
+            this._zedSwitch = new Gtk.Switch({
+                active: this._includeZed,
+                valign: Gtk.Align.CENTER,
+            });
+
+            this._zedSwitch.connect('notify::active', sw => {
+                this._includeZed = sw.get_active();
+                this.emit('settings-changed', this.getSettings());
+            });
+
+            zedRow.add_suffix(this._zedSwitch);
+            zedRow.set_activatable_widget(this._zedSwitch);
+
+            expanderRow.add_row(zedRow);
+
             return expanderRow;
         }
 
@@ -768,6 +789,7 @@ export const SettingsSidebar = GObject.registerClass(
             return {
                 includeNeovim: this._includeNeovim,
                 includeVencord: this._includeVencord,
+                includeZed: this._includeZed,
                 includeGtk: this._includeGtk,
                 lightMode: this._lightMode,
                 selectedNeovimConfig: this._selectedNeovimConfig,
@@ -786,6 +808,7 @@ export const SettingsSidebar = GObject.registerClass(
             if (settings) {
                 this._includeNeovim = settings.includeNeovim ?? true;
                 this._includeVencord = settings.includeVencord ?? false;
+                this._includeZed = settings.includeZed ?? false;
                 this._includeGtk = settings.includeGtk ?? false;
                 this._enableAppOverrides = settings.enableAppOverrides ?? false;
                 console.log('Loaded settings from', this._settingsPath);
@@ -802,6 +825,7 @@ export const SettingsSidebar = GObject.registerClass(
             const settings = {
                 includeNeovim: this._includeNeovim,
                 includeVencord: this._includeVencord,
+                includeZed: this._includeZed,
                 includeGtk: this._includeGtk,
                 enableAppOverrides: this._enableAppOverrides,
             };

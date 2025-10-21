@@ -119,3 +119,51 @@ export function copyVencordTheme(sourcePath) {
 
     return successCount;
 }
+
+/**
+ * Copies Zed theme to ~/.config/zed/themes/
+ * @param {string} sourcePath - Path to the aether.zed.json file
+ * @returns {boolean} Success status
+ */
+export function copyZedTheme(sourcePath) {
+    // Validate source path
+    if (!sourcePath) {
+        console.error('copyZedTheme: sourcePath is required');
+        return false;
+    }
+
+    const sourceFile = Gio.File.new_for_path(sourcePath);
+    if (!sourceFile.query_exists(null)) {
+        console.error(`copyZedTheme: Source file not found: ${sourcePath}`);
+        return false;
+    }
+
+    const configDir = GLib.get_user_config_dir();
+    const OUTPUT_FILENAME = 'aether.json';
+
+    try {
+        const zedThemesPath = GLib.build_filenamev([
+            configDir,
+            'zed',
+            'themes',
+        ]);
+
+        // Ensure the themes directory exists
+        ensureDirectoryExists(zedThemesPath);
+
+        // Copy the theme file
+        const destPath = GLib.build_filenamev([zedThemesPath, OUTPUT_FILENAME]);
+        const success = copyFile(sourcePath, destPath);
+
+        if (success) {
+            console.log(`Copied Zed theme to: ${destPath}`);
+            return true;
+        } else {
+            console.error(`Failed to copy Zed theme to: ${destPath}`);
+            return false;
+        }
+    } catch (e) {
+        console.error(`Error copying Zed theme:`, e.message);
+        return false;
+    }
+}
