@@ -434,6 +434,7 @@ const AetherWindow = GObject.registerClass(
 
         _resetApplication() {
             this.paletteGenerator.reset();
+            this.paletteGenerator.resetAppOverrides(); // Reset per-application color overrides
             this.colorSynthesizer.reset();
             this.settingsSidebar.resetAdjustments();
             this.settingsSidebar.setNeovimTheme(null); // Clear Neovim theme selection
