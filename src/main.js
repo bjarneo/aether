@@ -304,6 +304,10 @@ const AetherWindow = GObject.registerClass(
                 this._resetApplication();
             });
 
+            this.actionBar.connect('clear', () => {
+                this._clearTheme();
+            });
+
             this.actionBar.connect('apply-theme', () => {
                 this._applyCurrentTheme();
             });
@@ -439,6 +443,38 @@ const AetherWindow = GObject.registerClass(
             this.settingsSidebar.resetAdjustments();
             this.settingsSidebar.setNeovimTheme(null); // Clear Neovim theme selection
             console.log('Application reset to launch state');
+        }
+
+        _clearTheme() {
+            // Create confirmation dialog
+            const dialog = new Adw.MessageDialog({
+                transient_for: this,
+                modal: true,
+                heading: 'Clear Theme?',
+                body: 'This will remove GTK theme files and switch to tokyo-night theme. This action cannot be undone.',
+            });
+
+            dialog.add_response('cancel', 'Cancel');
+            dialog.add_response('clear', 'Clear Theme');
+            dialog.set_response_appearance(
+                'clear',
+                Adw.ResponseAppearance.DESTRUCTIVE
+            );
+            dialog.set_default_response('cancel');
+            dialog.set_close_response('cancel');
+
+            dialog.connect('response', (_, response) => {
+                if (response === 'clear') {
+                    try {
+                        this.configWriter.clearTheme();
+                        console.log('Theme cleared successfully');
+                    } catch (e) {
+                        console.error(`Error clearing theme: ${e.message}`);
+                    }
+                }
+            });
+
+            dialog.present();
         }
 
         _saveBlueprint() {

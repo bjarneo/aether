@@ -9,6 +9,7 @@ export const ActionBar = GObject.registerClass(
             'export-theme': {},
             'save-blueprint': {},
             reset: {},
+            clear: {},
             'apply-theme': {},
         },
     },
@@ -56,6 +57,11 @@ export const ActionBar = GObject.registerClass(
             exportButton.connect('clicked', () => this.emit('export-theme'));
             this.pack_start(exportButton);
 
+            // Save Blueprint button (left side)
+            const saveButton = new Gtk.Button({label: 'Save Blueprint'});
+            saveButton.connect('clicked', () => this.emit('save-blueprint'));
+            this.pack_start(saveButton);
+
             // Apply Theme button (right side)
             const applyButton = new Gtk.Button({
                 label: 'Apply Theme',
@@ -72,10 +78,14 @@ export const ActionBar = GObject.registerClass(
             resetButton.connect('clicked', () => this.emit('reset'));
             this.pack_end(resetButton);
 
-            // Save Blueprint button (right side)
-            const saveButton = new Gtk.Button({label: 'Save Blueprint'});
-            saveButton.connect('clicked', () => this.emit('save-blueprint'));
-            this.pack_end(saveButton);
+            // Clear button (right side, left of Reset)
+            const clearButton = new Gtk.Button({
+                label: 'Clear',
+                css_classes: ['destructive-action'],
+                tooltip_text: 'Remove GTK theme files and switch to tokyo-night',
+            });
+            clearButton.connect('clicked', () => this.emit('clear'));
+            this.pack_end(clearButton);
         }
 
         setSettingsVisible(visible) {

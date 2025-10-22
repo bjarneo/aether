@@ -9,6 +9,8 @@ import {
     cleanDirectory,
     enumerateDirectory,
     createSymlink,
+    deleteFile,
+    fileExists,
 } from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
 import {
@@ -766,6 +768,79 @@ export class ConfigWriter {
             }
         } catch (e) {
             console.error('Error applying wallpaper:', e.message);
+        }
+    }
+
+    clearTheme() {
+        try {
+            // Delete GTK3 css file
+            const gtk3CssPath = GLib.build_filenamev([
+                this.configDir,
+                'gtk-3.0',
+                'gtk.css',
+            ]);
+            if (fileExists(gtk3CssPath)) {
+                deleteFile(gtk3CssPath);
+                console.log(`Deleted GTK3 css: ${gtk3CssPath}`);
+            }
+
+            // Delete GTK4 css file
+            const gtk4CssPath = GLib.build_filenamev([
+                this.configDir,
+                'gtk-4.0',
+                'gtk.css',
+            ]);
+            if (fileExists(gtk4CssPath)) {
+                deleteFile(gtk4CssPath);
+                console.log(`Deleted GTK4 css: ${gtk4CssPath}`);
+            }
+
+            // Delete Aether override CSS symlink
+            const aetherOverrideSymlink = GLib.build_filenamev([
+                this.configDir,
+                'aether',
+                'theme.override.css',
+            ]);
+            if (fileExists(aetherOverrideSymlink)) {
+                deleteFile(aetherOverrideSymlink);
+                console.log(
+                    `Deleted Aether theme override symlink: ${aetherOverrideSymlink}`
+                );
+            }
+
+            // Delete Aether override CSS file in omarchy themes
+            const aetherOverrideCss = GLib.build_filenamev([
+                this.themeDir,
+                'aether.override.css',
+            ]);
+            if (fileExists(aetherOverrideCss)) {
+                deleteFile(aetherOverrideCss);
+                console.log(
+                    `Deleted Aether theme override CSS: ${aetherOverrideCss}`
+                );
+            }
+
+            // Switch to tokyo-night theme
+            GLib.spawn_command_line_async('omarchy-theme-set tokyo-night');
+            console.log('Cleared Aether theme and switched to tokyo-night');
+
+            // Restart xdg-desktop-portal-gtk to pick up new theme
+            try {
+                GLib.spawn_command_line_async('killall xdg-desktop-portal-gtk');
+                console.log(
+                    'Restarting xdg-desktop-portal-gtk for theme update'
+                );
+            } catch (e) {
+                console.log(
+                    'Could not restart portal (may not be running):',
+                    e.message
+                );
+            }
+
+            return true;
+        } catch (e) {
+            console.error('Error clearing theme:', e.message);
+            return false;
         }
     }
 }
