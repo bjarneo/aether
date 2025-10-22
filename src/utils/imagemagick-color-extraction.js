@@ -737,6 +737,107 @@ function generateMonochromePalette(grayColors, lightMode) {
 }
 
 /**
+ * Adjusts a single color for dark background
+ * @param {string[]} palette - Color palette
+ * @param {Object} colorInfo - Color information
+ * @private
+ */
+function adjustColorForDarkBackground(palette, colorInfo) {
+    if (colorInfo.lightness >= MIN_LIGHTNESS_ON_DARK_BG) {
+        return;
+    }
+
+    const adjustedLightness = MIN_LIGHTNESS_ON_DARK_BG + colorInfo.index * 3;
+    console.log(
+        `Adjusting color ${colorInfo.index} for dark background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
+    );
+
+    palette[colorInfo.index] = adjustColorLightness(
+        palette[colorInfo.index],
+        adjustedLightness
+    );
+
+    if (colorInfo.index >= 1 && colorInfo.index <= 6) {
+        palette[colorInfo.index + 8] = generateBrightVersion(
+            palette[colorInfo.index]
+        );
+    }
+}
+
+/**
+ * Adjusts a single color for light background
+ * @param {string[]} palette - Color palette
+ * @param {Object} colorInfo - Color information
+ * @private
+ */
+function adjustColorForLightBackground(palette, colorInfo) {
+    if (colorInfo.lightness <= MAX_LIGHTNESS_ON_LIGHT_BG) {
+        return;
+    }
+
+    const adjustedLightness = Math.max(
+        ABSOLUTE_MIN_LIGHTNESS,
+        MAX_LIGHTNESS_ON_LIGHT_BG - colorInfo.index * 2
+    );
+    console.log(
+        `Adjusting color ${colorInfo.index} for light background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
+    );
+
+    palette[colorInfo.index] = adjustColorLightness(
+        palette[colorInfo.index],
+        adjustedLightness
+    );
+
+    if (colorInfo.index >= 1 && colorInfo.index <= 6) {
+        palette[colorInfo.index + 8] = generateBrightVersion(
+            palette[colorInfo.index]
+        );
+    }
+}
+
+/**
+ * Adjusts outlier color for normal background
+ * @param {string[]} palette - Color palette
+ * @param {Object} outlier - Outlier color information
+ * @param {number} avgLightness - Average lightness
+ * @param {boolean} isBrightTheme - Whether theme is bright
+ * @private
+ */
+function adjustOutlierColor(palette, outlier, avgLightness, isBrightTheme) {
+    const isDarkOutlierInBrightTheme =
+        isBrightTheme &&
+        outlier.lightness < avgLightness - OUTLIER_LIGHTNESS_THRESHOLD;
+
+    const isBrightOutlierInDarkTheme =
+        !isBrightTheme &&
+        outlier.lightness > avgLightness + OUTLIER_LIGHTNESS_THRESHOLD;
+
+    if (!isDarkOutlierInBrightTheme && !isBrightOutlierInDarkTheme) {
+        return;
+    }
+
+    const adjustedLightness = isDarkOutlierInBrightTheme
+        ? avgLightness - 10
+        : avgLightness + 10;
+
+    const outlierType = isDarkOutlierInBrightTheme ? 'dark' : 'bright';
+    console.log(
+        `Adjusting ${outlierType} outlier color ${outlier.index}: ${outlier.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
+    );
+
+    palette[outlier.index] = adjustColorLightness(
+        palette[outlier.index],
+        adjustedLightness
+    );
+
+    if (outlier.index >= 1 && outlier.index <= 6) {
+        palette[outlier.index + 8] = generateBrightVersion(
+            palette[outlier.index]
+        );
+    }
+}
+
+/**
  * Normalizes brightness of ANSI colors to ensure readability
  * Adjusts colors based on background brightness and overall theme
  * @param {string[]} palette - Palette with colors 0-15
@@ -761,94 +862,27 @@ function normalizeBrightness(palette) {
     const isBrightTheme = avgLightness > BRIGHT_THEME_THRESHOLD;
 
     if (isVeryDarkBg) {
-        // Very dark background - ensure all colors are bright enough
-        for (const colorInfo of ansiColors) {
-            if (colorInfo.lightness < MIN_LIGHTNESS_ON_DARK_BG) {
-                const adjustedLightness =
-                    MIN_LIGHTNESS_ON_DARK_BG + colorInfo.index * 3;
-                console.log(
-                    `Adjusting color ${colorInfo.index} for dark background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
-                );
-
-                palette[colorInfo.index] = adjustColorLightness(
-                    palette[colorInfo.index],
-                    adjustedLightness
-                );
-
-                if (colorInfo.index >= 1 && colorInfo.index <= 6) {
-                    palette[colorInfo.index + 8] = generateBrightVersion(
-                        palette[colorInfo.index]
-                    );
-                }
-            }
-        }
-    } else if (isVeryLightBg) {
-        // Very light background - ensure all colors are dark enough
-        for (const colorInfo of ansiColors) {
-            if (colorInfo.lightness > MAX_LIGHTNESS_ON_LIGHT_BG) {
-                const adjustedLightness = Math.max(
-                    ABSOLUTE_MIN_LIGHTNESS,
-                    MAX_LIGHTNESS_ON_LIGHT_BG - colorInfo.index * 2
-                );
-                console.log(
-                    `Adjusting color ${colorInfo.index} for light background: ${colorInfo.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
-                );
-
-                palette[colorInfo.index] = adjustColorLightness(
-                    palette[colorInfo.index],
-                    adjustedLightness
-                );
-
-                if (colorInfo.index >= 1 && colorInfo.index <= 6) {
-                    palette[colorInfo.index + 8] = generateBrightVersion(
-                        palette[colorInfo.index]
-                    );
-                }
-            }
-        }
-    } else {
-        // Normal background - apply outlier detection
-        const outliers = ansiColors.filter(
-            c =>
-                Math.abs(c.lightness - avgLightness) >
-                OUTLIER_LIGHTNESS_THRESHOLD
+        ansiColors.forEach(colorInfo =>
+            adjustColorForDarkBackground(palette, colorInfo)
         );
-
-        for (const outlier of outliers) {
-            let adjustedLightness;
-
-            if (
-                isBrightTheme &&
-                outlier.lightness < avgLightness - OUTLIER_LIGHTNESS_THRESHOLD
-            ) {
-                adjustedLightness = avgLightness - 10;
-                console.log(
-                    `Adjusting dark outlier color ${outlier.index}: ${outlier.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
-                );
-            } else if (
-                !isBrightTheme &&
-                outlier.lightness > avgLightness + OUTLIER_LIGHTNESS_THRESHOLD
-            ) {
-                adjustedLightness = avgLightness + 10;
-                console.log(
-                    `Adjusting bright outlier color ${outlier.index}: ${outlier.lightness.toFixed(1)}% → ${adjustedLightness.toFixed(1)}%`
-                );
-            } else {
-                continue;
-            }
-
-            palette[outlier.index] = adjustColorLightness(
-                palette[outlier.index],
-                adjustedLightness
-            );
-
-            if (outlier.index >= 1 && outlier.index <= 6) {
-                palette[outlier.index + 8] = generateBrightVersion(
-                    palette[outlier.index]
-                );
-            }
-        }
+        return palette;
     }
+
+    if (isVeryLightBg) {
+        ansiColors.forEach(colorInfo =>
+            adjustColorForLightBackground(palette, colorInfo)
+        );
+        return palette;
+    }
+
+    // Normal background - apply outlier detection
+    const outliers = ansiColors.filter(
+        c => Math.abs(c.lightness - avgLightness) > OUTLIER_LIGHTNESS_THRESHOLD
+    );
+
+    outliers.forEach(outlier =>
+        adjustOutlierColor(palette, outlier, avgLightness, isBrightTheme)
+    );
 
     return palette;
 }
