@@ -19,6 +19,7 @@ import {DialogManager} from './utils/DialogManager.js';
 import {ThemeManager} from './services/theme-manager.js';
 import {ThemeExporter} from './services/ThemeExporter.js';
 import {BlueprintService} from './services/BlueprintService.js';
+import {ensureDirectoryExists} from './utils/file-utils.js';
 
 Adw.init();
 
@@ -38,6 +39,13 @@ const AetherApplication = GObject.registerClass(
             });
             this.themeManager = themeManager;
             this._wallpaperPath = null;
+
+            // Ensure ~/Wallpapers directory exists
+            const wallpapersDir = GLib.build_filenamev([
+                GLib.get_home_dir(),
+                'Wallpapers',
+            ]);
+            ensureDirectoryExists(wallpapersDir);
 
             this.add_main_option(
                 'wallpaper',
