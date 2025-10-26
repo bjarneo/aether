@@ -7,6 +7,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 
 import {ColorAdjustmentControls} from './palette/color-adjustment-controls.js';
 import {AccessibilityPanel} from './AccessibilityPanel.js';
+import {ShaderManager} from './ShaderManager.js';
 import {COLOR_PRESETS} from '../constants/presets.js';
 import {NEOVIM_PRESETS} from '../constants/neovim-presets.js';
 import {applyCssToWidget, removeAllChildren} from '../utils/ui-helpers.js';
@@ -106,6 +107,10 @@ export const SettingsSidebar = GObject.registerClass(
             // Neovim Themes Section
             const neovimSection = this._createNeovimPresetsSection();
             contentBox.append(neovimSection);
+
+            // Shader Manager Section
+            this._shaderManager = new ShaderManager();
+            contentBox.append(this._shaderManager);
 
             // Template Settings Section
             const templateSettings = this._createTemplateSettings();

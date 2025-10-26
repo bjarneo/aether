@@ -47,6 +47,9 @@ const AetherApplication = GObject.registerClass(
             ]);
             ensureDirectoryExists(wallpapersDir);
 
+            // Install shaders on startup
+            this._installShaders();
+
             this.add_main_option(
                 'wallpaper',
                 'w'.charCodeAt(0),
@@ -98,6 +101,67 @@ const AetherApplication = GObject.registerClass(
                 }
             }
             window.present();
+        }
+
+        _installShaders() {
+            try {
+                // Get shader source directory (in Aether repo)
+                const appDir = GLib.path_get_dirname(
+                    GLib.path_get_dirname(
+                        Gio.File.new_for_path(
+                            import.meta.url.replace('file://', '')
+                        ).get_path()
+                    )
+                );
+                const shaderSource = GLib.build_filenamev([appDir, 'shaders']);
+
+                // Get shader target directory (hyprshade location)
+                const shaderTarget = GLib.build_filenamev([
+                    GLib.get_user_config_dir(),
+                    'hypr',
+                    'shaders',
+                ]);
+
+                // Ensure target directory exists
+                ensureDirectoryExists(shaderTarget);
+
+                // Check if source directory exists
+                const sourceDir = Gio.File.new_for_path(shaderSource);
+                if (!sourceDir.query_exists(null)) {
+                    console.log('Shader source directory not found, skipping installation');
+                    return;
+                }
+
+                // Get all shader files
+                const enumerator = sourceDir.enumerate_children(
+                    'standard::name,standard::type',
+                    Gio.FileQueryInfoFlags.NONE,
+                    null
+                );
+
+                let info;
+                let installedCount = 0;
+                while ((info = enumerator.next_file(null)) !== null) {
+                    const name = info.get_name();
+                    if (name.endsWith('.glsl')) {
+                        const sourcePath = GLib.build_filenamev([shaderSource, name]);
+                        const targetPath = GLib.build_filenamev([shaderTarget, name]);
+
+                        // Only create symlink if it doesn't exist
+                        const targetFile = Gio.File.new_for_path(targetPath);
+                        if (!targetFile.query_exists(null)) {
+                            // Create symlink: targetFile.make_symbolic_link(sourcePath)
+                            // This creates a symlink AT targetPath that POINTS TO sourcePath
+                            targetFile.make_symbolic_link(sourcePath, null);
+                            installedCount++;
+                        }
+                    }
+                }
+
+                console.log(`Installed ${installedCount} Aether shaders to ${shaderTarget}`);
+            } catch (error) {
+                console.error('Error installing shaders:', error);
+            }
         }
 
         _setupActions(window) {
