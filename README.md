@@ -19,6 +19,7 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - **Color Lock System** - Protect specific colors while experimenting with adjustments
 - **Blueprint System** - Save and share themes as JSON files
 - **Neovim Themes** - 37 LazyVim-compatible themes with preset matching
+- **Shader Manager** - 80+ GLSL screen shaders for hyprshade (color grading, effects, era vibes)
 - **Accessibility Checker** - Real-time WCAG contrast ratio validation
 - **Customizable UI** - Live theme reload and CSS variable system
 - **Multi-App Support** - Hyprland, Waybar, Kitty, Alacritty, btop, Mako, and 15+ more applications
@@ -30,6 +31,7 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - Libadwaita 1
 - libsoup3 - HTTP client library for wallhaven API
 - **ImageMagick** - Intelligent color extraction and image filter processing
+- **hyprshade** - Screen shader manager (optional, for shader effects)
 - **Omarchy** - Distro
 
 ## Installation
@@ -106,6 +108,31 @@ Example:
    - Runs `omarchy-theme-set aether` to apply across all configured applications
 
 Changes apply instantly via live reload.
+
+### Screen Shaders
+
+Aether includes many GLSL screen shaders for hyprshade. Shaders are automatically installed to `~/.config/hypr/shaders/` when you run Aether. Use the Shader Manager in the Settings sidebar to toggle effects, or bind them directly in your Hyprland config.
+
+**Shader Location:** `~/.config/hypr/shaders/`
+
+Add your own `.glsl` files to this directory and they will automatically appear in the Shader Manager list. For GLSL shader tutorials, see [The Book of Shaders](https://thebookofshaders.com/), [Shadertoy](https://www.shadertoy.com/), or [LearnOpenGL - Shaders](https://learnopengl.com/Getting-started/Shaders).
+
+**Manual Binding Example:**
+```conf
+# In ~/.config/hypr/hyprland.conf
+bind = $mainMod, F1, exec, hyprshade toggle grayscale
+bind = $mainMod, F2, exec, hyprshade toggle retro-glow
+bind = $mainMod, F3, exec, hyprshade off
+```
+
+**Shader Categories:**
+- Color corrections (grayscale, sepia, duotone, tritone)
+- Temperature adjustments (warm-tone, cool-tone, amber, blue-light-reduce)
+- Saturation effects (saturate, desaturate, color-pop, pastel)
+- Era vibes (40s, 50s, 60s, 70s, 80s, 90s, 00s)
+- Artistic looks (golden-hour, cyberpunk-neon, vintage-film, faded-memory)
+- Nature themes (forest-green, ocean, arctic-blue, desert-sand, autumn-leaves)
+- Accessibility (protanopia, deuteranopia, tritanopia, high-contrast)
 
 ### Color Extraction Algorithm
 
