@@ -254,12 +254,7 @@ export const ShaderManager = GObject.registerClass(
          */
         refresh() {
             // Clear existing rows
-            let child = this.get_first_child();
-            while (child) {
-                const next = child.get_next_sibling();
-                this.remove(child);
-                child = next;
-            }
+            this.remove_all();
 
             this._shaderRows.clear();
             this._loadShaders();
