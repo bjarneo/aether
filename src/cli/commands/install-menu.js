@@ -1,6 +1,5 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import {Output} from '../utils/output.js';
 
 /**
  * Command handler for installing keyboard shortcut
@@ -9,7 +8,7 @@ export class InstallMenuCommand {
     /**
      * Executes the install-menu command
      */
-    execute() {
+    static execute() {
         const hyprConfigDir = GLib.build_filenamev([
             GLib.get_home_dir(),
             '.config',
@@ -22,7 +21,7 @@ export class InstallMenuCommand {
         ]);
 
         const comment = '# Aether blueprint menu launcher';
-        const bindLine = `bind = SUPERALTCTRL, space, exec, aether menu`;
+        const bindLine = `bind = SUPERALTCTRL, space, exec, aether -m`;
 
         // Check if bindings.conf exists
         const configFile = Gio.File.new_for_path(hyprConfig);
@@ -41,17 +40,25 @@ export class InstallMenuCommand {
                 const text = new TextDecoder().decode(contents);
 
                 // Check if it exists with correct format (combined modifiers)
-                if (text.includes('aether menu') && (text.includes('SUPERALTCTRL') || text.includes('SUPER, ALT, CTRL'))) {
-                    Output.print('Aether menu binding already exists in bindings.conf');
+                if (
+                    text.includes('aether -m') &&
+                    (text.includes('SUPERALTCTRL') ||
+                        text.includes('SUPER, ALT, CTRL'))
+                ) {
+                    print(
+                        'Aether menu binding already exists in bindings.conf'
+                    );
                     return;
                 }
 
                 // Mapping exists but with wrong format - remove it and re-add
-                if (text.includes('aether menu')) {
+                if (text.includes('aether -m')) {
                     // Remove old binding lines
                     const lines = text.split('\n');
-                    const filteredLines = lines.filter(line =>
-                        !line.includes('Aether blueprint menu launcher') && !line.includes('aether menu')
+                    const filteredLines = lines.filter(
+                        line =>
+                            !line.includes('Aether blueprint menu launcher') &&
+                            !line.includes('aether -m')
                     );
                     existingContent = filteredLines.join('\n');
                     if (!existingContent.endsWith('\n')) {
@@ -90,11 +97,11 @@ export class InstallMenuCommand {
                 throw new Error('Replace operation failed');
             }
 
-            Output.success('Added Aether menu binding to bindings.conf');
-            Output.print('Keybinding: SUPERALTCTRL + space');
-            Output.print('To apply changes, reload Hyprland: hyprctl reload');
+            print('Added Aether menu binding to bindings.conf');
+            print('Keybinding: SUPERALTCTRL + space');
+            print('To apply changes, reload Hyprland: hyprctl reload');
         } catch (e) {
-            Output.error(`Failed to write to bindings.conf: ${e.message}`);
+            print(`Error: Failed to write to bindings.conf: ${e.message}`);
         }
     }
 }

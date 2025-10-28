@@ -30,4 +30,3 @@ export class Output {
         print(`Warning: ${message}`);
     }
 }
-

@@ -29,7 +29,10 @@ export class BlueprintFinder {
         // Try partial match on filename if no exact match
         if (!found) {
             found = blueprints.find(bp =>
-                bp.filename.toLowerCase().replace('.json', '').includes(name.toLowerCase())
+                bp.filename
+                    .toLowerCase()
+                    .replace('.json', '')
+                    .includes(name.toLowerCase())
             );
         }
 
@@ -54,18 +57,20 @@ export class BlueprintFinder {
     _loadAllBlueprints() {
         const blueprints = [];
 
-        enumerateDirectory(this.blueprintsDir, (fileInfo, filePath, fileName) => {
-            if (!fileName.endsWith('.json')) return;
+        enumerateDirectory(
+            this.blueprintsDir,
+            (fileInfo, filePath, fileName) => {
+                if (!fileName.endsWith('.json')) return;
 
-            const blueprint = loadJsonFile(filePath);
-            if (blueprint) {
-                blueprint.filename = fileName;
-                blueprint.path = filePath;
-                blueprints.push(blueprint);
+                const blueprint = loadJsonFile(filePath);
+                if (blueprint) {
+                    blueprint.filename = fileName;
+                    blueprint.path = filePath;
+                    blueprints.push(blueprint);
+                }
             }
-        });
+        );
 
         return blueprints;
     }
 }
-

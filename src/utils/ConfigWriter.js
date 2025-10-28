@@ -747,9 +747,13 @@ export class ConfigWriter {
             // Restart xdg-desktop-portal-gtk to pick up new theme
             try {
                 if (sync) {
-                    GLib.spawn_command_line_sync('killall xdg-desktop-portal-gtk');
+                    GLib.spawn_command_line_sync(
+                        'killall xdg-desktop-portal-gtk'
+                    );
                 } else {
-                    GLib.spawn_command_line_async('killall xdg-desktop-portal-gtk');
+                    GLib.spawn_command_line_async(
+                        'killall xdg-desktop-portal-gtk'
+                    );
                 }
                 console.log(
                     'Restarting xdg-desktop-portal-gtk for theme update'

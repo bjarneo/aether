@@ -37,10 +37,14 @@ export const ShaderManager = GObject.registerClass(
         _loadShaders() {
             try {
                 // Get list of available shaders
-                const [success, stdout, stderr] = GLib.spawn_command_line_sync('hyprshade ls');
+                const [success, stdout, stderr] =
+                    GLib.spawn_command_line_sync('hyprshade ls');
 
                 if (!success) {
-                    console.error('Failed to list shaders:', new TextDecoder().decode(stderr));
+                    console.error(
+                        'Failed to list shaders:',
+                        new TextDecoder().decode(stderr)
+                    );
                     this._showError('hyprshade not found');
                     return;
                 }
@@ -68,7 +72,8 @@ export const ShaderManager = GObject.registerClass(
          */
         _updateCurrentShader() {
             try {
-                const [success, stdout] = GLib.spawn_command_line_sync('hyprshade current');
+                const [success, stdout] =
+                    GLib.spawn_command_line_sync('hyprshade current');
 
                 if (success) {
                     const output = new TextDecoder().decode(stdout).trim();
@@ -171,7 +176,9 @@ export const ShaderManager = GObject.registerClass(
                 this.emit('shader-changed', this._currentShader || 'off');
             } catch (error) {
                 console.error('Error toggling shader:', error);
-                this._showErrorToast(`Failed to toggle shader: ${error.message}`);
+                this._showErrorToast(
+                    `Failed to toggle shader: ${error.message}`
+                );
             }
         }
 
@@ -188,13 +195,21 @@ export const ShaderManager = GObject.registerClass(
                     GObject.signal_handlers_block_matched(
                         toggleSwitch,
                         GObject.SignalMatchType.DATA,
-                        0, 0, null, null, null
+                        0,
+                        0,
+                        null,
+                        null,
+                        null
                     );
                     toggleSwitch.set_active(false);
                     GObject.signal_handlers_unblock_matched(
                         toggleSwitch,
                         GObject.SignalMatchType.DATA,
-                        0, 0, null, null, null
+                        0,
+                        0,
+                        null,
+                        null,
+                        null
                     );
                 }
             });
