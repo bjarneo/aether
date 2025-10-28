@@ -51,7 +51,8 @@ export class ConfigWriter {
         wallpaperPath,
         settings = {},
         lightMode = false,
-        appOverrides = {}
+        appOverrides = {},
+        sync = false
     ) {
         try {
             this._createThemeDirectory();
@@ -85,7 +86,7 @@ export class ConfigWriter {
             }
 
             this._handleLightModeMarker(this.themeDir, lightMode);
-            this._applyOmarchyTheme();
+            this._applyOmarchyTheme(sync);
 
             return true;
         } catch (e) {
@@ -730,14 +731,26 @@ export class ConfigWriter {
         }
     }
 
-    _applyOmarchyTheme() {
+    /**
+     * Applies the Aether theme to the system
+     * sync mode is needed for the CLI application to work properly
+     */
+    _applyOmarchyTheme(sync = false) {
         try {
-            GLib.spawn_command_line_async('omarchy-theme-set aether');
+            if (sync) {
+                GLib.spawn_command_line_sync('omarchy-theme-set aether');
+            } else {
+                GLib.spawn_command_line_async('omarchy-theme-set aether');
+            }
             console.log('Applied theme: aether');
 
             // Restart xdg-desktop-portal-gtk to pick up new theme
             try {
-                GLib.spawn_command_line_async('killall xdg-desktop-portal-gtk');
+                if (sync) {
+                    GLib.spawn_command_line_sync('killall xdg-desktop-portal-gtk');
+                } else {
+                    GLib.spawn_command_line_async('killall xdg-desktop-portal-gtk');
+                }
                 console.log(
                     'Restarting xdg-desktop-portal-gtk for theme update'
                 );
