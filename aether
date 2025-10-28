@@ -1,3 +1,11 @@
 #!/bin/bash
 cd "$(dirname "$0")" || exit
-exec gjs -m src/main.js "$@"
+
+# Check if running in CLI mode
+if [ "$1" = "blue-prints" ] || [ "$1" = "apply-blue-print" ]; then
+    exec gjs -m src/cli.js "$@"
+elif [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    exec gjs -m src/cli.js "$@"
+else
+    exec gjs -m src/main.js "$@"
+fi
