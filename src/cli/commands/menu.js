@@ -1,6 +1,6 @@
 import GLib from 'gi://GLib';
-import {enumerateDirectory, loadJsonFile} from '../../utils/file-utils.js';
 import {ApplyBlueprintCommand} from './apply-blueprint.js';
+import {BlueprintFinder} from '../utils/blueprint-finder.js';
 
 /**
  * Command handler for interactive menu
@@ -16,19 +16,8 @@ export class MenuCommand {
             'blueprints',
         ]);
 
-        // Get the list of blueprints
-        const blueprints = [];
-        enumerateDirectory(blueprintsDir, (fileInfo, filePath, fileName) => {
-            if (!fileName.endsWith('.json')) return;
-
-            const blueprint = loadJsonFile(filePath);
-            if (blueprint) {
-                blueprint.filename = fileName;
-                blueprint.path = filePath;
-                blueprints.push(blueprint);
-            }
-        });
-
+        const finder = new BlueprintFinder(blueprintsDir);
+        const blueprints = finder.loadAll();
         if (blueprints.length === 0) {
             print('No blueprints found');
             return;
@@ -39,35 +28,17 @@ export class MenuCommand {
             bp => bp.name || bp.filename.replace('.json', '')
         );
 
-        // Try different menu launchers using proper GJS methods
-        let selected = null;
-
         try {
-            // Try Walker first
-            if (this._commandExists('omarchy-launch-walker')) {
-                selected = this._runMenuCommand(
-                    'omarchy-launch-walker',
-                    [
-                        '--dmenu',
-                        '--width',
-                        '295',
-                        '--minheight',
-                        '1',
-                        '--maxheight',
-                        '600',
-                        '-p',
-                        'Select blueprint…',
-                    ],
-                    blueprintNames
-                );
-            } else {
-                print(
-                    'Error: No menu launcher found (walker/dmenu/rofi/fzf). Please install one of these tools.'
-                );
+            const program = GLib.find_program_in_path('omarchy-launch-walker');
+            if (!program) {
+                print('Error: walker not found');
                 return;
             }
-
-            // If user selected something, apply it using internal command
+            const selected = this._runMenuCommand(
+                program,
+                ['--dmenu', '--width', '295', '--minheight', '1', '--maxheight', '600', '-p', 'Select blueprint…'],
+                blueprintNames
+            );
             if (selected && selected.trim()) {
                 ApplyBlueprintCommand.execute(selected.trim());
             }
@@ -76,21 +47,9 @@ export class MenuCommand {
         }
     }
 
-    static _commandExists(command) {
-        try {
-            // Get the system PATH which includes custom PATH extensions
-            const env = GLib.listenv();
-            const path = env['PATH'] || '/usr/bin:/usr/local/bin';
+    
 
-            // Try to find the command in PATH
-            const findCommand = GLib.find_program_in_path(command);
-            return findCommand !== null;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    static _runMenuCommand(command, args, blueprintNames) {
+    static _runMenuCommand(commandPath, args, blueprintNames) {
         try {
             // Create input string
             const input = blueprintNames.join('\n');
@@ -101,19 +60,8 @@ export class MenuCommand {
                 .replace(/\$/g, '\\$')
                 .replace(/`/g, '\\`');
 
-            // Use full path to avoid PATH issues
-            const omarchyBin = GLib.build_filenamev([
-                GLib.get_home_dir(),
-                '.local',
-                'share',
-                'omarchy',
-                'bin',
-            ]);
-            const fullCommandPath = GLib.build_filenamev([omarchyBin, command]);
-
-            // Build the full command with piping - exactly like the bash script
             const argString = args.map(arg => `"${arg}"`).join(' ');
-            const fullCommand = `echo -e "${escapedInput}" | "${fullCommandPath}" ${argString}`;
+            const fullCommand = `echo -e "${escapedInput}" | "${commandPath}" ${argString}`;
 
             // Execute using spawn_sync with shell
             const [, stdout, stderr, exitCode] = GLib.spawn_sync(
@@ -125,26 +73,10 @@ export class MenuCommand {
             );
 
             if (exitCode !== 0) {
-                try {
-                    const errorMsg =
-                        new TextDecoder().decode(stderr).trim() ||
-                        `Exit code ${exitCode}`;
-                    throw new Error(`Command failed: ${errorMsg}`);
-                } catch (decodeError) {
-                    throw new Error(
-                        `Command failed with exit code ${exitCode}`
-                    );
-                }
+                const errorMsg = new TextDecoder().decode(stderr).trim() || `Exit code ${exitCode}`;
+                throw new Error(`Command failed: ${errorMsg}`);
             }
-
-            try {
-                const output = new TextDecoder().decode(stdout).trim();
-                return output;
-            } catch (decodeError) {
-                // Fallback to toString if TextDecoder fails
-                const output = stdout.toString().trim();
-                return output;
-            }
+            return new TextDecoder().decode(stdout).trim();
         } catch (e) {
             throw new Error(`Command failed: ${e.message}`);
         }
