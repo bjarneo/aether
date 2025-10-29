@@ -1,4 +1,5 @@
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import {ApplyBlueprintCommand} from './apply-blueprint.js';
 import {BlueprintFinder} from '../utils/blueprint-finder.js';
 
@@ -51,32 +52,27 @@ export class MenuCommand {
 
     static _runMenuCommand(commandPath, args, blueprintNames) {
         try {
-            // Create input string
+            // Provide input via stdin directly (avoid shell and escaping issues)
             const input = blueprintNames.join('\n');
 
-            // Escape input properly for shell
-            const escapedInput = input
-                .replace(/"/g, '\\"')
-                .replace(/\$/g, '\\$')
-                .replace(/`/g, '\\`');
+            const subprocess = new Gio.Subprocess({
+                argv: [commandPath, ...args],
+                flags: Gio.SubprocessFlags.STDIN_PIPE |
+                       Gio.SubprocessFlags.STDOUT_PIPE |
+                       Gio.SubprocessFlags.STDERR_PIPE,
+            });
 
-            const argString = args.map(arg => `"${arg}"`).join(' ');
-            const fullCommand = `echo -e "${escapedInput}" | "${commandPath}" ${argString}`;
+            subprocess.init(null);
 
-            // Execute using spawn_sync with shell
-            const [, stdout, stderr, exitCode] = GLib.spawn_sync(
-                null, // working directory
-                ['sh', '-c', fullCommand], // Use shell to execute
-                null, // inherit environment
-                GLib.SpawnFlags.SEARCH_PATH, // flags
-                null // child setup function
-            );
+            const [, stdout, stderr] = subprocess.communicate_utf8(input, null);
+            const exitCode = subprocess.get_exit_status();
 
             if (exitCode !== 0) {
-                const errorMsg = new TextDecoder().decode(stderr).trim() || `Exit code ${exitCode}`;
+                const errorMsg = (stderr || '').trim() || `Exit code ${exitCode}`;
                 throw new Error(`Command failed: ${errorMsg}`);
             }
-            return new TextDecoder().decode(stdout).trim();
+
+            return (stdout || '').trim();
         } catch (e) {
             throw new Error(`Command failed: ${e.message}`);
         }
