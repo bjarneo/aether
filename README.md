@@ -79,13 +79,21 @@ paru -S aether
 ./aether [OPTIONS]
 
 Options:
-  -h, --help              Show help message
-  -w, --wallpaper=FILE    Path to wallpaper image to load on startup
+  -h, --help                    Show help message
+  -w, --wallpaper=FILE          Path to wallpaper image to load on startup
+  -l, --list-blueprints         List all saved blueprint themes
+  -a, --apply-blueprint=NAME    Apply a blueprint by name
+  -m, --menu                    Interactive menu to select and apply a blueprint
+  -i, --install-menu            Install keyboard shortcut (SUPER+ALT+CTRL+space) in Hyprland bindings
 ```
 
-Example:
+Examples:
 ```bash
 ./aether --wallpaper ~/Pictures/wallpaper.jpg
+./aether -m
+./aether -l
+./aether -a BLUEPRINT_NAME
+./aether -i
 ```
 
 ### Basic Workflow

@@ -82,7 +82,8 @@ export const ActionBar = GObject.registerClass(
             const clearButton = new Gtk.Button({
                 label: 'Clear',
                 css_classes: ['destructive-action'],
-                tooltip_text: 'Remove GTK theme files and switch to tokyo-night',
+                tooltip_text:
+                    'Remove GTK theme files and switch to tokyo-night',
             });
             clearButton.connect('clicked', () => this.emit('clear'));
             this.pack_end(clearButton);

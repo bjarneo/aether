@@ -33,13 +33,38 @@ export const SelectiveColorControls = GObject.registerClass(
             // 8 color ranges matching Lightroom
             this._colorRanges = [
                 {name: 'Reds', hueCenter: 0, hueRange: 30, color: '#ef4444'},
-                {name: 'Oranges', hueCenter: 30, hueRange: 30, color: '#f97316'},
-                {name: 'Yellows', hueCenter: 60, hueRange: 30, color: '#eab308'},
-                {name: 'Greens', hueCenter: 120, hueRange: 60, color: '#22c55e'},
+                {
+                    name: 'Oranges',
+                    hueCenter: 30,
+                    hueRange: 30,
+                    color: '#f97316',
+                },
+                {
+                    name: 'Yellows',
+                    hueCenter: 60,
+                    hueRange: 30,
+                    color: '#eab308',
+                },
+                {
+                    name: 'Greens',
+                    hueCenter: 120,
+                    hueRange: 60,
+                    color: '#22c55e',
+                },
                 {name: 'Cyans', hueCenter: 180, hueRange: 30, color: '#06b6d4'},
                 {name: 'Blues', hueCenter: 240, hueRange: 60, color: '#3b82f6'},
-                {name: 'Purples', hueCenter: 280, hueRange: 30, color: '#a855f7'},
-                {name: 'Magentas', hueCenter: 320, hueRange: 30, color: '#ec4899'},
+                {
+                    name: 'Purples',
+                    hueCenter: 280,
+                    hueRange: 30,
+                    color: '#a855f7',
+                },
+                {
+                    name: 'Magentas',
+                    hueCenter: 320,
+                    hueRange: 30,
+                    color: '#ec4899',
+                },
             ];
 
             // Store adjustments for each color range
@@ -79,10 +104,12 @@ export const SelectiveColorControls = GObject.registerClass(
                 `box { background: ${range.color}; border-radius: 4px; }`,
                 -1
             );
-            colorBox.get_style_context().add_provider(
-                colorProvider,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-            );
+            colorBox
+                .get_style_context()
+                .add_provider(
+                    colorProvider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
             expander.add_prefix(colorBox);
 
             // Hue slider
@@ -136,7 +163,16 @@ export const SelectiveColorControls = GObject.registerClass(
             this.add(expander);
         }
 
-        _createSliderRow(label, min, max, step, initialValue, unit, subtitle, onChange) {
+        _createSliderRow(
+            label,
+            min,
+            max,
+            step,
+            initialValue,
+            unit,
+            subtitle,
+            onChange
+        ) {
             const row = new Adw.ActionRow({
                 title: label,
                 subtitle: subtitle,
@@ -181,18 +217,28 @@ export const SelectiveColorControls = GObject.registerClass(
 
         _emitChange() {
             // Build color range data for ImageMagick
-            const colorRangeData = this._colorRanges.map(range => ({
-                name: range.name,
-                hueCenter: range.hueCenter,
-                hueRange: range.hueRange,
-                adjustments: this._adjustments[range.name],
-            })).filter(range => {
-                // Only include ranges with active adjustments
-                const adj = range.adjustments;
-                return adj.hue !== 0 || adj.saturation !== 0 || adj.lightness !== 0;
-            });
+            const colorRangeData = this._colorRanges
+                .map(range => ({
+                    name: range.name,
+                    hueCenter: range.hueCenter,
+                    hueRange: range.hueRange,
+                    adjustments: this._adjustments[range.name],
+                }))
+                .filter(range => {
+                    // Only include ranges with active adjustments
+                    const adj = range.adjustments;
+                    return (
+                        adj.hue !== 0 ||
+                        adj.saturation !== 0 ||
+                        adj.lightness !== 0
+                    );
+                });
 
-            console.log('Selective colors changed:', colorRangeData.length, 'active ranges');
+            console.log(
+                'Selective colors changed:',
+                colorRangeData.length,
+                'active ranges'
+            );
             this.emit('selective-colors-changed', colorRangeData);
         }
 
