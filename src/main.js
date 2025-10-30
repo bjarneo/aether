@@ -496,12 +496,14 @@ const AetherWindow = GObject.registerClass(
                 const settings = this.settingsSidebar.getSettings();
                 const lightMode = this.settingsSidebar.getLightMode();
                 const appOverrides = this.paletteGenerator.getAppOverrides();
+                const additionalImages = this.paletteGenerator.getAdditionalImages();
                 this.configWriter.applyTheme(
                     colors,
                     palette.wallpaper,
                     settings,
                     lightMode,
-                    appOverrides
+                    appOverrides,
+                    additionalImages
                 );
             } catch (e) {
                 console.error(`Error applying theme: ${e.message}`);

@@ -8,7 +8,7 @@ import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {extractColorsFromWallpaperIM} from '../utils/imagemagick-color-extraction.js';
 import {adjustColor} from '../utils/color-utils.js';
-import {uploadWallpaper} from '../utils/wallpaper-utils.js';
+import {uploadWallpaper, uploadMultipleWallpapers} from '../utils/wallpaper-utils.js';
 import {copyFile} from '../utils/file-utils.js';
 import {ColorSwatchGrid} from './palette/color-swatch-grid.js';
 import {ColorPickerDialog} from './palette/color-picker-dialog.js';
@@ -42,6 +42,7 @@ export const PaletteGenerator = GObject.registerClass(
             this._palette = [];
             this._originalPalette = [];
             this._currentWallpaper = null;
+            this._additionalImages = []; // Store additional background images
             this._lightMode = false;
             this._appOverrides = {};
 
@@ -381,6 +382,10 @@ export const PaletteGenerator = GObject.registerClass(
             });
             this._wallpaperGroup.add(this._wallpaperPreview);
 
+            // Additional images section (hidden until main wallpaper is loaded)
+            this._additionalImagesBox = this._createAdditionalImagesSection();
+            this._wallpaperGroup.add(this._additionalImagesBox);
+
             viewBox.append(this._wallpaperGroup);
 
             // Color swatch grid section
@@ -441,6 +446,122 @@ export const PaletteGenerator = GObject.registerClass(
             viewBox.append(this._advancedGroup);
 
             return viewBox;
+        }
+
+        _createAdditionalImagesSection() {
+            const container = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 6,
+                margin_top: 12,
+                visible: true, // Always visible when wallpaper is loaded
+            });
+
+            // Header with label and add button
+            const headerBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 12,
+            });
+
+            const label = new Gtk.Label({
+                label: 'Additional Images',
+                xalign: 0,
+                hexpand: true,
+                css_classes: ['caption'],
+            });
+            headerBox.append(label);
+
+            // Add image button
+            const addButton = new Gtk.Button({
+                icon_name: 'list-add-symbolic',
+                tooltip_text: 'Add additional background images',
+                css_classes: ['flat'],
+            });
+            addButton.connect('clicked', () => this._addAdditionalImage());
+            headerBox.append(addButton);
+
+            container.append(headerBox);
+
+            // Grid for additional images (hidden when empty)
+            this._additionalImagesGrid = new Gtk.FlowBox({
+                selection_mode: Gtk.SelectionMode.NONE,
+                column_spacing: 6,
+                row_spacing: 6,
+                homogeneous: true,
+                max_children_per_line: 4,
+                min_children_per_line: 2,
+                visible: false, // Hidden until images are added
+            });
+            container.append(this._additionalImagesGrid);
+
+            return container;
+        }
+
+        _addAdditionalImage() {
+            uploadMultipleWallpapers(this.get_root(), destPaths => {
+                if (destPaths && destPaths.length > 0) {
+                    this._additionalImages.push(...destPaths);
+                    this._updateAdditionalImagesDisplay();
+                }
+            });
+        }
+
+        _updateAdditionalImagesDisplay() {
+            // Clear existing items
+            let child = this._additionalImagesGrid.get_first_child();
+            while (child) {
+                const next = child.get_next_sibling();
+                this._additionalImagesGrid.remove(child);
+                child = next;
+            }
+
+            // Show/hide grid based on images
+            this._additionalImagesGrid.set_visible(this._additionalImages.length > 0);
+
+            // Add image cards
+            this._additionalImages.forEach((imagePath, index) => {
+                const card = this._createImageCard(imagePath, index);
+                this._additionalImagesGrid.append(card);
+            });
+        }
+
+        _createImageCard(imagePath, index) {
+            const overlay = new Gtk.Overlay();
+
+            // Image preview
+            const picture = new Gtk.Picture({
+                width_request: 120,
+                height_request: 80,
+                can_shrink: true,
+                content_fit: Gtk.ContentFit.COVER,
+                css_classes: ['card'],
+            });
+
+            try {
+                const pixbuf = GdkPixbuf.Pixbuf.new_from_file(imagePath);
+                const texture = Gdk.Texture.new_for_pixbuf(pixbuf);
+                picture.set_paintable(texture);
+            } catch (e) {
+                console.error('Failed to load additional image:', e);
+            }
+
+            overlay.set_child(picture);
+
+            // Remove button
+            const removeBtn = new Gtk.Button({
+                icon_name: 'window-close-symbolic',
+                css_classes: ['circular', 'destructive-action'],
+                halign: Gtk.Align.END,
+                valign: Gtk.Align.START,
+                margin_top: 6,
+                margin_end: 6,
+            });
+            removeBtn.connect('clicked', () => {
+                this._additionalImages.splice(index, 1);
+                this._updateAdditionalImagesDisplay();
+            });
+            overlay.add_overlay(removeBtn);
+
+            return overlay;
         }
 
         _loadDefaultCustomColors() {
@@ -793,6 +914,8 @@ export const PaletteGenerator = GObject.registerClass(
 
         reset() {
             this._currentWallpaper = null;
+            this._additionalImages = [];
+            this._updateAdditionalImagesDisplay();
             this._wallpaperPreview.set_file(null);
             this._wallpaperPreview.set_visible(false);
             if (this._customWallpaperPreview) {
@@ -816,7 +939,12 @@ export const PaletteGenerator = GObject.registerClass(
                 colors: this._palette,
                 lightMode: this._lightMode,
                 appOverrides: this._appOverrides,
+                additionalImages: this._additionalImages,
             };
+        }
+
+        getAdditionalImages() {
+            return [...this._additionalImages];
         }
 
         getAppOverrides() {
@@ -851,6 +979,12 @@ export const PaletteGenerator = GObject.registerClass(
             // Load wallpaper without extraction
             if (palette.wallpaper) {
                 this.loadWallpaperWithoutExtraction(palette.wallpaper);
+            }
+
+            // Load additional images
+            if (palette.additionalImages && Array.isArray(palette.additionalImages)) {
+                this._additionalImages = [...palette.additionalImages];
+                this._updateAdditionalImagesDisplay();
             }
 
             // Load light mode setting
