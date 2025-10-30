@@ -318,6 +318,10 @@ export const PaletteEditor = GObject.registerClass(
             this._colorPalette.updateAppOverridePaletteColors(colors);
         }
 
+        setNeovimThemeSelected(selected) {
+            this._colorPalette.setNeovimThemeSelected(selected);
+        }
+
         reset() {
             this._wallpaperSection.reset();
             this._additionalImages.reset();

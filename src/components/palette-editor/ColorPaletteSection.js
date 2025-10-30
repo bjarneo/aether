@@ -192,6 +192,12 @@ export const ColorPaletteSection = GObject.registerClass(
             }
         }
 
+        setNeovimThemeSelected(selected) {
+            if (this._appOverridesWidget) {
+                this._appOverridesWidget.setNeovimThemeSelected(selected);
+            }
+        }
+
         reset() {
             this._palette = [];
             this._currentWallpaper = null;

@@ -138,7 +138,7 @@ export const WallpaperSection = GObject.registerClass(
 
             // Wallpaper preview
             this._wallpaperPreview = new Gtk.Picture({
-                height_request: 200,
+                height_request: 350,
                 can_shrink: true,
                 content_fit: Gtk.ContentFit.CONTAIN,
                 css_classes: ['card'],

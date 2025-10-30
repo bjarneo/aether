@@ -230,7 +230,7 @@ const AetherWindow = GObject.registerClass(
                 // Set initial neovim theme selection state
                 const neovimThemeSelected =
                     settings.selectedNeovimConfig !== null;
-                this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(
+                this.paletteGenerator.setNeovimThemeSelected(
                     neovimThemeSelected
                 );
 
@@ -462,9 +462,7 @@ const AetherWindow = GObject.registerClass(
             this.settingsSidebar.connect(
                 'neovim-theme-changed',
                 (_, selected) => {
-                    this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(
-                        selected
-                    );
+                    this.paletteGenerator.setNeovimThemeSelected(selected);
                 }
             );
         }

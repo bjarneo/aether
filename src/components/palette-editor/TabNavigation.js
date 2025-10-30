@@ -17,7 +17,7 @@ export const TabNavigation = GObject.registerClass(
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 0,
                 css_classes: ['linked'],
-                halign: Gtk.Align.CENTER,
+                halign: Gtk.Align.END,
             });
 
             this._tabButtons = [];
