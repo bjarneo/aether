@@ -579,13 +579,26 @@ export const PaletteGenerator = GObject.registerClass(
         _extractColorsIM(imagePath) {
             this._showLoading(true);
 
+            // Get currently locked colors before extraction
+            const lockedColors = this._swatchGrid.getLockedColors();
+            const currentPalette = [...this._palette];
+
             extractColorsFromWallpaperIM(
                 imagePath,
                 this._lightMode,
                 colors => {
-                    this._originalPalette = [...colors];
-                    this.setPalette(colors);
-                    this.emit('palette-generated', colors);
+                    // Merge extracted colors with locked colors
+                    const mergedColors = colors.map((color, index) => {
+                        // Keep locked colors unchanged
+                        if (lockedColors[index] && currentPalette[index]) {
+                            return currentPalette[index];
+                        }
+                        return color;
+                    });
+
+                    this._originalPalette = [...mergedColors];
+                    this.setPalette(mergedColors);
+                    this.emit('palette-generated', mergedColors);
                     this._showLoading(false);
                 },
                 error => {
