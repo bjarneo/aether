@@ -6,7 +6,7 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
-import {PaletteGenerator} from './components/PaletteGenerator.js';
+import {PaletteEditor} from './components/PaletteEditor.js';
 import {ColorSynthesizer} from './components/ColorSynthesizer.js';
 import {BlueprintManager} from './components/BlueprintManager.js';
 import {BlueprintManagerWindow} from './components/BlueprintManagerWindow.js';
@@ -343,8 +343,8 @@ const AetherWindow = GObject.registerClass(
                 margin_bottom: 6,
             });
 
-            this.paletteGenerator = new PaletteGenerator();
-            paletteGroup.add(this.paletteGenerator.widget);
+            this.paletteGenerator = new PaletteEditor();
+            paletteGroup.add(this.paletteGenerator);
 
             this.colorSynthesizer = new ColorSynthesizer();
 
@@ -476,7 +476,7 @@ const AetherWindow = GObject.registerClass(
 
         _updateAppOverrideColors() {
             const colors = this.colorSynthesizer.getColors();
-            this.paletteGenerator._appOverridesWidget.setPaletteColors(colors);
+            this.paletteGenerator.updateAppOverrideColors(colors);
         }
 
         _loadBlueprint(blueprint) {
