@@ -2,6 +2,7 @@
     "name": "theme-aether",
     "displayName": "Aether Theme",
     "description": "Aether color theme generated from wallpaper",
+    "publisher": "local",
     "version": "1.0.0",
     "engines": {
         "vscode": "^1.70.0"
