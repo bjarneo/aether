@@ -93,7 +93,7 @@ export const ColorPaletteSection = GObject.registerClass(
             const dialog = new ColorPickerDialog(this.get_root(), this._palette);
             dialog.openShadePicker(index, currentColor, (color) => {
                 this._palette[index] = color;
-                this._swatchGrid.updateColor(index, color);
+                this._swatchGrid.updateSwatchColor(index, color);
                 this.emit('color-changed', index, color);
             });
         }
@@ -131,7 +131,7 @@ export const ColorPaletteSection = GObject.registerClass(
 
                 if (firstUnlocked !== -1) {
                     this._palette[firstUnlocked] = color;
-                    this._swatchGrid.updateColor(firstUnlocked, color);
+                    this._swatchGrid.updateSwatchColor(firstUnlocked, color);
                     this.emit('color-changed', firstUnlocked, color);
                 }
 
@@ -165,7 +165,7 @@ export const ColorPaletteSection = GObject.registerClass(
 
         updateColor(index, color) {
             this._palette[index] = color;
-            this._swatchGrid.updateColor(index, color);
+            this._swatchGrid.updateSwatchColor(index, color);
         }
 
         setAppOverridesVisible(visible) {

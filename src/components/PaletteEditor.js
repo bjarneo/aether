@@ -242,7 +242,15 @@ export const PaletteEditor = GObject.registerClass(
                 if (lockedColors[index]) {
                     return this._palette[index];
                 }
-                return adjustColor(color, values);
+                return adjustColor(
+                    color,
+                    values.vibrance,
+                    values.contrast,
+                    values.brightness,
+                    values.hueShift,
+                    values.temperature,
+                    values.gamma
+                );
             });
 
             this.setPalette(adjustedColors);
