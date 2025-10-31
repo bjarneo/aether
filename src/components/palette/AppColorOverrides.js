@@ -629,6 +629,10 @@ export const AppColorOverrides = GObject.registerClass(
             this.emit('overrides-changed', this._overrides);
         }
 
+        resetAllOverrides() {
+            this._resetAllOverrides();
+        }
+
         _rgbaToHex(rgba) {
             const r = Math.round(rgba.red * 255);
             const g = Math.round(rgba.green * 255);

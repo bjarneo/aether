@@ -263,6 +263,20 @@ export const PaletteEditor = GObject.registerClass(
             }
         }
 
+        switchToEditorTab() {
+            if (this._viewStack) {
+                this._viewStack.set_visible_child_name('editor');
+            }
+            if (this._tabNavigation) {
+                this._tabNavigation.setActiveTab('editor');
+            }
+        }
+
+        // Kept for backwards compatibility
+        switchToCustomTab() {
+            this.switchToEditorTab();
+        }
+
         loadBlueprintPalette(palette) {
             if (palette.colors) {
                 this._originalPalette = [...palette.colors];
