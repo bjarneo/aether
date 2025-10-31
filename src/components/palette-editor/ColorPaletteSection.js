@@ -119,24 +119,47 @@ export const ColorPaletteSection = GObject.registerClass(
                 margin_end: 12,
             });
 
+            // Swatch selector label
+            const selectorLabel = new Gtk.Label({
+                label: 'Select a color slot to replace:',
+                css_classes: ['caption', 'dim-label'],
+                xalign: 0,
+                margin_bottom: 6,
+            });
+            content.append(selectorLabel);
+
+            // Create mini swatch grid (reuse ColorSwatchGrid in mini mode)
+            const miniSwatchGrid = new ColorSwatchGrid(null, {
+                miniMode: true,
+                showLockButtons: false,
+                selectedIndex: 0,
+            });
+            miniSwatchGrid.setPalette([...this._palette]);
+            content.append(miniSwatchGrid.widget);
+
             // Create color picker
             const colorPicker = new WallpaperColorPicker(this._currentWallpaper);
             content.append(colorPicker);
 
             // Handle color selection
             colorPicker.connect('color-picked', (_, color) => {
-                // Find first unlocked color slot
-                const lockedColors = this._swatchGrid.getLockedColors();
-                const firstUnlocked = lockedColors.findIndex(locked => !locked);
-
-                if (firstUnlocked !== -1) {
-                    this._palette[firstUnlocked] = color;
-                    this._swatchGrid.updateSwatchColor(firstUnlocked, color);
-                    this.emit('color-changed', firstUnlocked, color);
-                }
-
-                dialog.close();
+                const index = miniSwatchGrid.getSelectedIndex();
+                
+                // Update palette
+                this._palette[index] = color;
+                this._swatchGrid.updateSwatchColor(index, color);
+                miniSwatchGrid.updateSwatchColor(index, color);
+                this.emit('color-changed', index, color);
             });
+
+            // Done button
+            const doneButton = new Gtk.Button({
+                label: 'Done',
+                css_classes: ['suggested-action'],
+                halign: Gtk.Align.END,
+            });
+            doneButton.connect('clicked', () => dialog.close());
+            content.append(doneButton);
 
             dialog.set_child(content);
             dialog.present(this.get_root());
