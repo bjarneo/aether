@@ -6,7 +6,7 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
-import {PaletteGenerator} from './components/PaletteGenerator.js';
+import {PaletteEditor} from './components/PaletteEditor.js';
 import {ColorSynthesizer} from './components/ColorSynthesizer.js';
 import {BlueprintManager} from './components/BlueprintManager.js';
 import {BlueprintManagerWindow} from './components/BlueprintManagerWindow.js';
@@ -313,7 +313,7 @@ const AetherWindow = GObject.registerClass(
                 // Set initial neovim theme selection state
                 const neovimThemeSelected =
                     settings.selectedNeovimConfig !== null;
-                this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(
+                this.paletteGenerator.setNeovimThemeSelected(
                     neovimThemeSelected
                 );
 
@@ -426,8 +426,8 @@ const AetherWindow = GObject.registerClass(
                 margin_bottom: 6,
             });
 
-            this.paletteGenerator = new PaletteGenerator();
-            paletteGroup.add(this.paletteGenerator.widget);
+            this.paletteGenerator = new PaletteEditor();
+            paletteGroup.add(this.paletteGenerator);
 
             this.colorSynthesizer = new ColorSynthesizer();
 
@@ -545,9 +545,7 @@ const AetherWindow = GObject.registerClass(
             this.settingsSidebar.connect(
                 'neovim-theme-changed',
                 (_, selected) => {
-                    this.paletteGenerator._appOverridesWidget.setNeovimThemeSelected(
-                        selected
-                    );
+                    this.paletteGenerator.setNeovimThemeSelected(selected);
                 }
             );
         }
@@ -559,7 +557,7 @@ const AetherWindow = GObject.registerClass(
 
         _updateAppOverrideColors() {
             const colors = this.colorSynthesizer.getColors();
-            this.paletteGenerator._appOverridesWidget.setPaletteColors(colors);
+            this.paletteGenerator.updateAppOverrideColors(colors);
         }
 
         _loadBlueprint(blueprint) {
@@ -579,12 +577,14 @@ const AetherWindow = GObject.registerClass(
                 const settings = this.settingsSidebar.getSettings();
                 const lightMode = this.settingsSidebar.getLightMode();
                 const appOverrides = this.paletteGenerator.getAppOverrides();
+                const additionalImages = this.paletteGenerator.getAdditionalImages();
                 this.configWriter.applyTheme(
                     colors,
                     palette.wallpaper,
                     settings,
                     lightMode,
-                    appOverrides
+                    appOverrides,
+                    additionalImages
                 );
             } catch (e) {
                 console.error(`Error applying theme: ${e.message}`);

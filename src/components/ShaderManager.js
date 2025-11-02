@@ -27,7 +27,38 @@ export const ShaderManager = GObject.registerClass(
             this._currentShader = null;
             this._shaderRows = new Map();
 
+            this._setupScrollableContent();
             this._loadShaders();
+        }
+
+        /**
+         * Setup scrollable container for shader list
+         * @private
+         */
+        _setupScrollableContent() {
+            this._listBox = new Gtk.ListBox({
+                selection_mode: Gtk.SelectionMode.NONE,
+                css_classes: ['boxed-list'],
+            });
+
+            this._scrolledWindow = new Gtk.ScrolledWindow({
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+                min_content_height: 300,
+                max_content_height: 600,
+                child: this._listBox,
+            });
+
+            const contentBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                margin_top: 12,
+                margin_bottom: 12,
+                margin_start: 12,
+                margin_end: 12,
+            });
+
+            contentBox.append(this._scrolledWindow);
+            this.add_row(contentBox);
         }
 
         /**
@@ -97,7 +128,7 @@ export const ShaderManager = GObject.registerClass(
                     title: 'No shaders found',
                     subtitle: 'Install shaders to ~/.config/hypr/shaders',
                 });
-                this.add_row(emptyRow);
+                this._listBox.append(emptyRow);
                 return;
             }
 
@@ -108,7 +139,7 @@ export const ShaderManager = GObject.registerClass(
                     this._formatShaderName(shader),
                     shader
                 );
-                this.add_row(row);
+                this._listBox.append(row);
             });
         }
 
@@ -238,7 +269,7 @@ export const ShaderManager = GObject.registerClass(
                 title: 'Error',
                 subtitle: message,
             });
-            this.add_row(errorRow);
+            this._listBox.append(errorRow);
         }
 
         /**
@@ -268,8 +299,13 @@ export const ShaderManager = GObject.registerClass(
          * @public
          */
         refresh() {
-            // Clear existing rows
-            this.remove_all();
+            // Clear existing rows from list box
+            let child = this._listBox.get_first_child();
+            while (child) {
+                const next = child.get_next_sibling();
+                this._listBox.remove(child);
+                child = next;
+            }
 
             this._shaderRows.clear();
             this._loadShaders();

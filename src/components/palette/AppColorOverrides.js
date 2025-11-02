@@ -34,6 +34,10 @@ export const AppColorOverrides = GObject.registerClass(
             // Store references to app rows for conditional visibility
             this._appRows = new Map();
 
+            // Store references to color buttons for palette updates
+            // Format: Map<appName, Map<colorVar, {button, row, isResetting}>>
+            this._colorButtons = new Map();
+
             // Track if a Neovim theme is selected
             this._neovimThemeSelected = false;
 
@@ -576,6 +580,18 @@ export const AppColorOverrides = GObject.registerClass(
 
             row.add_suffix(clearButton);
 
+            // Store button reference for later updates
+            if (!this._colorButtons.has(appName)) {
+                this._colorButtons.set(appName, new Map());
+            }
+            this._colorButtons.get(appName).set(colorVar, {
+                button: colorButton,
+                row: row,
+                clearButton: clearButton,
+                get isResetting() { return isResetting; },
+                set isResetting(value) { isResetting = value; }
+            });
+
             return row;
         }
 
@@ -613,6 +629,10 @@ export const AppColorOverrides = GObject.registerClass(
             this.emit('overrides-changed', this._overrides);
         }
 
+        resetAllOverrides() {
+            this._resetAllOverrides();
+        }
+
         _rgbaToHex(rgba) {
             const r = Math.round(rgba.red * 255);
             const g = Math.round(rgba.green * 255);
@@ -636,6 +656,33 @@ export const AppColorOverrides = GObject.registerClass(
         setPaletteColors(colors) {
             // Update the palette colors from ColorSynthesizer
             this._paletteColors = colors || {};
+
+            // Update all existing color buttons to show new palette colors
+            // (but only if they don't have a custom override)
+            this._colorButtons.forEach((colorVarMap, appName) => {
+                colorVarMap.forEach((buttonData, colorVar) => {
+                    const {button, row, clearButton, isResetting} = buttonData;
+                    
+                    // Skip if this color has a custom override
+                    const hasOverride = this._overrides[appName]?.[colorVar];
+                    if (hasOverride) {
+                        return;
+                    }
+
+                    // Update button to show new palette color
+                    buttonData.isResetting = true;
+                    const newColor = this._paletteColors[colorVar] || '#808080';
+                    const rgba = new Gdk.RGBA();
+                    rgba.parse(newColor);
+                    button.set_rgba(rgba);
+                    buttonData.isResetting = false;
+
+                    // Update subtitle if using default
+                    if (!hasOverride) {
+                        row.set_subtitle('Using default');
+                    }
+                });
+            });
         }
 
         setNeovimThemeSelected(selected) {
