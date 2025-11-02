@@ -23,8 +23,6 @@ import {ensureDirectoryExists} from './utils/file-utils.js';
 import {
     ListBlueprintsCommand,
     ApplyBlueprintCommand,
-    InstallMenuCommand,
-    MenuCommand,
 } from './cli/index.js';
 
 Adw.init();
@@ -75,24 +73,6 @@ const AetherApplication = GObject.registerClass(
                 'Apply a blueprint by name',
                 'NAME'
             );
-
-            this.add_main_option(
-                'menu',
-                'm'.charCodeAt(0),
-                GLib.OptionFlags.NONE,
-                GLib.OptionArg.NONE,
-                'Interactive menu to select and apply a blueprint',
-                null
-            );
-
-            this.add_main_option(
-                'install-menu',
-                'i'.charCodeAt(0),
-                GLib.OptionFlags.NONE,
-                GLib.OptionArg.NONE,
-                'Install keyboard shortcut (SUPER+ALT+CTRL+space) in Hyprland bindings',
-                null
-            );
         }
 
         vfunc_command_line(commandLine) {
@@ -109,16 +89,6 @@ const AetherApplication = GObject.registerClass(
                     .lookup_value('apply-blueprint', GLib.VariantType.new('s'))
                     .get_string()[0];
                 ApplyBlueprintCommand.execute(blueprintName);
-                return 0;
-            }
-
-            if (options.contains('menu')) {
-                MenuCommand.execute();
-                return 0;
-            }
-
-            if (options.contains('install-menu')) {
-                InstallMenuCommand.execute();
                 return 0;
             }
 

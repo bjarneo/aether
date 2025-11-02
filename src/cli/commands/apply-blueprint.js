@@ -53,6 +53,7 @@ export class ApplyBlueprintCommand {
                 settings,
                 lightMode,
                 appOverrides,
+                [],
                 true
             );
 

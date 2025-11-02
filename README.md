@@ -83,8 +83,6 @@ Options:
   -w, --wallpaper=FILE          Path to wallpaper image to load on startup
   -l, --list-blueprints         List all saved blueprint themes
   -a, --apply-blueprint=NAME    Apply a blueprint by name
-  -m, --menu                    Interactive menu to select and apply a blueprint
-  -i, --install-menu            Install keyboard shortcut (SUPER+ALT+CTRL+space) in Hyprland bindings
 ```
 
 Examples:
