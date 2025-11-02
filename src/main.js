@@ -20,15 +20,15 @@ import {ThemeManager} from './services/theme-manager.js';
 import {ThemeExporter} from './services/ThemeExporter.js';
 import {BlueprintService} from './services/BlueprintService.js';
 import {ensureDirectoryExists} from './utils/file-utils.js';
+import {
+    ListBlueprintsCommand,
+    ApplyBlueprintCommand,
+} from './cli/index.js';
 
 Adw.init();
 
-// Initialize theme manager with live reload
-const themeManager = new ThemeManager();
-console.log(`Base theme: ${themeManager.getThemePath()}`);
-console.log(
-    `Override theme: ${themeManager.getOverridePath()} (edit this file)`
-);
+// Theme manager will be initialized only when GUI is needed
+let themeManager = null;
 
 const AetherApplication = GObject.registerClass(
     class AetherApplication extends Adw.Application {
@@ -37,7 +37,6 @@ const AetherApplication = GObject.registerClass(
                 application_id: 'li.oever.aether',
                 flags: Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
             });
-            this.themeManager = themeManager;
             this._wallpaperPath = null;
 
             // Ensure ~/Wallpapers directory exists
@@ -47,9 +46,6 @@ const AetherApplication = GObject.registerClass(
             ]);
             ensureDirectoryExists(wallpapersDir);
 
-            // Install shaders on startup
-            this._installShaders();
-
             this.add_main_option(
                 'wallpaper',
                 'w'.charCodeAt(0),
@@ -58,11 +54,45 @@ const AetherApplication = GObject.registerClass(
                 'Path to wallpaper image to load on startup',
                 'FILE'
             );
+
+            // CLI options
+            this.add_main_option(
+                'list-blueprints',
+                'l'.charCodeAt(0),
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.NONE,
+                'List all saved blueprint themes',
+                null
+            );
+
+            this.add_main_option(
+                'apply-blueprint',
+                'a'.charCodeAt(0),
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.STRING,
+                'Apply a blueprint by name',
+                'NAME'
+            );
         }
 
         vfunc_command_line(commandLine) {
             const options = commandLine.get_options_dict();
 
+            // Handle CLI commands first
+            if (options.contains('list-blueprints')) {
+                ListBlueprintsCommand.execute();
+                return 0;
+            }
+
+            if (options.contains('apply-blueprint')) {
+                const blueprintName = options
+                    .lookup_value('apply-blueprint', GLib.VariantType.new('s'))
+                    .get_string()[0];
+                ApplyBlueprintCommand.execute(blueprintName);
+                return 0;
+            }
+
+            // Handle wallpaper option for GUI mode
             if (options.contains('wallpaper')) {
                 const wallpaperPath = options
                     .lookup_value('wallpaper', GLib.VariantType.new('s'))
@@ -84,6 +114,19 @@ const AetherApplication = GObject.registerClass(
         }
 
         vfunc_activate() {
+            // Initialize theme manager only when GUI is activated
+            if (!themeManager) {
+                themeManager = new ThemeManager();
+                console.log(`Base theme: ${themeManager.getThemePath()}`);
+                console.log(
+                    `Override theme: ${themeManager.getOverridePath()} (edit this file)`
+                );
+            }
+            this.themeManager = themeManager;
+
+            // Install shaders only when GUI is activated
+            this._installShaders();
+
             let window = this.active_window;
             if (!window) {
                 window = new AetherWindow(this);
@@ -128,7 +171,9 @@ const AetherApplication = GObject.registerClass(
                 // Check if source directory exists
                 const sourceDir = Gio.File.new_for_path(shaderSource);
                 if (!sourceDir.query_exists(null)) {
-                    console.log('Shader source directory not found, skipping installation');
+                    console.log(
+                        'Shader source directory not found, skipping installation'
+                    );
                     return;
                 }
 
@@ -144,8 +189,14 @@ const AetherApplication = GObject.registerClass(
                 while ((info = enumerator.next_file(null)) !== null) {
                     const name = info.get_name();
                     if (name.endsWith('.glsl')) {
-                        const sourcePath = GLib.build_filenamev([shaderSource, name]);
-                        const targetPath = GLib.build_filenamev([shaderTarget, name]);
+                        const sourcePath = GLib.build_filenamev([
+                            shaderSource,
+                            name,
+                        ]);
+                        const targetPath = GLib.build_filenamev([
+                            shaderTarget,
+                            name,
+                        ]);
 
                         // Only create symlink if it doesn't exist
                         const targetFile = Gio.File.new_for_path(targetPath);
@@ -158,7 +209,9 @@ const AetherApplication = GObject.registerClass(
                     }
                 }
 
-                console.log(`Installed ${installedCount} Aether shaders to ${shaderTarget}`);
+                console.log(
+                    `Installed ${installedCount} Aether shaders to ${shaderTarget}`
+                );
             } catch (error) {
                 console.error('Error installing shaders:', error);
             }

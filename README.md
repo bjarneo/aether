@@ -79,13 +79,17 @@ paru -S aether
 ./aether [OPTIONS]
 
 Options:
-  -h, --help              Show help message
-  -w, --wallpaper=FILE    Path to wallpaper image to load on startup
+  -h, --help                    Show help message
+  -w, --wallpaper=FILE          Path to wallpaper image to load on startup
+  -l, --list-blueprints         List all saved blueprint themes
+  -a, --apply-blueprint=NAME    Apply a blueprint by name
 ```
 
-Example:
+Examples:
 ```bash
 ./aether --wallpaper ~/Pictures/wallpaper.jpg
+./aether -l
+./aether -a BLUEPRINT_NAME
 ```
 
 ### Basic Workflow
