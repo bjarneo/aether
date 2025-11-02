@@ -88,10 +88,8 @@ Options:
 Examples:
 ```bash
 ./aether --wallpaper ~/Pictures/wallpaper.jpg
-./aether -m
 ./aether -l
 ./aether -a BLUEPRINT_NAME
-./aether -i
 ```
 
 ### Basic Workflow
