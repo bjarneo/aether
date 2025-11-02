@@ -52,7 +52,7 @@ export class ConfigWriter {
         settings = {},
         lightMode = false,
         appOverrides = {},
-         additionalImages = [],
+        additionalImages = [],
         sync = false
     ) {
         try {
@@ -123,14 +123,16 @@ export class ConfigWriter {
 
     _copyAdditionalImages(images) {
         const bgDir = GLib.build_filenamev([this.themeDir, 'backgrounds']);
-        
+
         images.forEach((sourcePath, index) => {
             const fileName = GLib.path_get_basename(sourcePath);
             const destPath = GLib.build_filenamev([bgDir, fileName]);
-            
+
             const success = copyFile(sourcePath, destPath);
             if (success) {
-                console.log(`Copied additional image ${index + 1}: ${fileName}`);
+                console.log(
+                    `Copied additional image ${index + 1}: ${fileName}`
+                );
             } else {
                 console.error(`Failed to copy additional image: ${fileName}`);
             }

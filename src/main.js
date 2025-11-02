@@ -20,10 +20,7 @@ import {ThemeManager} from './services/theme-manager.js';
 import {ThemeExporter} from './services/ThemeExporter.js';
 import {BlueprintService} from './services/BlueprintService.js';
 import {ensureDirectoryExists} from './utils/file-utils.js';
-import {
-    ListBlueprintsCommand,
-    ApplyBlueprintCommand,
-} from './cli/index.js';
+import {ListBlueprintsCommand, ApplyBlueprintCommand} from './cli/index.js';
 
 Adw.init();
 
@@ -547,7 +544,8 @@ const AetherWindow = GObject.registerClass(
                 const settings = this.settingsSidebar.getSettings();
                 const lightMode = this.settingsSidebar.getLightMode();
                 const appOverrides = this.paletteGenerator.getAppOverrides();
-                const additionalImages = this.paletteGenerator.getAdditionalImages();
+                const additionalImages =
+                    this.paletteGenerator.getAdditionalImages();
                 this.configWriter.applyTheme(
                     colors,
                     palette.wallpaper,

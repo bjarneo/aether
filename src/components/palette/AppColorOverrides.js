@@ -588,8 +588,12 @@ export const AppColorOverrides = GObject.registerClass(
                 button: colorButton,
                 row: row,
                 clearButton: clearButton,
-                get isResetting() { return isResetting; },
-                set isResetting(value) { isResetting = value; }
+                get isResetting() {
+                    return isResetting;
+                },
+                set isResetting(value) {
+                    isResetting = value;
+                },
             });
 
             return row;
@@ -662,7 +666,7 @@ export const AppColorOverrides = GObject.registerClass(
             this._colorButtons.forEach((colorVarMap, appName) => {
                 colorVarMap.forEach((buttonData, colorVar) => {
                     const {button, row, clearButton, isResetting} = buttonData;
-                    
+
                     // Skip if this color has a custom override
                     const hasOverride = this._overrides[appName]?.[colorVar];
                     if (hasOverride) {

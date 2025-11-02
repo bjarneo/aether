@@ -90,10 +90,10 @@ export function uploadMultipleWallpapers(parent, onSuccess, onError = null) {
                     GLib.get_home_dir(),
                     'Wallpapers',
                 ]);
-                
+
                 const uploadedPaths = [];
                 const fileCount = files.get_n_items();
-                
+
                 for (let i = 0; i < fileCount; i++) {
                     const file = files.get_item(i);
                     const sourcePath = file.get_path();
@@ -112,7 +112,7 @@ export function uploadMultipleWallpapers(parent, onSuccess, onError = null) {
                         console.error(`Failed to copy image: ${fileName}`);
                     }
                 }
-                
+
                 if (uploadedPaths.length > 0 && onSuccess) {
                     onSuccess(uploadedPaths);
                 } else if (uploadedPaths.length === 0 && onError) {

@@ -124,11 +124,14 @@ export class BlueprintService {
             data.path = filePath;
             data.filename = fileName;
             data.name =
-                data.name || GLib.path_get_basename(filePath).replace('.json', '');
+                data.name ||
+                GLib.path_get_basename(filePath).replace('.json', '');
 
             return data;
         } catch (error) {
-            console.error(`Error loading blueprint from ${filePath}: ${error.message}`);
+            console.error(
+                `Error loading blueprint from ${filePath}: ${error.message}`
+            );
             return null;
         }
     }
@@ -147,7 +150,10 @@ export class BlueprintService {
             return false;
         }
 
-        if (!Array.isArray(blueprint.palette.colors) || blueprint.palette.colors.length < 16) {
+        if (
+            !Array.isArray(blueprint.palette.colors) ||
+            blueprint.palette.colors.length < 16
+        ) {
             return false;
         }
 

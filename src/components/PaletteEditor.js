@@ -206,10 +206,22 @@ export const PaletteEditor = GObject.registerClass(
 
         _loadDefaultColors() {
             const defaultColors = [
-                '#1e1e2e', '#f38ba8', '#a6e3a1', '#f9e2af',
-                '#89b4fa', '#cba6f7', '#94e2d5', '#cdd6f4',
-                '#45475a', '#f38ba8', '#a6e3a1', '#f9e2af',
-                '#89b4fa', '#cba6f7', '#94e2d5', '#ffffff',
+                '#1e1e2e',
+                '#f38ba8',
+                '#a6e3a1',
+                '#f9e2af',
+                '#89b4fa',
+                '#cba6f7',
+                '#94e2d5',
+                '#cdd6f4',
+                '#45475a',
+                '#f38ba8',
+                '#a6e3a1',
+                '#f9e2af',
+                '#89b4fa',
+                '#cba6f7',
+                '#94e2d5',
+                '#ffffff',
             ];
 
             this._originalPalette = [...defaultColors];
@@ -287,7 +299,10 @@ export const PaletteEditor = GObject.registerClass(
                 this.loadWallpaperWithoutExtraction(palette.wallpaper);
             }
 
-            if (palette.additionalImages && Array.isArray(palette.additionalImages)) {
+            if (
+                palette.additionalImages &&
+                Array.isArray(palette.additionalImages)
+            ) {
                 this._additionalImages.setImages(palette.additionalImages);
             }
 

@@ -91,7 +91,8 @@ export const WallpaperSection = GObject.registerClass(
 
             this._editWallpaperBtn = new Gtk.Button({
                 child: editButtonBox,
-                tooltip_text: 'Edit wallpaper (apply filters before extraction)',
+                tooltip_text:
+                    'Edit wallpaper (apply filters before extraction)',
             });
             this._editWallpaperBtn.connect('clicked', () =>
                 this.emit('edit-clicked')

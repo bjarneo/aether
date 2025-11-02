@@ -14,7 +14,9 @@ import {AppColorOverrides} from '../palette/AppColorOverrides.js';
 export const ColorPaletteSection = GObject.registerClass(
     {
         Signals: {
-            'color-changed': {param_types: [GObject.TYPE_INT, GObject.TYPE_STRING]},
+            'color-changed': {
+                param_types: [GObject.TYPE_INT, GObject.TYPE_STRING],
+            },
             'overrides-changed': {param_types: [GObject.TYPE_JSOBJECT]},
         },
     },
@@ -81,17 +83,23 @@ export const ColorPaletteSection = GObject.registerClass(
                 visible: false,
             });
             this._appOverridesWidget = new AppColorOverrides();
-            this._appOverridesWidget.connect('overrides-changed', (_, overrides) => {
-                this._appOverrides = overrides;
-                this.emit('overrides-changed', overrides);
-            });
+            this._appOverridesWidget.connect(
+                'overrides-changed',
+                (_, overrides) => {
+                    this._appOverrides = overrides;
+                    this.emit('overrides-changed', overrides);
+                }
+            );
             this._advancedGroup.add(this._appOverridesWidget);
             this.append(this._advancedGroup);
         }
 
         _openColorPicker(index, currentColor, swatch) {
-            const dialog = new ColorPickerDialog(this.get_root(), this._palette);
-            dialog.openShadePicker(index, currentColor, (color) => {
+            const dialog = new ColorPickerDialog(
+                this.get_root(),
+                this._palette
+            );
+            dialog.openShadePicker(index, currentColor, color => {
                 this._palette[index] = color;
                 this._swatchGrid.updateSwatchColor(index, color);
                 this.emit('color-changed', index, color);
@@ -138,13 +146,15 @@ export const ColorPaletteSection = GObject.registerClass(
             content.append(miniSwatchGrid.widget);
 
             // Create color picker
-            const colorPicker = new WallpaperColorPicker(this._currentWallpaper);
+            const colorPicker = new WallpaperColorPicker(
+                this._currentWallpaper
+            );
             content.append(colorPicker);
 
             // Handle color selection
             colorPicker.connect('color-picked', (_, color) => {
                 const index = miniSwatchGrid.getSelectedIndex();
-                
+
                 // Update palette
                 this._palette[index] = color;
                 this._swatchGrid.updateSwatchColor(index, color);

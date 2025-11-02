@@ -32,7 +32,8 @@ export class ApplyBlueprintCommand {
                     print('  (none)');
                 } else {
                     allBlueprints.forEach(bp => {
-                        const displayName = bp.name || bp.filename.replace('.json', '');
+                        const displayName =
+                            bp.name || bp.filename.replace('.json', '');
                         print(`  - ${displayName}`);
                     });
                 }
