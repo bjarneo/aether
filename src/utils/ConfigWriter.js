@@ -21,7 +21,35 @@ import {
 import {DEFAULT_COLORS} from '../constants/colors.js';
 import {getAppNameFromFileName} from '../constants/templates.js';
 
+/**
+ * ConfigWriter - Processes theme templates and applies themes to various applications
+ *
+ * Responsibilities:
+ * - Process template files with color variable substitution
+ * - Copy wallpapers and additional images to theme directory
+ * - Generate config files for multiple applications (Hyprland, Kitty, Waybar, etc.)
+ * - Handle special cases (GTK, Vencord, Zed, VSCode, Neovim)
+ * - Apply themes using omarchy theme manager
+ * - Manage light/dark mode indicators
+ *
+ * Template Variable Format:
+ * - {background}, {foreground}, {color0}-{color15} - Direct hex colors
+ * - {color5.strip} - Hex color without # prefix
+ * - {color5.rgb} - Decimal RGB format (e.g., 255,0,255)
+ * - {wallpaper} - Path to wallpaper file
+ *
+ * File Paths:
+ * - Templates: {projectDir}/templates/
+ * - Output: ~/.config/omarchy/themes/aether/
+ * - Wallpapers: ~/.config/omarchy/themes/aether/backgrounds/
+ *
+ * @class ConfigWriter
+ */
 export class ConfigWriter {
+    /**
+     * Initializes ConfigWriter with directory paths
+     * @constructor
+     */
     constructor() {
         this.configDir = GLib.get_user_config_dir();
         this.projectDir = GLib.path_get_dirname(
@@ -46,6 +74,23 @@ export class ConfigWriter {
         this.wallpaperPath = null;
     }
 
+    /**
+     * Applies theme with color roles and wallpaper
+     * Main entry point for theme application
+     *
+     * @param {Object} colorRoles - Color role assignments (background, foreground, color0-15)
+     * @param {string} wallpaperPath - Path to wallpaper file
+     * @param {Object} [settings={}] - Theme settings
+     * @param {boolean} [settings.includeGtk] - Apply GTK theming
+     * @param {boolean} [settings.includeVencord] - Apply Vencord (Discord) theme
+     * @param {boolean} [settings.includeZed] - Apply Zed editor theme
+     * @param {boolean} [settings.includeVscode] - Apply VSCode theme
+     * @param {boolean} [lightMode=false] - Light mode flag
+     * @param {Object} [appOverrides={}] - Per-application template overrides
+     * @param {Array<string>} [additionalImages=[]] - Additional images to copy
+     * @param {boolean} [sync=false] - Use synchronous theme application
+     * @returns {boolean} Success status
+     */
     applyTheme(
         colorRoles,
         wallpaperPath,
@@ -101,6 +146,10 @@ export class ConfigWriter {
         }
     }
 
+    /**
+     * Creates theme directory and cleans backgrounds directory
+     * @private
+     */
     _createThemeDirectory() {
         ensureDirectoryExists(this.themeDir);
 
@@ -109,6 +158,11 @@ export class ConfigWriter {
         cleanDirectory(bgDir);
     }
 
+    /**
+     * Copies wallpaper to theme backgrounds directory
+     * @param {string} sourcePath - Source wallpaper path
+     * @private
+     */
     _copyWallpaper(sourcePath) {
         const bgDir = GLib.build_filenamev([this.themeDir, 'backgrounds']);
         const fileName = GLib.path_get_basename(sourcePath);
