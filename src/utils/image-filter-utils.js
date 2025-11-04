@@ -2,7 +2,28 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
 /**
- * Utility functions for applying image filters using ImageMagick
+ * image-filter-utils.js - Professional image filter processing using ImageMagick
+ *
+ * Provides a comprehensive filter system for the WallpaperEditor component:
+ * - Basic adjustments (blur, brightness, contrast, saturation, hue)
+ * - Effects (sepia, invert, oil paint, pixelate)
+ * - Advanced filters (exposure, vignette, sharpen, grain, shadows, highlights)
+ * - Color tone system with 8 presets + custom colors
+ * - 12 quick filter presets (Muted, Dramatic, Soft, Vintage, etc.)
+ *
+ * Architecture:
+ * - Dual-mode filtering: CSS filters for preview, ImageMagick for final output
+ * - Debounced preview system for performance
+ * - JPEG output format (quality 95) for speed and compatibility
+ * - Cached processed wallpapers in ~/.cache/aether/
+ *
+ * Filter System:
+ * - All filters use normalized 0-100% or -100 to 100 ranges
+ * - Preset system auto-resets filters before applying
+ * - Color tone system preserves HSL values with custom picker
+ * - Advanced filters: professional-grade adjustments (grain, vignette, etc.)
+ *
+ * @module image-filter-utils
  */
 
 // ImageMagick filter constants for tuning visual quality
@@ -155,7 +176,31 @@ export const FILTER_PRESETS = [
 ];
 
 /**
- * Check if any filters are active (different from defaults)
+ * Checks if any filters are active (different from DEFAULT_FILTERS)
+ * Used to determine if "Reset" button should be enabled
+ *
+ * @param {Object} filters - Current filter values
+ * @param {number} filters.blur - Blur amount (0-100)
+ * @param {number} filters.brightness - Brightness (0-200, default 100)
+ * @param {number} filters.contrast - Contrast (0-200, default 100)
+ * @param {number} filters.saturation - Saturation (0-200, default 100)
+ * @param {number} filters.hueRotate - Hue rotation (0-360)
+ * @param {number} filters.sepia - Sepia effect (0-100)
+ * @param {number} filters.invert - Invert effect (0-100)
+ * @param {number} filters.exposure - Exposure (-100 to 100)
+ * @param {number} filters.vignette - Vignette darkness (0-100)
+ * @param {number} filters.sharpen - Sharpening (0-100)
+ * @param {number} filters.grain - Grain amount (0-10)
+ * @param {number} filters.shadows - Shadow adjustment (-100 to 100)
+ * @param {number} filters.highlights - Highlight adjustment (-100 to 100)
+ * @param {number|null} filters.tone - Color tone hue or null
+ * @param {number} filters.toneAmount - Tone intensity (0-100)
+ * @param {number} filters.tint - Tint amount (0-100)
+ * @returns {boolean} True if any filter is active
+ *
+ * @example
+ * hasActiveFilters({...DEFAULT_FILTERS, blur: 5}) // true
+ * hasActiveFilters(DEFAULT_FILTERS) // false
  */
 export function hasActiveFilters(filters) {
     return (
@@ -180,9 +225,18 @@ export function hasActiveFilters(filters) {
 }
 
 /**
- * Build CSS filter string from filter values
- * @param {Object} filters - Filter values
- * @returns {string} CSS filter string
+ * Builds CSS filter string from filter values for preview rendering
+ * Used by PreviewArea component for real-time debounced preview
+ *
+ * Note: Not all ImageMagick filters have CSS equivalents (grain, vignette, etc.)
+ * This function only applies filters that can be represented in CSS
+ *
+ * @param {Object} filters - Filter values (see hasActiveFilters for structure)
+ * @returns {string} CSS filter string (e.g., "blur(5px) brightness(1.2)") or "none"
+ *
+ * @example
+ * buildCssFilterString({blur: 5, brightness: 120, ...DEFAULT_FILTERS})
+ * // Returns: "blur(5px) brightness(1.2)"
  */
 export function buildCssFilterString(filters) {
     const parts = [];
@@ -231,11 +285,30 @@ export function buildCssFilterString(filters) {
 }
 
 /**
- * Build ImageMagick command arguments for applying filters
- * @param {string} inputPath - Source image path
- * @param {string} outputPath - Destination path
- * @param {Object} filters - Filter values
- * @returns {Array<string>} Command arguments for ImageMagick
+ * Builds ImageMagick command arguments for applying all filters to final output
+ * Supports advanced filters not available in CSS (grain, vignette, shadows, highlights)
+ *
+ * Filter Processing Order:
+ * 1. Blur, Sharpen
+ * 2. Exposure (multiply brightness)
+ * 3. Brightness, Contrast
+ * 4. Saturation (modulate)
+ * 5. Hue rotation (modulate)
+ * 6. Sepia, Invert
+ * 7. Color tone (colorize with HSL preservation)
+ * 8. Vignette (radial gradient overlay)
+ * 9. Grain (noise overlay with blend)
+ * 10. Shadows/Highlights (level adjustment)
+ * 11. Oil paint, Pixelate effects
+ *
+ * @param {string} inputPath - Source image path (absolute)
+ * @param {string} outputPath - Destination path for processed image (JPEG format)
+ * @param {Object} filters - Filter values (see hasActiveFilters for structure)
+ * @returns {string[]} Complete ImageMagick command arguments array
+ *
+ * @example
+ * const args = buildImageMagickCommand('/path/to/input.jpg', '/path/to/output.jpg', filters)
+ * // Returns: ['magick', '/path/to/input.jpg', '-blur', '0x5', ...additional args, '/path/to/output.jpg']
  */
 export function buildImageMagickCommand(inputPath, outputPath, filters) {
     const args = ['magick', inputPath];
@@ -472,11 +545,32 @@ export function buildImageMagickCommand(inputPath, outputPath, filters) {
 }
 
 /**
- * Apply filters to an image using ImageMagick
- * @param {string} inputPath - Source image path
- * @param {string} outputPath - Destination path
- * @param {Object} filters - Filter values
- * @returns {Promise<string>} Resolved with output path on success
+ * Applies all filters to an image using ImageMagick subprocess
+ * Executes the full filter pipeline and writes processed image to output path
+ *
+ * Process:
+ * 1. Builds ImageMagick command with buildImageMagickCommand()
+ * 2. Spawns subprocess with STDOUT/STDERR pipes
+ * 3. Waits for process completion asynchronously
+ * 4. Returns output path on success or throws error
+ *
+ * Output Format:
+ * - JPEG files: quality 95 (high quality)
+ * - PNG files: quality 75 (compression level)
+ * - Metadata stripped for size reduction
+ *
+ * @param {string} inputPath - Source image absolute path
+ * @param {string} outputPath - Destination absolute path (determines format by extension)
+ * @param {Object} filters - Filter values (see hasActiveFilters for structure)
+ * @returns {Promise<string>} Resolves with outputPath on success
+ * @throws {Error} If ImageMagick process fails or returns non-zero exit code
+ *
+ * @example
+ * await applyFiltersWithImageMagick(
+ *   '/path/to/input.jpg',
+ *   '/path/to/output.jpg',
+ *   {...DEFAULT_FILTERS, blur: 10}
+ * )
  */
 export async function applyFiltersWithImageMagick(
     inputPath,
@@ -524,9 +618,23 @@ export async function applyFiltersWithImageMagick(
 }
 
 /**
- * Get the cache directory for processed wallpapers
- * Uses a unique timestamp-based filename to ensure fresh color extraction
- * @returns {string} Cache file path with unique name
+ * Generates a unique cache path for processed wallpapers
+ * Creates ~/.cache/aether/ directory if it doesn't exist
+ *
+ * Purpose:
+ * - Stores processed wallpapers before color extraction
+ * - Timestamp-based filename ensures unique path per processing session
+ * - Bypasses color extraction cache to force fresh palette generation
+ * - JPEG format for compatibility and performance
+ *
+ * File naming: processed-wallpaper-{timestamp}.jpg
+ * Location: ~/.cache/aether/
+ *
+ * @returns {string} Absolute path to unique processed wallpaper file
+ *
+ * @example
+ * getProcessedWallpaperCachePath()
+ * // Returns: "/home/user/.cache/aether/processed-wallpaper-1234567890.jpg"
  */
 export function getProcessedWallpaperCachePath() {
     const cacheDir = GLib.build_filenamev([
