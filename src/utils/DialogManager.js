@@ -2,6 +2,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
+import {showToast as showToastHelper} from './ui-helpers.js';
 
 /**
  * DialogManager - Centralized dialog system for consistent UI patterns
@@ -300,6 +301,7 @@ export class DialogManager {
 
     /**
      * Show a toast notification
+     * Delegates to ui-helpers.showToast for consistency
      * @param {Gtk.Widget} widget - Widget to find toast overlay from
      * @param {Object} config - Toast configuration
      * @param {string} config.title - Toast title
@@ -307,14 +309,7 @@ export class DialogManager {
      */
     static showToast(widget, config) {
         const {title, timeout = 2} = config;
-
-        const overlay = DialogManager.findToastOverlay(widget);
-        if (overlay) {
-            const toast = new Adw.Toast({title, timeout});
-            overlay.add_toast(toast);
-        } else {
-            console.log('Toast:', title);
-        }
+        showToastHelper(widget, title, timeout);
     }
 
     showBlueprintsDialog(blueprintManager) {
