@@ -828,96 +828,38 @@ export const WallpaperBrowser = GObject.registerClass(
 
         /**
          * Checks if a wallpaper is in favorites
+         * Uses centralized favoritesService
          * @param {Object} wallpaper - Wallpaper object to check
          * @returns {boolean} True if wallpaper is favorited
          * @private
          */
         _isFavorite(wallpaper) {
-            const key = this._getFavoriteKey(wallpaper);
-            return this._favorites.has(key);
-        }
-
-        /**
-         * Generates a unique key for a wallpaper (for favorites storage)
-         * @param {Object} wallpaper - Wallpaper object
-         * @returns {string} JSON string key containing wallpaper metadata
-         * @private
-         */
-        _getFavoriteKey(wallpaper) {
-            // Use wallpaper ID or path as unique key
-            return JSON.stringify({
-                id: wallpaper.id,
-                path: wallpaper.path,
-                thumbs: wallpaper.thumbs,
-                resolution: wallpaper.resolution,
-                file_size: wallpaper.file_size,
-            });
+            return favoritesService.isFavorite(wallpaper.path);
         }
 
         /**
          * Toggles favorite status for a wallpaper
+         * Uses centralized favoritesService
          * @param {Object} wallpaper - Wallpaper object
          * @param {Gtk.Button} button - Favorite button widget
          * @private
          */
         _toggleFavorite(wallpaper, button) {
-            const key = this._getFavoriteKey(wallpaper);
+            const isFavorited = favoritesService.toggleFavorite(
+                wallpaper.path,
+                'wallhaven',
+                {
+                    id: wallpaper.id,
+                    resolution: wallpaper.resolution,
+                    file_size: wallpaper.file_size,
+                    thumbUrl: wallpaper.thumbs?.small,
+                }
+            );
 
-            if (this._favorites.has(key)) {
-                this._favorites.delete(key);
-                button.set_css_classes(['circular', 'favorite-inactive']);
-            } else {
-                this._favorites.add(key);
-                button.set_css_classes(['circular', 'favorite-active']);
-            }
-
-            this._saveFavorites();
-        }
-
-        /**
-         * Loads favorites from disk
-         * Reads from ~/.config/aether/favorites.json
-         * @private
-         */
-        _loadFavorites() {
-            try {
-                const favPath = GLib.build_filenamev([
-                    GLib.get_user_config_dir(),
-                    'aether',
-                    'favorites.json',
-                ]);
-
-                const favArray = loadJsonFile(favPath, []);
-                this._favorites = new Set(favArray);
-            } catch (e) {
-                console.error('Failed to load favorites:', e.message);
-                this._favorites = new Set();
-            }
-        }
-
-        /**
-         * Saves favorites to disk
-         * Writes to ~/.config/aether/favorites.json
-         * @private
-         */
-        _saveFavorites() {
-            try {
-                const configDir = GLib.build_filenamev([
-                    GLib.get_user_config_dir(),
-                    'aether',
-                ]);
-                ensureDirectoryExists(configDir);
-
-                const favPath = GLib.build_filenamev([
-                    configDir,
-                    'favorites.json',
-                ]);
-
-                const favArray = Array.from(this._favorites);
-                saveJsonFile(favPath, favArray);
-            } catch (e) {
-                console.error('Failed to save favorites:', e.message);
-            }
+            button.set_css_classes([
+                'circular',
+                isFavorited ? 'favorite-active' : 'favorite-inactive',
+            ]);
         }
 
         /**
