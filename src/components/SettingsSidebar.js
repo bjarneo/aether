@@ -10,7 +10,7 @@ import {AccessibilityPanel} from './AccessibilityPanel.js';
 import {ShaderManager} from './ShaderManager.js';
 import {COLOR_PRESETS} from '../constants/presets.js';
 import {NEOVIM_PRESETS} from '../constants/neovim-presets.js';
-import {applyCssToWidget, removeAllChildren} from '../utils/ui-helpers.js';
+import {applyCssToWidget, removeAllChildren, showToast} from '../utils/ui-helpers.js';
 import {
     rgbaToHex,
     generatePaletteFromColor,
@@ -615,20 +615,7 @@ export const SettingsSidebar = GObject.registerClass(
                         this._selectedNeovimConfig = null;
                         checkIcon.set_visible(false);
                         this.emit('neovim-theme-changed', false);
-
-                        const toast = new Adw.Toast({
-                            title: `${preset.name} theme deselected`,
-                            timeout: 2,
-                        });
-
-                        let widget = this;
-                        while (widget) {
-                            if (widget._toastOverlay) {
-                                widget._toastOverlay.add_toast(toast);
-                                break;
-                            }
-                            widget = widget.get_parent();
-                        }
+                        showToast(this, `${preset.name} theme deselected`, 2);
                     } else {
                         this._selectedNeovimConfig = preset.config;
 
@@ -638,20 +625,7 @@ export const SettingsSidebar = GObject.registerClass(
 
                         checkIcon.set_visible(true);
                         this.emit('neovim-theme-changed', true);
-
-                        const toast = new Adw.Toast({
-                            title: `${preset.name} theme selected`,
-                            timeout: 2,
-                        });
-
-                        let widget = this;
-                        while (widget) {
-                            if (widget._toastOverlay) {
-                                widget._toastOverlay.add_toast(toast);
-                                break;
-                            }
-                            widget = widget.get_parent();
-                        }
+                        showToast(this, `${preset.name} theme selected`, 2);
                     }
                 });
 

@@ -786,28 +786,6 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         /**
-         * Finds the ToastOverlay ancestor for displaying toast notifications
-         * @returns {Adw.ToastOverlay|null} The toast overlay widget or null
-         * @private
-         * @deprecated Use showToast helper from ui-helpers.js instead
-         */
-        _findToastOverlay() {
-            // Try to find the toast overlay in the window hierarchy
-            let widget = this.get_parent();
-            while (widget) {
-                if (widget instanceof Adw.ToastOverlay) {
-                    return widget;
-                }
-                if (widget instanceof Adw.ApplicationWindow) {
-                    // If we reach the window, we can wrap our content in a toast overlay
-                    break;
-                }
-                widget = widget.get_parent();
-            }
-            return null;
-        }
-
-        /**
          * Updates pagination controls based on API metadata
          * Sets page label and enables/disables navigation buttons
          * @param {Object} meta - Pagination metadata from API response
@@ -1282,27 +1260,10 @@ export const WallpaperBrowser = GObject.registerClass(
                     this._currentPage = 1;
                     this._performSearch();
 
-                    const toast = new Adw.Toast({
-                        title: 'Settings saved successfully',
-                        timeout: 2,
-                    });
-
-                    const toastOverlay = this._findToastOverlay();
-                    if (toastOverlay) {
-                        toastOverlay.add_toast(toast);
-                    }
-
+                    showToast(this, 'Settings saved successfully', 2);
                     dialog.close();
                 } catch (e) {
-                    const errorToast = new Adw.Toast({
-                        title: `Failed to save settings: ${e.message}`,
-                        timeout: 3,
-                    });
-
-                    const toastOverlay = this._findToastOverlay();
-                    if (toastOverlay) {
-                        toastOverlay.add_toast(errorToast);
-                    }
+                    showToast(this, `Failed to save settings: ${e.message}`, 3);
                 }
             });
 

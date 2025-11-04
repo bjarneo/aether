@@ -3,6 +3,8 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
+import {showToast} from '../utils/ui-helpers.js';
+
 /**
  * ShaderManager - Component for managing hyprshade screen shaders
  *
@@ -317,20 +319,7 @@ export const ShaderManager = GObject.registerClass(
          * @param {string} message - Error message
          */
         _showErrorToast(message) {
-            const toast = new Adw.Toast({
-                title: message,
-                timeout: 3,
-            });
-
-            // Find the nearest ToastOverlay parent
-            let parent = this.get_parent();
-            while (parent && !(parent instanceof Adw.ToastOverlay)) {
-                parent = parent.get_parent();
-            }
-
-            if (parent) {
-                parent.add_toast(toast);
-            }
+            showToast(this, message, 3);
         }
 
         /**
