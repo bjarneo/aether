@@ -20,6 +20,8 @@ import {
 } from './service-manager.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
 import {getAppNameFromFileName} from '../constants/templates.js';
+import {GtkThemeApplier} from './theme-appliers/GtkThemeApplier.js';
+import {VscodeThemeApplier} from './theme-appliers/VscodeThemeApplier.js';
 
 /**
  * ConfigWriter - Processes theme templates and applies themes to various applications
@@ -72,6 +74,10 @@ export class ConfigWriter {
             'aether',
         ]);
         this.wallpaperPath = null;
+
+        // Initialize theme appliers
+        this.gtkApplier = new GtkThemeApplier();
+        this.vscodeApplier = new VscodeThemeApplier(this.templatesDir);
     }
 
     /**
@@ -118,7 +124,11 @@ export class ConfigWriter {
 
             // Only apply GTK theming if enabled
             if (settings.includeGtk === true) {
-                this._createGtkSymlinks();
+                const gtkSourcePath = GLib.build_filenamev([
+                    this.themeDir,
+                    'gtk.css',
+                ]);
+                this.gtkApplier.apply(gtkSourcePath);
             }
 
             // Copy Vencord theme to all existing installations if enabled
@@ -133,7 +143,7 @@ export class ConfigWriter {
 
             // Copy VSCode theme if enabled
             if (settings.includeVscode === true) {
-                this._copyVscodeTheme(variables);
+                this.vscodeApplier.apply(variables);
             }
 
             this._handleLightModeMarker(this.themeDir, lightMode);
@@ -326,11 +336,6 @@ export class ConfigWriter {
                 console.log(
                     `Applied ${Object.keys(appSpecificOverrides).length} override(s) to ${fileName}`
                 );
-            }
-
-            // Set special permissions for gtk.css (chmod 644)
-            if (fileName === 'gtk.css') {
-                this._setFilePermissions(outputPath, 0o644);
             }
         } catch (e) {
             console.error(
@@ -593,59 +598,6 @@ export class ConfigWriter {
         }
     }
 
-    _createGtkSymlinks() {
-        try {
-            // Source: ~/.config/omarchy/themes/aether/gtk.css
-            const gtkSourcePath = GLib.build_filenamev([
-                this.themeDir,
-                'gtk.css',
-            ]);
-
-            // Check if source file exists
-            const sourceFile = Gio.File.new_for_path(gtkSourcePath);
-            if (!sourceFile.query_exists(null)) {
-                console.log(
-                    'gtk.css not found in theme directory, skipping GTK copies'
-                );
-                return;
-            }
-
-            // GTK3 destination: ~/.config/gtk-3.0/gtk.css
-            const gtk3ConfigDir = GLib.build_filenamev([
-                this.configDir,
-                'gtk-3.0',
-            ]);
-            const gtk3DestPath = GLib.build_filenamev([
-                gtk3ConfigDir,
-                'gtk.css',
-            ]);
-
-            // GTK4 destination: ~/.config/gtk-4.0/gtk.css
-            const gtk4ConfigDir = GLib.build_filenamev([
-                this.configDir,
-                'gtk-4.0',
-            ]);
-            const gtk4DestPath = GLib.build_filenamev([
-                gtk4ConfigDir,
-                'gtk.css',
-            ]);
-
-            // Ensure GTK config directories exist
-            ensureDirectoryExists(gtk3ConfigDir);
-            ensureDirectoryExists(gtk4ConfigDir);
-
-            // Copy to GTK3
-            this._copyGtkFile(gtkSourcePath, gtk3DestPath, 'GTK3');
-
-            // Copy to GTK4
-            this._copyGtkFile(gtkSourcePath, gtk4DestPath, 'GTK4');
-
-            console.log('GTK files copied successfully');
-        } catch (e) {
-            console.error('Error copying GTK files:', e.message);
-        }
-    }
-
     _copyVencordTheme() {
         try {
             const vencordSourcePath = GLib.build_filenamev([
@@ -689,123 +641,6 @@ export class ConfigWriter {
             copyZedTheme(zedSourcePath);
         } catch (e) {
             console.error('Error copying Zed theme:', e.message);
-        }
-    }
-
-    _copyVscodeTheme(variables) {
-        try {
-            const homeDir = GLib.get_home_dir();
-            const vscodeExtensionPath = GLib.build_filenamev([
-                homeDir,
-                '.vscode',
-                'extensions',
-                'theme-aether',
-            ]);
-
-            // Ensure the extension directory exists
-            ensureDirectoryExists(vscodeExtensionPath);
-
-            // Process the entire vscode-extension folder from templates
-            const vscodeTemplateDir = GLib.build_filenamev([
-                this.templatesDir,
-                'vscode-extension',
-            ]);
-
-            // Copy and process all files from vscode-extension template
-            this._copyVscodeExtensionDirectory(
-                vscodeTemplateDir,
-                vscodeExtensionPath,
-                variables
-            );
-
-            console.log(
-                `Installed VSCode extension to: ${vscodeExtensionPath}`
-            );
-        } catch (e) {
-            console.error('Error copying VSCode theme:', e.message);
-        }
-    }
-
-    _copyVscodeExtensionDirectory(sourceDir, destDir, variables) {
-        enumerateDirectory(sourceDir, (fileInfo, filePath, fileName) => {
-            const fileType = fileInfo.get_file_type();
-
-            if (fileType === Gio.FileType.DIRECTORY) {
-                // Recursively process subdirectories
-                const subSourceDir = GLib.build_filenamev([
-                    sourceDir,
-                    fileName,
-                ]);
-                const subDestDir = GLib.build_filenamev([destDir, fileName]);
-                ensureDirectoryExists(subDestDir);
-                this._copyVscodeExtensionDirectory(
-                    subSourceDir,
-                    subDestDir,
-                    variables
-                );
-            } else if (fileType === Gio.FileType.REGULAR) {
-                // Process and copy file
-                const destPath = GLib.build_filenamev([destDir, fileName]);
-                this._processTemplate(filePath, destPath, variables, fileName);
-                console.log(`Processed VSCode extension file: ${fileName}`);
-            }
-        });
-    }
-
-    _copyGtkFile(sourcePath, destPath, label) {
-        try {
-            // Remove existing file if it exists
-            const destFile = Gio.File.new_for_path(destPath);
-            if (destFile.query_exists(null)) {
-                try {
-                    destFile.delete(null);
-                } catch (e) {
-                    console.error(
-                        `Error removing existing ${label} gtk.css:`,
-                        e.message
-                    );
-                    return;
-                }
-            }
-
-            // Copy the file
-            const success = copyFile(sourcePath, destPath);
-            if (success) {
-                console.log(`Copied ${label} gtk.css to ${destPath}`);
-                // Set permissions to 644 after copying
-                this._setFilePermissions(destPath, 0o644);
-            } else {
-                console.error(`Failed to copy ${label} gtk.css`);
-            }
-        } catch (e) {
-            console.error(`Error in _copyGtkFile for ${label}:`, e.message);
-        }
-    }
-
-    _setFilePermissions(filePath, mode) {
-        try {
-            const file = Gio.File.new_for_path(filePath);
-            if (!file.query_exists(null)) {
-                console.error(`File not found for chmod: ${filePath}`);
-                return;
-            }
-
-            // Use GLib.chmod (octal mode)
-            const result = GLib.chmod(filePath, mode);
-            if (result === 0) {
-                console.log(
-                    `Set permissions ${mode.toString(8)} on ${filePath}`
-                );
-            } else {
-                console.error(
-                    `Failed to chmod ${filePath}: returned ${result}`
-                );
-            }
-        } catch (e) {
-            console.error(
-                `Error setting permissions on ${filePath}:`,
-                e.message
-            );
         }
     }
 
