@@ -7,6 +7,32 @@ import {rgbaToHex} from '../utils/color-utils.js';
 import {applyCssToWidget, forEachChild} from '../utils/ui-helpers.js';
 import {ANSI_COLOR_ROLES, DEFAULT_COLORS} from '../constants/colors.js';
 
+/**
+ * ColorSynthesizer - Color role assignment interface
+ *
+ * Displays and manages color assignments for theme roles (background, foreground, color0-15).
+ * Provides a list of color roles with interactive color pickers for each role.
+ *
+ * Features:
+ * - 18 color roles (background, foreground, cursor, color0-15)
+ * - Color picker button for each role
+ * - Auto-assignment when palette is loaded (background=color0, foreground=color15, etc.)
+ * - Manual adjustment via Gtk.ColorDialogButton
+ * - Real-time color updates with signal emission
+ *
+ * Color Roles:
+ * - background: Terminal/window background color
+ * - foreground: Default text color
+ * - cursor: Terminal cursor color
+ * - color0-7: Regular ANSI colors (black, red, green, yellow, blue, magenta, cyan, white)
+ * - color8-15: Bright ANSI colors
+ *
+ * Signals:
+ * - 'color-changed' (roleId: string, hexColor: string) - Emitted when any color is modified
+ *
+ * @class ColorSynthesizer
+ * @extends {Gtk.Box}
+ */
 export const ColorSynthesizer = GObject.registerClass(
     {
         Signals: {
@@ -16,6 +42,11 @@ export const ColorSynthesizer = GObject.registerClass(
         },
     },
     class ColorSynthesizer extends Gtk.Box {
+        /**
+         * Initializes ColorSynthesizer with role list and default colors
+         * Creates color picker rows for all ANSI color roles
+         * @private
+         */
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
