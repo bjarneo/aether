@@ -6,8 +6,47 @@ import Adw from 'gi://Adw?version=1';
 /**
  * ShaderManager - Component for managing hyprshade screen shaders
  *
- * Provides a UI for discovering and toggling hyprshade shaders.
- * Shaders are visual effects applied to the entire screen via Hyprland.
+ * Provides a UI for discovering, browsing, and toggling hyprshade shaders
+ * within the Aether theme application. Shaders are visual effects (blue light
+ * filters, color grading, CRT effects, etc.) applied to the entire screen
+ * via Hyprland's compositor using hyprshade.
+ *
+ * Features:
+ * - Auto-discovers shaders from hyprshade (`hyprshade ls`)
+ * - Toggle switches for each shader (only one active at a time)
+ * - Displays current active shader on load
+ * - Scrollable list with up to 600px height
+ * - Formatted shader names (e.g., "blue-light-filter" → "Blue Light Filter")
+ * - Refresh capability to reload shader list
+ * - Empty state with installation instructions
+ *
+ * hyprshade Integration:
+ * - Uses `hyprshade ls` to list available shaders
+ * - Uses `hyprshade current` to get active shader
+ * - Uses `hyprshade on <shader>` to enable a shader
+ * - Uses `hyprshade off` to disable shaders
+ * - Shaders are installed to ~/.config/hypr/shaders/
+ *
+ * UI Structure:
+ * - Adw.ExpanderRow container (collapsible)
+ * - Gtk.ScrolledWindow with Gtk.ListBox (boxed-list style)
+ * - Adw.ActionRow for each shader with Gtk.Switch suffix
+ * - Error handling with inline error rows
+ *
+ * Signals:
+ * - 'shader-changed': (shaderName: string) - Emitted when shader is toggled
+ *   - shaderName is the shader filename or 'off' if disabled
+ *
+ * Public Methods:
+ * - refresh() - Reload shader list from hyprshade
+ * - getCurrentShader() - Get currently active shader name (or null)
+ *
+ * @example
+ * const shaderManager = new ShaderManager();
+ * shaderManager.connect('shader-changed', (widget, shaderName) => {
+ *     console.log(`Shader changed to: ${shaderName}`);
+ * });
+ * shaderManager.refresh(); // Reload shaders
  */
 export const ShaderManager = GObject.registerClass(
     {
