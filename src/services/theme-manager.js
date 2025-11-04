@@ -4,9 +4,42 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
 
 /**
- * ThemeManager - Handles custom theming with CSS variables and live reload
+ * ThemeManager - Manages Aether's custom theming system with live reload
+ *
+ * Responsibilities:
+ * - Creates and manages base theme CSS (~/.config/aether/theme.css)
+ * - Handles theme override file (theme.override.css) for user customizations
+ * - Monitors theme files for changes and reloads automatically
+ * - Applies global sharp corners (border-radius: 0) for Hyprland aesthetic
+ * - Symlink management for omarchy theme integration
+ * - GTK named colors (@define-color) support
+ *
+ * Architecture:
+ * - Base theme: Imports override file, applies to all Aether UI
+ * - Override theme: User-editable or symlinked to omarchy theme
+ * - File monitors: Automatic CSS reload on changes (Gio.FileMonitor)
+ * - CSS providers: Separate providers for theme and sharp corners
+ *
+ * Theme File Flow:
+ * 1. ~/.config/aether/theme.css (base, imports override)
+ * 2. ~/.config/aether/theme.override.css (user overrides or symlink)
+ * 3. ~/.config/omarchy/themes/aether/aether.override.css (generated from templates)
+ *
+ * Features:
+ * - Live reload: Changes to CSS files apply instantly
+ * - Symlink detection: Handles broken symlinks gracefully
+ * - GTK integration: Uses GTK's @define-color for theming
+ * - Sharp corners: Global border-radius override
+ * - Omarchy integration: Monitors omarchy theme directory
+ *
+ * @class ThemeManager
  */
 export class ThemeManager {
+    /**
+     * Initializes ThemeManager with file monitoring and theme application
+     * Creates base theme if missing, sets up file monitors, applies CSS
+     * @constructor
+     */
     constructor() {
         this.cssProvider = null;
         this.sharpCornersCssProvider = null;
