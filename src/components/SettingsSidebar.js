@@ -16,8 +16,45 @@ import {
     generatePaletteFromColor,
     generateGradient,
 } from '../utils/color-utils.js';
-import {loadJsonFile, saveJsonFile} from '../utils/file-utils.js';
+import {
+    loadJsonFile,
+    saveJsonFile,
+    ensureDirectoryExists,
+} from '../utils/file-utils.js';
 
+/**
+ * SettingsSidebar - Comprehensive theme settings and customization panel
+ *
+ * Features:
+ * - Light/dark mode toggle for color extraction
+ * - Color adjustments (vibrance, contrast, brightness, hue, temperature, gamma)
+ * - Gradient generator with preview
+ * - Palette generation from single color
+ * - Preset library (10 popular themes: Dracula, Nord, Gruvbox, etc.)
+ * - Neovim theme selector (37 LazyVim-compatible themes)
+ * - Template settings (enable/disable optional templates)
+ * - Experimental features (per-app color overrides, shader effects)
+ * - Accessibility checker integration
+ *
+ * Signals:
+ * - 'adjustments-changed' (adjustments: object) - Color adjustments modified
+ * - 'adjustments-reset' - Reset adjustments to defaults
+ * - 'settings-changed' (settings: object) - Template settings changed
+ * - 'preset-applied' (preset: object) - Color preset applied
+ * - 'gradient-generated' (gradient: object) - Gradient colors generated
+ * - 'light-mode-changed' (enabled: boolean) - Light mode toggled
+ * - 'palette-from-color-generated' (palette: object) - Palette generated from single color
+ * - 'app-overrides-enabled-changed' (enabled: boolean) - Per-app overrides toggled
+ * - 'neovim-theme-changed' (enabled: boolean) - Neovim theme inclusion changed
+ *
+ * Configuration:
+ * - Settings persisted to ~/.config/aether/settings.json
+ * - Includes template enable/disable flags
+ * - Stores Neovim theme preferences
+ *
+ * @class SettingsSidebar
+ * @extends {Gtk.Box}
+ */
 export const SettingsSidebar = GObject.registerClass(
     {
         Signals: {
@@ -37,6 +74,11 @@ export const SettingsSidebar = GObject.registerClass(
         },
     },
     class SettingsSidebar extends Gtk.Box {
+        /**
+         * Initializes the SettingsSidebar with default values and UI
+         * Loads persisted settings from disk
+         * @private
+         */
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
@@ -67,6 +109,11 @@ export const SettingsSidebar = GObject.registerClass(
             this._initializeUI();
         }
 
+        /**
+         * Initializes all UI sections and adds them to scrollable container
+         * Creates light mode, adjustments, gradient, presets, Neovim, template, and experimental sections
+         * @private
+         */
         _initializeUI() {
             const scrolled = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
@@ -128,6 +175,12 @@ export const SettingsSidebar = GObject.registerClass(
             this.append(scrolled);
         }
 
+        /**
+         * Creates light mode toggle section
+         * Emits 'light-mode-changed' signal when toggled
+         * @returns {Adw.PreferencesGroup} Light mode section widget
+         * @private
+         */
         _createLightModeSection() {
             const group = new Adw.PreferencesGroup({
                 title: 'Theme Mode',
@@ -156,6 +209,12 @@ export const SettingsSidebar = GObject.registerClass(
             return group;
         }
 
+        /**
+         * Creates collapsible color adjustments section
+         * Includes vibrance, contrast, brightness, hue shift, temperature, and gamma controls
+         * @returns {Adw.ExpanderRow} Adjustments expander widget
+         * @private
+         */
         _createAdjustmentsSection() {
             const expanderRow = new Adw.ExpanderRow({
                 title: 'Color Adjustments',
@@ -182,6 +241,12 @@ export const SettingsSidebar = GObject.registerClass(
             return expanderRow;
         }
 
+        /**
+         * Creates gradient generator section with color pickers and preview
+         * Generates smooth color transitions between two colors
+         * @returns {Adw.PreferencesGroup} Gradient generator widget
+         * @private
+         */
         _createGradientSection() {
             const expanderRow = new Adw.ExpanderRow({
                 title: 'Gradient Generator',
@@ -303,6 +368,11 @@ export const SettingsSidebar = GObject.registerClass(
             return expanderRow;
         }
 
+        /**
+         * Updates gradient preview with current start and end colors
+         * Creates 16-step gradient visualization
+         * @private
+         */
         _updateGradientPreview() {
             const startRgba = this._gradientStartButton.get_rgba();
             const endRgba = this._gradientEndButton.get_rgba();
@@ -325,6 +395,11 @@ export const SettingsSidebar = GObject.registerClass(
             });
         }
 
+        /**
+         * Generates and emits gradient from current start and end colors
+         * Emits 'gradient-generated' signal with 16 color array
+         * @private
+         */
         _generateGradient() {
             const startRgba = this._gradientStartButton.get_rgba();
             const endRgba = this._gradientEndButton.get_rgba();
@@ -336,6 +411,12 @@ export const SettingsSidebar = GObject.registerClass(
             this.emit('gradient-generated', colors);
         }
 
+        /**
+         * Creates palette generation from single color section
+         * Generates full 16-color ANSI palette from one base color
+         * @returns {Adw.ExpanderRow} Palette from color widget
+         * @private
+         */
         _createPaletteFromColorSection() {
             const expanderRow = new Adw.ExpanderRow({
                 title: 'Palette from Single Color',
@@ -413,6 +494,12 @@ export const SettingsSidebar = GObject.registerClass(
             return expanderRow;
         }
 
+        /**
+         * Creates color presets library section
+         * Displays 10 popular themes (Dracula, Nord, Gruvbox, etc.) with color previews
+         * @returns {Adw.ExpanderRow} Presets section widget
+         * @private
+         */
         _createPresetsSection() {
             const expanderRow = new Adw.ExpanderRow({
                 title: 'Presets',
@@ -479,6 +566,12 @@ export const SettingsSidebar = GObject.registerClass(
             return expanderRow;
         }
 
+        /**
+         * Creates Neovim theme presets section
+         * Displays 37 LazyVim-compatible themes with selection indicators
+         * @returns {Adw.ExpanderRow} Neovim presets widget
+         * @private
+         */
         _createNeovimPresetsSection() {
             const expanderRow = new Adw.ExpanderRow({
                 title: 'Neovim Themes',
@@ -578,6 +671,12 @@ export const SettingsSidebar = GObject.registerClass(
             return expanderRow;
         }
 
+        /**
+         * Creates template settings section
+         * Allows enabling/disabling optional templates (Neovim, Vencord, Zed, VSCode, GTK)
+         * @returns {Adw.ExpanderRow} Template settings widget
+         * @private
+         */
         _createTemplateSettings() {
             const expanderRow = new Adw.ExpanderRow({
                 title: 'Template Settings',
@@ -778,6 +877,11 @@ export const SettingsSidebar = GObject.registerClass(
             return expanderRow;
         }
 
+        /**
+         * Clears GTK theme files from GTK 3.0 and 4.0 config directories
+         * Removes gtk.css files when user disables GTK theming
+         * @private
+         */
         _clearGtkTheme() {
             const configDir = GLib.get_user_config_dir();
             const paths = [
@@ -804,14 +908,28 @@ export const SettingsSidebar = GObject.registerClass(
             });
         }
 
+        /**
+         * Resets all color adjustments to default values
+         * @public
+         */
         resetAdjustments() {
             this._adjustmentControls.reset();
         }
 
+        /**
+         * Updates accessibility panel with current color palette
+         * @param {Object} colors - Color role assignments
+         * @public
+         */
         updateAccessibility(colors) {
             this._accessibilityPanel.updateColors(colors);
         }
 
+        /**
+         * Gets current template and feature settings
+         * @returns {Object} Settings object with template enable flags
+         * @public
+         */
         getSettings() {
             return {
                 includeNeovim: this._includeNeovim,
@@ -825,12 +943,17 @@ export const SettingsSidebar = GObject.registerClass(
             };
         }
 
+        /**
+         * Loads persisted settings from disk
+         * Reads from ~/.config/aether/settings.json
+         * @private
+         */
         _loadSettings() {
             const configDir = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
                 'aether',
             ]);
-            GLib.mkdir_with_parents(configDir, 0o755);
+            ensureDirectoryExists(configDir);
 
             const settings = loadJsonFile(this._settingsPath);
             if (settings) {
@@ -844,12 +967,17 @@ export const SettingsSidebar = GObject.registerClass(
             }
         }
 
+        /**
+         * Saves current settings to disk
+         * Writes to ~/.config/aether/settings.json
+         * @public
+         */
         saveSettings() {
             const configDir = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
                 'aether',
             ]);
-            GLib.mkdir_with_parents(configDir, 0o755);
+            ensureDirectoryExists(configDir);
 
             const settings = {
                 includeNeovim: this._includeNeovim,

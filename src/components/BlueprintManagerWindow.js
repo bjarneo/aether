@@ -21,6 +21,41 @@ const PREVIEW_COLORS_COUNT = 4;
 const GRID_SPACING = 12;
 const CARD_WIDTH = 280;
 
+/**
+ * BlueprintManagerWindow - Manages saved theme blueprints with visual preview
+ *
+ * Features:
+ * - Grid view of saved blueprints with wallpaper thumbnails
+ * - Color palette preview (4 colors) for each blueprint
+ * - Search/filter blueprints by name or timestamp
+ * - Import/export blueprints as JSON files
+ * - Delete blueprints with confirmation dialog
+ * - Async thumbnail loading with queue system (2 concurrent loads)
+ * - CSS caching for performance
+ * - Light/dark mode indicators on blueprint cards
+ *
+ * Signals:
+ * - 'blueprint-applied' (blueprint: object) - Emitted when blueprint is selected
+ * - 'close-requested' - Emitted when close button is clicked
+ *
+ * Blueprint Format:
+ * {
+ *   name: string,
+ *   timestamp: number,
+ *   palette: {
+ *     wallpaper: string,
+ *     colors: string[16],
+ *     lightMode: boolean
+ *   }
+ * }
+ *
+ * Storage:
+ * - Blueprints stored in ~/.config/aether/blueprints/*.json
+ * - One JSON file per blueprint with filename: {timestamp}.json
+ *
+ * @class BlueprintManagerWindow
+ * @extends {Gtk.Box}
+ */
 export const BlueprintManagerWindow = GObject.registerClass(
     {
         Signals: {
@@ -31,6 +66,11 @@ export const BlueprintManagerWindow = GObject.registerClass(
         },
     },
     class BlueprintManagerWindow extends Gtk.Box {
+        /**
+         * Initializes BlueprintManagerWindow with UI and loads blueprints
+         * Sets up thumbnail loading queue and CSS caching
+         * @private
+         */
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
@@ -59,6 +99,11 @@ export const BlueprintManagerWindow = GObject.registerClass(
             this._loadBlueprintsAsync();
         }
 
+        /**
+         * Sets up CSS provider for dynamic color class generation
+         * Used for caching color preview styles
+         * @private
+         */
         _setupColorCSS() {
             // Create a CSS provider for dynamic color classes
             this._cssProvider = new Gtk.CssProvider();
@@ -69,10 +114,19 @@ export const BlueprintManagerWindow = GObject.registerClass(
             );
         }
 
+        /**
+         * Ensures blueprints directory exists
+         * Creates ~/.config/aether/blueprints/ if missing
+         * @private
+         */
         _ensureBlueprintsDirectory() {
             GLib.mkdir_with_parents(this._blueprintsDir, 0o755);
         }
 
+        /**
+         * Initializes UI components (header, search, content)
+         * @private
+         */
         _initializeUI() {
             this._createHeaderBar();
             this._createSearchBar();
@@ -174,6 +228,11 @@ export const BlueprintManagerWindow = GObject.registerClass(
             this.append(this._stack);
         }
 
+        /**
+         * Loads blueprints asynchronously on idle
+         * Prevents blocking UI during initial load
+         * @private
+         */
         _loadBlueprintsAsync() {
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this.loadBlueprints();
@@ -181,6 +240,12 @@ export const BlueprintManagerWindow = GObject.registerClass(
             });
         }
 
+        /**
+         * Loads all blueprints from disk
+         * Uses cache unless force reload is specified
+         * @param {boolean} [forceReload=false] - Force reload from disk
+         * @public
+         */
         loadBlueprints(forceReload = false) {
             // Use cached blueprints if available and not forcing reload
             if (!forceReload && this._blueprintsCache) {
