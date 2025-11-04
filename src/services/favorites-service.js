@@ -2,6 +2,8 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 
+import {ensureDirectoryExists} from '../utils/file-utils.js';
+
 /**
  * FavoritesService - Manages wallpaper favorites with efficient storage and lookup
  * Uses the old JSON string format for backward compatibility
@@ -94,7 +96,7 @@ export const FavoritesService = GObject.registerClass(
         _saveFavorites() {
             try {
                 const configDir = GLib.path_get_dirname(this._configPath);
-                GLib.mkdir_with_parents(configDir, 0o755);
+                ensureDirectoryExists(configDir);
 
                 const favArray = Array.from(this._favorites);
                 const content = JSON.stringify(favArray, null, 2);

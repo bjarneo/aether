@@ -1,6 +1,7 @@
 import GLib from 'gi://GLib';
 import {
     enumerateDirectory,
+    ensureDirectoryExists,
     loadJsonFile,
     saveJsonFile,
 } from '../utils/file-utils.js';
@@ -23,7 +24,7 @@ export class BlueprintService {
         ]);
 
         // Ensure blueprints directory exists
-        GLib.mkdir_with_parents(this.blueprintsDir, 0o755);
+        ensureDirectoryExists(this.blueprintsDir);
     }
 
     /**

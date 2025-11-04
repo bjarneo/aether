@@ -3,6 +3,8 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
 
+import {ensureDirectoryExists} from '../utils/file-utils.js';
+
 /**
  * ThemeManager - Manages Aether's custom theming system with live reload
  *
@@ -60,7 +62,7 @@ export class ThemeManager {
             GLib.get_user_config_dir(),
             'aether',
         ]);
-        GLib.mkdir_with_parents(configDir, 0o755);
+        ensureDirectoryExists(configDir);
 
         const themePath = GLib.build_filenamev([configDir, 'theme.css']);
         const overridePath = GLib.build_filenamev([
