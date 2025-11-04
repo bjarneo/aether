@@ -1,5 +1,5 @@
 // ANONYMOUS HACKER - Mr. Robot inspired CRT terminal effect
-// Use with: hyprshade on anonymous-hacker
+// Use with: hyprshade on fsociety
 // Intense flickering CRT with green terminal glow and digital artifacts
 
 #version 300 es
