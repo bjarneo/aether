@@ -8,25 +8,18 @@ import {FontManager} from '../services/font-manager.js';
 import {showToast} from '../utils/ui-helpers.js';
 
 /**
- * FontSelector - Component for selecting and managing fonts
+ * FontSelector - Component for selecting and managing system fonts
  *
  * Features:
  * - Live font preview with customizable text
- * - Browse installed monospace fonts
- * - Download popular programming fonts
+ * - Browse installed monospace fonts (searchable)
+ * - Shows current system font
  * - Apply font to system via omarchy-font-set
- * - Visual indication of installed/available fonts
+ * - Open fonts folder in file manager
+ * - Refresh font list
  *
  * Signals:
  * - 'font-applied' (fontFamily: string) - Emitted when font is applied to system
- *
- * Popular fonts supported (18 total):
- * - JetBrains Mono, Fira Code, Cascadia Code
- * - Meslo, Hack, Source Code Pro
- * - Ubuntu Mono, Inconsolata, Iosevka
- * - Victor Mono, IBM Plex Mono, Roboto Mono
- * - DejaVu Sans Mono, Noto, Monaco
- * - Space Mono, Anonymice, Terminus
  *
  * @class FontSelector
  * @extends {Gtk.Box}
@@ -69,24 +62,9 @@ export const FontSelector = GObject.registerClass(
             // Font preview section
             contentBox.append(this._createPreviewSection());
 
-            // Tabs for installed and available fonts
-            const viewStack = new Gtk.Stack({
-                transition_type: Gtk.StackTransitionType.CROSSFADE,
-            });
-
+            // Installed fonts list
             const installedPage = this._createInstalledFontsPage();
-            const availablePage = this._createAvailableFontsPage();
-
-            viewStack.add_titled(installedPage, 'installed', 'Installed');
-            viewStack.add_titled(availablePage, 'available', 'Download');
-
-            const stackSwitcher = new Gtk.StackSwitcher({
-                stack: viewStack,
-                halign: Gtk.Align.CENTER,
-            });
-
-            contentBox.append(stackSwitcher);
-            contentBox.append(viewStack);
+            contentBox.append(installedPage);
 
             // Action buttons
             contentBox.append(this._createActionButtons());
@@ -202,49 +180,9 @@ export const FontSelector = GObject.registerClass(
             return box;
         }
 
-        /**
-         * Creates the available fonts page with download functionality
-         * @returns {Gtk.Widget} Available fonts page widget
-         * @private
-         */
-        _createAvailableFontsPage() {
-            const box = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 6,
-                margin_top: 12,
-            });
-
-            const description = new Gtk.Label({
-                label: 'Popular monospace fonts for terminals and editors',
-                css_classes: ['dim-label'],
-                xalign: 0,
-                margin_bottom: 6,
-            });
-
-            // List box for available fonts
-            this._availableListBox = new Gtk.ListBox({
-                css_classes: ['boxed-list'],
-                selection_mode: Gtk.SelectionMode.NONE,
-            });
-
-            const scrolled = new Gtk.ScrolledWindow({
-                vexpand: true,
-                hscrollbar_policy: Gtk.PolicyType.NEVER,
-                min_content_height: 300,
-                child: this._availableListBox,
-            });
-
-            box.append(description);
-            box.append(scrolled);
-
-            // Load available fonts
-            this._loadAvailableFonts();
-
-            return box;
-        }
 
         /**
-         * Creates action buttons for applying and refreshing fonts
+         * Creates action buttons for applying, refreshing, and opening fonts folder
          * @returns {Gtk.Widget} Action buttons widget
          * @private
          */
@@ -252,7 +190,6 @@ export const FontSelector = GObject.registerClass(
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
-                homogeneous: true,
                 margin_top: 6,
             });
 
@@ -261,6 +198,7 @@ export const FontSelector = GObject.registerClass(
                 label: 'Apply Font',
                 css_classes: ['suggested-action'],
                 sensitive: false,
+                hexpand: true,
             });
 
             this._applyButton.connect('clicked', () => {
@@ -269,18 +207,35 @@ export const FontSelector = GObject.registerClass(
 
             // Refresh button
             const refreshButton = new Gtk.Button({
-                label: 'Refresh',
                 icon_name: 'view-refresh-symbolic',
+                tooltip_text: 'Refresh font list',
             });
 
             refreshButton.connect('clicked', () => {
                 this._loadInstalledFonts();
-                this._loadAvailableFonts();
+
+                // Update current font label
+                const currentFont = this._fontManager.getCurrentFont();
+                this._currentFontLabel.set_label(
+                    currentFont ? `Current: ${currentFont}` : 'No font configured'
+                );
+
                 showToast(this, 'Font list refreshed');
+            });
+
+            // Open fonts folder button
+            const openFolderButton = new Gtk.Button({
+                icon_name: 'folder-open-symbolic',
+                tooltip_text: 'Open fonts folder',
+            });
+
+            openFolderButton.connect('clicked', () => {
+                this._openFontsFolder();
             });
 
             box.append(this._applyButton);
             box.append(refreshButton);
+            box.append(openFolderButton);
 
             return box;
         }
@@ -303,7 +258,7 @@ export const FontSelector = GObject.registerClass(
             if (fonts.length === 0) {
                 const emptyRow = new Adw.ActionRow({
                     title: 'No monospace fonts found',
-                    subtitle: 'Download fonts from the "Download" tab',
+                    subtitle: 'Install fonts to ~/.local/share/fonts/',
                 });
                 this._installedListBox.append(emptyRow);
                 return;
@@ -333,90 +288,16 @@ export const FontSelector = GObject.registerClass(
         }
 
         /**
-         * Loads available fonts for download
+         * Opens the fonts folder in file manager
          * @private
          */
-        _loadAvailableFonts() {
-            // Clear existing items
-            let child = this._availableListBox.get_first_child();
-            while (child) {
-                const next = child.get_next_sibling();
-                this._availableListBox.remove(child);
-                child = next;
-            }
-
-            const fonts = this._fontManager.getAvailableFonts();
-
-            fonts.forEach(font => {
-                const row = new Adw.ActionRow({
-                    title: font.displayName,
-                    subtitle: font.description,
-                });
-
-                if (font.installed) {
-                    const installedLabel = new Gtk.Label({
-                        label: 'Installed',
-                        css_classes: ['success', 'dim-label'],
-                    });
-                    row.add_suffix(installedLabel);
-                } else {
-                    const downloadButton = new Gtk.Button({
-                        icon_name: 'folder-download-symbolic',
-                        valign: Gtk.Align.CENTER,
-                        tooltip_text: 'Download and install',
-                    });
-
-                    downloadButton.connect('clicked', () => {
-                        this._downloadFont(font, downloadButton, row);
-                    });
-
-                    row.add_suffix(downloadButton);
-                }
-
-                this._availableListBox.append(row);
-            });
-        }
-
-        /**
-         * Downloads and installs a font with loading indication
-         * @param {Object} font - Font metadata
-         * @param {Gtk.Button} button - Download button to update
-         * @param {Adw.ActionRow} row - Row to update after installation
-         * @private
-         */
-        async _downloadFont(font, button, row) {
-            // Replace button with spinner
-            row.remove(button);
-
-            const spinner = new Gtk.Spinner({
-                valign: Gtk.Align.CENTER,
-                spinning: true,
-            });
-            row.add_suffix(spinner);
-
+        _openFontsFolder() {
             try {
-                await this._fontManager.downloadAndInstallFont(font);
-
-                // Replace spinner with installed label
-                row.remove(spinner);
-                const installedLabel = new Gtk.Label({
-                    label: 'Installed',
-                    css_classes: ['success', 'dim-label'],
-                });
-                row.add_suffix(installedLabel);
-
-                showToast(this, `${font.displayName} installed successfully`);
-
-                // Refresh installed fonts list
-                this._loadInstalledFonts();
+                const fontsDir = this._fontManager.getFontsDirectory();
+                GLib.spawn_command_line_async(`xdg-open "${fontsDir}"`);
             } catch (error) {
-                console.error(`Error downloading font: ${error.message}`);
-
-                // Restore download button
-                row.remove(spinner);
-                row.add_suffix(button);
-
-                showToast(this, `Failed to install ${font.displayName}`);
+                console.error(`Error opening fonts folder: ${error.message}`);
+                showToast(this, 'Failed to open fonts folder');
             }
         }
 
