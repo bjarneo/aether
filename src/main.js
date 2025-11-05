@@ -319,7 +319,11 @@ const AetherWindow = GObject.registerClass(
             toolbarView.add_top_bar(this.headerBar);
             toolbarView.set_content(mainContent);
 
-            this.set_content(toolbarView);
+            // Wrap in ToastOverlay for notifications
+            this.toastOverlay = new Adw.ToastOverlay();
+            this.toastOverlay.set_child(toolbarView);
+
+            this.set_content(this.toastOverlay);
 
             // Apply initial settings state (after UI is created)
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {

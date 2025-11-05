@@ -1,7 +1,8 @@
 import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
+import GObject from 'gi://GObject';
 
-import {applyCssToWidget, removeAllChildren} from '../../utils/ui-helpers.js';
+import {applyCssToWidget, removeAllChildren, showToast} from '../../utils/ui-helpers.js';
 import {
     ANSI_COLOR_NAMES,
     PALETTE_CONFIG,
@@ -69,7 +70,7 @@ export class ColorSwatchGrid {
             width_request: dimensions.width,
             height_request: dimensions.height,
             css_classes: ['color-swatch'],
-            tooltip_text: ANSI_COLOR_NAMES[index] || `Color ${index}`,
+            tooltip_text: `${ANSI_COLOR_NAMES[index] || `Color ${index}`}\n${color}\nRight-click to copy`,
         });
 
         const isLocked = this._lockedColors[index];
@@ -170,12 +171,73 @@ export class ColorSwatchGrid {
         });
         colorBox.add_controller(clickGesture);
 
+        // Right-click handler for copy menu
+        const rightClickGesture = new Gtk.GestureClick({
+            button: Gdk.BUTTON_SECONDARY,
+        });
+        rightClickGesture.connect('pressed', (gesture, n, x, y) => {
+            this._showCopyMenu(colorBox, color, index);
+        });
+        colorBox.add_controller(rightClickGesture);
+
         return overlay;
     }
 
     _toggleLock(index) {
         this._lockedColors[index] = !this._lockedColors[index];
         this._render();
+    }
+
+    /**
+     * Shows a context menu for copying the color
+     * @param {Gtk.Widget} widget - Widget to attach the menu to
+     * @param {string} color - Hex color to copy
+     * @param {number} index - Color index
+     */
+    _showCopyMenu(widget, color, index) {
+        const popover = new Gtk.Popover();
+
+        const box = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 0,
+        });
+
+        const copyButton = new Gtk.Button({
+            label: 'Copy Hex Color',
+            css_classes: ['flat'],
+        });
+
+        copyButton.connect('clicked', () => {
+            this._copyColorToClipboard(widget, color, index);
+            popover.popdown();
+        });
+
+        box.append(copyButton);
+        popover.set_child(box);
+        popover.set_parent(widget);
+        popover.popup();
+    }
+
+    /**
+     * Copies a hex color to the system clipboard
+     * @param {Gtk.Widget} widget - Widget for showing toast notification
+     * @param {string} color - Hex color to copy
+     * @param {number} index - Color index
+     */
+    _copyColorToClipboard(widget, color, index) {
+        const display = Gdk.Display.get_default();
+        const clipboard = display.get_clipboard();
+
+        // GTK4 clipboard API - use ContentProvider for text
+        const value = new GObject.Value();
+        value.init(GObject.TYPE_STRING);
+        value.set_string(color);
+
+        const contentProvider = Gdk.ContentProvider.new_for_value(value);
+        clipboard.set_content(contentProvider);
+
+        const colorName = ANSI_COLOR_NAMES[index] || `Color ${index}`;
+        showToast(widget, `Copied ${color} (${colorName})`);
     }
 
     isColorLocked(index) {
