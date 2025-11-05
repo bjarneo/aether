@@ -43,7 +43,8 @@ export const FontSelector = GObject.registerClass(
 
             this._fontManager = new FontManager();
             this._selectedFont = null;
-            this._previewText = 'The quick brown fox jumps over the lazy dog\n0123456789 ~!@#$%^&*()_+-={}[]|:;"<>?,./';
+            this._previewText =
+                'The quick brown fox jumps over the lazy dog\n0123456789 ~!@#$%^&*()_+-={}[]|:;"<>?,./';
 
             this._buildUI();
             this._loadInstalledFonts();
@@ -180,7 +181,6 @@ export const FontSelector = GObject.registerClass(
             return box;
         }
 
-
         /**
          * Creates action buttons for applying, refreshing, and opening fonts folder
          * @returns {Gtk.Widget} Action buttons widget
@@ -217,7 +217,9 @@ export const FontSelector = GObject.registerClass(
                 // Update current font label
                 const currentFont = this._fontManager.getCurrentFont();
                 this._currentFontLabel.set_label(
-                    currentFont ? `Current: ${currentFont}` : 'No font configured'
+                    currentFont
+                        ? `Current: ${currentFont}`
+                        : 'No font configured'
                 );
 
                 showToast(this, 'Font list refreshed');
@@ -344,7 +346,9 @@ export const FontSelector = GObject.registerClass(
                 await this._fontManager.setFont(this._selectedFont);
 
                 // Update current font label
-                this._currentFontLabel.set_label(`Current: ${this._selectedFont}`);
+                this._currentFontLabel.set_label(
+                    `Current: ${this._selectedFont}`
+                );
 
                 showToast(this, `Font applied: ${this._selectedFont}`);
                 this.emit('font-applied', this._selectedFont);

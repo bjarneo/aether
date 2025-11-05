@@ -91,7 +91,9 @@ export class VencordThemeApplier {
     clear() {
         // Vencord themes don't require special cleanup
         // Users can manually delete theme files if needed
-        console.log('Vencord theme cleanup not required (user can delete theme files manually)');
+        console.log(
+            'Vencord theme cleanup not required (user can delete theme files manually)'
+        );
         return true;
     }
 }

@@ -11,7 +11,11 @@ import {ShaderManager} from './ShaderManager.js';
 import {FontSelector} from './FontSelector.js';
 import {COLOR_PRESETS} from '../constants/presets.js';
 import {NEOVIM_PRESETS} from '../constants/neovim-presets.js';
-import {applyCssToWidget, removeAllChildren, showToast} from '../utils/ui-helpers.js';
+import {
+    applyCssToWidget,
+    removeAllChildren,
+    showToast,
+} from '../utils/ui-helpers.js';
 import {
     rgbaToHex,
     generatePaletteFromColor,

@@ -82,8 +82,14 @@ export const FilterConfirmationDialog = GObject.registerClass(
             this.add_response('keep', 'Keep Changes');
 
             // Style buttons
-            this.set_response_appearance('revert', Adw.ResponseAppearance.DESTRUCTIVE);
-            this.set_response_appearance('keep', Adw.ResponseAppearance.SUGGESTED);
+            this.set_response_appearance(
+                'revert',
+                Adw.ResponseAppearance.DESTRUCTIVE
+            );
+            this.set_response_appearance(
+                'keep',
+                Adw.ResponseAppearance.SUGGESTED
+            );
 
             // Set default response (Enter key)
             this.set_default_response('keep');
@@ -191,7 +197,7 @@ export const FilterConfirmationDialog = GObject.registerClass(
          * }
          */
         show() {
-            return new Promise((resolve) => {
+            return new Promise(resolve => {
                 this._resolvePromise = resolve;
                 this.present();
             });

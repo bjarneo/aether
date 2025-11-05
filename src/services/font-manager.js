@@ -167,7 +167,9 @@ export class FontManager {
                 }
             }
         } catch (error) {
-            console.error(`Error getting system default font: ${error.message}`);
+            console.error(
+                `Error getting system default font: ${error.message}`
+            );
         }
 
         console.log('No font configured');
@@ -181,7 +183,6 @@ export class FontManager {
     getFontsDirectory() {
         return this._fontsDir;
     }
-
 
     /**
      * Sets the system font using omarchy-font-set command
@@ -209,5 +210,4 @@ export class FontManager {
             }
         });
     }
-
 }

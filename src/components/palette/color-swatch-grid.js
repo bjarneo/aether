@@ -2,7 +2,11 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
 import GObject from 'gi://GObject';
 
-import {applyCssToWidget, removeAllChildren, showToast} from '../../utils/ui-helpers.js';
+import {
+    applyCssToWidget,
+    removeAllChildren,
+    showToast,
+} from '../../utils/ui-helpers.js';
 import {
     ANSI_COLOR_NAMES,
     PALETTE_CONFIG,

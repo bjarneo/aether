@@ -271,7 +271,9 @@ export const SelectiveColorControls = GObject.registerClass(
                     if (sliders && values) {
                         if (sliders.hue) sliders.hue.set_value(values.hue || 0);
                         if (sliders.saturation)
-                            sliders.saturation.set_value(values.saturation || 0);
+                            sliders.saturation.set_value(
+                                values.saturation || 0
+                            );
                         if (sliders.lightness)
                             sliders.lightness.set_value(values.lightness || 0);
                     }

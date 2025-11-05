@@ -273,9 +273,13 @@ export const ShaderManager = GObject.registerClass(
 
                     // If there was a previous shader, restore its switch state
                     if (previousShader && previousShader !== shaderId) {
-                        const previousData = this._shaderRows.get(previousShader);
+                        const previousData =
+                            this._shaderRows.get(previousShader);
                         if (previousData) {
-                            this._updateSwitchState(previousData.toggleSwitch, true);
+                            this._updateSwitchState(
+                                previousData.toggleSwitch,
+                                true
+                            );
                             this._currentShader = previousShader;
                         }
                     }

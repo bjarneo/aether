@@ -160,7 +160,10 @@ export const AdditionalImagesSection = GObject.registerClass(
 
             // Avoid duplicates
             if (this._images.includes(imagePath)) {
-                console.log('Image already added to additional images:', imagePath);
+                console.log(
+                    'Image already added to additional images:',
+                    imagePath
+                );
                 return;
             }
 
@@ -177,7 +180,9 @@ export const AdditionalImagesSection = GObject.registerClass(
          */
         async addWallhavenImage(wallpaper) {
             try {
-                console.log('Downloading wallhaven wallpaper for additional images...');
+                console.log(
+                    'Downloading wallhaven wallpaper for additional images...'
+                );
                 const downloadedPath = await wallhavenService.downloadWallpaper(
                     wallpaper.path,
                     wallpaper.id || `wallhaven-${Date.now()}`

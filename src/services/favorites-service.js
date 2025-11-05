@@ -55,7 +55,10 @@ export const FavoritesService = GObject.registerClass(
                             const jsonStr = JSON.stringify(parsed);
                             this._addToIndex(jsonStr);
                         } catch (e) {
-                            console.error('Failed to parse double-encoded favorite:', e.message);
+                            console.error(
+                                'Failed to parse double-encoded favorite:',
+                                e.message
+                            );
                         }
                     } else {
                         // Proper object format - convert to JSON string for internal storage
@@ -105,14 +108,19 @@ export const FavoritesService = GObject.registerClass(
                 ensureDirectoryExists(configDir);
 
                 // Parse JSON strings back to objects before saving
-                const favArray = Array.from(this._favorites).map(jsonStr => {
-                    try {
-                        return JSON.parse(jsonStr);
-                    } catch (e) {
-                        console.error('Failed to parse favorite during save:', e.message);
-                        return null;
-                    }
-                }).filter(obj => obj !== null);
+                const favArray = Array.from(this._favorites)
+                    .map(jsonStr => {
+                        try {
+                            return JSON.parse(jsonStr);
+                        } catch (e) {
+                            console.error(
+                                'Failed to parse favorite during save:',
+                                e.message
+                            );
+                            return null;
+                        }
+                    })
+                    .filter(obj => obj !== null);
 
                 const content = JSON.stringify(favArray, null, 2);
 

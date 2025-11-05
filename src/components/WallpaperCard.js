@@ -1,7 +1,12 @@
 import Gtk from 'gi://Gtk?version=4.0';
 import {favoritesService} from '../services/favorites-service.js';
 
-export function createWallpaperCard(wallpaper, onSelect, onFavoriteToggle, onAddToAdditional) {
+export function createWallpaperCard(
+    wallpaper,
+    onSelect,
+    onFavoriteToggle,
+    onAddToAdditional
+) {
     const mainBox = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,
         spacing: 8,
