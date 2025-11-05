@@ -68,6 +68,8 @@ export const WallpaperBrowser = GObject.registerClass(
 
             this._currentPage = 1;
             this._totalPages = 1;
+            this._isLoading = false;
+            this._hasMorePages = true;
             this._searchParams = {
                 q: '',
                 categories: '111', // All categories
@@ -174,9 +176,8 @@ export const WallpaperBrowser = GObject.registerClass(
             this._contentStack.set_visible_child_name('loading');
             this.append(this._contentStack);
 
-            // Pagination controls
-            const paginationBox = this._createPaginationControls();
-            this.append(paginationBox);
+            // Set up infinite scroll
+            this._setupInfiniteScroll();
         }
 
         /**
@@ -229,6 +230,7 @@ export const WallpaperBrowser = GObject.registerClass(
             this._searchEntry.connect('activate', () => {
                 this._searchParams.q = this._searchEntry.get_text();
                 this._currentPage = 1;
+                this._hasMorePages = true;
                 this._performSearch();
             });
 
@@ -240,6 +242,7 @@ export const WallpaperBrowser = GObject.registerClass(
             searchButton.connect('clicked', () => {
                 this._searchParams.q = this._searchEntry.get_text();
                 this._currentPage = 1;
+                this._hasMorePages = true;
                 this._performSearch();
             });
 
@@ -352,6 +355,7 @@ export const WallpaperBrowser = GObject.registerClass(
                     this._searchParams.sorting =
                         sortMethods[this._sortDropdown.get_selected()];
                     this._currentPage = 1;
+                    this._hasMorePages = true;
                     this._persistFilters();
                     this._performSearch();
                 }
@@ -406,6 +410,7 @@ export const WallpaperBrowser = GObject.registerClass(
                 ].join('');
                 this._searchParams.categories = cats;
                 this._currentPage = 1;
+                this._hasMorePages = true;
                 this._persistFilters();
                 this._performSearch();
             };
@@ -434,52 +439,31 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         /**
-         * Creates pagination controls (previous/next buttons and page label)
-         * @returns {Gtk.Box} The pagination controls widget
+         * Sets up infinite scroll behavior on the scrolled window
+         * Automatically loads more wallpapers when user scrolls near the bottom
          * @private
          */
-        _createPaginationControls() {
-            this._paginationBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                halign: Gtk.Align.CENTER,
-                spacing: 12,
-                margin_top: 6,
-                margin_bottom: 6,
-            });
+        _setupInfiniteScroll() {
+            const adjustment = this._scrolledWindow.get_vadjustment();
 
-            this._prevButton = new Gtk.Button({
-                icon_name: 'go-previous-symbolic',
-                sensitive: false,
-            });
-            this._prevButton.connect('clicked', () => {
-                if (this._currentPage > 1) {
-                    this._currentPage--;
-                    this._performSearch();
-                    this._scrollToTop();
+            adjustment.connect('value-changed', () => {
+                // Don't load if already loading or no more pages
+                if (this._isLoading || !this._hasMorePages) {
+                    return;
+                }
+
+                const value = adjustment.get_value();
+                const upper = adjustment.get_upper();
+                const pageSize = adjustment.get_page_size();
+
+                // Load more when scrolled to within 200px of the bottom
+                const scrollThreshold = 200;
+                const distanceFromBottom = upper - (value + pageSize);
+
+                if (distanceFromBottom < scrollThreshold) {
+                    this._loadNextPage();
                 }
             });
-
-            this._pageLabel = new Gtk.Label({
-                label: 'Page 1 of 1',
-            });
-
-            this._nextButton = new Gtk.Button({
-                icon_name: 'go-next-symbolic',
-                sensitive: false,
-            });
-            this._nextButton.connect('clicked', () => {
-                if (this._currentPage < this._totalPages) {
-                    this._currentPage++;
-                    this._performSearch();
-                    this._scrollToTop();
-                }
-            });
-
-            this._paginationBox.append(this._prevButton);
-            this._paginationBox.append(this._pageLabel);
-            this._paginationBox.append(this._nextButton);
-
-            return this._paginationBox;
         }
 
         /**
@@ -491,27 +475,39 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         /**
-         * Scrolls the wallpaper grid back to the top
-         * Used when navigating between pages
+         * Loads the next page of wallpapers for infinite scroll
          * @private
          */
-        _scrollToTop() {
-            // Scroll back to top when changing pages
-            const adjustment = this._scrolledWindow.get_vadjustment();
-            if (adjustment) {
-                adjustment.set_value(0);
+        async _loadNextPage() {
+            if (this._currentPage >= this._totalPages) {
+                this._hasMorePages = false;
+                return;
             }
+
+            this._currentPage++;
+            await this._performSearch(true); // true = append mode
         }
 
         /**
          * Performs wallpaper search with current parameters
          * Displays loading state, calls wallhaven API, and updates UI with results
          * Handles pagination and error states
+         * @param {boolean} append - If true, append results instead of replacing them
          * @async
          * @private
          */
-        async _performSearch() {
-            this._contentStack.set_visible_child_name('loading');
+        async _performSearch(append = false) {
+            // Prevent concurrent requests
+            if (this._isLoading) {
+                return;
+            }
+
+            this._isLoading = true;
+
+            // Only show loading screen for initial load
+            if (!append) {
+                this._contentStack.set_visible_child_name('loading');
+            }
 
             try {
                 const params = {
@@ -527,27 +523,36 @@ export const WallpaperBrowser = GObject.registerClass(
                 const result = await wallhavenService.search(params);
 
                 if (result.data && result.data.length > 0) {
-                    this._displayWallpapers(result.data);
+                    this._displayWallpapers(result.data, append);
                     this._updatePagination(result.meta);
                     this._contentStack.set_visible_child_name('content');
                 } else {
-                    this._showError('No wallpapers found');
+                    if (!append) {
+                        this._showError('No wallpapers found');
+                    }
                 }
             } catch (e) {
                 console.error('Search failed:', e.message);
-                this._showError(`Failed to load wallpapers: ${e.message}`);
+                if (!append) {
+                    this._showError(`Failed to load wallpapers: ${e.message}`);
+                }
+            } finally {
+                this._isLoading = false;
             }
         }
 
         /**
          * Displays wallpapers in the grid
-         * Clears existing items and creates new wallpaper cards
+         * Clears existing items or appends new ones based on mode
          * @param {Array<Object>} wallpapers - Array of wallpaper objects from API
+         * @param {boolean} append - If true, append to existing wallpapers instead of replacing
          * @private
          */
-        _displayWallpapers(wallpapers) {
-            // Clear existing items
-            removeAllChildren(this._gridFlow);
+        _displayWallpapers(wallpapers, append = false) {
+            // Clear existing items only if not appending
+            if (!append) {
+                removeAllChildren(this._gridFlow);
+            }
 
             // Add wallpaper thumbnails
             wallpapers.forEach(wallpaper => {
@@ -665,22 +670,15 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         /**
-         * Updates pagination controls based on API metadata
-         * Sets page label and enables/disables navigation buttons
+         * Updates pagination state based on API metadata
+         * Updates hasMorePages flag for infinite scroll
          * @param {Object} meta - Pagination metadata from API response
          * @param {number} meta.last_page - Total number of pages
          * @private
          */
         _updatePagination(meta) {
             this._totalPages = meta.last_page || 1;
-            this._pageLabel.set_label(
-                `Page ${this._currentPage} of ${this._totalPages}`
-            );
-
-            this._prevButton.set_sensitive(this._currentPage > 1);
-            this._nextButton.set_sensitive(
-                this._currentPage < this._totalPages
-            );
+            this._hasMorePages = this._currentPage < this._totalPages;
         }
 
         /**
@@ -1079,6 +1077,7 @@ export const WallpaperBrowser = GObject.registerClass(
 
                     // Refresh search with new filters
                     this._currentPage = 1;
+                    this._hasMorePages = true;
                     this._performSearch();
 
                     showToast(this, 'Settings saved successfully', 2);
