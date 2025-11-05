@@ -13,15 +13,13 @@ import {
     fileExists,
 } from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
-import {
-    restartSwaybg,
-    copyVencordTheme,
-    copyZedTheme,
-} from './service-manager.js';
+import {restartSwaybg} from './service-manager.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
 import {getAppNameFromFileName} from '../constants/templates.js';
 import {GtkThemeApplier} from './theme-appliers/GtkThemeApplier.js';
 import {VscodeThemeApplier} from './theme-appliers/VscodeThemeApplier.js';
+import {VencordThemeApplier} from './theme-appliers/VencordThemeApplier.js';
+import {ZedThemeApplier} from './theme-appliers/ZedThemeApplier.js';
 
 /**
  * ConfigWriter - Processes theme templates and applies themes to various applications
@@ -78,6 +76,8 @@ export class ConfigWriter {
         // Initialize theme appliers
         this.gtkApplier = new GtkThemeApplier();
         this.vscodeApplier = new VscodeThemeApplier(this.templatesDir);
+        this.vencordApplier = new VencordThemeApplier(this.themeDir);
+        this.zedApplier = new ZedThemeApplier(this.themeDir);
     }
 
     /**
@@ -133,12 +133,12 @@ export class ConfigWriter {
 
             // Copy Vencord theme to all existing installations if enabled
             if (settings.includeVencord === true) {
-                this._copyVencordTheme();
+                this.vencordApplier.apply();
             }
 
             // Copy Zed theme if enabled
             if (settings.includeZed === true) {
-                this._copyZedTheme();
+                this.zedApplier.apply();
             }
 
             // Copy VSCode theme if enabled
@@ -595,52 +595,6 @@ export class ConfigWriter {
             );
         } catch (e) {
             console.error('Error applying Aether theme override:', e.message);
-        }
-    }
-
-    _copyVencordTheme() {
-        try {
-            const vencordSourcePath = GLib.build_filenamev([
-                this.themeDir,
-                'vencord.theme.css',
-            ]);
-
-            // Check if source file exists
-            const sourceFile = Gio.File.new_for_path(vencordSourcePath);
-            if (!sourceFile.query_exists(null)) {
-                console.log(
-                    'vencord.theme.css not found in theme directory, skipping Vencord copy'
-                );
-                return;
-            }
-
-            // Copy to all existing Vencord/Vesktop installations
-            copyVencordTheme(vencordSourcePath);
-        } catch (e) {
-            console.error('Error copying Vencord theme:', e.message);
-        }
-    }
-
-    _copyZedTheme() {
-        try {
-            const zedSourcePath = GLib.build_filenamev([
-                this.themeDir,
-                'aether.zed.json',
-            ]);
-
-            // Check if source file exists
-            const sourceFile = Gio.File.new_for_path(zedSourcePath);
-            if (!sourceFile.query_exists(null)) {
-                console.log(
-                    'aether.zed.json not found in theme directory, skipping Zed copy'
-                );
-                return;
-            }
-
-            // Copy to ~/.config/zed/themes/
-            copyZedTheme(zedSourcePath);
-        } catch (e) {
-            console.error('Error copying Zed theme:', e.message);
         }
     }
 
