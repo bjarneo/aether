@@ -69,11 +69,20 @@ export const SelectiveColorControls = GObject.registerClass(
 
             // Store adjustments for each color range
             this._adjustments = {};
+            // Store slider widget references for programmatic updates
+            this._sliders = {};
+
             this._colorRanges.forEach(range => {
                 this._adjustments[range.name] = {
                     hue: 0, // -180 to 180
                     saturation: 0, // -100 to 100
                     lightness: 0, // -100 to 100
+                };
+                // Initialize slider storage for this color range
+                this._sliders[range.name] = {
+                    hue: null,
+                    saturation: null,
+                    lightness: null,
                 };
             });
 
@@ -113,7 +122,7 @@ export const SelectiveColorControls = GObject.registerClass(
             expander.add_prefix(colorBox);
 
             // Hue slider
-            const hueRow = this._createSliderRow(
+            const {row: hueRow, scale: hueScale} = this._createSliderRow(
                 'Hue',
                 -180,
                 180,
@@ -126,10 +135,11 @@ export const SelectiveColorControls = GObject.registerClass(
                     this._emitChange();
                 }
             );
+            this._sliders[range.name].hue = hueScale;
             expander.add_row(hueRow);
 
             // Saturation slider
-            const satRow = this._createSliderRow(
+            const {row: satRow, scale: satScale} = this._createSliderRow(
                 'Saturation',
                 -100,
                 100,
@@ -142,10 +152,11 @@ export const SelectiveColorControls = GObject.registerClass(
                     this._emitChange();
                 }
             );
+            this._sliders[range.name].saturation = satScale;
             expander.add_row(satRow);
 
             // Lightness slider
-            const lightRow = this._createSliderRow(
+            const {row: lightRow, scale: lightScale} = this._createSliderRow(
                 'Lightness',
                 -100,
                 100,
@@ -158,6 +169,7 @@ export const SelectiveColorControls = GObject.registerClass(
                     this._emitChange();
                 }
             );
+            this._sliders[range.name].lightness = lightScale;
             expander.add_row(lightRow);
 
             this.add(expander);
@@ -212,7 +224,8 @@ export const SelectiveColorControls = GObject.registerClass(
             box.append(valueLabel);
             row.add_suffix(box);
 
-            return row;
+            // Return both row and scale so we can update the scale programmatically
+            return {row, scale};
         }
 
         _emitChange() {
@@ -250,9 +263,20 @@ export const SelectiveColorControls = GObject.registerClass(
             Object.keys(adjustments).forEach(colorName => {
                 if (this._adjustments[colorName]) {
                     this._adjustments[colorName] = {...adjustments[colorName]};
+
+                    // Update UI sliders to reflect loaded values
+                    const sliders = this._sliders[colorName];
+                    const values = adjustments[colorName];
+
+                    if (sliders && values) {
+                        if (sliders.hue) sliders.hue.set_value(values.hue || 0);
+                        if (sliders.saturation)
+                            sliders.saturation.set_value(values.saturation || 0);
+                        if (sliders.lightness)
+                            sliders.lightness.set_value(values.lightness || 0);
+                    }
                 }
             });
-            // TODO: Update UI sliders to reflect loaded values
         }
 
         clearAdjustments() {
@@ -262,8 +286,15 @@ export const SelectiveColorControls = GObject.registerClass(
                     saturation: 0,
                     lightness: 0,
                 };
+
+                // Reset all UI sliders to 0
+                const sliders = this._sliders[range.name];
+                if (sliders) {
+                    if (sliders.hue) sliders.hue.set_value(0);
+                    if (sliders.saturation) sliders.saturation.set_value(0);
+                    if (sliders.lightness) sliders.lightness.set_value(0);
+                }
             });
-            // TODO: Reset all sliders to 0
             this._emitChange();
         }
     }
