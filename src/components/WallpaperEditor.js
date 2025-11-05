@@ -3,7 +3,6 @@ import Gtk from 'gi://Gtk?version=4.0';
 
 import {FilterControls} from './wallpaper-editor/FilterControls.js';
 import {PreviewArea} from './wallpaper-editor/PreviewArea.js';
-import {FilterConfirmationDialog} from './wallpaper-editor/FilterConfirmationDialog.js';
 import {
     DEFAULT_FILTERS,
     hasActiveFilters,
@@ -61,10 +60,6 @@ import {
  * - Click & hold preview to view original wallpaper
  * - Reset button to clear all filters
  * - Cancel/Apply actions in header
- * - **Safety confirmation dialog**: 60-second countdown after applying filters
- *   - Prevents getting stuck with unusable filters (e.g., extreme CRT warping)
- *   - Auto-reverts if not confirmed within timeout
- *   - Similar to display resolution confirmation in most OSes
  *
  * Performance Optimizations:
  * - Preview base created once on load (800px max width)
@@ -295,42 +290,15 @@ export const WallpaperEditor = GObject.registerClass(
                 }
 
                 const processedPath = await this._processWallpaper();
-
-                // Reset button state before showing dialog
-                this._applySpinner.stop();
-                this._applySpinner.set_visible(false);
-                this._applyButton.set_visible(true);
-
-                // Show confirmation dialog with 60 second countdown
-                const response = await this._showConfirmationDialog();
-
-                if (response === 'keep') {
-                    // User confirmed changes
-                    console.log('User confirmed filter changes');
-                    this.emit('wallpaper-applied', processedPath);
-                } else {
-                    // User reverted or timeout expired
-                    console.log('Reverting to original wallpaper');
-                    this.emit('wallpaper-applied', this._wallpaperPath);
-                }
+                this.emit('wallpaper-applied', processedPath);
             } catch (e) {
                 console.error('Failed to apply wallpaper:', e.message);
-                // Reset button state on error
+            } finally {
+                // Reset button state
                 this._applySpinner.stop();
                 this._applySpinner.set_visible(false);
                 this._applyButton.set_visible(true);
             }
-        }
-
-        /**
-         * Shows the filter confirmation dialog with countdown
-         * @private
-         * @returns {Promise<string>} User's choice: 'keep' or 'revert'
-         */
-        async _showConfirmationDialog() {
-            const parentWindow = this.get_root();
-            const dialog = new FilterConfirmationDialog(parentWindow, 60);
-            return await dialog.show();
         }
 
         async _processWallpaper() {

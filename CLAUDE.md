@@ -111,15 +111,7 @@ npm run dev
 - Saves to `~/.cache/aether/`
 - Bypasses color extraction cache (forces fresh extraction)
 
-**Safety Confirmation:**
-- After clicking Apply, a 60-second countdown dialog appears
-- User must confirm to keep changes within timeout, or changes auto-revert
-- Prevents getting stuck with unusable filters (extreme warping, blur, etc.)
-- Similar to display resolution confirmation in most operating systems
-- Keyboard shortcuts: Enter = Keep, Escape = Revert
-
 **Sub-components:**
-- `src/components/wallpaper-editor/FilterConfirmationDialog.js` - Countdown confirmation dialog
 - `src/components/wallpaper-editor/FilterControls.js` - All filter UI controls, presets, tone picker
 - `src/components/wallpaper-editor/PreviewArea.js` - Preview with debounced IM rendering
 
@@ -188,6 +180,28 @@ The "Find Wallpaper" tab contains a sub-navigation with 3 tabs:
   - Template settings (enable/disable optional templates)
   - Accessibility checker
 - Emits: `adjustments-changed`, `adjustments-reset`, `preset-applied`, `harmony-generated`, `gradient-generated`
+
+**ShaderManager** (`src/components/ShaderManager.js`)
+- Component for managing hyprshade screen shaders (visual effects via Hyprland compositor)
+- Features:
+  - Auto-discovers shaders from hyprshade (`hyprshade ls`)
+  - Toggle switches for each shader (only one active at a time)
+  - Scrollable list with up to 600px height
+  - Formatted shader names (e.g., "blue-light-filter" → "Blue Light Filter")
+  - **Safety confirmation with 60-second countdown when enabling shaders**
+    - Shader applies immediately so user can see the effect
+    - Confirmation dialog appears with live countdown timer
+    - Auto-reverts to previous state if not confirmed within timeout
+    - Prevents getting stuck with unusable shaders (CRT warping, extreme effects, etc.)
+    - Similar to display resolution confirmation in most operating systems
+    - Keyboard shortcuts: Enter = Keep, Escape = Revert
+- hyprshade Integration:
+  - Uses `hyprshade ls` to list available shaders
+  - Uses `hyprshade current` to get active shader
+  - Uses `hyprshade on <shader>` to enable a shader
+  - Uses `hyprshade off` to disable shaders
+  - Shaders installed to ~/.config/hypr/shaders/
+- Emits: `shader-changed` signal with shader name or 'off'
 
 **BlueprintManager** (`src/components/BlueprintManager.js`)
 - Saves/loads theme blueprints as JSON in `~/.config/aether/blueprints/`
@@ -276,6 +290,15 @@ FilterControls → 'filter-changed' → WallpaperEditor → PreviewArea.updateFi
 FilterControls → 'preset-applied' → WallpaperEditor → PreviewArea.updateFilters()
 FilterControls → 'reset-filters' → WallpaperEditor → PreviewArea.clearFilters()
 PreviewArea (click gesture) → temporarily disables filters → shows original
+```
+
+## Shader Manager Signal Flow
+
+```
+ShaderManager switch ON → Apply shader immediately → Show FilterConfirmationDialog
+FilterConfirmationDialog 'keep' → Shader stays enabled → emit 'shader-changed'
+FilterConfirmationDialog 'revert' (or timeout) → hyprshade off → Reset switch → emit 'shader-changed' 'off'
+ShaderManager switch OFF → hyprshade off → emit 'shader-changed' 'off'
 ```
 
 ## AUR Packaging

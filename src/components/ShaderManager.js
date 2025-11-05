@@ -4,6 +4,7 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
 import {showToast} from '../utils/ui-helpers.js';
+import {FilterConfirmationDialog} from './wallpaper-editor/FilterConfirmationDialog.js';
 
 /**
  * ShaderManager - Component for managing hyprshade screen shaders
@@ -208,7 +209,7 @@ export const ShaderManager = GObject.registerClass(
 
             // Connect to state-set signal to handle toggle
             toggleSwitch.connect('state-set', (sw, state) => {
-                this._toggleShader(shaderId, state);
+                this._toggleShader(shaderId, state, toggleSwitch);
                 return false; // Allow state change to proceed
             });
 
@@ -226,32 +227,125 @@ export const ShaderManager = GObject.registerClass(
          * @private
          * @param {string} shaderId - Shader to toggle
          * @param {boolean} state - New state (true = on, false = off)
+         * @param {Gtk.Switch} toggleSwitch - The switch widget that was toggled
          */
-        _toggleShader(shaderId, state) {
+        _toggleShader(shaderId, state, toggleSwitch) {
+            if (state) {
+                // Turning shader ON - apply immediately and show confirmation
+                this._toggleShaderOnWithConfirmation(shaderId, toggleSwitch);
+            } else {
+                // Turning shader OFF - no confirmation needed
+                this._toggleShaderOff();
+            }
+        }
+
+        /**
+         * Turn on a shader with confirmation dialog
+         * @private
+         * @param {string} shaderId - Shader to enable
+         * @param {Gtk.Switch} toggleSwitch - The switch widget that was toggled
+         */
+        async _toggleShaderOnWithConfirmation(shaderId, toggleSwitch) {
             try {
-                let command;
-
-                if (state) {
-                    // Turn on this shader
-                    command = `hyprshade on ${GLib.shell_quote(shaderId)}`;
-                    this._currentShader = shaderId;
-                    this._turnOffOtherShaders(shaderId);
-                } else {
-                    // Turn off this shader
-                    command = 'hyprshade off';
-                    this._currentShader = null;
-                }
-
+                // Apply the shader immediately (so user can see the effect)
+                const command = `hyprshade on ${GLib.shell_quote(shaderId)}`;
                 GLib.spawn_command_line_async(command);
 
-                // Emit signal
-                this.emit('shader-changed', this._currentShader || 'off');
+                const previousShader = this._currentShader;
+                this._currentShader = shaderId;
+                this._turnOffOtherShaders(shaderId);
+
+                // Show confirmation dialog with 60 second countdown
+                const response = await this._showConfirmationDialog();
+
+                if (response === 'keep') {
+                    // User confirmed - keep the shader on
+                    console.log(`User confirmed shader: ${shaderId}`);
+                    this.emit('shader-changed', shaderId);
+                } else {
+                    // User reverted or timeout - turn shader back off
+                    console.log(`Reverting shader: ${shaderId}`);
+                    GLib.spawn_command_line_async('hyprshade off');
+                    this._currentShader = null;
+
+                    // Update switch to OFF state
+                    this._updateSwitchState(toggleSwitch, false);
+
+                    // If there was a previous shader, restore its switch state
+                    if (previousShader && previousShader !== shaderId) {
+                        const previousData = this._shaderRows.get(previousShader);
+                        if (previousData) {
+                            this._updateSwitchState(previousData.toggleSwitch, true);
+                            this._currentShader = previousShader;
+                        }
+                    }
+
+                    this.emit('shader-changed', 'off');
+                }
             } catch (error) {
                 console.error('Error toggling shader:', error);
                 this._showErrorToast(
                     `Failed to toggle shader: ${error.message}`
                 );
+                // Revert switch state on error
+                this._updateSwitchState(toggleSwitch, false);
             }
+        }
+
+        /**
+         * Turn off the current shader
+         * @private
+         */
+        _toggleShaderOff() {
+            try {
+                GLib.spawn_command_line_async('hyprshade off');
+                this._currentShader = null;
+                this.emit('shader-changed', 'off');
+            } catch (error) {
+                console.error('Error turning off shader:', error);
+                this._showErrorToast(
+                    `Failed to turn off shader: ${error.message}`
+                );
+            }
+        }
+
+        /**
+         * Update switch state without triggering signal
+         * @private
+         * @param {Gtk.Switch} toggleSwitch - Switch to update
+         * @param {boolean} state - New state
+         */
+        _updateSwitchState(toggleSwitch, state) {
+            GObject.signal_handlers_block_matched(
+                toggleSwitch,
+                GObject.SignalMatchType.DATA,
+                0,
+                0,
+                null,
+                null,
+                null
+            );
+            toggleSwitch.set_active(state);
+            GObject.signal_handlers_unblock_matched(
+                toggleSwitch,
+                GObject.SignalMatchType.DATA,
+                0,
+                0,
+                null,
+                null,
+                null
+            );
+        }
+
+        /**
+         * Shows the shader confirmation dialog with countdown
+         * @private
+         * @returns {Promise<string>} User's choice: 'keep' or 'revert'
+         */
+        async _showConfirmationDialog() {
+            const parentWindow = this.get_root();
+            const dialog = new FilterConfirmationDialog(parentWindow, 60);
+            return await dialog.show();
         }
 
         /**
