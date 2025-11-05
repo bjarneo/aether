@@ -1,7 +1,7 @@
 import Gtk from 'gi://Gtk?version=4.0';
 import {favoritesService} from '../services/favorites-service.js';
 
-export function createWallpaperCard(wallpaper, onSelect, onFavoriteToggle) {
+export function createWallpaperCard(wallpaper, onSelect, onFavoriteToggle, onAddToAdditional) {
     const mainBox = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,
         spacing: 8,
@@ -54,6 +54,22 @@ export function createWallpaperCard(wallpaper, onSelect, onFavoriteToggle) {
         ellipsize: 3, // PANGO_ELLIPSIZE_END
     });
 
+    // Add to additional images button
+    const addButton = new Gtk.Button({
+        icon_name: 'list-add-symbolic',
+        css_classes: ['flat'],
+        halign: Gtk.Align.END,
+        tooltip_text: 'Add to additional images',
+    });
+
+    if (onAddToAdditional) {
+        addButton.connect('clicked', () => {
+            onAddToAdditional(wallpaper);
+        });
+    } else {
+        addButton.set_sensitive(false);
+    }
+
     // Favorite button
     const favButton = new Gtk.Button({
         icon_name: 'emblem-favorite-symbolic',
@@ -96,8 +112,9 @@ export function createWallpaperCard(wallpaper, onSelect, onFavoriteToggle) {
     });
 
     infoRow.append(infoLabel);
+    infoRow.append(addButton);
     infoRow.append(favButton);
     mainBox.append(infoRow);
 
-    return {mainBox, picture, favButton};
+    return {mainBox, picture, favButton, addButton};
 }

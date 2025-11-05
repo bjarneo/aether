@@ -14,6 +14,7 @@ export const FavoritesView = GObject.registerClass(
     {
         Signals: {
             'wallpaper-selected': {param_types: [GObject.TYPE_STRING]},
+            'add-to-additional-images': {param_types: [GObject.TYPE_JSOBJECT]},
         },
     },
     class FavoritesView extends Gtk.Box {
@@ -159,7 +160,8 @@ export const FavoritesView = GObject.registerClass(
                         this.emit('wallpaper-selected', wp.path);
                     }
                 },
-                () => this.loadFavorites() // Reload when unfavorited
+                () => this.loadFavorites(), // Reload when unfavorited
+                wp => this.emit('add-to-additional-images', wallpaper)
             );
 
             // Load thumbnail

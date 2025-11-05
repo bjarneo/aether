@@ -118,6 +118,9 @@ export const PaletteEditor = GObject.registerClass(
                     this._favoritesView.loadFavorites();
                 }
             });
+            this._wallhavenBrowser.connect('add-to-additional-images', (_, wallpaper) => {
+                this._additionalImages.addWallhavenImage(wallpaper);
+            });
             this._viewStack.add_named(this._wallhavenBrowser, 'wallhaven');
 
             // Local browser
@@ -130,12 +133,23 @@ export const PaletteEditor = GObject.registerClass(
                     this._favoritesView.loadFavorites();
                 }
             });
+            this._localBrowser.connect('add-to-additional-images', (_, wallpaper) => {
+                this._additionalImages.addImage(wallpaper.path);
+            });
             this._viewStack.add_named(this._localBrowser, 'local');
 
             // Favorites view
             this._favoritesView = new FavoritesView();
             this._favoritesView.connect('wallpaper-selected', (_, path) => {
                 this._onBrowserWallpaperSelected(path);
+            });
+            this._favoritesView.connect('add-to-additional-images', (_, wallpaper) => {
+                // For wallhaven type, use addWallhavenImage, for local use addImage
+                if (wallpaper.type === 'wallhaven') {
+                    this._additionalImages.addWallhavenImage(wallpaper);
+                } else {
+                    this._additionalImages.addImage(wallpaper.path);
+                }
             });
             this._viewStack.add_named(this._favoritesView, 'favorites');
 
