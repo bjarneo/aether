@@ -5,7 +5,6 @@ import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {uploadMultipleWallpapers} from '../../utils/wallpaper-utils.js';
 import {wallhavenService} from '../../services/wallhaven-service.js';
-import {showToast} from '../../utils/ui-helpers.js';
 
 /**
  * AdditionalImagesSection - Manages additional background images
@@ -161,14 +160,13 @@ export const AdditionalImagesSection = GObject.registerClass(
 
             // Avoid duplicates
             if (this._images.includes(imagePath)) {
-                showToast(this, 'Image already added to additional images');
+                console.log('Image already added to additional images:', imagePath);
                 return;
             }
 
             this._images.push(imagePath);
             this._updateDisplay();
             this.emit('images-changed', this._images);
-            showToast(this, 'Added to additional images');
         }
 
         /**
@@ -179,7 +177,7 @@ export const AdditionalImagesSection = GObject.registerClass(
          */
         async addWallhavenImage(wallpaper) {
             try {
-                showToast(this, 'Downloading wallpaper...');
+                console.log('Downloading wallhaven wallpaper for additional images...');
                 const downloadedPath = await wallhavenService.downloadWallpaper(
                     wallpaper.path,
                     wallpaper.id || `wallhaven-${Date.now()}`
@@ -187,7 +185,6 @@ export const AdditionalImagesSection = GObject.registerClass(
                 this.addImage(downloadedPath);
             } catch (error) {
                 console.error('Failed to download wallhaven image:', error);
-                showToast(this, 'Failed to download wallpaper');
             }
         }
 
