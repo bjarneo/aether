@@ -64,61 +64,96 @@ export class FontManager {
 
     /**
      * Gets the currently configured system monospace font
-     * Tries multiple methods in order:
-     * 1. Omarchy font.conf
-     * 2. GNOME/GTK monospace font setting
-     * 3. System default monospace
+     * Reads from config files that omarchy-font-set modifies:
+     * 1. ~/.config/kitty/kitty.conf (font_family)
+     * 2. ~/.config/alacritty/alacritty.toml (family = "...")
+     * 3. ~/.config/fontconfig/fonts.conf (monospace mapping)
+     * 4. System default (fc-match monospace)
      * @returns {string|null} Current font family name or null if not configured
      */
     getCurrentFont() {
-        // Try 1: Omarchy font.conf
+        // Try 1: kitty.conf (simplest to parse)
         try {
-            const fontConfPath = GLib.build_filenamev([
+            const kittyConfPath = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
-                'omarchy',
-                'font.conf',
+                'kitty',
+                'kitty.conf',
             ]);
 
-            const file = Gio.File.new_for_path(fontConfPath);
+            const file = Gio.File.new_for_path(kittyConfPath);
             if (file.query_exists(null)) {
                 const [success, contents] = file.load_contents(null);
                 if (success) {
-                    const text = new TextDecoder('utf-8').decode(contents).trim();
-                    if (text) {
-                        console.log(`Current font (omarchy): ${text}`);
-                        return text;
+                    const text = new TextDecoder('utf-8').decode(contents);
+                    // Look for line: font_family Font Name
+                    const match = text.match(/^font_family\s+(.+)$/m);
+                    if (match && match[1]) {
+                        const fontName = match[1].trim();
+                        console.log(`Current font (kitty): ${fontName}`);
+                        return fontName;
                     }
                 }
             }
         } catch (error) {
-            console.error(`Error reading omarchy font.conf: ${error.message}`);
+            console.error(`Error reading kitty.conf: ${error.message}`);
         }
 
-        // Try 2: GNOME/GTK monospace font setting
+        // Try 2: alacritty.toml
         try {
-            const [success, stdout] = GLib.spawn_command_line_sync(
-                'gsettings get org.gnome.desktop.interface monospace-font-name'
-            );
+            const alacrittyTomlPath = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'alacritty',
+                'alacritty.toml',
+            ]);
 
-            if (success) {
-                const output = new TextDecoder('utf-8')
-                    .decode(stdout)
-                    .trim()
-                    .replace(/^'|'$/g, ''); // Remove quotes
-
-                // Parse "Font Name 12" to just "Font Name"
-                const fontFamily = output.replace(/\s+\d+$/, '').trim();
-
-                if (fontFamily) {
-                    console.log(`Current font (GNOME): ${fontFamily}`);
-                    return fontFamily;
+            const file = Gio.File.new_for_path(alacrittyTomlPath);
+            if (file.query_exists(null)) {
+                const [success, contents] = file.load_contents(null);
+                if (success) {
+                    const text = new TextDecoder('utf-8').decode(contents);
+                    // Look for line: family = "Font Name"
+                    const match = text.match(/family\s*=\s*"([^"]+)"/);
+                    if (match && match[1]) {
+                        const fontName = match[1].trim();
+                        console.log(`Current font (alacritty): ${fontName}`);
+                        return fontName;
+                    }
                 }
             }
         } catch (error) {
-            console.error(`Error getting GNOME font: ${error.message}`);
+            console.error(`Error reading alacritty.toml: ${error.message}`);
         }
 
-        // Try 3: Check fontconfig default monospace
+        // Try 3: fontconfig fonts.conf (XML parsing with xmlstarlet)
+        try {
+            const fontsConfPath = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'fontconfig',
+                'fonts.conf',
+            ]);
+
+            const file = Gio.File.new_for_path(fontsConfPath);
+            if (file.query_exists(null)) {
+                // Use xmlstarlet to extract the monospace font mapping
+                const [success, stdout] = GLib.spawn_command_line_sync(
+                    `xmlstarlet sel -t -v '//match[@target="pattern"][test/string="monospace"]/edit[@name="family"]/string' "${fontsConfPath}"`
+                );
+
+                if (success) {
+                    const fontName = new TextDecoder('utf-8')
+                        .decode(stdout)
+                        .trim();
+                    if (fontName) {
+                        console.log(`Current font (fontconfig): ${fontName}`);
+                        return fontName;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`Error reading fonts.conf: ${error.message}`);
+        }
+
+        // Try 4: System default (fc-match monospace)
         try {
             const [success, stdout] = GLib.spawn_command_line_sync(
                 'fc-match monospace family'
@@ -127,15 +162,15 @@ export class FontManager {
             if (success) {
                 const output = new TextDecoder('utf-8').decode(stdout).trim();
                 if (output) {
-                    console.log(`Current font (fontconfig): ${output}`);
+                    console.log(`Current font (system default): ${output}`);
                     return output;
                 }
             }
         } catch (error) {
-            console.error(`Error getting fontconfig default: ${error.message}`);
+            console.error(`Error getting system default font: ${error.message}`);
         }
 
-        console.log('No system font configured');
+        console.log('No font configured');
         return null;
     }
 
