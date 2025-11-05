@@ -13,15 +13,13 @@ import {ensureDirectoryExists} from '../utils/file-utils.js';
  * - Refreshing system font cache
  * - Applying fonts via omarchy-font-set command
  *
- * Supported fonts:
- * - JetBrains Mono Nerd Font
- * - Fira Code Nerd Font
- * - Cascadia Code Nerd Font
- * - Meslo Nerd Font
- * - Hack Nerd Font
- * - Source Code Pro Nerd Font
- * - Ubuntu Mono Nerd Font
- * - Inconsolata Nerd Font
+ * Supported fonts (18 total):
+ * - JetBrains Mono, Fira Code, Cascadia Code
+ * - Meslo, Hack, Source Code Pro
+ * - Ubuntu Mono, Inconsolata, Iosevka
+ * - Victor Mono, IBM Plex Mono, Roboto Mono
+ * - DejaVu Sans Mono, Noto, Monaco
+ * - Space Mono, Anonymice, Terminus
  *
  * @class FontManager
  */
@@ -114,6 +112,86 @@ export class FontManager {
                 filename: 'Inconsolata.zip',
                 description: 'Humanist monospace for coding',
             },
+            {
+                name: 'Iosevka Nerd Font',
+                displayName: 'Iosevka',
+                family: 'Iosevka Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/Iosevka.zip',
+                filename: 'Iosevka.zip',
+                description: 'Slender, customizable programming font',
+            },
+            {
+                name: 'Victor Mono Nerd Font',
+                displayName: 'Victor Mono',
+                family: 'VictorMono Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/VictorMono.zip',
+                filename: 'VictorMono.zip',
+                description: 'Italic monospace with programming ligatures',
+            },
+            {
+                name: 'IBM Plex Mono Nerd Font',
+                displayName: 'IBM Plex Mono',
+                family: 'BlexMono Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/IBMPlexMono.zip',
+                filename: 'IBMPlexMono.zip',
+                description: 'IBM\'s typeface with excellent readability',
+            },
+            {
+                name: 'Roboto Mono Nerd Font',
+                displayName: 'Roboto Mono',
+                family: 'RobotoMono Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/RobotoMono.zip',
+                filename: 'RobotoMono.zip',
+                description: 'Google\'s geometric monospace font',
+            },
+            {
+                name: 'DejaVu Sans Mono Nerd Font',
+                displayName: 'DejaVu Sans Mono',
+                family: 'DejaVuSansMono Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/DejaVuSansMono.zip',
+                filename: 'DejaVuSansMono.zip',
+                description: 'Wide character support, highly readable',
+            },
+            {
+                name: 'Noto Nerd Font',
+                displayName: 'Noto',
+                family: 'Noto Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/Noto.zip',
+                filename: 'Noto.zip',
+                description: 'Google\'s comprehensive font family',
+            },
+            {
+                name: 'Monaco Nerd Font',
+                displayName: 'Monaco',
+                family: 'Monaco Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/Monofur.zip',
+                filename: 'Monofur.zip',
+                description: 'Classic macOS terminal font',
+            },
+            {
+                name: 'Space Mono Nerd Font',
+                displayName: 'Space Mono',
+                family: 'SpaceMono Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/SpaceMono.zip',
+                filename: 'SpaceMono.zip',
+                description: 'Geometric monospace with vintage feel',
+            },
+            {
+                name: 'Anonymice Nerd Font',
+                displayName: 'Anonymice',
+                family: 'Anonymice Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/AnonymousPro.zip',
+                filename: 'AnonymousPro.zip',
+                description: 'Anonymous Pro with extended glyphs',
+            },
+            {
+                name: 'Terminus Nerd Font',
+                displayName: 'Terminus',
+                family: 'Terminus Nerd Font',
+                url: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/Terminus.zip',
+                filename: 'Terminus.zip',
+                description: 'Bitmap font optimized for long coding sessions',
+            },
         ];
     }
 
@@ -190,13 +268,52 @@ export class FontManager {
     }
 
     /**
+     * Gets the currently configured system font
+     * Reads from ~/.config/omarchy/font.conf if available
+     * @returns {string|null} Current font family name or null if not configured
+     */
+    getCurrentFont() {
+        try {
+            const fontConfPath = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'omarchy',
+                'font.conf',
+            ]);
+
+            const file = Gio.File.new_for_path(fontConfPath);
+            if (!file.query_exists(null)) {
+                console.log('Font config not found, checking for default');
+                return null;
+            }
+
+            const [success, contents] = file.load_contents(null);
+            if (!success) {
+                console.error('Failed to read font config');
+                return null;
+            }
+
+            const text = new TextDecoder('utf-8').decode(contents).trim();
+
+            // The file should contain just the font name
+            if (text) {
+                console.log(`Current system font: ${text}`);
+                return text;
+            }
+
+            return null;
+        } catch (error) {
+            console.error(`Error getting current font: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
      * Downloads a font from URL to cache directory
      * @param {Object} font - Font metadata object
-     * @param {Function} progressCallback - Callback for download progress (percent)
      * @returns {Promise<string>} Path to downloaded file
      * @throws {Error} If download fails
      */
-    async downloadFont(font, progressCallback = null) {
+    async downloadFont(font) {
         const cachePath = GLib.build_filenamev([this._cacheDir, font.filename]);
         const cacheFile = Gio.File.new_for_path(cachePath);
 
@@ -210,21 +327,6 @@ export class FontManager {
 
         return new Promise((resolve, reject) => {
             const message = Soup.Message.new('GET', font.url);
-
-            if (progressCallback) {
-                message.connect('got-headers', () => {
-                    const contentLength = message.response_headers.get_content_length();
-                    let bytesReceived = 0;
-
-                    message.response_body.connect('got-chunk', (_, chunk) => {
-                        bytesReceived += chunk.length;
-                        if (contentLength > 0) {
-                            const percent = (bytesReceived / contentLength) * 100;
-                            progressCallback(Math.round(percent));
-                        }
-                    });
-                });
-            }
 
             this._session.send_and_read_async(
                 message,
@@ -355,13 +457,12 @@ export class FontManager {
     /**
      * Downloads and installs a font in one operation
      * @param {Object} font - Font metadata object
-     * @param {Function} progressCallback - Callback for download progress
      * @returns {Promise<void>}
      * @throws {Error} If download or installation fails
      */
-    async downloadAndInstallFont(font, progressCallback = null) {
+    async downloadAndInstallFont(font) {
         try {
-            const zipPath = await this.downloadFont(font, progressCallback);
+            const zipPath = await this.downloadFont(font);
             await this.installFont(zipPath, font.displayName);
         } catch (error) {
             console.error(

@@ -20,10 +20,13 @@ import {showToast} from '../utils/ui-helpers.js';
  * Signals:
  * - 'font-applied' (fontFamily: string) - Emitted when font is applied to system
  *
- * Popular fonts supported:
+ * Popular fonts supported (18 total):
  * - JetBrains Mono, Fira Code, Cascadia Code
  * - Meslo, Hack, Source Code Pro
- * - Ubuntu Mono, Inconsolata
+ * - Ubuntu Mono, Inconsolata, Iosevka
+ * - Victor Mono, IBM Plex Mono, Roboto Mono
+ * - DejaVu Sans Mono, Noto, Monaco
+ * - Space Mono, Anonymice, Terminus
  *
  * @class FontSelector
  * @extends {Gtk.Box}
@@ -99,7 +102,18 @@ export const FontSelector = GObject.registerClass(
         _createPreviewSection() {
             const group = new Adw.PreferencesGroup({
                 title: 'Font Preview',
-                description: 'Preview your selected font',
+            });
+
+            // Current font label
+            const currentFont = this._fontManager.getCurrentFont();
+            this._currentFontLabel = new Gtk.Label({
+                label: currentFont
+                    ? `Current: ${currentFont}`
+                    : 'No font configured',
+                css_classes: ['dim-label', 'caption'],
+                xalign: 0,
+                margin_start: 6,
+                margin_bottom: 6,
             });
 
             // Preview text display
@@ -124,7 +138,15 @@ export const FontSelector = GObject.registerClass(
                 margin_end: 6,
             });
 
-            group.add(frame);
+            const contentBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 0,
+            });
+
+            contentBox.append(this._currentFontLabel);
+            contentBox.append(frame);
+
+            group.add(contentBox);
 
             return group;
         }
@@ -155,19 +177,16 @@ export const FontSelector = GObject.registerClass(
             // Filter model for search
             this._installedListBox.set_filter_func(row => {
                 if (!searchEntry.text) return true;
-                const fontName = row.get_child().get_title().toLowerCase();
+
+                // ActionRows are direct children in the ListBox
+                if (!row || !row.get_title) return true;
+
+                const fontName = row.get_title().toLowerCase();
                 return fontName.includes(searchEntry.text.toLowerCase());
             });
 
             searchEntry.connect('search-changed', () => {
                 this._installedListBox.invalidate_filter();
-            });
-
-            this._installedListBox.connect('row-selected', row => {
-                if (row) {
-                    const fontFamily = row.get_child().get_title();
-                    this._selectFont(fontFamily);
-                }
             });
 
             const scrolled = new Gtk.ScrolledWindow({
@@ -296,6 +315,11 @@ export const FontSelector = GObject.registerClass(
                     activatable: true,
                 });
 
+                // Connect activated signal to select font
+                row.connect('activated', () => {
+                    this._selectFont(fontFamily);
+                });
+
                 const checkIcon = new Gtk.Image({
                     icon_name: 'object-select-symbolic',
                     visible: false,
@@ -354,33 +378,27 @@ export const FontSelector = GObject.registerClass(
         }
 
         /**
-         * Downloads and installs a font with progress indication
+         * Downloads and installs a font with loading indication
          * @param {Object} font - Font metadata
          * @param {Gtk.Button} button - Download button to update
          * @param {Adw.ActionRow} row - Row to update after installation
          * @private
          */
         async _downloadFont(font, button, row) {
-            // Replace button with progress bar
+            // Replace button with spinner
             row.remove(button);
 
-            const progressBar = new Gtk.ProgressBar({
+            const spinner = new Gtk.Spinner({
                 valign: Gtk.Align.CENTER,
-                show_text: true,
+                spinning: true,
             });
-            row.add_suffix(progressBar);
+            row.add_suffix(spinner);
 
             try {
-                await this._fontManager.downloadAndInstallFont(
-                    font,
-                    percent => {
-                        progressBar.set_fraction(percent / 100);
-                        progressBar.set_text(`${percent}%`);
-                    }
-                );
+                await this._fontManager.downloadAndInstallFont(font);
 
-                // Replace progress bar with installed label
-                row.remove(progressBar);
+                // Replace spinner with installed label
+                row.remove(spinner);
                 const installedLabel = new Gtk.Label({
                     label: 'Installed',
                     css_classes: ['success', 'dim-label'],
@@ -395,7 +413,7 @@ export const FontSelector = GObject.registerClass(
                 console.error(`Error downloading font: ${error.message}`);
 
                 // Restore download button
-                row.remove(progressBar);
+                row.remove(spinner);
                 row.add_suffix(button);
 
                 showToast(this, `Failed to install ${font.displayName}`);
@@ -422,10 +440,9 @@ export const FontSelector = GObject.registerClass(
             // Update checkmark in list
             let row = this._installedListBox.get_first_child();
             while (row) {
-                const actionRow = row.get_child();
-                if (actionRow && actionRow._checkIcon) {
-                    actionRow._checkIcon.visible =
-                        actionRow.get_title() === fontFamily;
+                // ActionRows are direct children, no need for get_child()
+                if (row && row._checkIcon) {
+                    row._checkIcon.visible = row.get_title() === fontFamily;
                 }
                 row = row.get_next_sibling();
             }
@@ -444,6 +461,10 @@ export const FontSelector = GObject.registerClass(
 
             try {
                 await this._fontManager.setFont(this._selectedFont);
+
+                // Update current font label
+                this._currentFontLabel.set_label(`Current: ${this._selectedFont}`);
+
                 showToast(this, `Font applied: ${this._selectedFont}`);
                 this.emit('font-applied', this._selectedFont);
             } catch (error) {
