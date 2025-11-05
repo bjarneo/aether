@@ -189,7 +189,21 @@ export const WallpaperBrowser = GObject.registerClass(
                 spacing: 0,
             });
 
-            // Top action bar with search and buttons
+            toolbarBox.append(this._createSearchActionBar());
+            toolbarBox.append(this._createFiltersSection());
+            toolbarBox.append(
+                new Gtk.Separator({orientation: Gtk.Orientation.HORIZONTAL})
+            );
+
+            return toolbarBox;
+        }
+
+        /**
+         * Creates the search action bar with search entry and control buttons
+         * @returns {Gtk.Box} The action bar widget
+         * @private
+         */
+        _createSearchActionBar() {
             const actionBar = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
@@ -256,9 +270,15 @@ export const WallpaperBrowser = GObject.registerClass(
             actionBar.append(this._filtersButton);
             actionBar.append(settingsButton);
 
-            toolbarBox.append(actionBar);
+            return actionBar;
+        }
 
-            // Filters section (collapsible)
+        /**
+         * Creates the collapsible filters section with sort and categories
+         * @returns {Gtk.Revealer} The filters revealer widget
+         * @private
+         */
+        _createFiltersSection() {
             this._filtersRevealer = new Gtk.Revealer({
                 transition_type: Gtk.RevealerTransitionType.SLIDE_DOWN,
                 reveal_child: false,
@@ -273,7 +293,22 @@ export const WallpaperBrowser = GObject.registerClass(
                 margin_end: 12,
             });
 
-            // Sort dropdown
+            filtersBox.append(this._createSortDropdown());
+            filtersBox.append(
+                new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
+            );
+            filtersBox.append(this._createCategoriesCheckboxes());
+
+            this._filtersRevealer.set_child(filtersBox);
+            return this._filtersRevealer;
+        }
+
+        /**
+         * Creates the sort dropdown filter
+         * @returns {Gtk.Box} The sort dropdown container
+         * @private
+         */
+        _createSortDropdown() {
             const sortBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 3,
@@ -323,7 +358,15 @@ export const WallpaperBrowser = GObject.registerClass(
             sortBox.append(sortLabel);
             sortBox.append(this._sortDropdown);
 
-            // Categories
+            return sortBox;
+        }
+
+        /**
+         * Creates the categories checkboxes filter
+         * @returns {Gtk.Box} The categories checkboxes container
+         * @private
+         */
+        _createCategoriesCheckboxes() {
             const categoriesBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 3,
@@ -385,21 +428,7 @@ export const WallpaperBrowser = GObject.registerClass(
             categoriesBox.append(categoriesLabel);
             categoriesBox.append(categoriesCheckBox);
 
-            filtersBox.append(sortBox);
-            filtersBox.append(
-                new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
-            );
-            filtersBox.append(categoriesBox);
-
-            this._filtersRevealer.set_child(filtersBox);
-            toolbarBox.append(this._filtersRevealer);
-
-            // Separator
-            toolbarBox.append(
-                new Gtk.Separator({orientation: Gtk.Orientation.HORIZONTAL})
-            );
-
-            return toolbarBox;
+            return categoriesBox;
         }
 
         /**
