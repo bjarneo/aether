@@ -49,11 +49,17 @@ export const FavoritesService = GObject.registerClass(
                 // Process favorites and build index
                 favArray.forEach(fav => {
                     if (typeof fav === 'string') {
-                        // Old format: already JSON string
-                        this._addToIndex(fav);
+                        // Double-encoded string (bug from refactoring) - parse it first
+                        try {
+                            const parsed = JSON.parse(fav);
+                            const jsonStr = JSON.stringify(parsed);
+                            this._addToIndex(jsonStr);
+                        } catch (e) {
+                            console.error('Failed to parse double-encoded favorite:', e.message);
+                        }
                     } else {
-                        // New format: convert object to JSON string
-                        const jsonStr = this._objectToJsonString(fav);
+                        // Proper object format - convert to JSON string for internal storage
+                        const jsonStr = JSON.stringify(fav);
                         this._addToIndex(jsonStr);
                     }
                 });
@@ -98,7 +104,16 @@ export const FavoritesService = GObject.registerClass(
                 const configDir = GLib.path_get_dirname(this._configPath);
                 ensureDirectoryExists(configDir);
 
-                const favArray = Array.from(this._favorites);
+                // Parse JSON strings back to objects before saving
+                const favArray = Array.from(this._favorites).map(jsonStr => {
+                    try {
+                        return JSON.parse(jsonStr);
+                    } catch (e) {
+                        console.error('Failed to parse favorite during save:', e.message);
+                        return null;
+                    }
+                }).filter(obj => obj !== null);
+
                 const content = JSON.stringify(favArray, null, 2);
 
                 const file = Gio.File.new_for_path(this._configPath);
