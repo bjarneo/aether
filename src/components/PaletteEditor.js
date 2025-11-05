@@ -141,9 +141,10 @@ export const PaletteEditor = GObject.registerClass(
 
             this.append(this._viewStack);
 
-            // Load default colors
+            // Load default colors and favorites
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._loadDefaultColors();
+                this._favoritesView.loadFavorites();
                 return GLib.SOURCE_REMOVE;
             });
         }
