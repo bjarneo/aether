@@ -8,6 +8,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import {ColorAdjustmentControls} from './palette/color-adjustment-controls.js';
 import {AccessibilityPanel} from './AccessibilityPanel.js';
 import {ShaderManager} from './ShaderManager.js';
+import {FontSelector} from './FontSelector.js';
 import {COLOR_PRESETS} from '../constants/presets.js';
 import {NEOVIM_PRESETS} from '../constants/neovim-presets.js';
 import {applyCssToWidget, removeAllChildren, showToast} from '../utils/ui-helpers.js';
@@ -158,6 +159,10 @@ export const SettingsSidebar = GObject.registerClass(
             // Shader Manager Section
             this._shaderManager = new ShaderManager();
             contentBox.append(this._shaderManager);
+
+            // Font Selector Section
+            const fontSection = this._createFontSection();
+            contentBox.append(fontSection);
 
             // Template Settings Section
             const templateSettings = this._createTemplateSettings();
@@ -737,6 +742,38 @@ export const SettingsSidebar = GObject.registerClass(
             vscodeRow.set_activatable_widget(this._vscodeSwitch);
 
             expanderRow.add_row(vscodeRow);
+
+            return expanderRow;
+        }
+
+        /**
+         * Creates font selector section with preview and download functionality
+         * Allows browsing installed fonts and downloading popular programming fonts
+         * @returns {Adw.ExpanderRow} Font selector widget
+         * @private
+         */
+        _createFontSection() {
+            const expanderRow = new Adw.ExpanderRow({
+                title: 'Font Manager',
+                subtitle: 'Select and download fonts for terminals and editors',
+            });
+
+            // Create font selector
+            this._fontSelector = new FontSelector();
+
+            // Wrap in a box with padding
+            const fontBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                margin_start: 12,
+                margin_end: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+            });
+
+            fontBox.append(this._fontSelector);
+
+            // Add to expander as a child
+            expanderRow.add_row(new Adw.ActionRow({child: fontBox}));
 
             return expanderRow;
         }
