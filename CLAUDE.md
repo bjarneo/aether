@@ -111,7 +111,15 @@ npm run dev
 - Saves to `~/.cache/aether/`
 - Bypasses color extraction cache (forces fresh extraction)
 
+**Safety Confirmation:**
+- After clicking Apply, a 60-second countdown dialog appears
+- User must confirm to keep changes within timeout, or changes auto-revert
+- Prevents getting stuck with unusable filters (extreme warping, blur, etc.)
+- Similar to display resolution confirmation in most operating systems
+- Keyboard shortcuts: Enter = Keep, Escape = Revert
+
 **Sub-components:**
+- `src/components/wallpaper-editor/FilterConfirmationDialog.js` - Countdown confirmation dialog
 - `src/components/wallpaper-editor/FilterControls.js` - All filter UI controls, presets, tone picker
 - `src/components/wallpaper-editor/PreviewArea.js` - Preview with debounced IM rendering
 
