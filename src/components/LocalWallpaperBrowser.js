@@ -60,6 +60,7 @@ import {uploadWallpaper} from '../utils/wallpaper-utils.js';
  *   - path is absolute file path to the wallpaper
  * - 'favorites-changed': () - Emitted when favorites are modified
  *   - No parameters, indicates favorites need to be refreshed
+ * - 'add-to-additional-images': (wallpaper: object) - Emitted when adding to additional images
  *
  * Empty State:
  * - Shown when ~/Wallpapers doesn't exist or is empty
@@ -81,6 +82,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         Signals: {
             'wallpaper-selected': {param_types: [GObject.TYPE_STRING]},
             'favorites-changed': {},
+            'add-to-additional-images': {param_types: [GObject.TYPE_JSOBJECT]},
         },
     },
     class LocalWallpaperBrowser extends Gtk.Box {
@@ -304,7 +306,8 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             const {mainBox, picture} = createWallpaperCard(
                 wallpaperData,
                 wp => this.emit('wallpaper-selected', wp.path),
-                () => this.emit('favorites-changed')
+                () => this.emit('favorites-changed'),
+                wp => this.emit('add-to-additional-images', wallpaperData)
             );
 
             // Load thumbnail asynchronously using shared service

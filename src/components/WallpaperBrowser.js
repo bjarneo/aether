@@ -36,6 +36,7 @@ import {
  * Signals:
  * - 'wallpaper-selected' (path: string) - Emitted when a wallpaper is selected
  * - 'favorites-changed' - Emitted when favorites are modified
+ * - 'add-to-additional-images' (wallpaper: object) - Emitted when adding to additional images
  *
  * Configuration:
  * - Stores API key and preferences in ~/.config/aether/wallhaven.json
@@ -50,6 +51,7 @@ export const WallpaperBrowser = GObject.registerClass(
         Signals: {
             'wallpaper-selected': {param_types: [GObject.TYPE_STRING]},
             'favorites-changed': {},
+            'add-to-additional-images': {param_types: [GObject.TYPE_JSOBJECT]},
         },
     },
     class WallpaperBrowser extends Gtk.Box {
@@ -578,7 +580,8 @@ export const WallpaperBrowser = GObject.registerClass(
             const {mainBox, picture} = createWallpaperCard(
                 wallpaperData,
                 wp => this._downloadAndUseWallpaper(wallpaper),
-                () => this.emit('favorites-changed')
+                () => this.emit('favorites-changed'),
+                wp => this.emit('add-to-additional-images', wallpaperData)
             );
 
             // Load thumbnail asynchronously

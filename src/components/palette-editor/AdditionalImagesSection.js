@@ -4,6 +4,8 @@ import Gdk from 'gi://Gdk?version=4.0';
 import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {uploadMultipleWallpapers} from '../../utils/wallpaper-utils.js';
+import {wallhavenService} from '../../services/wallhaven-service.js';
+import {showToast} from '../../utils/ui-helpers.js';
 
 /**
  * AdditionalImagesSection - Manages additional background images
@@ -144,6 +146,49 @@ export const AdditionalImagesSection = GObject.registerClass(
         setImages(images) {
             this._images = images ? [...images] : [];
             this._updateDisplay();
+        }
+
+        /**
+         * Adds a single image to additional images
+         * @param {string} imagePath - Path to the image file
+         * @public
+         */
+        addImage(imagePath) {
+            if (!imagePath) {
+                console.warn('No image path provided to addImage');
+                return;
+            }
+
+            // Avoid duplicates
+            if (this._images.includes(imagePath)) {
+                showToast(this, 'Image already added to additional images');
+                return;
+            }
+
+            this._images.push(imagePath);
+            this._updateDisplay();
+            this.emit('images-changed', this._images);
+            showToast(this, 'Added to additional images');
+        }
+
+        /**
+         * Downloads a wallhaven wallpaper and adds it to additional images
+         * @param {Object} wallpaper - Wallpaper object with URL
+         * @param {string} wallpaper.path - Full resolution image URL
+         * @public
+         */
+        async addWallhavenImage(wallpaper) {
+            try {
+                showToast(this, 'Downloading wallpaper...');
+                const downloadedPath = await wallhavenService.downloadWallpaper(
+                    wallpaper.path,
+                    wallpaper.id || `wallhaven-${Date.now()}`
+                );
+                this.addImage(downloadedPath);
+            } catch (error) {
+                console.error('Failed to download wallhaven image:', error);
+                showToast(this, 'Failed to download wallpaper');
+            }
         }
 
         reset() {
