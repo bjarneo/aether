@@ -1,5 +1,6 @@
 import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
+import GObject from 'gi://GObject';
 
 import {applyCssToWidget, removeAllChildren, showToast} from '../../utils/ui-helpers.js';
 import {
@@ -227,7 +228,13 @@ export class ColorSwatchGrid {
         const display = Gdk.Display.get_default();
         const clipboard = display.get_clipboard();
 
-        clipboard.set_text(color);
+        // GTK4 clipboard API - use ContentProvider for text
+        const value = new GObject.Value();
+        value.init(GObject.TYPE_STRING);
+        value.set_string(color);
+
+        const contentProvider = Gdk.ContentProvider.new_for_value(value);
+        clipboard.set_content(contentProvider);
 
         const colorName = ANSI_COLOR_NAMES[index] || `Color ${index}`;
         showToast(widget, `Copied ${color} (${colorName})`);
