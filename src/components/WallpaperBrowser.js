@@ -8,6 +8,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import {wallhavenService} from '../services/wallhaven-service.js';
 import {favoritesService} from '../services/favorites-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
+import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {
     removeAllChildren,
     showToast,
@@ -20,6 +21,30 @@ import {
     saveJsonFile,
 } from '../utils/file-utils.js';
 
+/**
+ * WallpaperBrowser - GTK widget for browsing and downloading wallpapers from wallhaven.cc
+ *
+ * Features:
+ * - Search wallpapers by tags, colors, and categories
+ * - Filter by category (General, Anime, People) and resolution
+ * - Pagination support with page navigation
+ * - Thumbnail caching for improved performance
+ * - Responsive grid layout that adapts to window size
+ * - Download wallpapers to local cache
+ * - Favorites management (integrated with favoritesService)
+ *
+ * Signals:
+ * - 'wallpaper-selected' (path: string) - Emitted when a wallpaper is selected
+ * - 'favorites-changed' - Emitted when favorites are modified
+ *
+ * Configuration:
+ * - Stores API key and preferences in ~/.config/aether/wallhaven.json
+ * - Caches thumbnails in ~/.cache/aether/wallhaven-thumbs/
+ * - Downloads full wallpapers to ~/.cache/aether/wallhaven-wallpapers/
+ *
+ * @class WallpaperBrowser
+ * @extends {Gtk.Box}
+ */
 export const WallpaperBrowser = GObject.registerClass(
     {
         Signals: {
@@ -28,6 +53,11 @@ export const WallpaperBrowser = GObject.registerClass(
         },
     },
     class WallpaperBrowser extends Gtk.Box {
+        /**
+         * Initializes the WallpaperBrowser widget
+         * Sets up search parameters, loads configuration, creates UI, and performs initial search
+         * @private
+         */
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
@@ -47,10 +77,23 @@ export const WallpaperBrowser = GObject.registerClass(
 
             this._loadConfig();
             this._initializeUI();
-            this._setupResponsiveColumns();
+
+            // Initialize responsive grid manager
+            this._gridManager = new ResponsiveGridManager(
+                this._gridFlow,
+                this._scrolledWindow,
+                this
+            );
+            this._gridManager.initialize();
+
             this._loadInitialWallpapers();
         }
 
+        /**
+         * Initializes the UI components of the browser
+         * Creates toolbar, content stack (loading/error/content states), grid, and pagination
+         * @private
+         */
         _initializeUI() {
             // Toolbar/Header section
             const toolbar = this._createToolbar();
@@ -134,13 +177,33 @@ export const WallpaperBrowser = GObject.registerClass(
             this.append(paginationBox);
         }
 
+        /**
+         * Creates the toolbar section with search, filters, and settings
+         * Includes search entry, sort dropdown, category filters, and settings dialog button
+         * @returns {Gtk.Box} The toolbar widget
+         * @private
+         */
         _createToolbar() {
             const toolbarBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 0,
             });
 
-            // Top action bar with search and buttons
+            toolbarBox.append(this._createSearchActionBar());
+            toolbarBox.append(this._createFiltersSection());
+            toolbarBox.append(
+                new Gtk.Separator({orientation: Gtk.Orientation.HORIZONTAL})
+            );
+
+            return toolbarBox;
+        }
+
+        /**
+         * Creates the search action bar with search entry and control buttons
+         * @returns {Gtk.Box} The action bar widget
+         * @private
+         */
+        _createSearchActionBar() {
             const actionBar = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
@@ -207,9 +270,15 @@ export const WallpaperBrowser = GObject.registerClass(
             actionBar.append(this._filtersButton);
             actionBar.append(settingsButton);
 
-            toolbarBox.append(actionBar);
+            return actionBar;
+        }
 
-            // Filters section (collapsible)
+        /**
+         * Creates the collapsible filters section with sort and categories
+         * @returns {Gtk.Revealer} The filters revealer widget
+         * @private
+         */
+        _createFiltersSection() {
             this._filtersRevealer = new Gtk.Revealer({
                 transition_type: Gtk.RevealerTransitionType.SLIDE_DOWN,
                 reveal_child: false,
@@ -224,7 +293,22 @@ export const WallpaperBrowser = GObject.registerClass(
                 margin_end: 12,
             });
 
-            // Sort dropdown
+            filtersBox.append(this._createSortDropdown());
+            filtersBox.append(
+                new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
+            );
+            filtersBox.append(this._createCategoriesCheckboxes());
+
+            this._filtersRevealer.set_child(filtersBox);
+            return this._filtersRevealer;
+        }
+
+        /**
+         * Creates the sort dropdown filter
+         * @returns {Gtk.Box} The sort dropdown container
+         * @private
+         */
+        _createSortDropdown() {
             const sortBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 3,
@@ -274,7 +358,15 @@ export const WallpaperBrowser = GObject.registerClass(
             sortBox.append(sortLabel);
             sortBox.append(this._sortDropdown);
 
-            // Categories
+            return sortBox;
+        }
+
+        /**
+         * Creates the categories checkboxes filter
+         * @returns {Gtk.Box} The categories checkboxes container
+         * @private
+         */
+        _createCategoriesCheckboxes() {
             const categoriesBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 3,
@@ -336,23 +428,14 @@ export const WallpaperBrowser = GObject.registerClass(
             categoriesBox.append(categoriesLabel);
             categoriesBox.append(categoriesCheckBox);
 
-            filtersBox.append(sortBox);
-            filtersBox.append(
-                new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
-            );
-            filtersBox.append(categoriesBox);
-
-            this._filtersRevealer.set_child(filtersBox);
-            toolbarBox.append(this._filtersRevealer);
-
-            // Separator
-            toolbarBox.append(
-                new Gtk.Separator({orientation: Gtk.Orientation.HORIZONTAL})
-            );
-
-            return toolbarBox;
+            return categoriesBox;
         }
 
+        /**
+         * Creates pagination controls (previous/next buttons and page label)
+         * @returns {Gtk.Box} The pagination controls widget
+         * @private
+         */
         _createPaginationControls() {
             this._paginationBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
@@ -397,137 +480,19 @@ export const WallpaperBrowser = GObject.registerClass(
             return this._paginationBox;
         }
 
-        _setupResponsiveColumns() {
-            // Responsive grid constants
-            this.LAYOUT_CONSTANTS = {
-                MIN_COLUMNS: 2, // Minimum columns to maintain usable grid
-                FALLBACK_WIDTH: 1200, // Default width when allocation unavailable
-                CONTENT_WIDTH_RATIO: 0.65, // Content area ratio of total window (accounts for sidebar)
-                WINDOW_SCROLL_THRESHOLD: 2, // Window must be 2x scroll width to use window-based calculation
-                MIN_WINDOW_WIDTH: 1200, // Minimum window width to apply window-based calculation
-                ITEM_WIDTH: 280, // Width of each wallpaper item (from _createWallpaperItem)
-                GRID_MARGINS: 24, // Total margins (12px left + 12px right)
-                CHANGE_THRESHOLD: 50, // Minimum width change (px) to trigger column recalculation
-                INITIAL_DELAY: 300, // Initial delay (ms) before first column calculation
-                POLLING_INTERVAL: 1000, // Polling interval (ms) for resize detection
-            };
-
-            this._lastWidth = 0;
-            this._resizeTimeoutId = null;
-            this._isCleanedUp = false;
-
-            // Cache column spacing to avoid repeated method calls
-            this._cachedColumnSpacing = this._gridFlow.get_column_spacing();
-
-            // Initial update
-            GLib.timeout_add(
-                GLib.PRIORITY_DEFAULT,
-                this.LAYOUT_CONSTANTS.INITIAL_DELAY,
-                () => {
-                    this._updateColumns();
-                    return GLib.SOURCE_REMOVE;
-                }
-            );
-
-            // Connect to size allocation signals for efficient resize detection
-            this.connect('realize', () => {
-                this._connectResizeSignals();
-            });
-
-            // Cleanup when component is destroyed
-            this.connect('destroy', () => {
-                this._cleanupResponsiveColumns();
-            });
-        }
-
-        _connectResizeSignals() {
-            // Use efficient polling with change detection
-            // Check at POLLING_INTERVAL, but only update if width changed significantly
-            this._resizeTimeoutId = GLib.timeout_add(
-                GLib.PRIORITY_DEFAULT,
-                this.LAYOUT_CONSTANTS.POLLING_INTERVAL,
-                () => {
-                    const width = this._getAvailableWidth();
-                    if (
-                        Math.abs(width - this._lastWidth) >
-                        this.LAYOUT_CONSTANTS.CHANGE_THRESHOLD
-                    ) {
-                        this._updateColumns();
-                        this._lastWidth = width;
-                    }
-                    return GLib.SOURCE_CONTINUE;
-                }
-            );
-        }
-
-        _cleanupResponsiveColumns() {
-            // Guard against double cleanup
-            if (this._isCleanedUp) {
-                return;
-            }
-            this._isCleanedUp = true;
-
-            // Cleanup timeout
-            if (this._resizeTimeoutId) {
-                GLib.source_remove(this._resizeTimeoutId);
-                this._resizeTimeoutId = null;
-            }
-        }
-
-        _getAvailableWidth() {
-            const scrollWidth = this._scrolledWindow.get_allocated_width();
-            const window = this.get_root();
-            const windowWidth = window?.get_allocated_width() || 0;
-
-            // Use window-based calculation if scroll area hasn't expanded yet
-            const shouldUseWindowWidth =
-                windowWidth >
-                    scrollWidth *
-                        this.LAYOUT_CONSTANTS.WINDOW_SCROLL_THRESHOLD &&
-                windowWidth > this.LAYOUT_CONSTANTS.MIN_WINDOW_WIDTH;
-
-            return shouldUseWindowWidth
-                ? windowWidth * this.LAYOUT_CONSTANTS.CONTENT_WIDTH_RATIO
-                : scrollWidth || this.LAYOUT_CONSTANTS.FALLBACK_WIDTH;
-        }
-
-        _updateColumns() {
-            const width = this._getAvailableWidth();
-            const columns = this._calculateColumns(width);
-
-            if (this._gridFlow.get_max_children_per_line() !== columns) {
-                this._gridFlow.set_max_children_per_line(columns);
-
-                // Set min to columns-1, but never below MIN_COLUMNS
-                const minColumns = Math.max(
-                    this.LAYOUT_CONSTANTS.MIN_COLUMNS,
-                    columns - 1
-                );
-                this._gridFlow.set_min_children_per_line(minColumns);
-            }
-        }
-
-        _calculateColumns(width) {
-            // Use cached spacing value for better performance
-            const itemSize =
-                this.LAYOUT_CONSTANTS.ITEM_WIDTH + this._cachedColumnSpacing;
-            const availableWidth = width - this.LAYOUT_CONSTANTS.GRID_MARGINS;
-            const calculated = Math.floor(availableWidth / itemSize);
-
-            // Apply responsive breakpoints
-            if (width >= 2560) return Math.max(4, Math.min(calculated, 6));
-            if (width >= 1920) return Math.max(3, Math.min(calculated, 5));
-            if (width >= 1400) return Math.max(3, Math.min(calculated, 4));
-            return Math.max(
-                this.LAYOUT_CONSTANTS.MIN_COLUMNS,
-                Math.min(calculated, 3)
-            );
-        }
-
+        /**
+         * Loads initial set of wallpapers on component mount
+         * @private
+         */
         _loadInitialWallpapers() {
             this._performSearch();
         }
 
+        /**
+         * Scrolls the wallpaper grid back to the top
+         * Used when navigating between pages
+         * @private
+         */
         _scrollToTop() {
             // Scroll back to top when changing pages
             const adjustment = this._scrolledWindow.get_vadjustment();
@@ -536,6 +501,13 @@ export const WallpaperBrowser = GObject.registerClass(
             }
         }
 
+        /**
+         * Performs wallpaper search with current parameters
+         * Displays loading state, calls wallhaven API, and updates UI with results
+         * Handles pagination and error states
+         * @async
+         * @private
+         */
         async _performSearch() {
             this._contentStack.set_visible_child_name('loading');
 
@@ -565,6 +537,12 @@ export const WallpaperBrowser = GObject.registerClass(
             }
         }
 
+        /**
+         * Displays wallpapers in the grid
+         * Clears existing items and creates new wallpaper cards
+         * @param {Array<Object>} wallpapers - Array of wallpaper objects from API
+         * @private
+         */
         _displayWallpapers(wallpapers) {
             // Clear existing items
             removeAllChildren(this._gridFlow);
@@ -576,6 +554,13 @@ export const WallpaperBrowser = GObject.registerClass(
             });
         }
 
+        /**
+         * Creates a wallpaper item card for the grid
+         * @param {Object} wallpaper - Wallpaper metadata from API
+         * @param {boolean} isFavorite - Whether wallpaper is favorited
+         * @returns {Gtk.Widget} The wallpaper card widget
+         * @private
+         */
         _createWallpaperItem(wallpaper, isFavorite) {
             const wallpaperData = {
                 path: wallpaper.path,
@@ -676,22 +661,13 @@ export const WallpaperBrowser = GObject.registerClass(
             }
         }
 
-        _findToastOverlay() {
-            // Try to find the toast overlay in the window hierarchy
-            let widget = this.get_parent();
-            while (widget) {
-                if (widget instanceof Adw.ToastOverlay) {
-                    return widget;
-                }
-                if (widget instanceof Adw.ApplicationWindow) {
-                    // If we reach the window, we can wrap our content in a toast overlay
-                    break;
-                }
-                widget = widget.get_parent();
-            }
-            return null;
-        }
-
+        /**
+         * Updates pagination controls based on API metadata
+         * Sets page label and enables/disables navigation buttons
+         * @param {Object} meta - Pagination metadata from API response
+         * @param {number} meta.last_page - Total number of pages
+         * @private
+         */
         _updatePagination(meta) {
             this._totalPages = meta.last_page || 1;
             this._pageLabel.set_label(
@@ -704,101 +680,62 @@ export const WallpaperBrowser = GObject.registerClass(
             );
         }
 
+        /**
+         * Shows error state with custom message
+         * @param {string} message - Error message to display
+         * @private
+         */
         _showError(message) {
             this._errorLabel.set_label(message);
             this._contentStack.set_visible_child_name('error');
         }
 
+        /**
+         * Formats file size in bytes to human-readable format (B/KB/MB)
+         * @param {number} bytes - File size in bytes
+         * @returns {string} Formatted file size string
+         * @private
+         */
         _formatFileSize(bytes) {
             if (bytes < 1024) return `${bytes} B`;
             if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
             return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
         }
 
+        /**
+         * Checks if a wallpaper is in favorites
+         * Uses centralized favoritesService
+         * @param {Object} wallpaper - Wallpaper object to check
+         * @returns {boolean} True if wallpaper is favorited
+         * @private
+         */
         _isFavorite(wallpaper) {
-            const key = this._getFavoriteKey(wallpaper);
-            return this._favorites.has(key);
+            return favoritesService.isFavorite(wallpaper.path);
         }
 
-        _getFavoriteKey(wallpaper) {
-            // Use wallpaper ID or path as unique key
-            return JSON.stringify({
-                id: wallpaper.id,
-                path: wallpaper.path,
-                thumbs: wallpaper.thumbs,
-                resolution: wallpaper.resolution,
-                file_size: wallpaper.file_size,
-            });
-        }
-
+        /**
+         * Toggles favorite status for a wallpaper
+         * Uses centralized favoritesService
+         * @param {Object} wallpaper - Wallpaper object
+         * @param {Gtk.Button} button - Favorite button widget
+         * @private
+         */
         _toggleFavorite(wallpaper, button) {
-            const key = this._getFavoriteKey(wallpaper);
-
-            if (this._favorites.has(key)) {
-                this._favorites.delete(key);
-                button.set_css_classes(['circular', 'favorite-inactive']);
-            } else {
-                this._favorites.add(key);
-                button.set_css_classes(['circular', 'favorite-active']);
-            }
-
-            this._saveFavorites();
-        }
-
-        _loadFavorites() {
-            try {
-                const configDir = GLib.build_filenamev([
-                    GLib.get_user_config_dir(),
-                    'aether',
-                ]);
-                const favPath = GLib.build_filenamev([
-                    configDir,
-                    'favorites.json',
-                ]);
-                const file = Gio.File.new_for_path(favPath);
-
-                if (file.query_exists(null)) {
-                    const [success, contents] = file.load_contents(null);
-                    if (success) {
-                        const decoder = new TextDecoder('utf-8');
-                        const text = decoder.decode(contents);
-                        const favArray = JSON.parse(text);
-                        this._favorites = new Set(favArray);
-                    }
+            const isFavorited = favoritesService.toggleFavorite(
+                wallpaper.path,
+                'wallhaven',
+                {
+                    id: wallpaper.id,
+                    resolution: wallpaper.resolution,
+                    file_size: wallpaper.file_size,
+                    thumbUrl: wallpaper.thumbs?.small,
                 }
-            } catch (e) {
-                console.error('Failed to load favorites:', e.message);
-                this._favorites = new Set();
-            }
-        }
+            );
 
-        _saveFavorites() {
-            try {
-                const configDir = GLib.build_filenamev([
-                    GLib.get_user_config_dir(),
-                    'aether',
-                ]);
-                GLib.mkdir_with_parents(configDir, 0o755);
-
-                const favPath = GLib.build_filenamev([
-                    configDir,
-                    'favorites.json',
-                ]);
-                const file = Gio.File.new_for_path(favPath);
-
-                const favArray = Array.from(this._favorites);
-                const contents = JSON.stringify(favArray, null, 2);
-
-                file.replace_contents(
-                    contents,
-                    null,
-                    false,
-                    Gio.FileCreateFlags.REPLACE_DESTINATION,
-                    null
-                );
-            } catch (e) {
-                console.error('Failed to save favorites:', e.message);
-            }
+            button.set_css_classes([
+                'circular',
+                isFavorited ? 'favorite-active' : 'favorite-inactive',
+            ]);
         }
 
         /**
@@ -964,6 +901,11 @@ export const WallpaperBrowser = GObject.registerClass(
             }
         }
 
+        /**
+         * Shows the settings dialog for API key and resolution filters
+         * Allows user to configure wallhaven API key and set resolution preferences
+         * @private
+         */
         _showSettingsDialog() {
             const dialog = new Adw.Dialog({
                 title: 'Wallhaven Settings',
@@ -1000,32 +942,18 @@ export const WallpaperBrowser = GObject.registerClass(
             });
 
             // Load current config
-            let currentApiKey = '';
-            let currentResolutions = '';
-            try {
-                const configPath = GLib.build_filenamev([
-                    GLib.get_user_config_dir(),
-                    'aether',
-                    'wallhaven.json',
-                ]);
-                const file = Gio.File.new_for_path(configPath);
-                if (file.query_exists(null)) {
-                    const [success, contents] = file.load_contents(null);
-                    if (success) {
-                        const decoder = new TextDecoder('utf-8');
-                        const text = decoder.decode(contents);
-                        const config = JSON.parse(text);
-                        if (config.apiKey) {
-                            currentApiKey = config.apiKey;
-                            apiKeyRow.set_text(config.apiKey);
-                        }
-                        if (config.resolutions) {
-                            currentResolutions = config.resolutions;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load current config:', e.message);
+            const configPath = GLib.build_filenamev([
+                GLib.get_user_config_dir(),
+                'aether',
+                'wallhaven.json',
+            ]);
+
+            const config = loadJsonFile(configPath, {});
+            const currentApiKey = config.apiKey || '';
+            const currentResolutions = config.resolutions || '';
+
+            if (currentApiKey) {
+                apiKeyRow.set_text(currentApiKey);
             }
 
             apiGroup.add(apiKeyRow);
@@ -1150,27 +1078,10 @@ export const WallpaperBrowser = GObject.registerClass(
                     this._currentPage = 1;
                     this._performSearch();
 
-                    const toast = new Adw.Toast({
-                        title: 'Settings saved successfully',
-                        timeout: 2,
-                    });
-
-                    const toastOverlay = this._findToastOverlay();
-                    if (toastOverlay) {
-                        toastOverlay.add_toast(toast);
-                    }
-
+                    showToast(this, 'Settings saved successfully', 2);
                     dialog.close();
                 } catch (e) {
-                    const errorToast = new Adw.Toast({
-                        title: `Failed to save settings: ${e.message}`,
-                        timeout: 3,
-                    });
-
-                    const toastOverlay = this._findToastOverlay();
-                    if (toastOverlay) {
-                        toastOverlay.add_toast(errorToast);
-                    }
+                    showToast(this, `Failed to save settings: ${e.message}`, 3);
                 }
             });
 
@@ -1184,6 +1095,10 @@ export const WallpaperBrowser = GObject.registerClass(
             dialog.present(this.get_root());
         }
 
+        /**
+         * Getter for widget instance (for compatibility)
+         * @returns {WallpaperBrowser} This widget instance
+         */
         get widget() {
             return this;
         }

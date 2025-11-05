@@ -1,6 +1,34 @@
 /**
- * Color utility functions for converting between different color formats
- * and performing color operations.
+ * color-utils.js - Comprehensive color manipulation and conversion utilities
+ *
+ * Provides a complete toolkit for color operations in Aether:
+ * - Format conversions: Hex ↔ RGB ↔ HSL ↔ RGBA
+ * - Color adjustments: Brightness, vibrance, contrast, temperature, gamma, hue shift
+ * - Color generation: Gradients, palettes from single color
+ * - Color analysis: Finding closest shades, WCAG accessibility
+ * - Special conversions: Yaru theme format, GTK RGBA objects
+ *
+ * Color Format Support:
+ * - Hex: #RRGGBB format (with or without # prefix)
+ * - RGB: Object {r, g, b} or string "r,g,b"
+ * - RGBA: String "rgba(r, g, b, a)"
+ * - HSL: Object {h, s, l} with h=0-360, s=0-100, l=0-100
+ * - Gdk.RGBA: GTK color objects
+ *
+ * Key Functions:
+ * - Conversion: hexToRgb, rgbToHsl, hslToHex, rgbaToHex
+ * - Adjustment: adjustColor (6 parameters), brightenColor
+ * - Generation: generateGradient, generatePaletteFromColor
+ * - Utility: ensureHashPrefix, stripHashPrefix, findClosestShade
+ *
+ * Used By:
+ * - PaletteEditor: Color extraction and manipulation
+ * - ColorSynthesizer: Role assignment and color picking
+ * - SettingsSidebar: Color adjustments and harmony generation
+ * - WallpaperEditor: Filter color tone system
+ * - Templates: Color variable substitution
+ *
+ * @module color-utils
  */
 
 /**
@@ -171,15 +199,51 @@ export function brightenColor(hexColor, amount = 20) {
 }
 
 /**
- * Adjusts a color with various parameters
- * @param {string} hexColor - Hex color string
- * @param {number} vibrance - Saturation adjustment (-100 to 100)
- * @param {number} contrast - Contrast adjustment (-100 to 100)
- * @param {number} brightness - Brightness adjustment (-100 to 100)
- * @param {number} hueShift - Hue shift in degrees (-360 to 360)
- * @param {number} temperature - Temperature shift (-100 to 100, warm to cool)
- * @param {number} gamma - Gamma correction (0.1 to 3.0)
- * @returns {string} Adjusted hex color
+ * Applies comprehensive color adjustments with 6 parameters
+ * Used by SettingsSidebar color adjustment controls for palette customization
+ *
+ * Adjustment Pipeline (order matters):
+ * 1. Hue Shift: Rotates hue on color wheel
+ * 2. Temperature: Shifts toward warm (orange/30°) or cool (blue/210°)
+ * 3. Vibrance: Adjusts saturation intensity
+ * 4. Brightness: Shifts lightness up/down
+ * 5. Contrast: Expands/compresses around 50% lightness midpoint
+ * 6. Gamma: Applies power curve correction to RGB channels
+ *
+ * Temperature Behavior:
+ * - Positive values (1-100): Shift toward warm orange tones (~30°)
+ * - Negative values (-100 to -1): Shift toward cool blue tones (~210°)
+ * - Blends current hue toward target with 30% strength
+ *
+ * Contrast Behavior:
+ * - Expands/compresses lightness deviation from 50% midpoint
+ * - Positive: Increases contrast (darker darks, lighter lights)
+ * - Negative: Decreases contrast (everything toward 50% gray)
+ *
+ * Gamma Behavior:
+ * - Applied in RGB space after HSL adjustments
+ * - <1.0: Darkens midtones (increases shadows)
+ * - >1.0: Lightens midtones (lifts shadows)
+ * - Typical range: 0.5-2.0
+ *
+ * @param {string} hexColor - Input hex color (with or without #)
+ * @param {number} vibrance - Saturation adjustment (-100 to 100, 0 = no change)
+ * @param {number} contrast - Contrast adjustment (-100 to 100, 0 = no change)
+ * @param {number} brightness - Brightness adjustment (-100 to 100, 0 = no change)
+ * @param {number} hueShift - Hue rotation in degrees (-360 to 360, 0 = no change)
+ * @param {number} [temperature=0] - Temperature shift (-100 to 100, 0 = neutral)
+ * @param {number} [gamma=1.0] - Gamma correction (0.1 to 3.0, 1.0 = linear)
+ * @returns {string} Adjusted hex color string with # prefix
+ *
+ * @example
+ * // Warm, vibrant, high-contrast adjustment
+ * adjustColor('#3b82f6', 20, 30, 10, 0, 50, 1.2)
+ * // Returns: '#5B9FFF' (warmer, more saturated, higher contrast)
+ *
+ * @example
+ * // Cool, desaturated, low-contrast adjustment
+ * adjustColor('#f97316', -30, -20, -10, 0, -50, 0.8)
+ * // Returns: '#A96B5C' (cooler, less saturated, lower contrast, darker)
  */
 export function adjustColor(
     hexColor,
@@ -369,10 +433,27 @@ export function hexToYaruTheme(hexColor) {
 }
 
 /**
- * Generates a gradient of 16 colors between start and end colors
- * @param {string} startColor - Starting hex color
- * @param {string} endColor - Ending hex color
- * @returns {string[]} Array of 16 hex colors forming a gradient
+ * Generates smooth 16-step gradient between two colors
+ * Used by SettingsSidebar gradient generator with preview
+ *
+ * Algorithm:
+ * - Linear interpolation in RGB space
+ * - 16 steps to match ANSI palette size (color0-15)
+ * - Includes both start (step 0) and end (step 15) colors
+ *
+ * Interpolation Method:
+ * - RGB linear: r = start.r + (end.r - start.r) * ratio
+ * - Ratio: 0/15 to 15/15 in 16 steps
+ * - Each channel (R, G, B) interpolated independently
+ *
+ * @param {string} startColor - Starting hex color (with or without #)
+ * @param {string} endColor - Ending hex color (with or without #)
+ * @returns {string[]} Array of 16 hex colors from start to end
+ *
+ * @example
+ * generateGradient('#ff0000', '#0000ff')
+ * // Returns: ['#FF0000', '#F0000F', ..., '#0F00F0', '#0000FF']
+ * // Smooth transition from red to blue in 16 steps
  */
 export function generateGradient(startColor, endColor) {
     // Parse hex colors to RGB
@@ -405,10 +486,64 @@ export function generateGradient(startColor, endColor) {
 
 /**
  * Generates a complete 16-color ANSI palette from a single base color
+ *
  * Intelligently places the base color in the correct ANSI slot based on its hue,
- * then generates matching colors for other slots maintaining the same shade/lightness
- * @param {string} baseColor - Base hex color to derive palette from
- * @returns {string[]} Array of 16 hex colors for complete ANSI palette
+ * then generates matching colors for other slots while maintaining the same
+ * saturation and lightness characteristics. Creates a harmonious palette where
+ * all colors share the same visual "weight" and intensity.
+ *
+ * Algorithm:
+ * 1. Extract HSL values from base color (hue, saturation, lightness)
+ * 2. Determine which ANSI slot (1-6) the base color belongs to:
+ *    - Red (1): 345-45° hue range
+ *    - Yellow (3): 45-75° hue range
+ *    - Green (2): 75-165° hue range
+ *    - Cyan (6): 165-195° hue range
+ *    - Blue (4): 195-285° hue range
+ *    - Magenta (5): 285-345° hue range
+ * 3. Generate colors 1-6 using standard ANSI hues (0°, 120°, 60°, 240°, 300°, 180°)
+ *    with the base color's saturation and lightness
+ * 4. Generate bright versions (colors 9-14):
+ *    - Lightness: +10% brighter
+ *    - Saturation: +10% more saturated
+ * 5. Generate special colors:
+ *    - Color 0 (background): Very dark (~15% lightness, 40% saturation)
+ *    - Color 7 (white): Very light (92% lightness, 15% saturation)
+ *    - Color 8 (bright black): Medium gray (~40% lightness, 35% saturation)
+ *    - Color 15 (bright white): Very bright (98% lightness, 10% saturation)
+ *
+ * ANSI Palette Structure:
+ * - 0: Background (black)
+ * - 1-6: Standard colors (red, green, yellow, blue, magenta, cyan)
+ * - 7: Foreground (white)
+ * - 8: Bright background (bright black/gray)
+ * - 9-14: Bright colors (bright red, green, yellow, blue, magenta, cyan)
+ * - 15: Bright foreground (bright white)
+ *
+ * @param {string} baseColor - Base hex color to derive palette from (e.g., '#3b82f6')
+ * @returns {string[]} Array of 16 hex colors in ANSI order (color0-15)
+ *
+ * @example
+ * // Generate palette from blue base color
+ * generatePaletteFromColor('#3b82f6')
+ * // Returns: [
+ * //   '#0a1628',  // 0: background (dark blue-tinted black)
+ * //   '#f65a3b',  // 1: red (matching blue's saturation/lightness)
+ * //   '#3bf682',  // 2: green
+ * //   '#f6823b',  // 3: yellow
+ * //   '#3b82f6',  // 4: blue (exact base color)
+ * //   '#823bf6',  // 5: magenta
+ * //   '#3bf6f6',  // 6: cyan
+ * //   '#e8ecf0',  // 7: white (light blue-tinted)
+ * //   '#1e3a5f',  // 8: bright black (medium gray)
+ * //   '#ff6a4a',  // 9: bright red
+ * //   '#4aff92',  // 10: bright green
+ * //   '#ff924a',  // 11: bright yellow
+ * //   '#4a92ff',  // 12: bright blue
+ * //   '#924aff',  // 13: bright magenta
+ * //   '#4affff',  // 14: bright cyan
+ * //   '#fafbfc'   // 15: bright white
+ * // ]
  */
 export function generatePaletteFromColor(baseColor) {
     const rgb = hexToRgb(baseColor);

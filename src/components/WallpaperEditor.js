@@ -11,25 +11,96 @@ import {
 } from '../utils/image-filter-utils.js';
 
 /**
- * WallpaperEditor - Professional wallpaper filter editor
+ * WallpaperEditor - Professional wallpaper filter editor component
+ *
+ * Full-screen editor interface for applying professional image filters to
+ * wallpapers before color extraction. Provides real-time preview with optimized
+ * ImageMagick processing and comprehensive filter controls.
  *
  * Architecture:
- * - PreviewArea: Displays wallpaper with debounced ImageMagick preview (75ms)
- * - FilterControls: All filter sliders, presets, and tone selection
+ * - PreviewArea (left panel): Large wallpaper preview with debounced ImageMagick rendering
+ *   - Click-and-hold gesture to temporarily view original wallpaper
+ *   - Preview base created on load (max 800px width for performance)
+ *   - Debounced preview updates (75ms delay after adjustments)
+ *   - JPEG preview format (quality 95) for faster I/O
+ * - FilterControls (right sidebar): Scrollable filter controls organized in groups
+ *   - Basic Adjustments (Blur, Brightness, Contrast, Saturation, Hue Shift)
+ *   - Effects (Sepia, Invert)
+ *   - Advanced (Exposure, Sharpen, Vignette, Grain, Shadows, Highlights)
+ *   - Color Tone (8 presets + custom picker with intensity)
+ *   - 12 Quick Presets (auto-reset filters before applying)
  *
  * Features:
- * - Debounced ImageMagick preview (75ms after user stops adjusting)
- * - Scaled preview base (max 800px) for fast processing
- * - 12 quick presets (Muted, Dramatic, Soft, Vintage, etc.)
- * - Basic filters: Blur, Brightness, Contrast, Saturation, Hue Shift
- * - Effects: Sepia, Invert
- * - Advanced filters: Exposure, Sharpen, Vignette, Grain, Shadows, Highlights
- * - Color tone system: 8 presets + custom color picker
- * - JPEG output (quality 95) for smaller file size
- * - Click & hold preview to view original
+ * - Debounced ImageMagick preview system (75ms after user stops adjusting)
+ * - Scaled preview base (max 800px) for 3-5x faster processing
+ * - 12 quick presets in 3 rows of 4:
+ *   Row 1: Muted, Dramatic, Soft, Vintage
+ *   Row 2: Vibrant, Faded, Cool, Warm
+ *   Row 3: Cinematic, Film, Crisp, Portrait
+ * - Basic filters:
+ *   - Blur (0-5px, step 0.1)
+ *   - Brightness (50-150%)
+ *   - Contrast (50-150%)
+ *   - Saturation (0-150%)
+ *   - Hue Shift (0-360°)
+ * - Effects:
+ *   - Sepia (0-100%)
+ *   - Invert (0-100%)
+ * - Advanced (professional):
+ *   - Exposure (-100 to 100) - Camera exposure simulation
+ *   - Sharpen (0-100) - Edge enhancement
+ *   - Vignette (0-100%) - Darken edges for focus
+ *   - Grain (0-10, step 0.1) - Monochrome film grain overlay
+ *   - Shadows (-100 to 100) - Lift or crush shadow detail
+ *   - Highlights (-100 to 100) - Recover or blow out highlights
+ * - Color tone system:
+ *   - 8 preset tone colors (Blue, Cyan, Green, Yellow, Orange, Red, Pink, Purple)
+ *   - Custom color picker with HSL preservation
+ *   - Tone intensity slider (0-100%)
+ * - Click & hold preview to view original wallpaper
+ * - Reset button to clear all filters
+ * - Cancel/Apply actions in header
+ *
+ * Performance Optimizations:
+ * - Preview base created once on load (800px max width)
+ * - Debounced ImageMagick preview (75ms) prevents rapid command spawning
+ * - JPEG format for preview (quality 95) reduces I/O time
+ * - Full-resolution processing only happens on "Apply"
+ *
+ * Output Format:
+ * - JPEG format (quality 95) for both preview and final output
+ * - Unique timestamped filename: `processed-wallpaper-{timestamp}.jpg`
+ * - Saved to ~/.cache/aether/ directory
+ * - Bypasses color extraction cache (forces fresh extraction)
+ *
+ * Sub-Components:
+ * - FilterControls (src/components/wallpaper-editor/FilterControls.js)
+ *   - All filter UI controls, presets, tone picker
+ *   - Emits 'filter-changed', 'preset-applied', 'reset-filters' signals
+ * - PreviewArea (src/components/wallpaper-editor/PreviewArea.js)
+ *   - Debounced ImageMagick preview rendering
+ *   - Click-and-hold original view gesture
+ *   - Loading state management
  *
  * Signals:
- * - 'wallpaper-applied': Emitted with processed wallpaper path (or original if cancelled)
+ * - 'wallpaper-applied': (wallpaperPath: string) - Emitted when editor is closed
+ *   - wallpaperPath is the processed image path if filters applied
+ *   - wallpaperPath is the original path if cancelled or no filters active
+ *
+ * Integration:
+ * - Opened via PaletteGenerator "Edit Wallpaper" button
+ * - Replaces main content in AetherWindow while active
+ * - Processed wallpaper is auto-loaded into PaletteGenerator on apply
+ * - Original wallpaper restored on cancel
+ *
+ * @example
+ * const editor = new WallpaperEditor('/path/to/wallpaper.jpg');
+ * editor.connect('wallpaper-applied', (widget, processedPath) => {
+ *     console.log(`Processed wallpaper: ${processedPath}`);
+ *     loadWallpaperForExtraction(processedPath);
+ * });
+ * // User adjusts filters and clicks Apply or Cancel
+ * // Signal is emitted with either processed path or original path
  */
 export const WallpaperEditor = GObject.registerClass(
     {

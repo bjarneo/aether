@@ -8,6 +8,78 @@ import {
 } from '../utils/accessibility-utils.js';
 import {applyCssToWidget} from '../utils/ui-helpers.js';
 
+/**
+ * AccessibilityPanel - Component for accessibility analysis and color blindness simulation
+ *
+ * Provides comprehensive accessibility testing tools for theme color palettes,
+ * including WCAG contrast ratio checking and color blindness simulation previews.
+ * Helps ensure themes are readable and usable for users with various visual
+ * impairments.
+ *
+ * Features:
+ * - WCAG 2.1 contrast ratio calculation (background vs foreground)
+ * - Compliance indicators for AA and AAA standards
+ * - Visual contrast preview with sample text
+ * - Color blindness simulation for 3 types:
+ *   - Protanopia (red-blind, ~1% of males)
+ *   - Deuteranopia (green-blind, ~1% of males)
+ *   - Tritanopia (blue-blind, ~0.001% of population)
+ * - Color swatch previews showing how palette appears under each condition
+ * - Real-time updates when colors change
+ *
+ * WCAG Contrast Standards:
+ * - AA Level: Minimum 4.5:1 ratio for normal text (3:1 for large text)
+ * - AAA Level: Minimum 7:1 ratio for normal text (4.5:1 for large text)
+ * - Results displayed with pass/fail indicators
+ * - Visual preview shows actual foreground text on background
+ *
+ * Color Blindness Simulation:
+ * - Uses accessibility-utils.js simulateColorBlindness() for accurate simulation
+ * - Displays 8-color palette preview for each blindness type
+ * - Helps identify problematic color combinations
+ * - Shows how colors might be confused (e.g., red/green in deuteranopia)
+ *
+ * UI Structure:
+ * - Adw.ExpanderRow container (collapsible)
+ * - Two main sections:
+ *   1. Contrast Checker:
+ *      - Contrast ratio display (e.g., "4.52:1")
+ *      - WCAG AA/AAA compliance labels
+ *      - Visual preview with sample text
+ *   2. Color Blindness Simulation:
+ *      - Three rows (one per blindness type)
+ *      - Each row shows 8 color swatches (24px height)
+ *      - Type name and description labels
+ *
+ * Public Methods:
+ * - updateColors(colors) - Updates analysis with new color palette
+ *   - colors: Object with background, foreground, and color0-7 properties
+ *   - Recalculates contrast and regenerates previews
+ *
+ * Integration:
+ * - Called by AetherWindow on palette changes
+ * - Uses getReadabilityScore() for WCAG compliance
+ * - Uses simulateColorBlindness() for preview generation
+ * - Applies dynamic CSS for color previews
+ *
+ * @example
+ * const panel = new AccessibilityPanel();
+ *
+ * // Update with new color palette
+ * panel.updateColors({
+ *     background: '#1e1e2e',
+ *     foreground: '#cdd6f4',
+ *     color0: '#45475a',
+ *     color1: '#f38ba8',
+ *     color2: '#a6e3a1',
+ *     color3: '#f9e2af',
+ *     color4: '#89b4fa',
+ *     color5: '#f5c2e7',
+ *     color6: '#94e2d5',
+ *     color7: '#bac2de'
+ * });
+ * // Panel automatically updates contrast ratio and simulations
+ */
 export const AccessibilityPanel = GObject.registerClass(
     class AccessibilityPanel extends Gtk.Box {
         _init() {

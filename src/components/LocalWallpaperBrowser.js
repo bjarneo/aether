@@ -11,6 +11,71 @@ import {thumbnailService} from '../services/thumbnail-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {uploadWallpaper} from '../utils/wallpaper-utils.js';
 
+/**
+ * LocalWallpaperBrowser - Component for browsing local wallpapers from ~/Wallpapers
+ *
+ * Provides a grid view interface for discovering and selecting wallpapers from
+ * the user's local ~/Wallpapers directory. Automatically generates thumbnails
+ * for fast browsing and integrates with the favorites system for quick access
+ * to preferred wallpapers.
+ *
+ * Features:
+ * - Auto-discovers wallpapers from ~/Wallpapers directory
+ * - Async thumbnail generation via thumbnailService (cached for performance)
+ * - Grid layout with responsive FlowBox (2-3 columns)
+ * - Favorites integration with star button on each card
+ * - Refresh button to rescan directory for new wallpapers
+ * - Open folder button to launch file manager
+ * - File picker button for selecting wallpapers outside ~/Wallpapers
+ * - Three UI states: loading (spinner), empty (no wallpapers), content (grid)
+ * - Drag-and-drop support for wallpaper selection
+ *
+ * Wallpaper Discovery:
+ * - Scans ~/Wallpapers for image files (jpg, jpeg, png, webp)
+ * - Uses Gio.File.enumerate_children with MIME type filtering
+ * - Sorts wallpapers alphabetically by filename
+ * - Async loading prevents UI freezing on large directories
+ *
+ * Thumbnail System:
+ * - Generates thumbnails via thumbnailService.generateThumbnail()
+ * - Cached in ~/.cache/aether/thumbnails/ for instant reloading
+ * - Async thumbnail loading (loads one card at a time)
+ * - Falls back to placeholder icon if thumbnail fails
+ *
+ * Favorites Integration:
+ * - Star icon button on each wallpaper card
+ * - Add/remove from favorites via favoritesService
+ * - Emits 'favorites-changed' signal on star/unstar
+ * - Favorites persist in ~/.config/aether/favorites.json
+ *
+ * UI Structure:
+ * - Gtk.Box (vertical) container
+ * - Toolbar with Refresh, Open Folder, and File Picker buttons
+ * - Gtk.Stack for state management (loading, empty, content)
+ * - Gtk.ScrolledWindow with Gtk.FlowBox for grid layout
+ * - WallpaperCard components for each wallpaper
+ *
+ * Signals:
+ * - 'wallpaper-selected': (path: string) - Emitted when wallpaper is clicked
+ *   - path is absolute file path to the wallpaper
+ * - 'favorites-changed': () - Emitted when favorites are modified
+ *   - No parameters, indicates favorites need to be refreshed
+ *
+ * Empty State:
+ * - Shown when ~/Wallpapers doesn't exist or is empty
+ * - Displays folder icon and helpful message
+ * - Suggests creating ~/Wallpapers directory
+ *
+ * @example
+ * const browser = new LocalWallpaperBrowser();
+ * browser.connect('wallpaper-selected', (widget, path) => {
+ *     console.log(`Selected: ${path}`);
+ *     loadWallpaper(path);
+ * });
+ * browser.connect('favorites-changed', () => {
+ *     refreshFavoritesView();
+ * });
+ */
 export const LocalWallpaperBrowser = GObject.registerClass(
     {
         Signals: {

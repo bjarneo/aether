@@ -17,7 +17,38 @@ import {EmptyState} from './palette-editor/EmptyState.js';
 
 /**
  * PaletteEditor - Main component for palette creation and wallpaper management
- * Orchestrates all sub-components (wallpaper, colors, images, tabs)
+ *
+ * Primary interface for creating and managing color palettes from wallpapers.
+ * Orchestrates multiple sub-components in a tabbed interface:
+ *
+ * Features:
+ * - Tab 1 (Editor): Wallpaper selection, color extraction, palette editing
+ * - Tab 2 (Wallhaven): Online wallpaper browser from wallhaven.cc
+ * - Tab 3 (Local): Browse wallpapers from ~/Wallpapers directory
+ * - Tab 4 (Favorites): Quick access to favorited wallpapers
+ * - Color palette grid with 16 ANSI colors (editable)
+ * - Lock colors to prevent adjustment changes
+ * - Additional images management
+ * - Integration with WallpaperEditor for filter application
+ *
+ * Sub-components:
+ * - WallpaperSection: Wallpaper preview and actions
+ * - ColorPaletteSection: 16-color grid with editing and locking
+ * - AdditionalImagesSection: Manage additional theme images
+ * - TabNavigation: Unified tab navigation component
+ * - WallpaperBrowser: Wallhaven.cc integration
+ * - LocalWallpaperBrowser: Local file system browser
+ * - FavoritesView: Favorited wallpapers display
+ *
+ * Signals:
+ * - 'palette-generated' (palette: object) - Emitted when colors extracted
+ * - 'adjustments-applied' (adjustments: object) - Color adjustments applied
+ * - 'overrides-changed' (overrides: object) - Per-app overrides changed
+ * - 'open-wallpaper-editor' (path: string) - Open wallpaper in editor
+ * - 'apply-wallpaper' - Apply current wallpaper without extraction
+ *
+ * @class PaletteEditor
+ * @extends {Gtk.Box}
  */
 export const PaletteEditor = GObject.registerClass(
     {
@@ -30,6 +61,11 @@ export const PaletteEditor = GObject.registerClass(
         },
     },
     class PaletteEditor extends Gtk.Box {
+        /**
+         * Initializes PaletteEditor with all sub-components
+         * Sets up tab navigation, wallpaper browsers, and palette editing
+         * @private
+         */
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
@@ -45,6 +81,12 @@ export const PaletteEditor = GObject.registerClass(
             this._initializeUI();
         }
 
+        /**
+         * Initializes all UI components and tab navigation
+         * Sets up 4 tabs: Editor, Wallhaven, Local, Favorites
+         * Connects signal handlers for wallpaper selection
+         * @private
+         */
         _initializeUI() {
             // Tab navigation
             this._tabNavigation = new TabNavigation();
@@ -99,13 +141,20 @@ export const PaletteEditor = GObject.registerClass(
 
             this.append(this._viewStack);
 
-            // Load default colors
+            // Load default colors and favorites
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._loadDefaultColors();
+                this._favoritesView.loadFavorites();
                 return GLib.SOURCE_REMOVE;
             });
         }
 
+        /**
+         * Creates the main editor view tab
+         * Contains wallpaper section, additional images, and color palette
+         * @returns {Gtk.Box} Editor view widget
+         * @private
+         */
         _createEditorView() {
             const viewBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
@@ -159,22 +208,46 @@ export const PaletteEditor = GObject.registerClass(
             return viewBox;
         }
 
+        /**
+         * Handles wallpaper selection from browsers (Wallhaven, Local, Favorites)
+         * Switches to editor tab and loads the selected wallpaper
+         * @param {string} path - Path to selected wallpaper
+         * @private
+         */
         _onBrowserWallpaperSelected(path) {
             this._tabNavigation.setActiveTab('editor');
             this._viewStack.set_visible_child_name('editor');
             this.loadWallpaper(path);
         }
 
+        /**
+         * Loads wallpaper into the editor
+         * Hides empty state and updates wallpaper section and color palette
+         * @param {string} path - Path to wallpaper file
+         * @public
+         */
         loadWallpaper(path) {
             this._emptyState.set_visible(false);
             this._wallpaperSection.loadWallpaper(path);
             this._colorPalette.setWallpaper(path);
         }
 
+        /**
+         * Loads wallpaper without triggering color extraction
+         * Useful when applying saved blueprints
+         * @param {string} path - Path to wallpaper file
+         * @public
+         */
         loadWallpaperWithoutExtraction(path) {
             this.loadWallpaper(path);
         }
 
+        /**
+         * Extracts colors from wallpaper using ImageMagick
+         * Respects locked colors and merges with current palette
+         * @param {string} imagePath - Path to wallpaper image
+         * @private
+         */
         _extractColors(imagePath) {
             this._wallpaperSection.setLoading(true);
 
@@ -204,6 +277,11 @@ export const PaletteEditor = GObject.registerClass(
             );
         }
 
+        /**
+         * Loads default Catppuccin-inspired color palette
+         * Called on initial load when no wallpaper is selected
+         * @private
+         */
         _loadDefaultColors() {
             const defaultColors = [
                 '#1e1e2e',
@@ -228,23 +306,54 @@ export const PaletteEditor = GObject.registerClass(
             this.setPalette(defaultColors);
         }
 
+        /**
+         * Sets the current color palette
+         * Updates internal state and color palette section
+         * @param {string[]} colors - Array of 16 hex colors
+         * @public
+         */
         setPalette(colors) {
             this._palette = [...colors];
             this._colorPalette.setPalette(colors);
         }
 
+        /**
+         * Applies a color preset to the palette
+         * Used by SettingsSidebar preset library
+         * @param {Object} preset - Preset object with colors array
+         * @param {string[]} preset.colors - Array of 16 hex colors
+         * @public
+         */
         applyPreset(preset) {
             this._originalPalette = [...preset.colors];
             this.setPalette(preset.colors);
             this.emit('palette-generated', preset.colors);
         }
 
+        /**
+         * Applies color harmony (complementary, triadic, etc.)
+         * Used by SettingsSidebar color harmony generator
+         * @param {string[]} colors - Array of 16 hex colors
+         * @public
+         */
         applyHarmony(colors) {
             this._originalPalette = [...colors];
             this.setPalette(colors);
             this.emit('palette-generated', colors);
         }
 
+        /**
+         * Applies color adjustments to the palette
+         * Respects locked colors and only adjusts unlocked ones
+         * @param {Object} values - Adjustment values
+         * @param {number} values.vibrance - Vibrance adjustment (-100 to 100)
+         * @param {number} values.contrast - Contrast adjustment (-100 to 100)
+         * @param {number} values.brightness - Brightness adjustment (-100 to 100)
+         * @param {number} values.hueShift - Hue shift (0 to 360)
+         * @param {number} values.temperature - Temperature adjustment (-100 to 100)
+         * @param {number} values.gamma - Gamma adjustment (0.1 to 3.0)
+         * @private
+         */
         _applyAdjustments(values) {
             if (this._originalPalette.length === 0) return;
 

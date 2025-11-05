@@ -17,6 +17,34 @@ import {
 } from '../utils/ui-helpers.js';
 import {DialogManager} from '../utils/DialogManager.js';
 
+/**
+ * BlueprintManager - Sidebar component for managing saved theme blueprints
+ *
+ * Displays a list of saved blueprints in a navigation sidebar with:
+ * - Search functionality to filter blueprints
+ * - Import blueprint from JSON file
+ * - Click to apply blueprint (emits signal)
+ * - Delete button for each blueprint
+ * - Export blueprint to JSON file
+ * - Empty state when no blueprints exist
+ *
+ * Features:
+ * - Compact list view with blueprint names and metadata
+ * - Color preview strip showing first 4 colors
+ * - Timestamp display for each blueprint
+ * - Light/dark mode indicator icon
+ * - Context menu actions (export, delete)
+ *
+ * Signals:
+ * - 'blueprint-applied' (blueprint: object) - Emitted when blueprint is selected
+ *
+ * Storage:
+ * - Blueprints stored in ~/.config/aether/blueprints/*.json
+ * - One JSON file per blueprint with timestamp-based filename
+ *
+ * @class BlueprintManager
+ * @extends {Gtk.Box}
+ */
 export const BlueprintManager = GObject.registerClass(
     {
         Signals: {
@@ -26,6 +54,11 @@ export const BlueprintManager = GObject.registerClass(
         },
     },
     class BlueprintManager extends Gtk.Box {
+        /**
+         * Initializes BlueprintManager with search and list UI
+         * Loads existing blueprints from disk
+         * @private
+         */
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
@@ -46,6 +79,10 @@ export const BlueprintManager = GObject.registerClass(
             this.loadBlueprints();
         }
 
+        /**
+         * Initializes UI components: search bar, import button, list box
+         * @private
+         */
         _initializeUI() {
             const searchEntry = new Gtk.SearchEntry({
                 placeholder_text: 'Search blueprints...',
@@ -92,6 +129,11 @@ export const BlueprintManager = GObject.registerClass(
             this.append(this._scrolledWindow);
         }
 
+        /**
+         * Loads all blueprints from disk
+         * Reads JSON files from ~/.config/aether/blueprints/
+         * @public
+         */
         loadBlueprints() {
             this._blueprints = [];
 

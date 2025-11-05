@@ -1,5 +1,32 @@
 #!/usr/bin/env gjs
 
+/**
+ * main.js - Entry point for Aether desktop theming application
+ *
+ * Aether is a GTK/Libadwaita theming application for Omarchy that provides:
+ * - Visual interface for creating and applying desktop themes
+ * - ImageMagick-based color extraction from wallpapers
+ * - Wallhaven.cc wallpaper browsing integration
+ * - Template-based configuration generation for multiple applications
+ * - Blueprint system for saving and loading themes
+ * - CLI support for non-interactive theme management
+ *
+ * Architecture:
+ * - AetherApplication: Main application controller with CLI support
+ * - AetherWindow: Primary window with split view layout
+ * - PaletteEditor: Wallpaper selection and color extraction
+ * - ColorSynthesizer: Color role assignments and adjustments
+ * - SettingsSidebar: Theme customization and template settings
+ * - BlueprintManager: Theme save/load functionality
+ *
+ * CLI Commands:
+ * - --list-blueprints: List all saved themes
+ * - --apply-blueprint NAME: Apply saved theme by name
+ * - --wallpaper PATH: Launch GUI with specific wallpaper
+ *
+ * @module main
+ */
+
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
@@ -27,8 +54,20 @@ Adw.init();
 // Theme manager will be initialized only when GUI is needed
 let themeManager = null;
 
+/**
+ * AetherApplication - Main application class with CLI support
+ * Handles command-line arguments and window lifecycle
+ *
+ * @class AetherApplication
+ * @extends {Adw.Application}
+ */
 const AetherApplication = GObject.registerClass(
     class AetherApplication extends Adw.Application {
+        /**
+         * Initializes application with ID and CLI flags
+         * Sets up command-line options for blueprints and wallpaper
+         * @private
+         */
         _init() {
             super._init({
                 application_id: 'li.oever.aether',
@@ -72,6 +111,13 @@ const AetherApplication = GObject.registerClass(
             );
         }
 
+        /**
+         * Handles command-line arguments
+         * Processes CLI commands (list-blueprints, apply-blueprint) or launches GUI
+         * @param {Gio.ApplicationCommandLine} commandLine - Command line instance
+         * @returns {number} Exit code (0 for success)
+         * @override
+         */
         vfunc_command_line(commandLine) {
             const options = commandLine.get_options_dict();
 
@@ -110,6 +156,11 @@ const AetherApplication = GObject.registerClass(
             return 0;
         }
 
+        /**
+         * Activates the application and creates main window
+         * Initializes theme manager, installs shaders, and sets up actions
+         * @override
+         */
         vfunc_activate() {
             // Initialize theme manager only when GUI is activated
             if (!themeManager) {

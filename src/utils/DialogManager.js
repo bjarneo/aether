@@ -2,9 +2,73 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
+import {showToast as showToastHelper} from './ui-helpers.js';
 
 /**
- * Centralized dialog management for consistent UI patterns
+ * DialogManager - Centralized dialog system for consistent UI patterns
+ *
+ * Provides a unified API for creating common dialog types throughout the
+ * Aether application. Simplifies dialog creation by abstracting GTK/Adwaita
+ * dialog complexity behind simple configuration objects and callbacks.
+ *
+ * Supported Dialog Types:
+ * 1. Message dialogs - Simple informational messages with OK button
+ * 2. Confirmation dialogs - Yes/No questions with confirm callback
+ * 3. Text input dialogs - Single-line text entry with validation
+ * 4. File picker dialogs - File selection with MIME type filtering
+ * 5. Folder picker dialogs - Directory selection
+ * 6. Save dialogs - File save location with initial name
+ * 7. Blueprint manager dialog - Embedded blueprint manager UI
+ *
+ * Design Patterns:
+ * - Configuration objects: All dialogs accept config objects with named params
+ * - Callback functions: onConfirm, onSubmit, onSelect for async responses
+ * - Window transience: All dialogs are transient for the parent window
+ * - Error handling: Graceful dismissal handling for all file dialogs
+ * - Static utilities: Toast notifications and overlay finding
+ *
+ * Static Methods:
+ * - findToastOverlay(widget) - Walks widget hierarchy to find Adw.ToastOverlay
+ * - showToast(widget, config) - Shows toast notification from any widget
+ *
+ * Legacy Methods:
+ * - showThemeNameDialog(callback) - Redirects to showTextInput
+ * - chooseExportDirectory(callback) - Redirects to showFolderPicker
+ * - showSuccessDialog(message) - Redirects to showMessage
+ * - showErrorDialog(message) - Redirects to showMessage
+ * These are maintained for backward compatibility.
+ *
+ * @example
+ * const dialogManager = new DialogManager(window);
+ *
+ * // Simple message
+ * dialogManager.showMessage({
+ *     heading: 'Success',
+ *     body: 'Theme applied successfully!',
+ *     okText: 'Got it'
+ * });
+ *
+ * // Confirmation with callback
+ * dialogManager.showConfirmation({
+ *     heading: 'Delete Theme',
+ *     body: 'Are you sure you want to delete this theme?',
+ *     confirmText: 'Delete',
+ *     cancelText: 'Cancel',
+ *     onConfirm: () => deleteTheme()
+ * });
+ *
+ * // File picker with MIME types
+ * dialogManager.showFilePicker({
+ *     title: 'Select Wallpaper',
+ *     mimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+ *     onSelect: (path) => loadWallpaper(path)
+ * });
+ *
+ * // Toast notification (static method)
+ * DialogManager.showToast(widget, {
+ *     title: 'Theme saved',
+ *     timeout: 2
+ * });
  */
 export class DialogManager {
     constructor(window) {
@@ -237,6 +301,7 @@ export class DialogManager {
 
     /**
      * Show a toast notification
+     * Delegates to ui-helpers.showToast for consistency
      * @param {Gtk.Widget} widget - Widget to find toast overlay from
      * @param {Object} config - Toast configuration
      * @param {string} config.title - Toast title
@@ -244,14 +309,7 @@ export class DialogManager {
      */
     static showToast(widget, config) {
         const {title, timeout = 2} = config;
-
-        const overlay = DialogManager.findToastOverlay(widget);
-        if (overlay) {
-            const toast = new Adw.Toast({title, timeout});
-            overlay.add_toast(toast);
-        } else {
-            console.log('Toast:', title);
-        }
+        showToastHelper(widget, title, timeout);
     }
 
     showBlueprintsDialog(blueprintManager) {
