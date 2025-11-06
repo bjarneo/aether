@@ -431,11 +431,15 @@ export const PaletteEditor = GObject.registerClass(
                 this.loadWallpaperWithoutExtraction(palette.wallpaper);
             }
 
+            // Always reset additional images when loading blueprint
+            // Then load blueprint's images if they exist
             if (
                 palette.additionalImages &&
                 Array.isArray(palette.additionalImages)
             ) {
                 this._additionalImages.setImages(palette.additionalImages);
+            } else {
+                this._additionalImages.reset();
             }
 
             if (palette.lightMode !== undefined) {
