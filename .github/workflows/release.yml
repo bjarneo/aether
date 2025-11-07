@@ -32,9 +32,14 @@ jobs:
 
           echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
 
-          # Generate changelog with commit title, author name, username, and link
+          # Generate changelog with commits and PRs
           CHANGELOG=""
+
+          # First, collect all commits (including merge commits for PRs)
           while IFS='|' read -r hash title author email; do
+            # Shorten hash to first 7 characters
+            short_hash="${hash:0:7}"
+
             # Try to get GitHub username from commit
             username=$(gh api "repos/${{ github.repository }}/commits/$hash" --jq '.author.login' 2>/dev/null || echo "")
 
@@ -44,8 +49,16 @@ jobs:
               author_info="$author"
             fi
 
-            CHANGELOG="${CHANGELOG}- $title by $author_info ([$hash](https://github.com/${{ github.repository }}/commit/$hash))"$'\n'
-          done < <(git log $PREVIOUS_TAG..${{ github.ref_name }} --pretty=format:"%H|%s|%an|%ae" --no-merges)
+            # Check if this is a PR merge commit
+            if [[ "$title" =~ ^Merge\ pull\ request\ \#([0-9]+) ]]; then
+              pr_number="${BASH_REMATCH[1]}"
+              # Get PR title
+              pr_title=$(gh pr view "$pr_number" --json title --jq '.title' 2>/dev/null || echo "$title")
+              CHANGELOG="${CHANGELOG}- $pr_title (#$pr_number) by $author_info ([\`$short_hash\`](https://github.com/${{ github.repository }}/commit/$hash))"$'\n'
+            else
+              CHANGELOG="${CHANGELOG}- $title by $author_info ([\`$short_hash\`](https://github.com/${{ github.repository }}/commit/$hash))"$'\n'
+            fi
+          done < <(git log $PREVIOUS_TAG..${{ github.ref_name }} --pretty=format:"%H|%s|%an|%ae")
 
           # Save to file and environment variable
           echo "$CHANGELOG" > changelog.md
