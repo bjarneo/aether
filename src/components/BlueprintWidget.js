@@ -29,8 +29,8 @@ export const BlueprintWidget = GObject.registerClass(
             super._init({
                 application,
                 title: 'Aether Blueprints',
-                default_width: 500,
-                default_height: 400,
+                default_width: 275,
+                default_height: 350,
             });
 
             this.blueprintService = new BlueprintService();
@@ -111,10 +111,10 @@ export const BlueprintWidget = GObject.registerClass(
             // List box for blueprints
             this.listBox = new Gtk.ListBox({
                 selection_mode: Gtk.SelectionMode.SINGLE,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                margin_top: 6,
+                margin_bottom: 6,
+                margin_start: 6,
+                margin_end: 6,
             });
 
             // Handle blueprint selection
@@ -183,11 +183,11 @@ export const BlueprintWidget = GObject.registerClass(
             // Main horizontal box
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                spacing: 8,
+                margin_top: 6,
+                margin_bottom: 6,
+                margin_start: 8,
+                margin_end: 8,
             });
 
             // Left side: Blueprint name
@@ -195,11 +195,13 @@ export const BlueprintWidget = GObject.registerClass(
                 label: blueprint.name || 'Unnamed',
                 xalign: 0,
                 hexpand: true,
+                ellipsize: 3, // PANGO_ELLIPSIZE_END
+                max_width_chars: 15,
                 css_classes: ['title-4'],
             });
 
             // Right side: Color swatches (using shared helper)
-            const colorBox = createColorSwatchRow(blueprint, 24, 8);
+            const colorBox = createColorSwatchRow(blueprint, 20, 8);
 
             box.append(nameLabel);
             box.append(colorBox);
