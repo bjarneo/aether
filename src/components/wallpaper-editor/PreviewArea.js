@@ -167,11 +167,34 @@ export const PreviewArea = GObject.registerClass(
                     );
                 }
 
-                const scaledPixbuf = pixbuf.scale_simple(
+                let scaledPixbuf = pixbuf.scale_simple(
                     newWidth,
                     newHeight,
                     GdkPixbuf.InterpType.BILINEAR
                 );
+
+                // If the image has an alpha channel, remove it before saving as JPEG
+                // JPEG doesn't support transparency, so we composite onto a white background
+                if (scaledPixbuf.get_has_alpha()) {
+                    const rgbPixbuf = GdkPixbuf.Pixbuf.new(
+                        GdkPixbuf.Colorspace.RGB,
+                        false, // no alpha
+                        8,
+                        newWidth,
+                        newHeight
+                    );
+                    // Fill with white background
+                    rgbPixbuf.fill(0xffffffff);
+                    // Composite the image onto white background
+                    scaledPixbuf.composite(
+                        rgbPixbuf,
+                        0, 0, newWidth, newHeight,
+                        0, 0, 1.0, 1.0,
+                        GdkPixbuf.InterpType.BILINEAR,
+                        255
+                    );
+                    scaledPixbuf = rgbPixbuf;
+                }
 
                 // Save scaled preview base as JPEG for faster processing and smaller size
                 scaledPixbuf.savev(
@@ -181,11 +204,19 @@ export const PreviewArea = GObject.registerClass(
                     ['95']
                 );
 
-                // Load the preview base into the picture widget
+                // Verify the file was created successfully
                 const file = Gio.File.new_for_path(this._previewBasePath);
+                if (!file.query_exists(null)) {
+                    throw new Error('Preview base file was not created');
+                }
+
+                // Load the preview base into the picture widget
                 this._previewPicture.set_file(file);
             } catch (e) {
                 console.error('Failed to create preview base:', e.message);
+                // Reset preview paths to null to prevent ImageMagick from trying to use them
+                this._previewBasePath = null;
+                this._previewFinalPath = null;
                 // Fall back to loading original if preview creation fails
                 const file = Gio.File.new_for_path(this._wallpaperPath);
                 this._previewPicture.set_file(file);
@@ -278,6 +309,13 @@ export const PreviewArea = GObject.registerClass(
          */
         async _runImageMagickPreview() {
             if (this._isProcessingPreview || !this._previewBasePath) {
+                return;
+            }
+
+            // Verify preview base file exists before attempting to process
+            const previewBaseFile = Gio.File.new_for_path(this._previewBasePath);
+            if (!previewBaseFile.query_exists(null)) {
+                console.error('Preview base file does not exist:', this._previewBasePath);
                 return;
             }
 
