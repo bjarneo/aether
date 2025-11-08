@@ -83,6 +83,7 @@ Options:
   -w, --wallpaper=FILE          Path to wallpaper image to load on startup
   -l, --list-blueprints         List all saved blueprint themes
   -a, --apply-blueprint=NAME    Apply a blueprint by name
+  --widget-blueprint            Show floating blueprint selector widget
 ```
 
 Examples:
@@ -90,6 +91,7 @@ Examples:
 ./aether --wallpaper ~/Pictures/wallpaper.jpg
 ./aether -l
 ./aether -a BLUEPRINT_NAME
+./aether --widget-blueprint  # Floating widget for quick blueprint switching
 ```
 
 ### Basic Workflow

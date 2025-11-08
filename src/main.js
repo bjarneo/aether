@@ -47,6 +47,7 @@ import {ThemeExporter} from './services/ThemeExporter.js';
 import {BlueprintService} from './services/BlueprintService.js';
 import {ensureDirectoryExists} from './utils/file-utils.js';
 import {ListBlueprintsCommand, ApplyBlueprintCommand} from './cli/index.js';
+import {BlueprintWidget} from './components/BlueprintWidget.js';
 
 Adw.init();
 
@@ -108,6 +109,15 @@ const AetherApplication = GObject.registerClass(
                 'Apply a blueprint by name',
                 'NAME'
             );
+
+            this.add_main_option(
+                'widget-blueprint',
+                0,
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.NONE,
+                'Show floating blueprint selector widget',
+                null
+            );
         }
 
         /**
@@ -134,6 +144,12 @@ const AetherApplication = GObject.registerClass(
                 return 0;
             }
 
+            // Handle widget mode
+            if (options.contains('widget-blueprint')) {
+                this._launchWidget();
+                return 0;
+            }
+
             // Handle wallpaper option for GUI mode
             if (options.contains('wallpaper')) {
                 const wallpaperPath = options
@@ -153,6 +169,38 @@ const AetherApplication = GObject.registerClass(
 
             this.activate();
             return 0;
+        }
+
+        /**
+         * Launches the minimal floating blueprint widget
+         * @private
+         */
+        _launchWidget() {
+            // Don't call activate() - we only want the widget, not the full app
+
+            // Initialize theme manager for consistent styling
+            if (!themeManager) {
+                themeManager = new ThemeManager();
+            }
+            this.themeManager = themeManager;
+
+            // Create and show blueprint widget
+            const widget = new BlueprintWidget(this);
+
+            // Handle blueprint selection
+            widget.connect('blueprint-selected', (_, blueprint) => {
+                console.log(`Applying blueprint: ${blueprint.name}`);
+                ApplyBlueprintCommand.execute(blueprint.name);
+                this.quit();
+            });
+
+            // Handle window close
+            widget.connect('close-request', () => {
+                this.quit();
+                return false;
+            });
+
+            widget.present();
         }
 
         /**
