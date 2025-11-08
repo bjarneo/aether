@@ -35,7 +35,6 @@ import Adw from 'gi://Adw?version=1';
 
 import {PaletteEditor} from './components/PaletteEditor.js';
 import {ColorSynthesizer} from './components/ColorSynthesizer.js';
-import {BlueprintManager} from './components/BlueprintManager.js';
 import {BlueprintManagerWindow} from './components/BlueprintManagerWindow.js';
 import {SettingsSidebar} from './components/SettingsSidebar.js';
 import {ActionBar} from './components/ActionBar.js';
@@ -299,7 +298,6 @@ const AetherWindow = GObject.registerClass(
         }
 
         _initializeUI() {
-            this.blueprintManager = new BlueprintManager();
             this.dialogManager = new DialogManager(this);
 
             // Blueprint service will use the window version for saving
@@ -515,12 +513,6 @@ const AetherWindow = GObject.registerClass(
                 this._updateAppOverrideColors();
             });
 
-            this.blueprintManager.connect(
-                'blueprint-applied',
-                (_, blueprint) => {
-                    this._loadBlueprint(blueprint);
-                }
-            );
 
             // Connect settings sidebar signals
             this.settingsSidebar.connect('adjustments-changed', (_, values) => {
