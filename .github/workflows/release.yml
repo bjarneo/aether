@@ -66,18 +66,8 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Create source archive
-        id: archive
-        run: |
-          # Create archive from the git tag
-          git archive --format=tar.gz --prefix=aether-${{ github.ref_name }}/ ${{ github.ref_name }} > ${{ github.ref_name }}.tar.gz
-
-          # Calculate SHA256
-          SHA256=$(sha256sum ${{ github.ref_name }}.tar.gz | awk '{print $1}')
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
-          echo "Archive SHA256: $SHA256"
-
       - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: false
@@ -101,13 +91,34 @@ jobs:
 
             ## For AUR Maintainers
 
-            **SHA256 for PKGBUILD:**
-            ```
-            ${{ steps.archive.outputs.sha256 }}
-            ```
+            **SHA256 will be calculated after release is created.**
 
-            Or calculate it manually:
+            Download and verify:
             ```bash
             wget https://github.com/bjarneo/aether/archive/${{ github.ref_name }}.tar.gz
             sha256sum ${{ github.ref_name }}.tar.gz
+            ```
+
+      - name: Calculate SHA256 of GitHub archive
+        id: archive
+        run: |
+          # Download the archive that GitHub automatically created
+          wget https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz
+
+          # Calculate SHA256
+          SHA256=$(sha256sum ${{ github.ref_name }}.tar.gz | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "Archive SHA256: $SHA256"
+
+      - name: Update Release with SHA256
+        uses: softprops/action-gh-release@v1
+        with:
+          append_body: true
+          body: |
+
+            ---
+
+            **SHA256 Hash (for PKGBUILD):**
+            ```
+            ${{ steps.archive.outputs.sha256 }}
             ```
