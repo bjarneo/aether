@@ -561,7 +561,6 @@ const AetherWindow = GObject.registerClass(
                 this._updateAppOverrideColors();
             });
 
-
             // Connect settings sidebar signals
             this.settingsSidebar.connect('adjustments-changed', (_, values) => {
                 this.paletteGenerator._applyAdjustments(values);

@@ -75,7 +75,11 @@ export function setBoxColor(box, color) {
  * @param {number} maxSwatches - Maximum number of swatches to show (default: 8)
  * @returns {Gtk.Box} Horizontal box with color swatches
  */
-export function createColorSwatchRow(blueprint, swatchSize = 24, maxSwatches = 8) {
+export function createColorSwatchRow(
+    blueprint,
+    swatchSize = 24,
+    maxSwatches = 8
+) {
     const colorBox = new Gtk.Box({
         orientation: Gtk.Orientation.HORIZONTAL,
         spacing: 4,

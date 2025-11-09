@@ -109,7 +109,9 @@ export const BlueprintManagerWindow = GObject.registerClass(
                 GObject.BindingFlags.BIDIRECTIONAL
             );
             searchBar.connect_entry(this._searchEntry);
-            this._searchEntry.connect('search-changed', () => this._filterBlueprints());
+            this._searchEntry.connect('search-changed', () =>
+                this._filterBlueprints()
+            );
 
             this.append(searchBar);
 
@@ -161,18 +163,23 @@ export const BlueprintManagerWindow = GObject.registerClass(
         loadBlueprints(forceReload = false) {
             this._blueprints = [];
 
-            enumerateDirectory(this._blueprintsDir, (fileInfo, filePath, fileName) => {
-                if (!fileName.endsWith('.json')) return;
+            enumerateDirectory(
+                this._blueprintsDir,
+                (fileInfo, filePath, fileName) => {
+                    if (!fileName.endsWith('.json')) return;
 
-                const data = loadJsonFile(filePath);
-                if (data) {
-                    data.path = filePath;
-                    data.name = data.name || fileName.replace('.json', '');
-                    this._blueprints.push(data);
+                    const data = loadJsonFile(filePath);
+                    if (data) {
+                        data.path = filePath;
+                        data.name = data.name || fileName.replace('.json', '');
+                        this._blueprints.push(data);
+                    }
                 }
-            });
+            );
 
-            this._blueprints.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            this._blueprints.sort(
+                (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+            );
             this._updateUI();
         }
 
@@ -240,7 +247,10 @@ export const BlueprintManagerWindow = GObject.registerClass(
             const wallpaper = blueprint.palette?.wallpaper;
 
             // If no wallpaper or doesn't exist, use color preview
-            if (!wallpaper || !GLib.file_test(wallpaper, GLib.FileTest.EXISTS)) {
+            if (
+                !wallpaper ||
+                !GLib.file_test(wallpaper, GLib.FileTest.EXISTS)
+            ) {
                 return this._createColorPreview(blueprint);
             }
 
@@ -292,7 +302,10 @@ export const BlueprintManagerWindow = GObject.registerClass(
                     });
                 }
             } catch (e) {
-                console.warn(`Failed to load thumbnail for ${wallpaper}:`, e.message);
+                console.warn(
+                    `Failed to load thumbnail for ${wallpaper}:`,
+                    e.message
+                );
                 return this._createColorPreview(blueprint);
             }
         }
@@ -309,7 +322,7 @@ export const BlueprintManagerWindow = GObject.registerClass(
 
             if (colors.length >= 4) {
                 [0, 5, 10, 15].forEach(i => {
-                    const box = new Gtk.Box({ hexpand: true });
+                    const box = new Gtk.Box({hexpand: true});
                     this._setBoxColor(box, colors[i] || colors[0]);
                     grid.append(box);
                 });
@@ -374,7 +387,6 @@ export const BlueprintManagerWindow = GObject.registerClass(
             );
         }
 
-
         _createButtons(blueprint) {
             const buttonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
@@ -407,11 +419,15 @@ export const BlueprintManagerWindow = GObject.registerClass(
             const actionGroup = Gio.SimpleActionGroup.new();
 
             const exportAction = Gio.SimpleAction.new('export', null);
-            exportAction.connect('activate', () => this._exportBlueprint(blueprint));
+            exportAction.connect('activate', () =>
+                this._exportBlueprint(blueprint)
+            );
             actionGroup.add_action(exportAction);
 
             const deleteAction = Gio.SimpleAction.new('delete', null);
-            deleteAction.connect('activate', () => this._deleteBlueprint(blueprint));
+            deleteAction.connect('activate', () =>
+                this._deleteBlueprint(blueprint)
+            );
             actionGroup.add_action(deleteAction);
 
             menuButton.insert_action_group('blueprint', actionGroup);
@@ -467,7 +483,10 @@ export const BlueprintManagerWindow = GObject.registerClass(
                     }
 
                     const filename = `${(data.name || 'blueprint').toLowerCase().replace(/\s+/g, '-')}.json`;
-                    const path = GLib.build_filenamev([this._blueprintsDir, filename]);
+                    const path = GLib.build_filenamev([
+                        this._blueprintsDir,
+                        filename,
+                    ]);
 
                     if (saveJsonFile(path, data)) {
                         this.loadBlueprints(true);
@@ -490,7 +509,10 @@ export const BlueprintManagerWindow = GObject.registerClass(
                 onSubmit: name => {
                     blueprint.name = name || `Blueprint ${Date.now()}`;
                     const filename = `${name.toLowerCase().replace(/\s+/g, '-')}.json`;
-                    const path = GLib.build_filenamev([this._blueprintsDir, filename]);
+                    const path = GLib.build_filenamev([
+                        this._blueprintsDir,
+                        filename,
+                    ]);
 
                     if (saveJsonFile(path, blueprint)) {
                         this.loadBlueprints(true);
@@ -505,7 +527,9 @@ export const BlueprintManagerWindow = GObject.registerClass(
             let child = this._flowBox.get_first_child();
             while (child) {
                 const card = child.get_first_child();
-                const visible = !query || card?._blueprint?.name?.toLowerCase().includes(query);
+                const visible =
+                    !query ||
+                    card?._blueprint?.name?.toLowerCase().includes(query);
                 child.set_visible(visible);
                 child = child.get_next_sibling();
             }

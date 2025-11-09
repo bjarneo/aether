@@ -188,8 +188,14 @@ export const PreviewArea = GObject.registerClass(
                     // Composite the image onto white background
                     scaledPixbuf.composite(
                         rgbPixbuf,
-                        0, 0, newWidth, newHeight,
-                        0, 0, 1.0, 1.0,
+                        0,
+                        0,
+                        newWidth,
+                        newHeight,
+                        0,
+                        0,
+                        1.0,
+                        1.0,
                         GdkPixbuf.InterpType.BILINEAR,
                         255
                     );
@@ -313,9 +319,14 @@ export const PreviewArea = GObject.registerClass(
             }
 
             // Verify preview base file exists before attempting to process
-            const previewBaseFile = Gio.File.new_for_path(this._previewBasePath);
+            const previewBaseFile = Gio.File.new_for_path(
+                this._previewBasePath
+            );
             if (!previewBaseFile.query_exists(null)) {
-                console.error('Preview base file does not exist:', this._previewBasePath);
+                console.error(
+                    'Preview base file does not exist:',
+                    this._previewBasePath
+                );
                 return;
             }
 

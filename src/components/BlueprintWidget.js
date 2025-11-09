@@ -81,7 +81,10 @@ export const BlueprintWidget = GObject.registerClass(
                             }
                         }
                     } catch (e) {
-                        console.warn('Failed to set floating window:', e.message);
+                        console.warn(
+                            'Failed to set floating window:',
+                            e.message
+                        );
                     }
                     return GLib.SOURCE_REMOVE;
                 });
@@ -209,7 +212,6 @@ export const BlueprintWidget = GObject.registerClass(
 
             return row;
         }
-
 
         /**
          * Shows empty state when no blueprints exist
