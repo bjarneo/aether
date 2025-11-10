@@ -195,16 +195,10 @@ export const PaletteEditor = GObject.registerClass(
 
             // Wallpaper section
             this._wallpaperSection = new WallpaperSection();
-            this._wallpaperSection.connect('extract-clicked', () => {
+            this._wallpaperSection.connect('extract-clicked', (_, mode) => {
                 const wallpaper = this._wallpaperSection.getCurrentWallpaper();
                 if (wallpaper) {
-                    this._extractColors(wallpaper, false);
-                }
-            });
-            this._wallpaperSection.connect('extract-monochrome-clicked', () => {
-                const wallpaper = this._wallpaperSection.getCurrentWallpaper();
-                if (wallpaper) {
-                    this._extractColors(wallpaper, true);
+                    this._extractColors(wallpaper, mode);
                 }
             });
             this._wallpaperSection.connect('edit-clicked', () => {
@@ -275,10 +269,10 @@ export const PaletteEditor = GObject.registerClass(
          * Extracts colors from wallpaper using ImageMagick
          * Respects locked colors and merges with current palette
          * @param {string} imagePath - Path to wallpaper image
-         * @param {boolean} [forceMonochrome=false] - Force monochrome palette generation
+         * @param {string} [extractionMode='normal'] - Extraction mode
          * @private
          */
-        _extractColors(imagePath, forceMonochrome = false) {
+        _extractColors(imagePath, extractionMode = 'normal') {
             this._wallpaperSection.setLoading(true);
 
             const lockedColors = this._colorPalette.getLockedColors();
@@ -304,7 +298,7 @@ export const PaletteEditor = GObject.registerClass(
                     console.error('Error extracting colors:', error.message);
                     this._wallpaperSection.setLoading(false);
                 },
-                forceMonochrome
+                extractionMode
             );
         }
 

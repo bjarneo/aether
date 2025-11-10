@@ -15,8 +15,7 @@ import {uploadWallpaper} from '../../utils/wallpaper-utils.js';
 export const WallpaperSection = GObject.registerClass(
     {
         Signals: {
-            'extract-clicked': {},
-            'extract-monochrome-clicked': {},
+            'extract-clicked': {param_types: [GObject.TYPE_STRING]}, // Passes extraction mode
             'edit-clicked': {},
             'apply-clicked': {},
             'wallpaper-loaded': {param_types: [GObject.TYPE_STRING]},
@@ -48,31 +47,34 @@ export const WallpaperSection = GObject.registerClass(
 
             // Extract button with dropdown menu
             const extractMenu = Gio.Menu.new();
-            extractMenu.append('Normal', 'wallpaper.extract-normal');
+            extractMenu.append('Normal (Auto-detect)', 'wallpaper.extract-normal');
             extractMenu.append('Monochromatic', 'wallpaper.extract-monochromatic');
+            extractMenu.append('Pastel', 'wallpaper.extract-pastel');
 
             const extractMenuButton = new Gtk.MenuButton({
                 icon_name: 'color-select-symbolic',
                 label: 'Extract',
                 menu_model: extractMenu,
                 css_classes: ['suggested-action'],
-                tooltip_text: 'Extract colors from wallpaper',
+                tooltip_text: 'Extract colors from wallpaper (choose mode)',
             });
 
             // Create action group for menu items
             this._actionGroup = Gio.SimpleActionGroup.new();
 
-            const normalAction = Gio.SimpleAction.new('extract-normal', null);
-            normalAction.connect('activate', () => {
-                this.emit('extract-clicked');
-            });
-            this._actionGroup.add_action(normalAction);
+            // Helper function to create extraction action
+            const createExtractionAction = (name, mode) => {
+                const action = Gio.SimpleAction.new(name, null);
+                action.connect('activate', () => {
+                    this.emit('extract-clicked', mode);
+                });
+                this._actionGroup.add_action(action);
+            };
 
-            const monochromaticAction = Gio.SimpleAction.new('extract-monochromatic', null);
-            monochromaticAction.connect('activate', () => {
-                this.emit('extract-monochrome-clicked');
-            });
-            this._actionGroup.add_action(monochromaticAction);
+            // Add extraction mode actions
+            createExtractionAction('extract-normal', 'normal');
+            createExtractionAction('extract-monochromatic', 'monochromatic');
+            createExtractionAction('extract-pastel', 'pastel');
 
             this.insert_action_group('wallpaper', this._actionGroup);
 
