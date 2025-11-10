@@ -737,6 +737,83 @@ function generateMonochromePalette(grayColors, lightMode) {
 }
 
 /**
+ * Generates a monochromatic ANSI palette based on dominant hue from image
+ * Creates variations of a single hue with different saturation and lightness
+ * @param {string[]} dominantColors - Array of dominant colors from image
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 monochromatic ANSI colors
+ */
+function generateMonochromaticPalette(dominantColors, lightMode) {
+    // Find the most saturated/vibrant color to use as the base hue
+    const chromaticColors = dominantColors
+        .map(color => {
+            const hsl = getColorHSL(color);
+            return {color, hsl, saturation: hsl.s};
+        })
+        .filter(c => c.saturation > MONOCHROME_SATURATION_THRESHOLD)
+        .sort((a, b) => b.saturation - a.saturation);
+
+    // If we have chromatic colors, use the most saturated one
+    // Otherwise, fall back to the most common color
+    const baseColor =
+        chromaticColors.length > 0
+            ? chromaticColors[0]
+            : {color: dominantColors[0], hsl: getColorHSL(dominantColors[0])};
+
+    const baseHue = baseColor.hsl.h;
+
+    // Sort all colors by lightness for background/foreground
+    const sortedByLightness = sortColorsByLightness(dominantColors);
+    const darkest = sortedByLightness[0];
+    const lightest = sortedByLightness[sortedByLightness.length - 1];
+
+    const palette = new Array(ANSI_PALETTE_SIZE);
+
+    // Set background and foreground using base hue but with appropriate lightness
+    if (lightMode) {
+        // Light background, dark foreground
+        palette[0] = hslToHex(baseHue, 8, Math.max(85, lightest.lightness));
+        palette[7] = hslToHex(baseHue, 25, Math.min(30, darkest.lightness + 10));
+    } else {
+        // Dark background, light foreground
+        palette[0] = hslToHex(baseHue, 15, Math.min(15, darkest.lightness));
+        palette[7] = hslToHex(baseHue, 10, Math.max(80, lightest.lightness - 10));
+    }
+
+    // Generate ANSI colors 1-6 with the base hue but varying saturation and lightness
+    // We'll create a monochromatic gradient with different intensities
+    const saturationLevels = [40, 50, 45, 55, 42, 48]; // Varied saturation for interest
+    const lightnessBase = lightMode ? 45 : 55;
+
+    for (let i = 0; i < 6; i++) {
+        const lightness = lightnessBase + (i - 2.5) * 5; // Range around base
+        palette[i + 1] = hslToHex(baseHue, saturationLevels[i], lightness);
+    }
+
+    // Color 8: Muted version for comments/dim text
+    const color8Lightness = lightMode ? 55 : 45;
+    palette[8] = hslToHex(baseHue, 20, color8Lightness);
+
+    // Colors 9-14: Brighter/more saturated versions of 1-6
+    const brightSaturationLevels = [60, 70, 65, 75, 62, 68];
+    for (let i = 0; i < 6; i++) {
+        const baseLightness = lightnessBase + (i - 2.5) * 5;
+        const adjustment = lightMode ? -8 : 8;
+        const lightness = Math.max(0, Math.min(100, baseLightness + adjustment));
+        palette[i + 9] = hslToHex(baseHue, brightSaturationLevels[i], lightness);
+    }
+
+    // Color 15: Bright foreground (more saturated than color 7)
+    if (lightMode) {
+        palette[15] = hslToHex(baseHue, 30, Math.min(25, darkest.lightness + 5));
+    } else {
+        palette[15] = hslToHex(baseHue, 15, Math.max(85, lightest.lightness));
+    }
+
+    return palette;
+}
+
+/**
  * Adjusts a single color for dark background
  * @param {string[]} palette - Color palette
  * @param {Object} colorInfo - Color information
@@ -896,15 +973,19 @@ function normalizeBrightness(palette) {
  * Uses caching to avoid re-processing the same image
  * @param {string} imagePath - Path to wallpaper image
  * @param {boolean} lightMode - Whether to generate light mode palette
+ * @param {boolean} [forceMonochrome=false] - Force monochromatic palette (single hue variations) from dominant color
  * @returns {Promise<string[]>} Array of 16 ANSI colors
  */
 export async function extractColorsWithImageMagick(
     imagePath,
-    lightMode = false
+    lightMode = false,
+    forceMonochrome = false
 ) {
     try {
-        // Check cache first
-        const cacheKey = getCacheKey(imagePath, lightMode);
+        // Check cache first (include forceMonochrome in cache key)
+        const cacheKey = forceMonochrome
+            ? `${getCacheKey(imagePath, lightMode)}_mono`
+            : getCacheKey(imagePath, lightMode);
         if (cacheKey) {
             const cachedPalette = loadCachedPalette(cacheKey);
             if (cachedPalette) {
@@ -924,8 +1005,13 @@ export async function extractColorsWithImageMagick(
 
         let palette;
 
-        // Generate palette based on image characteristics
-        if (isMonochromeImage(dominantColors)) {
+        // Generate palette based on image characteristics or forced mode
+        if (forceMonochrome) {
+            console.log(
+                'Force monochromatic mode - generating single-hue palette from dominant color'
+            );
+            palette = generateMonochromaticPalette(dominantColors, lightMode);
+        } else if (isMonochromeImage(dominantColors)) {
             console.log(
                 'Detected monochrome/grayscale image - generating grayscale palette'
             );
@@ -1012,14 +1098,16 @@ function generateChromaticPalette(dominantColors, lightMode) {
  * @param {boolean} lightMode - Whether to generate light mode palette
  * @param {Function} onSuccess - Callback when colors are extracted
  * @param {Function} onError - Callback when extraction fails
+ * @param {boolean} [forceMonochrome=false] - Force monochromatic palette (single hue variations)
  */
 export function extractColorsFromWallpaperIM(
     imagePath,
     lightMode,
     onSuccess,
-    onError
+    onError,
+    forceMonochrome = false
 ) {
-    extractColorsWithImageMagick(imagePath, lightMode)
+    extractColorsWithImageMagick(imagePath, lightMode, forceMonochrome)
         .then(colors => onSuccess(colors))
         .catch(error => onError(error));
 }
