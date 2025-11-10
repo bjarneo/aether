@@ -49,6 +49,7 @@ export const WallpaperSection = GObject.registerClass(
             const extractMenu = Gio.Menu.new();
             extractMenu.append('Normal (Auto-detect)', 'wallpaper.extract-normal');
             extractMenu.append('Monochromatic', 'wallpaper.extract-monochromatic');
+            extractMenu.append('Analogous', 'wallpaper.extract-analogous');
             extractMenu.append('Pastel', 'wallpaper.extract-pastel');
 
             const extractMenuButton = new Gtk.MenuButton({
@@ -74,6 +75,7 @@ export const WallpaperSection = GObject.registerClass(
             // Add extraction mode actions
             createExtractionAction('extract-normal', 'normal');
             createExtractionAction('extract-monochromatic', 'monochromatic');
+            createExtractionAction('extract-analogous', 'analogous');
             createExtractionAction('extract-pastel', 'pastel');
 
             this.insert_action_group('wallpaper', this._actionGroup);
