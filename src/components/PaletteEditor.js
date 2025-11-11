@@ -77,6 +77,7 @@ export const PaletteEditor = GObject.registerClass(
             this._palette = [];
             this._originalPalette = [];
             this._lightMode = false;
+            this._wallpaperMetadata = null; // Store wallpaper URL and source
 
             this._initializeUI();
         }
@@ -110,9 +111,12 @@ export const PaletteEditor = GObject.registerClass(
 
             // Wallhaven browser
             this._wallhavenBrowser = new WallpaperBrowser();
-            this._wallhavenBrowser.connect('wallpaper-selected', (_, path) => {
-                this._onBrowserWallpaperSelected(path);
-            });
+            this._wallhavenBrowser.connect(
+                'wallpaper-selected',
+                (_, path, metadata) => {
+                    this._onBrowserWallpaperSelected(path, metadata);
+                }
+            );
             this._wallhavenBrowser.connect('favorites-changed', () => {
                 if (this._favoritesView) {
                     this._favoritesView.loadFavorites();
@@ -235,24 +239,27 @@ export const PaletteEditor = GObject.registerClass(
          * Handles wallpaper selection from browsers (Wallhaven, Local, Favorites)
          * Switches to editor tab and loads the selected wallpaper
          * @param {string} path - Path to selected wallpaper
+         * @param {Object} [metadata] - Optional wallpaper metadata (url, source)
          * @private
          */
-        _onBrowserWallpaperSelected(path) {
+        _onBrowserWallpaperSelected(path, metadata = null) {
             this._tabNavigation.setActiveTab('editor');
             this._viewStack.set_visible_child_name('editor');
-            this.loadWallpaper(path);
+            this.loadWallpaper(path, metadata);
         }
 
         /**
          * Loads wallpaper into the editor
          * Hides empty state and updates wallpaper section and color palette
          * @param {string} path - Path to wallpaper file
+         * @param {Object} [metadata] - Optional wallpaper metadata (url, source)
          * @public
          */
-        loadWallpaper(path) {
+        loadWallpaper(path, metadata = null) {
             this._emptyState.set_visible(false);
             this._wallpaperSection.loadWallpaper(path);
             this._colorPalette.setWallpaper(path);
+            this._wallpaperMetadata = metadata;
         }
 
         /**
@@ -472,6 +479,8 @@ export const PaletteEditor = GObject.registerClass(
         getPalette() {
             return {
                 wallpaper: this._wallpaperSection.getCurrentWallpaper(),
+                wallpaperUrl: this._wallpaperMetadata?.url || null,
+                wallpaperSource: this._wallpaperMetadata?.source || 'local',
                 colors: this._palette,
                 lightMode: this._lightMode,
                 appOverrides: this._colorPalette.getAppOverrides(),

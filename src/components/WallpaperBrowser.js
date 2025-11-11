@@ -49,7 +49,9 @@ import {
 export const WallpaperBrowser = GObject.registerClass(
     {
         Signals: {
-            'wallpaper-selected': {param_types: [GObject.TYPE_STRING]},
+            'wallpaper-selected': {
+                param_types: [GObject.TYPE_STRING, GObject.TYPE_JSOBJECT],
+            },
             'favorites-changed': {},
             'add-to-additional-images': {param_types: [GObject.TYPE_JSOBJECT]},
         },
@@ -638,17 +640,18 @@ export const WallpaperBrowser = GObject.registerClass(
             try {
                 showToast(this, 'Downloading wallpaper...', 0);
 
-                const cacheDir = GLib.build_filenamev([
-                    GLib.get_user_cache_dir(),
+                // Use permanent data directory instead of cache
+                const wallpapersDir = GLib.build_filenamev([
+                    GLib.get_user_data_dir(),
                     'aether',
-                    'wallhaven-wallpapers',
+                    'wallpapers',
                 ]);
 
-                ensureDirectoryExists(cacheDir);
+                ensureDirectoryExists(wallpapersDir);
 
                 const filename = wallpaper.path.split('/').pop();
                 const wallpaperPath = GLib.build_filenamev([
-                    cacheDir,
+                    wallpapersDir,
                     filename,
                 ]);
 
@@ -657,7 +660,14 @@ export const WallpaperBrowser = GObject.registerClass(
                     wallpaperPath
                 );
 
-                this.emit('wallpaper-selected', wallpaperPath);
+                // Emit wallpaper with metadata including URL
+                const wallpaperData = {
+                    path: wallpaperPath,
+                    url: wallpaper.url,
+                    source: 'wallhaven',
+                };
+
+                this.emit('wallpaper-selected', wallpaperPath, wallpaperData);
                 showToast(this, 'Wallpaper downloaded successfully');
             } catch (e) {
                 console.error(

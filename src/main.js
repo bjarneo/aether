@@ -48,6 +48,7 @@ import {BlueprintService} from './services/BlueprintService.js';
 import {ensureDirectoryExists} from './utils/file-utils.js';
 import {ListBlueprintsCommand, ApplyBlueprintCommand} from './cli/index.js';
 import {BlueprintWidget} from './components/BlueprintWidget.js';
+import {runMigrations} from './utils/migrations.js';
 
 Adw.init();
 
@@ -130,6 +131,9 @@ const AetherApplication = GObject.registerClass(
         vfunc_command_line(commandLine) {
             const options = commandLine.get_options_dict();
 
+            // Run migrations before any command execution
+            runMigrations();
+
             // Handle CLI commands first
             if (options.contains('list-blueprints')) {
                 ListBlueprintsCommand.execute();
@@ -209,6 +213,11 @@ const AetherApplication = GObject.registerClass(
          * @override
          */
         vfunc_activate() {
+            // Run migrations on first activation
+            if (!this.active_window) {
+                runMigrations();
+            }
+
             // Initialize theme manager only when GUI is activated
             if (!themeManager) {
                 themeManager = new ThemeManager();
