@@ -47,7 +47,7 @@ export const WallpaperSection = GObject.registerClass(
 
             // Extract button with dropdown menu
             const extractMenu = Gio.Menu.new();
-            extractMenu.append('Normal (Auto-detect)', 'wallpaper.extract-normal');
+            extractMenu.append('Extract', 'wallpaper.extract-normal');
             extractMenu.append('Monochromatic', 'wallpaper.extract-monochromatic');
             extractMenu.append('Analogous', 'wallpaper.extract-analogous');
             extractMenu.append('Pastel', 'wallpaper.extract-pastel');
