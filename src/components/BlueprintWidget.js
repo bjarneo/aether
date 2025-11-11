@@ -3,13 +3,14 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 import GLib from 'gi://GLib';
 import Gdk from 'gi://Gdk?version=4.0';
+import Gtk4LayerShell from 'gi://Gtk4LayerShell?version=1.0';
 import {BlueprintService} from '../services/BlueprintService.js';
 import {createColorSwatchRow} from '../utils/blueprint-ui-helpers.js';
 
 /**
- * BlueprintWidget - Minimal floating widget for blueprint selection
+ * BlueprintWidget - Minimal layer shell widget for blueprint selection
  * Displays blueprints with name on left and color swatches on right
- * Designed to float above everything in Hyprland
+ * Uses GTK Layer Shell to display above all windows
  *
  * @class BlueprintWidget
  * @extends {Adw.ApplicationWindow}
@@ -22,7 +23,7 @@ export const BlueprintWidget = GObject.registerClass(
     },
     class BlueprintWidget extends Adw.ApplicationWindow {
         /**
-         * Initializes the floating blueprint widget
+         * Initializes the layer shell blueprint widget
          * @param {Adw.Application} application - Parent application
          */
         _init(application) {
@@ -35,8 +36,8 @@ export const BlueprintWidget = GObject.registerClass(
 
             this.blueprintService = new BlueprintService();
 
-            // Configure for Hyprland floating
-            this._configureForHyprland();
+            // Configure GTK Layer Shell
+            this._configureLayerShell();
 
             this._initializeUI();
             this._loadBlueprints();
@@ -46,49 +47,31 @@ export const BlueprintWidget = GObject.registerClass(
         }
 
         /**
-         * Configures window to float above everything in Hyprland
+         * Configures window as a GTK Layer Shell overlay
+         * Displays centered above all windows without compositor-specific commands
          * @private
          */
-        _configureForHyprland() {
-            // Set window as dialog type (Hyprland will float dialogs by default)
-            this.set_modal(false);
-            this.set_resizable(true);
+        _configureLayerShell() {
+            // Initialize GTK Layer Shell for this window
+            Gtk4LayerShell.init_for_window(this);
 
-            // Force floating in Hyprland after window is mapped
-            this.connect('map', () => {
-                // Small delay to ensure window is fully created in Hyprland
-                GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
-                    try {
-                        // Get active window address and force float
-                        const [success, stdout] = GLib.spawn_command_line_sync(
-                            'hyprctl activewindow -j'
-                        );
+            // Set layer to overlay (above normal windows)
+            Gtk4LayerShell.set_layer(this, Gtk4LayerShell.Layer.OVERLAY);
 
-                        if (success && stdout) {
-                            const decoder = new TextDecoder();
-                            const data = JSON.parse(decoder.decode(stdout));
-                            const address = data.address;
+            // Center the window on screen
+            Gtk4LayerShell.set_anchor(this, Gtk4LayerShell.Edge.TOP, false);
+            Gtk4LayerShell.set_anchor(this, Gtk4LayerShell.Edge.BOTTOM, false);
+            Gtk4LayerShell.set_anchor(this, Gtk4LayerShell.Edge.LEFT, false);
+            Gtk4LayerShell.set_anchor(this, Gtk4LayerShell.Edge.RIGHT, false);
 
-                            if (address) {
-                                // Force this specific window to float
-                                GLib.spawn_command_line_async(
-                                    `hyprctl dispatch togglefloating address:${address}`
-                                );
-                                // Center it
-                                GLib.spawn_command_line_async(
-                                    `hyprctl dispatch centerwindow`
-                                );
-                            }
-                        }
-                    } catch (e) {
-                        console.warn(
-                            'Failed to set floating window:',
-                            e.message
-                        );
-                    }
-                    return GLib.SOURCE_REMOVE;
-                });
-            });
+            // Enable keyboard interactivity
+            Gtk4LayerShell.set_keyboard_mode(
+                this,
+                Gtk4LayerShell.KeyboardMode.ON_DEMAND
+            );
+
+            // Set namespace for compositor identification
+            Gtk4LayerShell.set_namespace(this, 'aether-blueprint-selector');
         }
 
         /**
