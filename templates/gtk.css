@@ -177,12 +177,6 @@ toast button.circular.flat.image-button:hover {
     background-color: @red;
 }
 
-/* SVG Icons - recolor to match foreground text */
-.svg-icon {
-    filter: invert(79%) sepia(18%) saturate(611%) hue-rotate(192deg)
-        brightness(103%) contrast(94%);
-}
-
 /* Sharp corners, Hyprland-inspired */
 * {
     border-radius: 0;
