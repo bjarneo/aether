@@ -87,6 +87,33 @@ export const BlueprintWidget = GObject.registerClass(
             const toolbarView = new Adw.ToolbarView();
             toolbarView.add_top_bar(headerBar);
 
+            // Main content box (search + list)
+            const contentBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 0,
+            });
+
+            // Search entry - always visible for filtering
+            const searchBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+                margin_start: 12,
+                margin_end: 12,
+                margin_top: 6,
+                margin_bottom: 6,
+            });
+
+            this._searchEntry = new Gtk.SearchEntry({
+                placeholder_text: 'Search blueprints...',
+                hexpand: true,
+            });
+            this._searchEntry.connect('search-changed', () =>
+                this._filterBlueprints()
+            );
+
+            searchBox.append(this._searchEntry);
+            contentBox.append(searchBox);
+
             // Scrolled window for blueprint list
             const scrolledWindow = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
@@ -103,6 +130,15 @@ export const BlueprintWidget = GObject.registerClass(
                 margin_end: 6,
             });
 
+            // Filter function for search
+            this.listBox.set_filter_func(row => {
+                const query = this._searchEntry?.get_text()?.toLowerCase() || '';
+                if (!query) return true;
+
+                const blueprint = row._blueprintData;
+                return blueprint?.name?.toLowerCase().includes(query) || false;
+            });
+
             // Handle blueprint selection
             this.listBox.connect('row-activated', (_, row) => {
                 this._onBlueprintActivated(row);
@@ -116,7 +152,8 @@ export const BlueprintWidget = GObject.registerClass(
             });
 
             scrolledWindow.set_child(this.listBox);
-            toolbarView.set_content(scrolledWindow);
+            contentBox.append(scrolledWindow);
+            toolbarView.set_content(contentBox);
 
             this.set_content(toolbarView);
         }
@@ -208,6 +245,14 @@ export const BlueprintWidget = GObject.registerClass(
             });
 
             this.listBox.append(statusPage);
+        }
+
+        /**
+         * Filters blueprints based on search query
+         * @private
+         */
+        _filterBlueprints() {
+            this.listBox.invalidate_filter();
         }
 
         /**
