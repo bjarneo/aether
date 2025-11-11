@@ -132,7 +132,8 @@ export const BlueprintWidget = GObject.registerClass(
 
             // Filter function for search
             this.listBox.set_filter_func(row => {
-                const query = this._searchEntry?.get_text()?.toLowerCase() || '';
+                const query =
+                    this._searchEntry?.get_text()?.toLowerCase() || '';
                 if (!query) return true;
 
                 const blueprint = row._blueprintData;
