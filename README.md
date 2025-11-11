@@ -205,6 +205,11 @@ magick --version  # Verify installation
 - Add API key in settings for higher limits
 - Clear cache: `rm -rf ~/.cache/aether/wallhaven-*`
 
+**Waybar disappears when applying theme from widget mode:**
+This is a known issue when running Aether with `LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so` (required for `--widget-blueprint` mode). The layer-shell library gets inherited by child processes, causing conflicts with waybar's own layer-shell usage.
+
+**Solution:** Aether automatically clears `LD_PRELOAD` when spawning `omarchy-theme-set` to prevent this conflict (see `ConfigWriter.js:609`). The fix uses `env -u LD_PRELOAD` to ensure waybar restarts cleanly without inheriting the layer-shell library.
+
 ## Contributing
 
 Aether is designed to be extensible. Key areas:
