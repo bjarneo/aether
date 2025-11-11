@@ -604,10 +604,14 @@ export class ConfigWriter {
      */
     _applyOmarchyTheme(sync = false) {
         try {
+            // Clear LD_PRELOAD to prevent layer-shell conflicts with waybar
+            // when running from widget mode
+            const command = 'env -u LD_PRELOAD omarchy-theme-set aether';
+
             if (sync) {
-                GLib.spawn_command_line_sync('omarchy-theme-set aether');
+                GLib.spawn_command_line_sync(command);
             } else {
-                GLib.spawn_command_line_async('omarchy-theme-set aether');
+                GLib.spawn_command_line_async(command);
             }
             console.log('Applied theme: aether');
 
