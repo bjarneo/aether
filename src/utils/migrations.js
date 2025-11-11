@@ -38,7 +38,9 @@ export function migrateWallpapersToDataDir() {
 
         // Check if old directory exists
         if (!oldDir.query_exists(null)) {
-            console.log('[Migration] No old wallpaper cache directory found, skipping migration');
+            console.log(
+                '[Migration] No old wallpaper cache directory found, skipping migration'
+            );
             return result;
         }
 
@@ -48,7 +50,9 @@ export function migrateWallpapersToDataDir() {
             GLib.mkdir_with_parents(newDataDir, 0o755);
         }
 
-        console.log(`[Migration] Starting wallpaper migration from ${oldCacheDir} to ${newDataDir}`);
+        console.log(
+            `[Migration] Starting wallpaper migration from ${oldCacheDir} to ${newDataDir}`
+        );
 
         // Enumerate files in old directory
         const enumerator = oldDir.enumerate_children(
@@ -80,23 +84,23 @@ export function migrateWallpapersToDataDir() {
 
                 // Skip if destination already exists
                 if (destFile.query_exists(null)) {
-                    console.log(`[Migration] Skipping ${fileName} (already exists in destination)`);
+                    console.log(
+                        `[Migration] Skipping ${fileName} (already exists in destination)`
+                    );
                     result.skipped++;
                     continue;
                 }
 
                 // Move file
-                sourceFile.move(
-                    destFile,
-                    Gio.FileCopyFlags.NONE,
-                    null,
-                    null
-                );
+                sourceFile.move(destFile, Gio.FileCopyFlags.NONE, null, null);
 
                 console.log(`[Migration] Moved ${fileName}`);
                 result.moved++;
             } catch (fileError) {
-                console.error(`[Migration] Failed to move ${fileName}:`, fileError.message);
+                console.error(
+                    `[Migration] Failed to move ${fileName}:`,
+                    fileError.message
+                );
                 result.failed++;
                 result.errors.push(`${fileName}: ${fileError.message}`);
             }
@@ -123,13 +127,20 @@ export function migrateWallpapersToDataDir() {
                 oldDir.delete(null);
                 console.log('[Migration] Removed empty old cache directory');
             } else {
-                console.log(`[Migration] Old directory not removed (contains ${remainingFiles.length} items)`);
+                console.log(
+                    `[Migration] Old directory not removed (contains ${remainingFiles.length} items)`
+                );
             }
         } catch (cleanupError) {
-            console.warn('[Migration] Failed to cleanup old directory:', cleanupError.message);
+            console.warn(
+                '[Migration] Failed to cleanup old directory:',
+                cleanupError.message
+            );
         }
 
-        console.log(`[Migration] Complete: ${result.moved} moved, ${result.skipped} skipped, ${result.failed} failed`);
+        console.log(
+            `[Migration] Complete: ${result.moved} moved, ${result.skipped} skipped, ${result.failed} failed`
+        );
     } catch (error) {
         console.error('[Migration] Migration failed:', error.message);
         result.errors.push(`Migration error: ${error.message}`);
@@ -161,7 +172,9 @@ export function migrateBlueprintPaths() {
         const dir = Gio.File.new_for_path(blueprintsDir);
 
         if (!dir.query_exists(null)) {
-            console.log('[Migration] No blueprints directory found, skipping blueprint path migration');
+            console.log(
+                '[Migration] No blueprints directory found, skipping blueprint path migration'
+            );
             return result;
         }
 
@@ -199,7 +212,9 @@ export function migrateBlueprintPaths() {
                 const [success, contents] = blueprintFile.load_contents(null);
 
                 if (!success) {
-                    console.warn(`[Migration] Failed to load blueprint: ${fileName}`);
+                    console.warn(
+                        `[Migration] Failed to load blueprint: ${fileName}`
+                    );
                     result.failed++;
                     continue;
                 }
@@ -216,7 +231,10 @@ export function migrateBlueprintPaths() {
                     // Update the path
                     const oldPath = blueprint.palette.wallpaper;
                     const fileName = GLib.path_get_basename(oldPath);
-                    const newPath = GLib.build_filenamev([newDataPath, fileName]);
+                    const newPath = GLib.build_filenamev([
+                        newDataPath,
+                        fileName,
+                    ]);
 
                     blueprint.palette.wallpaper = newPath;
 
@@ -236,7 +254,10 @@ export function migrateBlueprintPaths() {
                     result.skipped++;
                 }
             } catch (fileError) {
-                console.error(`[Migration] Failed to process ${fileName}:`, fileError.message);
+                console.error(
+                    `[Migration] Failed to process ${fileName}:`,
+                    fileError.message
+                );
                 result.failed++;
                 result.errors.push(`${fileName}: ${fileError.message}`);
             }
@@ -244,9 +265,14 @@ export function migrateBlueprintPaths() {
 
         enumerator.close(null);
 
-        console.log(`[Migration] Blueprint path migration complete: ${result.updated} updated, ${result.skipped} skipped, ${result.failed} failed`);
+        console.log(
+            `[Migration] Blueprint path migration complete: ${result.updated} updated, ${result.skipped} skipped, ${result.failed} failed`
+        );
     } catch (error) {
-        console.error('[Migration] Blueprint path migration failed:', error.message);
+        console.error(
+            '[Migration] Blueprint path migration failed:',
+            error.message
+        );
         result.errors.push(`Migration error: ${error.message}`);
     }
 
@@ -264,7 +290,10 @@ export function runMigrations() {
         GLib.get_user_config_dir(),
         'aether',
     ]);
-    const migrationFile = GLib.build_filenamev([configDir, 'migration-version']);
+    const migrationFile = GLib.build_filenamev([
+        configDir,
+        'migration-version',
+    ]);
     const file = Gio.File.new_for_path(migrationFile);
 
     let currentVersion = 0;
@@ -278,7 +307,10 @@ export function runMigrations() {
                 currentVersion = parseInt(text.trim()) || 0;
             }
         } catch (error) {
-            console.warn('[Migration] Failed to read migration version:', error.message);
+            console.warn(
+                '[Migration] Failed to read migration version:',
+                error.message
+            );
         }
     }
 
@@ -286,11 +318,15 @@ export function runMigrations() {
 
     // Migration 1: Move wallpapers from cache to data directory
     if (currentVersion < 1) {
-        console.log('[Migration] Running migration 1: Move wallpapers to data directory');
+        console.log(
+            '[Migration] Running migration 1: Move wallpapers to data directory'
+        );
         const result = migrateWallpapersToDataDir();
 
         if (result.moved > 0 || result.skipped > 0) {
-            console.log(`[Migration] Migration 1 complete: ${result.moved} wallpapers moved`);
+            console.log(
+                `[Migration] Migration 1 complete: ${result.moved} wallpapers moved`
+            );
         }
 
         currentVersion = 1;
@@ -298,11 +334,15 @@ export function runMigrations() {
 
     // Migration 2: Update blueprint paths
     if (currentVersion < 2) {
-        console.log('[Migration] Running migration 2: Update blueprint wallpaper paths');
+        console.log(
+            '[Migration] Running migration 2: Update blueprint wallpaper paths'
+        );
         const result = migrateBlueprintPaths();
 
         if (result.updated > 0) {
-            console.log(`[Migration] Migration 2 complete: ${result.updated} blueprints updated`);
+            console.log(
+                `[Migration] Migration 2 complete: ${result.updated} blueprints updated`
+            );
         }
 
         currentVersion = 2;
@@ -318,8 +358,13 @@ export function runMigrations() {
             Gio.FileCreateFlags.REPLACE_DESTINATION,
             null
         );
-        console.log(`[Migration] Updated migration version to ${currentVersion}`);
+        console.log(
+            `[Migration] Updated migration version to ${currentVersion}`
+        );
     } catch (error) {
-        console.error('[Migration] Failed to save migration version:', error.message);
+        console.error(
+            '[Migration] Failed to save migration version:',
+            error.message
+        );
     }
 }
