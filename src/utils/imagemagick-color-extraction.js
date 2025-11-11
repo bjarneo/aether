@@ -737,6 +737,192 @@ function generateMonochromePalette(grayColors, lightMode) {
 }
 
 /**
+ * Generates a monochromatic ANSI palette based on dominant hue from image
+ * Creates variations of a single hue with different saturation and lightness
+ * @param {string[]} dominantColors - Array of dominant colors from image (sorted by frequency)
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 monochromatic ANSI colors
+ */
+function generateMonochromaticPalette(dominantColors, lightMode) {
+    // Find the most frequent color that has decent saturation
+    // dominantColors is sorted by frequency, so we prioritize common colors
+    let baseColor = null;
+
+    // First try: Find most common color with good saturation (>15%)
+    for (const color of dominantColors) {
+        const hsl = getColorHSL(color);
+        if (hsl.s > MONOCHROME_SATURATION_THRESHOLD) {
+            baseColor = {color, hsl};
+            break;
+        }
+    }
+
+    // Fallback: Use the most common color regardless of saturation
+    if (!baseColor) {
+        baseColor = {
+            color: dominantColors[0],
+            hsl: getColorHSL(dominantColors[0])
+        };
+    }
+
+    const baseHue = baseColor.hsl.h;
+
+    // Sort all colors by lightness for background/foreground
+    const sortedByLightness = sortColorsByLightness(dominantColors);
+    const darkest = sortedByLightness[0];
+    const lightest = sortedByLightness[sortedByLightness.length - 1];
+
+    const palette = new Array(ANSI_PALETTE_SIZE);
+
+    // Set background and foreground using base hue but with appropriate lightness
+    if (lightMode) {
+        // Light background, dark foreground
+        palette[0] = hslToHex(baseHue, 8, Math.max(85, lightest.lightness));
+        palette[7] = hslToHex(baseHue, 25, Math.min(30, darkest.lightness + 10));
+    } else {
+        // Dark background, light foreground
+        palette[0] = hslToHex(baseHue, 15, Math.min(15, darkest.lightness));
+        palette[7] = hslToHex(baseHue, 10, Math.max(80, lightest.lightness - 10));
+    }
+
+    // Generate ANSI colors 1-6 with the base hue but varying saturation and lightness
+    // We'll create a monochromatic gradient with different intensities
+    const saturationLevels = [40, 50, 45, 55, 42, 48]; // Varied saturation for interest
+    const lightnessBase = lightMode ? 45 : 55;
+
+    for (let i = 0; i < 6; i++) {
+        const lightness = lightnessBase + (i - 2.5) * 5; // Range around base
+        palette[i + 1] = hslToHex(baseHue, saturationLevels[i], lightness);
+    }
+
+    // Color 8: Muted version for comments/dim text
+    const color8Lightness = lightMode ? 55 : 45;
+    palette[8] = hslToHex(baseHue, 20, color8Lightness);
+
+    // Colors 9-14: Brighter/more saturated versions of 1-6
+    const brightSaturationLevels = [60, 70, 65, 75, 62, 68];
+    for (let i = 0; i < 6; i++) {
+        const baseLightness = lightnessBase + (i - 2.5) * 5;
+        const adjustment = lightMode ? -8 : 8;
+        const lightness = Math.max(0, Math.min(100, baseLightness + adjustment));
+        palette[i + 9] = hslToHex(baseHue, brightSaturationLevels[i], lightness);
+    }
+
+    // Color 15: Bright foreground (more saturated than color 7)
+    if (lightMode) {
+        palette[15] = hslToHex(baseHue, 30, Math.min(25, darkest.lightness + 5));
+    } else {
+        palette[15] = hslToHex(baseHue, 15, Math.max(85, lightest.lightness));
+    }
+
+    return palette;
+}
+
+/**
+ * Generates a pastel color palette (low saturation, high lightness)
+ * Creates soft, muted colors from image hues
+ * @param {string[]} dominantColors - Array of dominant colors from image
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 pastel ANSI colors
+ */
+function generatePastelPalette(dominantColors, lightMode) {
+    const palette = generateChromaticPalette(dominantColors, lightMode);
+
+    // Convert all colors to pastel (low saturation, high lightness)
+    return palette.map((color, index) => {
+        const hsl = getColorHSL(color);
+
+        if (index === 0) {
+            // Background: very light and desaturated
+            return lightMode ? hslToHex(hsl.h, 10, 95) : hslToHex(hsl.h, 15, 20);
+        } else if (index === 7 || index === 15) {
+            // Foreground: darker but still pastel
+            return lightMode ? hslToHex(hsl.h, 25, 35) : hslToHex(hsl.h, 20, 75);
+        } else if (index === 8) {
+            // Comment gray: pastel
+            return lightMode ? hslToHex(hsl.h, 15, 65) : hslToHex(hsl.h, 12, 45);
+        } else {
+            // ANSI colors: pastel with moderate saturation
+            const pastelSaturation = Math.min(35, hsl.s);
+            const pastelLightness = lightMode ? 50 : 70;
+            return hslToHex(hsl.h, pastelSaturation, pastelLightness);
+        }
+    });
+}
+
+/**
+ * Generates an analogous color palette (adjacent hues on the color wheel)
+ * Creates harmonious colors using hues close to the dominant color
+ * @param {string[]} dominantColors - Array of dominant colors from image
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 analogous ANSI colors
+ */
+function generateAnalogousPalette(dominantColors, lightMode) {
+    // Find the most saturated color to use as the base hue
+    const chromaticColors = dominantColors
+        .map(color => {
+            const hsl = getColorHSL(color);
+            return {color, hsl, saturation: hsl.s};
+        })
+        .filter(c => c.saturation > MONOCHROME_SATURATION_THRESHOLD)
+        .sort((a, b) => b.saturation - a.saturation);
+
+    // Use the most saturated color as the base, or fall back to the most common
+    const baseColor = chromaticColors.length > 0
+        ? chromaticColors[0]
+        : {color: dominantColors[0], hsl: getColorHSL(dominantColors[0])};
+
+    const baseHue = baseColor.hsl.h;
+
+    // Sort all colors by lightness for background/foreground
+    const sortedByLightness = sortColorsByLightness(dominantColors);
+    const darkest = sortedByLightness[0];
+    const lightest = sortedByLightness[sortedByLightness.length - 1];
+
+    const palette = new Array(ANSI_PALETTE_SIZE);
+
+    // Set background and foreground using base hue
+    if (lightMode) {
+        palette[0] = hslToHex(baseHue, 12, Math.max(90, lightest.lightness));
+        palette[7] = hslToHex(baseHue, 30, Math.min(25, darkest.lightness + 10));
+    } else {
+        palette[0] = hslToHex(baseHue, 18, Math.min(12, darkest.lightness));
+        palette[7] = hslToHex(baseHue, 15, Math.max(85, lightest.lightness - 10));
+    }
+
+    // Generate ANSI colors 1-6 with analogous hues (±30 degrees)
+    // Analogous colors are within 30 degrees on either side of the base hue
+    const analogousOffsets = [-30, -20, -10, 10, 20, 30];
+    const saturationLevels = [45, 50, 48, 52, 47, 50];
+    const lightnessBase = lightMode ? 45 : 58;
+
+    for (let i = 0; i < 6; i++) {
+        const hue = (baseHue + analogousOffsets[i] + 360) % 360;
+        const lightness = lightnessBase + (i % 2 === 0 ? -3 : 3);
+        palette[i + 1] = hslToHex(hue, saturationLevels[i], lightness);
+    }
+
+    // Color 8 (bright black / comment color)
+    palette[8] = lightMode
+        ? hslToHex(baseHue, 20, 55)
+        : hslToHex(baseHue, 15, 45);
+
+    // Colors 9-14: Brighter versions with analogous hues
+    for (let i = 0; i < 6; i++) {
+        const hue = (baseHue + analogousOffsets[i] + 360) % 360;
+        const lightness = lightMode ? 38 : 68;
+        palette[i + 9] = hslToHex(hue, saturationLevels[i] + 8, lightness);
+    }
+
+    // Color 15 (bright white / foreground)
+    palette[15] = lightMode
+        ? hslToHex(baseHue, 20, 20)
+        : hslToHex(baseHue, 10, 95);
+
+    return palette;
+}
+
+/**
  * Adjusts a single color for dark background
  * @param {string[]} palette - Color palette
  * @param {Object} colorInfo - Color information
@@ -896,15 +1082,19 @@ function normalizeBrightness(palette) {
  * Uses caching to avoid re-processing the same image
  * @param {string} imagePath - Path to wallpaper image
  * @param {boolean} lightMode - Whether to generate light mode palette
+ * @param {string} [extractionMode='normal'] - Extraction mode: 'normal' (auto-detect), 'monochromatic', 'analogous', 'pastel'
  * @returns {Promise<string[]>} Array of 16 ANSI colors
  */
 export async function extractColorsWithImageMagick(
     imagePath,
-    lightMode = false
+    lightMode = false,
+    extractionMode = 'normal'
 ) {
     try {
-        // Check cache first
-        const cacheKey = getCacheKey(imagePath, lightMode);
+        // Check cache first (include extraction mode in cache key)
+        const cacheKey = extractionMode !== 'normal'
+            ? `${getCacheKey(imagePath, lightMode)}_${extractionMode}`
+            : getCacheKey(imagePath, lightMode);
         if (cacheKey) {
             const cachedPalette = loadCachedPalette(cacheKey);
             if (cachedPalette) {
@@ -924,22 +1114,34 @@ export async function extractColorsWithImageMagick(
 
         let palette;
 
-        // Generate palette based on image characteristics
-        if (isMonochromeImage(dominantColors)) {
-            console.log(
-                'Detected monochrome/grayscale image - generating grayscale palette'
-            );
-            palette = generateMonochromePalette(dominantColors, lightMode);
-        } else if (hasLowColorDiversity(dominantColors)) {
-            console.log(
-                'Detected low color diversity - generating subtle balanced palette'
-            );
-            palette = generateSubtleBalancedPalette(dominantColors, lightMode);
-        } else {
-            console.log(
-                'Detected diverse chromatic image - generating vibrant colorful palette'
-            );
-            palette = generateChromaticPalette(dominantColors, lightMode);
+        // Generate palette based on extraction mode
+        switch (extractionMode) {
+            case 'monochromatic':
+                console.log('Monochromatic mode - generating single-hue palette from dominant color');
+                palette = generateMonochromaticPalette(dominantColors, lightMode);
+                break;
+            case 'analogous':
+                console.log('Analogous mode - generating harmonious adjacent hues');
+                palette = generateAnalogousPalette(dominantColors, lightMode);
+                break;
+            case 'pastel':
+                console.log('Pastel mode - generating soft, muted palette');
+                palette = generatePastelPalette(dominantColors, lightMode);
+                break;
+            case 'normal':
+            default:
+                // Auto-detect image type and generate appropriate palette
+                if (isMonochromeImage(dominantColors)) {
+                    console.log('Detected monochrome/grayscale image - generating grayscale palette');
+                    palette = generateMonochromePalette(dominantColors, lightMode);
+                } else if (hasLowColorDiversity(dominantColors)) {
+                    console.log('Detected low color diversity - generating subtle balanced palette');
+                    palette = generateSubtleBalancedPalette(dominantColors, lightMode);
+                } else {
+                    console.log('Detected diverse chromatic image - generating vibrant colorful palette');
+                    palette = generateChromaticPalette(dominantColors, lightMode);
+                }
+                break;
         }
 
         // Normalize brightness for readability
@@ -1012,14 +1214,16 @@ function generateChromaticPalette(dominantColors, lightMode) {
  * @param {boolean} lightMode - Whether to generate light mode palette
  * @param {Function} onSuccess - Callback when colors are extracted
  * @param {Function} onError - Callback when extraction fails
+ * @param {string} [extractionMode='normal'] - Extraction mode
  */
 export function extractColorsFromWallpaperIM(
     imagePath,
     lightMode,
     onSuccess,
-    onError
+    onError,
+    extractionMode = 'normal'
 ) {
-    extractColorsWithImageMagick(imagePath, lightMode)
+    extractColorsWithImageMagick(imagePath, lightMode, extractionMode)
         .then(colors => onSuccess(colors))
         .catch(error => onError(error));
 }

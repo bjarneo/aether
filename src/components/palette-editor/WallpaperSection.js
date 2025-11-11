@@ -15,7 +15,7 @@ import {uploadWallpaper} from '../../utils/wallpaper-utils.js';
 export const WallpaperSection = GObject.registerClass(
     {
         Signals: {
-            'extract-clicked': {},
+            'extract-clicked': {param_types: [GObject.TYPE_STRING]}, // Passes extraction mode
             'edit-clicked': {},
             'apply-clicked': {},
             'wallpaper-loaded': {param_types: [GObject.TYPE_STRING]},
@@ -45,32 +45,42 @@ export const WallpaperSection = GObject.registerClass(
                 valign: Gtk.Align.CENTER,
             });
 
-            // Extract button
-            const imExtractButtonBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-            });
+            // Extract button with dropdown menu
+            const extractMenu = Gio.Menu.new();
+            extractMenu.append('Extract', 'wallpaper.extract-normal');
+            extractMenu.append('Monochromatic', 'wallpaper.extract-monochromatic');
+            extractMenu.append('Analogous', 'wallpaper.extract-analogous');
+            extractMenu.append('Pastel', 'wallpaper.extract-pastel');
 
-            imExtractButtonBox.append(
-                new Gtk.Image({
-                    icon_name: 'color-select-symbolic',
-                })
-            );
-            imExtractButtonBox.append(
-                new Gtk.Label({
-                    label: 'Extract',
-                })
-            );
-
-            this._imExtractButton = new Gtk.Button({
-                child: imExtractButtonBox,
+            const extractMenuButton = new Gtk.MenuButton({
+                icon_name: 'color-select-symbolic',
+                label: 'Extract',
+                menu_model: extractMenu,
                 css_classes: ['suggested-action'],
-                tooltip_text: 'Extract colors from wallpaper',
+                tooltip_text: 'Extract colors from wallpaper (choose mode)',
             });
-            this._imExtractButton.connect('clicked', () =>
-                this.emit('extract-clicked')
-            );
-            buttonBox.append(this._imExtractButton);
+
+            // Create action group for menu items
+            this._actionGroup = Gio.SimpleActionGroup.new();
+
+            // Helper function to create extraction action
+            const createExtractionAction = (name, mode) => {
+                const action = Gio.SimpleAction.new(name, null);
+                action.connect('activate', () => {
+                    this.emit('extract-clicked', mode);
+                });
+                this._actionGroup.add_action(action);
+            };
+
+            // Add extraction mode actions
+            createExtractionAction('extract-normal', 'normal');
+            createExtractionAction('extract-monochromatic', 'monochromatic');
+            createExtractionAction('extract-analogous', 'analogous');
+            createExtractionAction('extract-pastel', 'pastel');
+
+            this.insert_action_group('wallpaper', this._actionGroup);
+
+            buttonBox.append(extractMenuButton);
 
             // Edit button
             const editButtonBox = new Gtk.Box({
