@@ -624,10 +624,10 @@ function generateSubtleBalancedPalette(dominantColors, lightMode) {
         );
     }
 
-    // Color 8: gray between background and colors
+    // Color 8: gray for comments - brighter in dark mode, darker in light mode
     const color8Lightness = lightMode
-        ? Math.max(0, lightest.lightness - 20)
-        : Math.min(100, darkest.lightness + 20);
+        ? Math.max(0, lightest.lightness - 40)
+        : Math.min(100, darkest.lightness + 45);
     palette[8] = hslToHex(
         avgHue,
         SUBTLE_PALETTE_SATURATION * 0.5,
@@ -710,10 +710,10 @@ function generateMonochromePalette(grayColors, lightMode) {
         }
     }
 
-    // Color 8: gray between background and colors
+    // Color 8: gray for comments - brighter in dark mode, darker in light mode
     const color8Lightness = lightMode
         ? Math.max(0, darkest.lightness + 5)
-        : Math.min(100, lightest.lightness - 25);
+        : Math.min(100, lightest.lightness - 10);
     palette[8] = hslToHex(
         baseHue,
         MONOCHROME_SATURATION * MONOCHROME_COLOR8_SATURATION_FACTOR,
@@ -803,8 +803,8 @@ function generateMonochromaticPalette(dominantColors, lightMode) {
         palette[i + 1] = hslToHex(baseHue, saturationLevels[i], lightness);
     }
 
-    // Color 8: Muted version for comments/dim text
-    const color8Lightness = lightMode ? 55 : 45;
+    // Color 8: Muted version for comments - darker in light mode, brighter in dark mode
+    const color8Lightness = lightMode ? 40 : 65;
     palette[8] = hslToHex(baseHue, 20, color8Lightness);
 
     // Colors 9-14: Brighter/more saturated versions of 1-6
@@ -1247,11 +1247,11 @@ function generateChromaticPalette(dominantColors, lightMode) {
         usedIndices.add(matchIndex);
     }
 
-    // Generate color8 (bright black/gray)
+    // Generate color8 (bright black/gray) - brighter in dark mode, darker in light mode
     const bgHsl = getColorHSL(background.color);
     const color8Lightness = isDarkColor(background.color)
-        ? Math.min(100, bgHsl.l + 20)
-        : Math.max(0, bgHsl.l - 20);
+        ? Math.min(100, bgHsl.l + 45)
+        : Math.max(0, bgHsl.l - 40);
     palette[8] = hslToHex(bgHsl.h, bgHsl.s * 0.5, color8Lightness);
 
     // Generate bright versions (9-14) of colors 1-6
