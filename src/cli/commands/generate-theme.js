@@ -16,10 +16,16 @@ export class GenerateThemeCommand {
      * @param {boolean} [lightMode=false] - Generate light mode theme
      * @returns {Promise<boolean>} True if successful, false otherwise
      */
-    static async execute(wallpaperPath, extractionMode = 'normal', lightMode = false) {
+    static async execute(
+        wallpaperPath,
+        extractionMode = 'normal',
+        lightMode = false
+    ) {
         if (!wallpaperPath) {
             print('Error: Wallpaper path is required');
-            print('Usage: aether --generate <wallpaper_path> [--extract-mode <mode>] [--light-mode]');
+            print(
+                'Usage: aether --generate <wallpaper_path> [--extract-mode <mode>] [--light-mode]'
+            );
             return false;
         }
 
@@ -65,7 +71,9 @@ export class GenerateThemeCommand {
             });
 
             if (!colors || colors.length !== 16) {
-                print(`Error: Failed to extract 16 colors (got ${colors?.length || 0})`);
+                print(
+                    `Error: Failed to extract 16 colors (got ${colors?.length || 0})`
+                );
                 return false;
             }
 

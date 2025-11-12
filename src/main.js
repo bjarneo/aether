@@ -47,7 +47,11 @@ import {ThemeManager} from './services/theme-manager.js';
 import {ThemeExporter} from './services/ThemeExporter.js';
 import {BlueprintService} from './services/BlueprintService.js';
 import {ensureDirectoryExists} from './utils/file-utils.js';
-import {ListBlueprintsCommand, ApplyBlueprintCommand, GenerateThemeCommand} from './cli/index.js';
+import {
+    ListBlueprintsCommand,
+    ApplyBlueprintCommand,
+    GenerateThemeCommand,
+} from './cli/index.js';
 import {BlueprintWidget} from './components/BlueprintWidget.js';
 import {runMigrations} from './utils/migrations.js';
 
@@ -180,7 +184,7 @@ const AetherApplication = GObject.registerClass(
                 const wallpaperPath = options
                     .lookup_value('generate', GLib.VariantType.new('s'))
                     .get_string()[0];
-                
+
                 // Get extraction mode if provided, default to 'normal'
                 let extractionMode = 'normal';
                 if (options.contains('extract-mode')) {
@@ -188,14 +192,18 @@ const AetherApplication = GObject.registerClass(
                         .lookup_value('extract-mode', GLib.VariantType.new('s'))
                         .get_string()[0];
                 }
-                
+
                 // Check if light mode is requested
                 const lightMode = options.contains('light-mode');
-                
+
                 // Keep application alive for async operation
                 this.hold();
-                
-                GenerateThemeCommand.execute(wallpaperPath, extractionMode, lightMode)
+
+                GenerateThemeCommand.execute(
+                    wallpaperPath,
+                    extractionMode,
+                    lightMode
+                )
                     .then(success => {
                         this.release();
                         if (!success) {
@@ -207,7 +215,7 @@ const AetherApplication = GObject.registerClass(
                         this.release();
                         imports.system.exit(1);
                     });
-                
+
                 return 0;
             }
 
