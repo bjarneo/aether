@@ -491,7 +491,7 @@ function findForegroundColor(colors, lightMode, usedIndices) {
 
 /**
  * Calculates color quality score for ANSI color selection
- * Prioritizes hue accuracy to stay close to extracted colors
+ * Prioritizes hue accuracy, then favors more saturated colors
  * @param {{h: number, s: number, l: number}} hsl - HSL color values
  * @param {number} targetHue - Target hue (0-360)
  * @returns {number} Score (lower is better)
@@ -500,8 +500,13 @@ function calculateColorScore(hsl, targetHue) {
     // Hue difference is the primary factor - multiply by 3 to prioritize it
     const hueDiff = calculateHueDistance(hsl.h, targetHue) * 3;
 
-    // Only penalize extremely desaturated colors
+    // Heavily penalize extremely desaturated colors
     const saturationPenalty = hsl.s < MIN_CHROMATIC_SATURATION ? 50 : 0;
+    
+    // Reward higher saturation: prefer stronger colors when hues are similar
+    // Invert saturation (100 - s) so lower score = better (more saturated)
+    // Divide by 2 to keep it less important than hue accuracy
+    const saturationReward = (100 - hsl.s) / 2;
 
     // Very minimal lightness penalties - just avoid extremes
     let lightnessPenalty = 0;
@@ -511,8 +516,8 @@ function calculateColorScore(hsl, targetHue) {
         lightnessPenalty = 10;
     }
 
-    // Hue is 3x more important than other factors
-    return hueDiff + saturationPenalty + lightnessPenalty;
+    // Priority: Hue (3x) > Saturation preference > Lightness extremes
+    return hueDiff + saturationPenalty + saturationReward + lightnessPenalty;
 }
 
 /**
