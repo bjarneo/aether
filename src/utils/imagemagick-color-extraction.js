@@ -876,6 +876,71 @@ function generatePastelPalette(dominantColors, lightMode) {
 }
 
 /**
+ * Generates a Material Design-inspired palette
+ * Uses actual image colors with Material's clean backgrounds and subtle refinement
+ * @param {string[]} dominantColors - Array of dominant colors from image
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 Material Design ANSI colors
+ */
+function generateMaterialPalette(dominantColors, lightMode) {
+    // Material Design emphasizes clean neutral backgrounds and high contrast
+    // Use actual image colors but with Material's characteristic backgrounds
+
+    const palette = new Array(ANSI_PALETTE_SIZE);
+    const usedIndices = new Set();
+
+    // Material backgrounds: clean, neutral, high contrast
+    if (lightMode) {
+        palette[0] = '#fafafa'; // Material Grey 50
+        palette[7] = '#212121'; // Material Grey 900
+    } else {
+        palette[0] = '#121212'; // Material Dark background
+        palette[7] = '#ffffff'; // Pure white
+    }
+
+    // Find best ANSI color matches from the actual image colors
+    for (let i = 0; i < ANSI_HUE_ARRAY.length; i++) {
+        const matchIndex = findBestColorMatch(
+            ANSI_HUE_ARRAY[i],
+            dominantColors,
+            usedIndices
+        );
+        const matchedColor = dominantColors[matchIndex];
+        const hsl = getColorHSL(matchedColor);
+
+        // Apply subtle Material Design refinement:
+        // - Ensure minimum saturation for chromatic colors (prevent washed out)
+        // - Normalize lightness for better contrast and readability
+        const refinedSaturation = Math.max(hsl.s, 35);
+        const refinedLightness = lightMode
+            ? Math.max(35, Math.min(60, hsl.l)) // Light mode: not too dark, not too bright
+            : Math.max(45, Math.min(70, hsl.l)); // Dark mode: slightly brighter
+
+        palette[i + 1] = hslToHex(hsl.h, refinedSaturation, refinedLightness);
+        usedIndices.add(matchIndex);
+    }
+
+    // Color 8 (bright black / comment): Material Grey
+    palette[8] = lightMode ? '#757575' : '#9e9e9e';
+
+    // Colors 9-14: Brighter versions of 1-6 with slight saturation boost
+    for (let i = 1; i <= 6; i++) {
+        const hsl = getColorHSL(palette[i]);
+        const brightSaturation = Math.min(100, hsl.s + 8);
+        const brightLightness = lightMode
+            ? Math.max(30, hsl.l - 8) // Darker in light mode
+            : Math.min(75, hsl.l + 8); // Brighter in dark mode
+
+        palette[i + 8] = hslToHex(hsl.h, brightSaturation, brightLightness);
+    }
+
+    // Color 15 (bright white / bright foreground)
+    palette[15] = lightMode ? '#000000' : '#ffffff';
+
+    return palette;
+}
+
+/**
  * Generates an analogous color palette (adjacent hues on the color wheel)
  * Creates harmonious colors using hues close to the dominant color
  * @param {string[]} dominantColors - Array of dominant colors from image
@@ -1116,7 +1181,7 @@ function normalizeBrightness(palette) {
  * Uses caching to avoid re-processing the same image
  * @param {string} imagePath - Path to wallpaper image
  * @param {boolean} lightMode - Whether to generate light mode palette
- * @param {string} [extractionMode='normal'] - Extraction mode: 'normal' (auto-detect), 'monochromatic', 'analogous', 'pastel'
+ * @param {string} [extractionMode='normal'] - Extraction mode: 'normal' (auto-detect), 'monochromatic', 'analogous', 'pastel', 'material'
  * @returns {Promise<string[]>} Array of 16 ANSI colors
  */
 export async function extractColorsWithImageMagick(
@@ -1169,6 +1234,12 @@ export async function extractColorsWithImageMagick(
             case 'pastel':
                 console.log('Pastel mode - generating soft, muted palette');
                 palette = generatePastelPalette(dominantColors, lightMode);
+                break;
+            case 'material':
+                console.log(
+                    'Material mode - using image colors with Material Design backgrounds'
+                );
+                palette = generateMaterialPalette(dominantColors, lightMode);
                 break;
             case 'normal':
             default:

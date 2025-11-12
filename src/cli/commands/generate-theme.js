@@ -12,7 +12,7 @@ export class GenerateThemeCommand {
      * Executes the generate-theme command
      *
      * @param {string} wallpaperPath - Path to wallpaper image
-     * @param {string} [extractionMode='normal'] - Extraction mode: 'normal', 'monochromatic', 'analogous', 'pastel'
+     * @param {string} [extractionMode='normal'] - Extraction mode: 'normal', 'monochromatic', 'analogous', 'pastel', 'material'
      * @param {boolean} [lightMode=false] - Generate light mode theme
      * @returns {Promise<boolean>} True if successful, false otherwise
      */
@@ -30,7 +30,13 @@ export class GenerateThemeCommand {
         }
 
         // Validate extraction mode
-        const validModes = ['normal', 'monochromatic', 'analogous', 'pastel'];
+        const validModes = [
+            'normal',
+            'monochromatic',
+            'analogous',
+            'pastel',
+            'material',
+        ];
         if (!validModes.includes(extractionMode)) {
             print(`Error: Invalid extraction mode: ${extractionMode}`);
             print(`Valid modes: ${validModes.join(', ')}`);

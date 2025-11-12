@@ -54,6 +54,7 @@ export const WallpaperSection = GObject.registerClass(
             );
             extractMenu.append('Analogous', 'wallpaper.extract-analogous');
             extractMenu.append('Pastel', 'wallpaper.extract-pastel');
+            extractMenu.append('Material', 'wallpaper.extract-material');
 
             const extractMenuButton = new Gtk.MenuButton({
                 icon_name: 'color-select-symbolic',
@@ -80,6 +81,7 @@ export const WallpaperSection = GObject.registerClass(
             createExtractionAction('extract-monochromatic', 'monochromatic');
             createExtractionAction('extract-analogous', 'analogous');
             createExtractionAction('extract-pastel', 'pastel');
+            createExtractionAction('extract-material', 'material');
 
             this.insert_action_group('wallpaper', this._actionGroup);
 
