@@ -502,7 +502,7 @@ function calculateColorScore(hsl, targetHue) {
 
     // Heavily penalize extremely desaturated colors
     const saturationPenalty = hsl.s < MIN_CHROMATIC_SATURATION ? 50 : 0;
-    
+
     // Reward higher saturation: prefer stronger colors when hues are similar
     // Invert saturation (100 - s) so lower score = better (more saturated)
     // Divide by 2 to keep it less important than hue accuracy
