@@ -83,16 +83,48 @@ Options:
   -w, --wallpaper=FILE          Path to wallpaper image to load on startup
   -l, --list-blueprints         List all saved blueprint themes
   -a, --apply-blueprint=NAME    Apply a blueprint by name
+  -g, --generate=FILE           Extract colors from wallpaper and apply theme
+  --extract-mode=MODE           Extraction mode: normal (default), monochromatic, analogous, pastel
+  --light-mode                  Generate light mode theme (for --generate)
   --widget-blueprint            Show floating blueprint selector widget
 ```
 
 Examples:
 ```bash
+# Launch GUI with wallpaper
 ./aether --wallpaper ~/Pictures/wallpaper.jpg
+
+# List saved blueprints
 ./aether -l
+
+# Apply saved blueprint
 ./aether -a BLUEPRINT_NAME
-./aether --widget-blueprint  # Floating widget for quick blueprint switching
+
+# Generate and apply theme from wallpaper (CLI only, no GUI)
+./aether --generate ~/Pictures/wallpaper.jpg
+./aether -g ~/Pictures/wallpaper.jpg
+
+# Generate theme with specific extraction mode
+./aether -g wallpaper.jpg --extract-mode=monochromatic
+./aether -g wallpaper.jpg --extract-mode=analogous
+./aether -g wallpaper.jpg --extract-mode=pastel
+
+# Generate light mode theme
+./aether -g wallpaper.jpg --light-mode
+./aether -g wallpaper.jpg --extract-mode=pastel --light-mode
+
+# Floating widget for quick blueprint switching
+./aether --widget-blueprint
 ```
+
+#### Extraction Modes
+
+When using `--generate`, you can specify an extraction mode to control the color palette style:
+
+- **normal** (default) - Auto-detects image type and applies appropriate strategy (monochrome, low-diversity, or chromatic)
+- **monochromatic** - Generates single-hue palette from the dominant color in the image
+- **analogous** - Generates harmonious adjacent hues for a cohesive color scheme
+- **pastel** - Generates soft, muted palette with reduced saturation
 
 ### Basic Workflow
 

@@ -22,6 +22,7 @@
  * CLI Commands:
  * - --list-blueprints: List all saved themes
  * - --apply-blueprint NAME: Apply saved theme by name
+ * - --generate PATH: Extract colors from wallpaper and apply theme
  * - --wallpaper PATH: Launch GUI with specific wallpaper
  *
  * @module main
@@ -46,7 +47,7 @@ import {ThemeManager} from './services/theme-manager.js';
 import {ThemeExporter} from './services/ThemeExporter.js';
 import {BlueprintService} from './services/BlueprintService.js';
 import {ensureDirectoryExists} from './utils/file-utils.js';
-import {ListBlueprintsCommand, ApplyBlueprintCommand} from './cli/index.js';
+import {ListBlueprintsCommand, ApplyBlueprintCommand, GenerateThemeCommand} from './cli/index.js';
 import {BlueprintWidget} from './components/BlueprintWidget.js';
 import {runMigrations} from './utils/migrations.js';
 
@@ -112,6 +113,33 @@ const AetherApplication = GObject.registerClass(
             );
 
             this.add_main_option(
+                'generate',
+                'g'.charCodeAt(0),
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.STRING,
+                'Extract colors from wallpaper and apply theme',
+                'FILE'
+            );
+
+            this.add_main_option(
+                'extract-mode',
+                0,
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.STRING,
+                'Extraction mode: normal (default), monochromatic, analogous, pastel',
+                'MODE'
+            );
+
+            this.add_main_option(
+                'light-mode',
+                0,
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.NONE,
+                'Generate light mode theme (for --generate)',
+                null
+            );
+
+            this.add_main_option(
                 'widget-blueprint',
                 0,
                 GLib.OptionFlags.NONE,
@@ -123,7 +151,7 @@ const AetherApplication = GObject.registerClass(
 
         /**
          * Handles command-line arguments
-         * Processes CLI commands (list-blueprints, apply-blueprint) or launches GUI
+         * Processes CLI commands (list-blueprints, apply-blueprint, generate) or launches GUI
          * @param {Gio.ApplicationCommandLine} commandLine - Command line instance
          * @returns {number} Exit code (0 for success)
          * @override
@@ -145,6 +173,41 @@ const AetherApplication = GObject.registerClass(
                     .lookup_value('apply-blueprint', GLib.VariantType.new('s'))
                     .get_string()[0];
                 ApplyBlueprintCommand.execute(blueprintName);
+                return 0;
+            }
+
+            if (options.contains('generate')) {
+                const wallpaperPath = options
+                    .lookup_value('generate', GLib.VariantType.new('s'))
+                    .get_string()[0];
+                
+                // Get extraction mode if provided, default to 'normal'
+                let extractionMode = 'normal';
+                if (options.contains('extract-mode')) {
+                    extractionMode = options
+                        .lookup_value('extract-mode', GLib.VariantType.new('s'))
+                        .get_string()[0];
+                }
+                
+                // Check if light mode is requested
+                const lightMode = options.contains('light-mode');
+                
+                // Keep application alive for async operation
+                this.hold();
+                
+                GenerateThemeCommand.execute(wallpaperPath, extractionMode, lightMode)
+                    .then(success => {
+                        this.release();
+                        if (!success) {
+                            imports.system.exit(1);
+                        }
+                    })
+                    .catch(error => {
+                        printerr(`Error: ${error.message}`);
+                        this.release();
+                        imports.system.exit(1);
+                    });
+                
                 return 0;
             }
 
