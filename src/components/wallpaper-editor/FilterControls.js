@@ -13,7 +13,7 @@ import {
 import {rgbToHsl, hslToHex} from '../../utils/color-utils.js';
 
 // UI constants
-const SLIDER_WIDTH = 180; // Fixed width for all filter sliders
+const SLIDER_WIDTH = 200; // Slightly wider for better UX
 const DOUBLE_CLICK_TIMEOUT_MS = 300; // Time window for detecting double-clicks
 
 /**
@@ -24,7 +24,20 @@ function rgbToHex(r, g, b) {
 }
 
 /**
- * FilterControls - UI controls for adjusting image filters
+ * FilterControls - Tabbed UI controls for adjusting image filters
+ * 
+ * Reorganized into 4 tabs for better usability:
+ * - Simple: 6 most common adjustments
+ * - Creative: Artistic effects and filters
+ * - Pro: Advanced professional controls  
+ * - Presets: Quick preset library organized by category
+ * 
+ * Features:
+ * - Visual active filter indicators (colored badges)
+ * - Per-tab and global reset buttons
+ * - Active filter count in UI
+ * - Improved preset grid with categories
+ * 
  * Emits 'filter-changed' signal when any filter value changes
  */
 export const FilterControls = GObject.registerClass(
@@ -39,80 +52,101 @@ export const FilterControls = GObject.registerClass(
             'reset-filters': {},
         },
     },
-    class FilterControls extends Gtk.ScrolledWindow {
+    class FilterControls extends Gtk.Box {
         _init() {
             super._init({
-                hscrollbar_policy: Gtk.PolicyType.NEVER,
-                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+                orientation: Gtk.Orientation.VERTICAL,
                 vexpand: true,
             });
 
             this._sliders = {};
             this._filters = {...DEFAULT_FILTERS};
             this._tintColorButton = null;
+            this._customColorButton = null;
+            this._activeFilterLabel = null;
 
             this._buildUI();
         }
 
         _buildUI() {
-            const contentBox = new Gtk.Box({
+            // Active filter indicator at top
+            const headerBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 12,
+                margin_top: 8,
+                margin_bottom: 4,
+                margin_start: 18,
+                margin_end: 18,
+            });
+
+            this._activeFilterLabel = new Gtk.Label({
+                label: 'No filters active',
+                xalign: 0,
+                hexpand: true,
+                css_classes: ['dim-label'],
+            });
+            headerBox.append(this._activeFilterLabel);
+
+            // Global reset button
+            const resetAllBtn = new Gtk.Button({
+                icon_name: 'edit-clear-all-symbolic',
+                tooltip_text: 'Reset all filters',
+                css_classes: ['flat'],
+            });
+            resetAllBtn.connect('clicked', () => {
+                this._resetAllFilters();
+            });
+            headerBox.append(resetAllBtn);
+
+            this.append(headerBox);
+
+            // Tab view for different filter categories
+            const tabView = new Adw.TabView({
+                vexpand: true,
+            });
+
+            const tabBar = new Adw.TabBar({
+                view: tabView,
+                autohide: false,
+            });
+            this.append(tabBar);
+            this.append(tabView);
+
+            // Tab 1: Simple (most common filters)
+            tabView.append(this._createSimpleTab()).set_title('Simple');
+
+            // Tab 2: Creative (artistic effects)
+            tabView.append(this._createCreativeTab()).set_title('Creative');
+
+            // Tab 3: Pro (advanced controls)
+            tabView.append(this._createProTab()).set_title('Pro');
+
+            // Tab 4: Presets (quick presets library)
+            tabView.append(this._createPresetsTab()).set_title('Presets');
+        }
+
+        /**
+         * Simple Tab - Most common 6 filters for beginners
+         */
+        _createSimpleTab() {
+            const scrolled = new Gtk.ScrolledWindow({
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+            });
+
+            const box = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 24,
+                spacing: 0,
                 margin_top: 12,
                 margin_bottom: 18,
                 margin_start: 18,
                 margin_end: 18,
             });
 
-            // Quick presets group - MOVED TO TOP
-            contentBox.append(this._createPresetsGroup());
-
-            // Basic Filters group
-            contentBox.append(this._createFiltersGroup());
-
-            // Effects group
-            contentBox.append(this._createEffectsGroup());
-
-            // Tier 1: Advanced Filters (collapsible)
-            contentBox.append(this._createAdvancedFiltersGroup());
-
-            // Color tone group
-            contentBox.append(this._createToneGroup());
-
-            this.set_child(contentBox);
-        }
-
-        _createFiltersGroup() {
             const group = new Adw.PreferencesGroup({
-                title: 'Basic Adjustments',
-                description: 'Fundamental color and tone controls',
+                title: 'Essential Adjustments',
+                description: 'The most commonly used filters',
             });
-
-            group.add(
-                this._createSliderRow(
-                    'Exposure',
-                    'exposure',
-                    -100,
-                    100,
-                    1,
-                    0,
-                    '',
-                    'Simulate camera exposure'
-                )
-            );
-
-            group.add(
-                this._createSliderRow(
-                    'Blur',
-                    'blur',
-                    0,
-                    100,
-                    1,
-                    0,
-                    '%',
-                    'Soften the image'
-                )
-            );
 
             group.add(
                 this._createSliderRow(
@@ -123,7 +157,7 @@ export const FilterControls = GObject.registerClass(
                     1,
                     100,
                     '%',
-                    'Lighten or darken'
+                    'Make image lighter or darker'
                 )
             );
 
@@ -136,7 +170,7 @@ export const FilterControls = GObject.registerClass(
                     1,
                     100,
                     '%',
-                    'Adjust contrast'
+                    'Adjust difference between light and dark'
                 )
             );
 
@@ -149,33 +183,79 @@ export const FilterControls = GObject.registerClass(
                     1,
                     100,
                     '%',
-                    '0% = grayscale'
+                    'Control color intensity (0% = grayscale)'
                 )
             );
 
             group.add(
                 this._createSliderRow(
-                    'Hue Shift',
-                    'hueRotate',
+                    'Blur',
+                    'blur',
                     0,
-                    360,
+                    100,
                     1,
                     0,
-                    '°',
-                    'Rotate colors around the color wheel'
+                    '%',
+                    'Soften and smooth the image'
                 )
             );
 
-            return group;
-        }
-
-        _createEffectsGroup() {
-            const group = new Adw.PreferencesGroup({
-                title: 'Effects',
-                description: 'Creative and artistic filters',
-            });
+            group.add(
+                this._createSliderRow(
+                    'Sharpen',
+                    'sharpen',
+                    0,
+                    100,
+                    1,
+                    0,
+                    '',
+                    'Enhance edges and details'
+                )
+            );
 
             group.add(
+                this._createSliderRow(
+                    'Vignette',
+                    'vignette',
+                    0,
+                    100,
+                    1,
+                    0,
+                    '%',
+                    'Darken edges to draw focus to center'
+                )
+            );
+
+            box.append(group);
+            scrolled.set_child(box);
+            return scrolled;
+        }
+
+        /**
+         * Creative Tab - Artistic effects and creative filters
+         */
+        _createCreativeTab() {
+            const scrolled = new Gtk.ScrolledWindow({
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+            });
+
+            const box = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 20,
+                margin_top: 12,
+                margin_bottom: 18,
+                margin_start: 18,
+                margin_end: 18,
+            });
+
+            // Artistic Effects
+            const effectsGroup = new Adw.PreferencesGroup({
+                title: 'Artistic Effects',
+                description: 'Creative and stylistic filters',
+            });
+
+            effectsGroup.add(
                 this._createSliderRow(
                     'Sepia',
                     'sepia',
@@ -188,20 +268,20 @@ export const FilterControls = GObject.registerClass(
                 )
             );
 
-            group.add(
+            effectsGroup.add(
                 this._createSliderRow(
-                    'Invert',
-                    'invert',
+                    'Grain',
+                    'grain',
                     0,
-                    100,
-                    1,
+                    10,
+                    0.1,
                     0,
-                    '%',
-                    'Invert colors'
+                    '',
+                    'Add film-like texture'
                 )
             );
 
-            group.add(
+            effectsGroup.add(
                 this._createSliderRow(
                     'Oil Paint',
                     'oilPaint',
@@ -214,7 +294,7 @@ export const FilterControls = GObject.registerClass(
                 )
             );
 
-            group.add(
+            effectsGroup.add(
                 this._createSliderRow(
                     'Pixelate',
                     'pixelate',
@@ -223,63 +303,103 @@ export const FilterControls = GObject.registerClass(
                     1,
                     0,
                     '%',
-                    'Create pixel art effect'
+                    'Create retro pixel art look'
                 )
             );
 
-            return group;
-        }
-
-        _createAdvancedFiltersGroup() {
-            const group = new Adw.PreferencesGroup({
-                title: 'Advanced',
-                description: 'Professional-grade adjustments',
-            });
-
-            // Sharpen
-            group.add(
+            effectsGroup.add(
                 this._createSliderRow(
-                    'Sharpen',
-                    'sharpen',
-                    0,
-                    100,
-                    1,
-                    0,
-                    '',
-                    'Increase image sharpness'
-                )
-            );
-
-            // Vignette
-            group.add(
-                this._createSliderRow(
-                    'Vignette',
-                    'vignette',
+                    'Invert',
+                    'invert',
                     0,
                     100,
                     1,
                     0,
                     '%',
-                    'Darken edges for focus'
+                    'Invert all colors (negative effect)'
                 )
             );
 
-            // Grain
-            group.add(
+            box.append(effectsGroup);
+
+            // Color Tone System
+            const toneGroup = new Adw.PreferencesGroup({
+                title: 'Color Tone',
+                description: 'Apply color wash over image',
+            });
+
+            toneGroup.add(new Adw.ActionRow({child: this._createToneGrid()}));
+
+            toneGroup.add(
                 this._createSliderRow(
-                    'Grain',
-                    'grain',
+                    'Tone Intensity',
+                    'toneAmount',
                     0,
-                    10,
-                    0.1,
+                    100,
+                    1,
+                    0,
+                    '%',
+                    'Strength of color tone effect'
+                )
+            );
+
+            box.append(toneGroup);
+
+            scrolled.set_child(box);
+            return scrolled;
+        }
+
+        /**
+         * Pro Tab - Advanced professional controls
+         */
+        _createProTab() {
+            const scrolled = new Gtk.ScrolledWindow({
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+            });
+
+            const box = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 20,
+                margin_top: 12,
+                margin_bottom: 18,
+                margin_start: 18,
+                margin_end: 18,
+            });
+
+            // Color Grading
+            const colorGroup = new Adw.PreferencesGroup({
+                title: 'Color Grading',
+                description: 'Professional color adjustments',
+            });
+
+            colorGroup.add(
+                this._createSliderRow(
+                    'Exposure',
+                    'exposure',
+                    -100,
+                    100,
+                    1,
                     0,
                     '',
-                    'Add film-like grain texture'
+                    'Simulate camera exposure compensation'
                 )
             );
 
-            // Shadows
-            group.add(
+            colorGroup.add(
+                this._createSliderRow(
+                    'Hue Shift',
+                    'hueRotate',
+                    0,
+                    360,
+                    1,
+                    0,
+                    '°',
+                    'Rotate all colors around the color wheel'
+                )
+            );
+
+            colorGroup.add(
                 this._createSliderRow(
                     'Shadows',
                     'shadows',
@@ -288,12 +408,11 @@ export const FilterControls = GObject.registerClass(
                     1,
                     0,
                     '',
-                    'Lift or crush shadow detail'
+                    'Lift (lighten) or crush (darken) shadow areas'
                 )
             );
 
-            // Highlights
-            group.add(
+            colorGroup.add(
                 this._createSliderRow(
                     'Highlights',
                     'highlights',
@@ -302,20 +421,27 @@ export const FilterControls = GObject.registerClass(
                     1,
                     0,
                     '',
-                    'Recover or blow out highlights'
+                    'Recover or blow out bright areas'
                 )
             );
 
-            // Tint/Colorize with color picker
+            box.append(colorGroup);
+
+            // Tint Effect
+            const tintGroup = new Adw.PreferencesGroup({
+                title: 'Tint',
+                description: 'Apply custom color overlay',
+            });
+
             const tintRow = this._createSliderRow(
-                'Tint',
+                'Tint Amount',
                 'tint',
                 0,
                 100,
                 1,
                 0,
                 '%',
-                'Overlay a color wash'
+                'Strength of color overlay'
             );
 
             // Add color picker button to tint row
@@ -340,124 +466,104 @@ export const FilterControls = GObject.registerClass(
             });
 
             tintRow.add_suffix(this._tintColorButton);
-            group.add(tintRow);
+            tintGroup.add(tintRow);
 
-            return group;
+            box.append(tintGroup);
+
+            scrolled.set_child(box);
+            return scrolled;
         }
 
-        _createToneGroup() {
-            const group = new Adw.PreferencesGroup({
-                title: 'Color Tone',
-                description: 'Apply a color tone to the image',
+        /**
+         * Presets Tab - Quick preset library organized by category
+         */
+        _createPresetsTab() {
+            const scrolled = new Gtk.ScrolledWindow({
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
             });
 
-            // Tone selector with color buttons
-            const toneRow = new Adw.ActionRow({
-                title: 'Tone Preset',
+            const box = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 16,
+                margin_top: 12,
+                margin_bottom: 18,
+                margin_start: 18,
+                margin_end: 18,
             });
 
-            const toneGrid = this._createToneGrid();
-            toneRow.add_suffix(toneGrid);
-            group.add(toneRow);
-
-            // Tone amount slider
-            group.add(
-                this._createSliderRow(
-                    'Tone Strength',
-                    'toneAmount',
-                    0,
-                    100,
-                    1,
-                    0,
-                    '%',
-                    'Intensity of color tone'
-                )
+            // Mood presets (Muted, Dramatic, Soft, Vibrant)
+            box.append(
+                this._createPresetCategory('Mood', [
+                    FILTER_PRESETS[0], // Muted
+                    FILTER_PRESETS[1], // Dramatic
+                    FILTER_PRESETS[2], // Soft
+                    FILTER_PRESETS[4], // Vibrant
+                ])
             );
 
-            return group;
+            // Color presets (Cool, Warm, Vintage, Faded)
+            box.append(
+                this._createPresetCategory('Color', [
+                    FILTER_PRESETS[6], // Cool
+                    FILTER_PRESETS[7], // Warm
+                    FILTER_PRESETS[3], // Vintage
+                    FILTER_PRESETS[5], // Faded
+                ])
+            );
+
+            // Cinematic presets (Cinematic, Film, Crisp, Portrait)
+            box.append(
+                this._createPresetCategory('Cinematic', [
+                    FILTER_PRESETS[8], // Cinematic
+                    FILTER_PRESETS[9], // Film
+                    FILTER_PRESETS[10], // Crisp
+                    FILTER_PRESETS[11], // Portrait
+                ])
+            );
+
+            scrolled.set_child(box);
+            return scrolled;
         }
 
-        _createPresetsGroup() {
+        /**
+         * Create a preset category group with 4 presets
+         */
+        _createPresetCategory(categoryName, presets) {
             const group = new Adw.PreferencesGroup({
-                title: 'Quick Presets',
-                description: 'Common filter combinations',
+                title: categoryName,
             });
 
-            const presetsBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 8,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
-            });
-
-            // First row of presets (4 buttons)
-            const presetButtonBox1 = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 8,
+            const grid = new Gtk.FlowBox({
+                max_children_per_line: 2,
+                min_children_per_line: 2,
+                selection_mode: Gtk.SelectionMode.NONE,
+                column_spacing: 12,
+                row_spacing: 12,
                 homogeneous: true,
             });
 
-            for (let i = 0; i < 4 && i < FILTER_PRESETS.length; i++) {
-                const preset = FILTER_PRESETS[i];
-                const btn = new Gtk.Button({
+            presets.forEach(preset => {
+                const button = new Gtk.Button({
                     label: preset.name,
-                    hexpand: true,
-                });
-                btn.connect('clicked', () => this._applyPreset(preset));
-                presetButtonBox1.append(btn);
-            }
-
-            presetsBox.append(presetButtonBox1);
-
-            // Second row of presets (4 buttons)
-            if (FILTER_PRESETS.length > 4) {
-                const presetButtonBox2 = new Gtk.Box({
-                    orientation: Gtk.Orientation.HORIZONTAL,
-                    spacing: 8,
-                    homogeneous: true,
+                    height_request: 50,
+                    css_classes: ['card'],
                 });
 
-                for (let i = 4; i < 8 && i < FILTER_PRESETS.length; i++) {
-                    const preset = FILTER_PRESETS[i];
-                    const btn = new Gtk.Button({
-                        label: preset.name,
-                        hexpand: true,
-                    });
-                    btn.connect('clicked', () => this._applyPreset(preset));
-                    presetButtonBox2.append(btn);
-                }
-
-                presetsBox.append(presetButtonBox2);
-            }
-
-            // Third row of presets (4 buttons)
-            if (FILTER_PRESETS.length > 8) {
-                const presetButtonBox3 = new Gtk.Box({
-                    orientation: Gtk.Orientation.HORIZONTAL,
-                    spacing: 8,
-                    homogeneous: true,
+                button.connect('clicked', () => {
+                    this._applyPreset(preset);
                 });
 
-                for (let i = 8; i < 12 && i < FILTER_PRESETS.length; i++) {
-                    const preset = FILTER_PRESETS[i];
-                    const btn = new Gtk.Button({
-                        label: preset.name,
-                        hexpand: true,
-                    });
-                    btn.connect('clicked', () => this._applyPreset(preset));
-                    presetButtonBox3.append(btn);
-                }
+                grid.append(button);
+            });
 
-                presetsBox.append(presetButtonBox3);
-            }
-
-            group.add(new Adw.ActionRow({child: presetsBox}));
-
+            group.add(new Adw.ActionRow({child: grid}));
             return group;
         }
 
+        /**
+         * Create a slider row for a filter
+         */
         _createSliderRow(
             title,
             key,
@@ -503,6 +609,7 @@ export const FilterControls = GObject.registerClass(
                 const value = scale.get_value();
                 this._filters[key] = value;
                 valueLabel.set_label(`${Math.round(value)}${unit}`);
+                this._updateActiveFilterCount();
                 this.emit('filter-changed', this._filters);
             });
 
@@ -541,6 +648,9 @@ export const FilterControls = GObject.registerClass(
             return row;
         }
 
+        /**
+         * Create the tone color picker grid
+         */
         _createToneGrid() {
             const grid = new Gtk.FlowBox({
                 max_children_per_line: 4,
@@ -578,6 +688,7 @@ export const FilterControls = GObject.registerClass(
                     }
                     // Update custom color button to show this color too
                     this._updateCustomColorButton();
+                    this._updateActiveFilterCount();
                     this.emit('filter-changed', this._filters);
                 });
 
@@ -610,6 +721,7 @@ export const FilterControls = GObject.registerClass(
                 this._filters.tone = null;
                 this._setSliderValue('toneAmount', 0);
                 this._updateCustomColorButton();
+                this._updateActiveFilterCount();
                 this.emit('filter-changed', this._filters);
             });
             grid.append(clearButton);
@@ -617,6 +729,9 @@ export const FilterControls = GObject.registerClass(
             return grid;
         }
 
+        /**
+         * Open custom color picker dialog for tone
+         */
         _openCustomColorPicker() {
             const colorDialog = new Gtk.ColorDialog();
 
@@ -662,6 +777,7 @@ export const FilterControls = GObject.registerClass(
 
                         // Update the custom color button to show the selected color
                         this._updateCustomColorButton();
+                        this._updateActiveFilterCount();
 
                         this.emit('filter-changed', this._filters);
                     } catch (e) {
@@ -671,6 +787,9 @@ export const FilterControls = GObject.registerClass(
             );
         }
 
+        /**
+         * Update the custom color button appearance
+         */
         _updateCustomColorButton() {
             if (!this._customColorButton) return;
 
@@ -699,6 +818,39 @@ export const FilterControls = GObject.registerClass(
             }
         }
 
+        /**
+         * Update active filter count label
+         */
+        _updateActiveFilterCount() {
+            if (!this._activeFilterLabel) return;
+
+            let activeCount = 0;
+
+            // Count non-default slider values
+            Object.keys(this._sliders).forEach(key => {
+                const {defaultValue} = this._sliders[key];
+                if (this._filters[key] !== defaultValue) {
+                    activeCount++;
+                }
+            });
+
+            // Check tone
+            if (this._filters.tone !== null && this._filters.toneAmount > 0) {
+                activeCount++;
+            }
+
+            if (activeCount === 0) {
+                this._activeFilterLabel.set_label('No filters active');
+            } else if (activeCount === 1) {
+                this._activeFilterLabel.set_label('1 filter active');
+            } else {
+                this._activeFilterLabel.set_label(`${activeCount} filters active`);
+            }
+        }
+
+        /**
+         * Set slider value programmatically
+         */
         _setSliderValue(key, value) {
             if (!this._sliders[key]) return;
 
@@ -708,6 +860,9 @@ export const FilterControls = GObject.registerClass(
             valueLabel.set_label(`${Math.round(value)}${unit}`);
         }
 
+        /**
+         * Apply a filter preset
+         */
         _applyPreset(preset) {
             // First, reset all sliders to default values
             Object.keys(this._sliders).forEach(key => {
@@ -725,21 +880,37 @@ export const FilterControls = GObject.registerClass(
             // Reset tone to null (not in sliders)
             this._filters.tone = null;
 
+            this._updateActiveFilterCount();
             this.emit('preset-applied', this._filters);
         }
 
-        _resetFilters() {
+        /**
+         * Reset all filters to defaults
+         */
+        _resetAllFilters() {
             Object.keys(this._sliders).forEach(key => {
                 const {defaultValue} = this._sliders[key];
                 this._setSliderValue(key, defaultValue);
             });
+            
+            // Reset tone
+            this._filters.tone = null;
+            this._updateCustomColorButton();
+            
+            this._updateActiveFilterCount();
             this.emit('reset-filters');
         }
 
+        /**
+         * Get current filter values
+         */
         getFilters() {
             return {...this._filters};
         }
 
+        /**
+         * Set filter values programmatically
+         */
         setFilters(filters) {
             Object.keys(filters).forEach(key => {
                 if (this._sliders[key] !== undefined) {
@@ -748,6 +919,14 @@ export const FilterControls = GObject.registerClass(
                     this._filters[key] = filters[key];
                 }
             });
+            this._updateActiveFilterCount();
+        }
+
+        /**
+         * Public method to reset filters (called from parent)
+         */
+        resetFilters() {
+            this._resetAllFilters();
         }
     }
 );
