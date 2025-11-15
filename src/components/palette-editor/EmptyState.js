@@ -7,83 +7,109 @@ import {uploadWallpaper} from '../../utils/wallpaper-utils.js';
 
 /**
  * EmptyState - Initial state shown when no wallpaper is loaded
- * Provides upload button and drag-drop area
+ * Provides helpful guidance and quick start actions
  */
 export const EmptyState = GObject.registerClass(
     {
         Signals: {
             'wallpaper-uploaded': {param_types: [GObject.TYPE_STRING]},
+            'browse-wallhaven-clicked': {},
+            'browse-local-clicked': {},
         },
     },
     class EmptyState extends Gtk.Box {
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_top: 24,
-                margin_bottom: 24,
+                spacing: 20,
+                margin_top: 48,
+                margin_bottom: 48,
                 halign: Gtk.Align.CENTER,
                 valign: Gtk.Align.CENTER,
+                vexpand: true,
             });
 
             this._buildUI();
-            this._setupDragDrop();
         }
 
         _buildUI() {
-            // Icon
+            // Large icon
             const icon = new Gtk.Image({
                 icon_name: 'image-x-generic-symbolic',
-                pixel_size: 64,
+                pixel_size: 96,
                 css_classes: ['dim-label'],
             });
             this.append(icon);
 
-            // Title
+            // Main title
             const title = new Gtk.Label({
-                label: 'No Wallpaper Loaded',
-                css_classes: ['title-2'],
+                label: 'Get Started in 3 Easy Steps',
+                css_classes: ['title-1'],
                 margin_top: 12,
             });
             this.append(title);
 
-            // Subtitle
-            const subtitle = new Gtk.Label({
-                label: 'Upload an image or drag and drop to get started',
-                css_classes: ['dim-label'],
-                margin_bottom: 12,
+            // Step-by-step guide
+            const stepsBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 8,
+                margin_top: 16,
+                margin_bottom: 24,
             });
-            this.append(subtitle);
 
-            // Upload button
+            const steps = [
+                '1. Select a wallpaper (upload or browse online)',
+                '2. Extract color palette with one click',
+                '3. Customize colors and apply your theme',
+            ];
+
+            steps.forEach(step => {
+                const stepLabel = new Gtk.Label({
+                    label: step,
+                    css_classes: ['caption'],
+                    xalign: 0,
+                });
+                stepsBox.append(stepLabel);
+            });
+
+            this.append(stepsBox);
+
+            // Quick start buttons
+            const buttonsBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 12,
+                halign: Gtk.Align.CENTER,
+            });
+
+            // Upload button (primary action)
             const uploadBtn = new Gtk.Button({
-                label: 'Select Image',
+                label: 'Upload Image',
                 css_classes: ['pill', 'suggested-action'],
             });
             uploadBtn.connect('clicked', () => this._uploadWallpaper());
-            this.append(uploadBtn);
-        }
+            buttonsBox.append(uploadBtn);
 
-        _setupDragDrop() {
-            const dropTarget = Gtk.DropTarget.new(
-                Gdk.FileList.$gtype,
-                Gdk.DragAction.COPY
-            );
-
-            dropTarget.connect('drop', (target, value, x, y) => {
-                const files = value.get_files();
-                if (files && files.length > 0) {
-                    const file = files[0];
-                    const path = file.get_path();
-                    if (path) {
-                        this.emit('wallpaper-uploaded', path);
-                        return true;
-                    }
-                }
-                return false;
+            // Browse Wallhaven button
+            const wallhavenBtn = new Gtk.Button({
+                label: 'Browse Wallhaven',
+                css_classes: ['pill'],
             });
+            wallhavenBtn.connect('clicked', () => {
+                this.emit('browse-wallhaven-clicked');
+            });
+            buttonsBox.append(wallhavenBtn);
 
-            this.add_controller(dropTarget);
+            // Browse Local button
+            const localBtn = new Gtk.Button({
+                label: 'Browse Local',
+                css_classes: ['pill'],
+            });
+            localBtn.connect('clicked', () => {
+                this.emit('browse-local-clicked');
+            });
+            buttonsBox.append(localBtn);
+
+            this.append(buttonsBox);
         }
 
         _uploadWallpaper() {

@@ -195,6 +195,14 @@ export const PaletteEditor = GObject.registerClass(
             this._emptyState.connect('wallpaper-uploaded', (_, path) => {
                 this.loadWallpaper(path);
             });
+            this._emptyState.connect('browse-wallhaven-clicked', () => {
+                this._tabNavigation.setActiveTab('wallhaven');
+                this._viewStack.set_visible_child_name('wallhaven');
+            });
+            this._emptyState.connect('browse-local-clicked', () => {
+                this._tabNavigation.setActiveTab('local');
+                this._viewStack.set_visible_child_name('local');
+            });
             viewBox.append(this._emptyState);
 
             // Wallpaper section

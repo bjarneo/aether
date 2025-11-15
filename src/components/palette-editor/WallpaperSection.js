@@ -36,7 +36,7 @@ export const WallpaperSection = GObject.registerClass(
         _buildUI() {
             const wallpaperRow = new Adw.ActionRow({
                 title: 'Wallpaper',
-                subtitle: 'Select, edit, and extract colors from an image',
+                subtitle: 'Your selected wallpaper image',
             });
 
             const buttonBox = new Gtk.Box({
@@ -45,53 +45,18 @@ export const WallpaperSection = GObject.registerClass(
                 valign: Gtk.Align.CENTER,
             });
 
-            // Extract button with dropdown menu
-            const extractMenu = Gio.Menu.new();
-            extractMenu.append('Extract', 'wallpaper.extract-normal');
-            extractMenu.append(
-                'Monochromatic',
-                'wallpaper.extract-monochromatic'
-            );
-            extractMenu.append('Analogous', 'wallpaper.extract-analogous');
-            extractMenu.append('Pastel', 'wallpaper.extract-pastel');
-            extractMenu.append('Material', 'wallpaper.extract-material');
-            extractMenu.append('Colorful', 'wallpaper.extract-colorful');
-            extractMenu.append('Muted', 'wallpaper.extract-muted');
-            extractMenu.append('Bright', 'wallpaper.extract-bright');
-
-            const extractMenuButton = new Gtk.MenuButton({
+            // Simple Extract button (uses 'normal' mode by default)
+            this._extractBtn = new Gtk.Button({
                 icon_name: 'color-select-symbolic',
-                label: 'Extract',
-                menu_model: extractMenu,
+                label: 'Extract Colors',
                 css_classes: ['suggested-action'],
-                tooltip_text: 'Extract colors from wallpaper (choose mode)',
+                tooltip_text: 'Extract color palette from wallpaper',
             });
-
-            // Create action group for menu items
-            this._actionGroup = Gio.SimpleActionGroup.new();
-
-            // Helper function to create extraction action
-            const createExtractionAction = (name, mode) => {
-                const action = Gio.SimpleAction.new(name, null);
-                action.connect('activate', () => {
-                    this.emit('extract-clicked', mode);
-                });
-                this._actionGroup.add_action(action);
-            };
-
-            // Add extraction mode actions
-            createExtractionAction('extract-normal', 'normal');
-            createExtractionAction('extract-monochromatic', 'monochromatic');
-            createExtractionAction('extract-analogous', 'analogous');
-            createExtractionAction('extract-pastel', 'pastel');
-            createExtractionAction('extract-material', 'material');
-            createExtractionAction('extract-colorful', 'colorful');
-            createExtractionAction('extract-muted', 'muted');
-            createExtractionAction('extract-bright', 'bright');
-
-            this.insert_action_group('wallpaper', this._actionGroup);
-
-            buttonBox.append(extractMenuButton);
+            this._extractBtn.connect('clicked', () => {
+                const mode = this._selectedMode || 'normal';
+                this.emit('extract-clicked', mode);
+            });
+            buttonBox.append(this._extractBtn);
 
             // Edit button
             const editButtonBox = new Gtk.Box({
@@ -157,6 +122,44 @@ export const WallpaperSection = GObject.registerClass(
 
             wallpaperRow.add_suffix(buttonBox);
             this.add(wallpaperRow);
+
+            // Extraction mode selector row
+            const modeRow = new Adw.ComboRow({
+                title: 'Extraction Mode',
+                subtitle: 'Algorithm for color extraction',
+            });
+
+            const modeModel = Gtk.StringList.new([
+                'Normal (Auto-detect)',
+                'Monochromatic',
+                'Analogous',
+                'Pastel',
+                'Material',
+                'Colorful',
+                'Muted',
+                'Bright',
+            ]);
+            modeRow.set_model(modeModel);
+            modeRow.set_selected(0); // Default to Normal
+
+            // Map dropdown indices to mode names
+            this._modeNames = [
+                'normal',
+                'monochromatic',
+                'analogous',
+                'pastel',
+                'material',
+                'colorful',
+                'muted',
+                'bright',
+            ];
+
+            modeRow.connect('notify::selected', () => {
+                const selected = modeRow.get_selected();
+                this._selectedMode = this._modeNames[selected];
+            });
+
+            this.add(modeRow);
 
             // Wallpaper preview
             this._wallpaperPreview = new Gtk.Picture({
