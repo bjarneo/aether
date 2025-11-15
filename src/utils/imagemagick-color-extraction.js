@@ -896,9 +896,7 @@ function generateColorfulPalette(dominantColors, lightMode) {
 
         if (index === 0) {
             // Background: keep relatively neutral but add slight hue
-            return lightMode
-                ? hslToHex(hsl.h, 8, 98)
-                : hslToHex(hsl.h, 12, 8);
+            return lightMode ? hslToHex(hsl.h, 8, 98) : hslToHex(hsl.h, 12, 8);
         } else if (index === 7 || index === 15) {
             // Foreground: high contrast with subtle saturation
             return lightMode
@@ -912,7 +910,7 @@ function generateColorfulPalette(dominantColors, lightMode) {
         } else {
             // ANSI colors: maximum saturation with proper lightness
             const colorfulSaturation = Math.max(75, Math.min(95, hsl.s + 30));
-            const colorfulLightness = lightMode 
+            const colorfulLightness = lightMode
                 ? Math.max(35, Math.min(55, hsl.l))
                 : Math.max(55, Math.min(70, hsl.l));
             return hslToHex(hsl.h, colorfulSaturation, colorfulLightness);
@@ -936,19 +934,13 @@ function generateMutedPalette(dominantColors, lightMode) {
 
         if (index === 0) {
             // Background: very desaturated
-            return lightMode
-                ? hslToHex(hsl.h, 5, 95)
-                : hslToHex(hsl.h, 8, 15);
+            return lightMode ? hslToHex(hsl.h, 5, 95) : hslToHex(hsl.h, 8, 15);
         } else if (index === 7 || index === 15) {
             // Foreground: minimal saturation
-            return lightMode
-                ? hslToHex(hsl.h, 10, 20)
-                : hslToHex(hsl.h, 8, 85);
+            return lightMode ? hslToHex(hsl.h, 10, 20) : hslToHex(hsl.h, 8, 85);
         } else if (index === 8) {
             // Comment gray: very muted
-            return lightMode
-                ? hslToHex(hsl.h, 8, 60)
-                : hslToHex(hsl.h, 6, 50);
+            return lightMode ? hslToHex(hsl.h, 8, 60) : hslToHex(hsl.h, 6, 50);
         } else {
             // ANSI colors: low saturation, maintain hue diversity
             const mutedSaturation = Math.max(15, Math.min(35, hsl.s * 0.5));
@@ -976,14 +968,10 @@ function generateBrightPalette(dominantColors, lightMode) {
 
         if (index === 0) {
             // Background: very bright or very dark for contrast
-            return lightMode
-                ? hslToHex(hsl.h, 6, 98)
-                : hslToHex(hsl.h, 10, 6);
+            return lightMode ? hslToHex(hsl.h, 6, 98) : hslToHex(hsl.h, 10, 6);
         } else if (index === 7 || index === 15) {
             // Foreground: maintain contrast
-            return lightMode
-                ? hslToHex(hsl.h, 12, 15)
-                : hslToHex(hsl.h, 8, 98);
+            return lightMode ? hslToHex(hsl.h, 12, 15) : hslToHex(hsl.h, 8, 98);
         } else if (index === 8) {
             // Comment gray: bright but distinguishable
             return lightMode
@@ -1367,15 +1355,21 @@ export async function extractColorsWithImageMagick(
                 palette = generateMaterialPalette(dominantColors, lightMode);
                 break;
             case 'colorful':
-                console.log('Colorful mode - generating vibrant, highly saturated palette');
+                console.log(
+                    'Colorful mode - generating vibrant, highly saturated palette'
+                );
                 palette = generateColorfulPalette(dominantColors, lightMode);
                 break;
             case 'muted':
-                console.log('Muted mode - generating desaturated, calm palette');
+                console.log(
+                    'Muted mode - generating desaturated, calm palette'
+                );
                 palette = generateMutedPalette(dominantColors, lightMode);
                 break;
             case 'bright':
-                console.log('Bright mode - generating high-lightness, energetic palette');
+                console.log(
+                    'Bright mode - generating high-lightness, energetic palette'
+                );
                 palette = generateBrightPalette(dominantColors, lightMode);
                 break;
             case 'normal':

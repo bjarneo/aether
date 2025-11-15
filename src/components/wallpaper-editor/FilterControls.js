@@ -25,19 +25,19 @@ function rgbToHex(r, g, b) {
 
 /**
  * FilterControls - Tabbed UI controls for adjusting image filters
- * 
+ *
  * Reorganized into 4 tabs for better usability:
  * - Simple: 6 most common adjustments
  * - Creative: Artistic effects and filters
- * - Pro: Advanced professional controls  
+ * - Pro: Advanced professional controls
  * - Presets: Quick preset library organized by category
- * 
+ *
  * Features:
  * - Visual active filter indicators (colored badges)
  * - Per-tab and global reset buttons
  * - Active filter count in UI
  * - Improved preset grid with categories
- * 
+ *
  * Emits 'filter-changed' signal when any filter value changes
  */
 export const FilterControls = GObject.registerClass(
@@ -844,7 +844,9 @@ export const FilterControls = GObject.registerClass(
             } else if (activeCount === 1) {
                 this._activeFilterLabel.set_label('1 filter active');
             } else {
-                this._activeFilterLabel.set_label(`${activeCount} filters active`);
+                this._activeFilterLabel.set_label(
+                    `${activeCount} filters active`
+                );
             }
         }
 
@@ -892,11 +894,11 @@ export const FilterControls = GObject.registerClass(
                 const {defaultValue} = this._sliders[key];
                 this._setSliderValue(key, defaultValue);
             });
-            
+
             // Reset tone
             this._filters.tone = null;
             this._updateCustomColorButton();
-            
+
             this._updateActiveFilterCount();
             this.emit('reset-filters');
         }
