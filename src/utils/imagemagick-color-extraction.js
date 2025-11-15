@@ -881,6 +881,126 @@ function generatePastelPalette(dominantColors, lightMode) {
 }
 
 /**
+ * Generates a highly saturated, vibrant colorful palette
+ * Maximizes color saturation for bold, eye-catching themes
+ * @param {string[]} dominantColors - Array of dominant colors from image
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 colorful ANSI colors
+ */
+function generateColorfulPalette(dominantColors, lightMode) {
+    const palette = generateChromaticPalette(dominantColors, lightMode);
+
+    // Boost saturation for all colors to maximum vibrancy
+    return palette.map((color, index) => {
+        const hsl = getColorHSL(color);
+
+        if (index === 0) {
+            // Background: keep relatively neutral but add slight hue
+            return lightMode
+                ? hslToHex(hsl.h, 8, 98)
+                : hslToHex(hsl.h, 12, 8);
+        } else if (index === 7 || index === 15) {
+            // Foreground: high contrast with subtle saturation
+            return lightMode
+                ? hslToHex(hsl.h, 15, 10)
+                : hslToHex(hsl.h, 10, 95);
+        } else if (index === 8) {
+            // Comment gray: desaturated but visible
+            return lightMode
+                ? hslToHex(hsl.h, 20, 50)
+                : hslToHex(hsl.h, 15, 55);
+        } else {
+            // ANSI colors: maximum saturation with proper lightness
+            const colorfulSaturation = Math.max(75, Math.min(95, hsl.s + 30));
+            const colorfulLightness = lightMode 
+                ? Math.max(35, Math.min(55, hsl.l))
+                : Math.max(55, Math.min(70, hsl.l));
+            return hslToHex(hsl.h, colorfulSaturation, colorfulLightness);
+        }
+    });
+}
+
+/**
+ * Generates a desaturated, muted palette with subdued colors
+ * Creates calm, professional themes with low saturation
+ * @param {string[]} dominantColors - Array of dominant colors from image
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 muted ANSI colors
+ */
+function generateMutedPalette(dominantColors, lightMode) {
+    const palette = generateChromaticPalette(dominantColors, lightMode);
+
+    // Reduce saturation for all colors to create muted tones
+    return palette.map((color, index) => {
+        const hsl = getColorHSL(color);
+
+        if (index === 0) {
+            // Background: very desaturated
+            return lightMode
+                ? hslToHex(hsl.h, 5, 95)
+                : hslToHex(hsl.h, 8, 15);
+        } else if (index === 7 || index === 15) {
+            // Foreground: minimal saturation
+            return lightMode
+                ? hslToHex(hsl.h, 10, 20)
+                : hslToHex(hsl.h, 8, 85);
+        } else if (index === 8) {
+            // Comment gray: very muted
+            return lightMode
+                ? hslToHex(hsl.h, 8, 60)
+                : hslToHex(hsl.h, 6, 50);
+        } else {
+            // ANSI colors: low saturation, maintain hue diversity
+            const mutedSaturation = Math.max(15, Math.min(35, hsl.s * 0.5));
+            const mutedLightness = lightMode
+                ? Math.max(40, Math.min(60, hsl.l))
+                : Math.max(50, Math.min(65, hsl.l));
+            return hslToHex(hsl.h, mutedSaturation, mutedLightness);
+        }
+    });
+}
+
+/**
+ * Generates a high-lightness bright palette with punchy colors
+ * Creates energetic themes with elevated brightness levels
+ * @param {string[]} dominantColors - Array of dominant colors from image
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @returns {string[]} Array of 16 bright ANSI colors
+ */
+function generateBrightPalette(dominantColors, lightMode) {
+    const palette = generateChromaticPalette(dominantColors, lightMode);
+
+    // Increase lightness for all colors to create bright, cheerful tones
+    return palette.map((color, index) => {
+        const hsl = getColorHSL(color);
+
+        if (index === 0) {
+            // Background: very bright or very dark for contrast
+            return lightMode
+                ? hslToHex(hsl.h, 6, 98)
+                : hslToHex(hsl.h, 10, 6);
+        } else if (index === 7 || index === 15) {
+            // Foreground: maintain contrast
+            return lightMode
+                ? hslToHex(hsl.h, 12, 15)
+                : hslToHex(hsl.h, 8, 98);
+        } else if (index === 8) {
+            // Comment gray: bright but distinguishable
+            return lightMode
+                ? hslToHex(hsl.h, 15, 55)
+                : hslToHex(hsl.h, 12, 65);
+        } else {
+            // ANSI colors: elevated lightness with good saturation
+            const brightSaturation = Math.max(45, Math.min(70, hsl.s));
+            const brightLightness = lightMode
+                ? Math.max(45, Math.min(65, hsl.l + 10))
+                : Math.max(65, Math.min(80, hsl.l + 15));
+            return hslToHex(hsl.h, brightSaturation, brightLightness);
+        }
+    });
+}
+
+/**
  * Generates a Material Design-inspired palette
  * Uses actual image colors with Material's clean backgrounds and subtle refinement
  * @param {string[]} dominantColors - Array of dominant colors from image
@@ -1245,6 +1365,18 @@ export async function extractColorsWithImageMagick(
                     'Material mode - using image colors with Material Design backgrounds'
                 );
                 palette = generateMaterialPalette(dominantColors, lightMode);
+                break;
+            case 'colorful':
+                console.log('Colorful mode - generating vibrant, highly saturated palette');
+                palette = generateColorfulPalette(dominantColors, lightMode);
+                break;
+            case 'muted':
+                console.log('Muted mode - generating desaturated, calm palette');
+                palette = generateMutedPalette(dominantColors, lightMode);
+                break;
+            case 'bright':
+                console.log('Bright mode - generating high-lightness, energetic palette');
+                palette = generateBrightPalette(dominantColors, lightMode);
                 break;
             case 'normal':
             default:

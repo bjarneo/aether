@@ -130,7 +130,7 @@ const AetherApplication = GObject.registerClass(
                 0,
                 GLib.OptionFlags.NONE,
                 GLib.OptionArg.STRING,
-                'Extraction mode: normal (default), monochromatic, analogous, pastel, material',
+                'Extraction mode: normal (default), monochromatic, analogous, pastel, material, colorful, muted, bright',
                 'MODE'
             );
 
