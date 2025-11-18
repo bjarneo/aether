@@ -902,13 +902,6 @@ export const WallpaperBrowser = GObject.registerClass(
             if (config.categories) {
                 this._searchParams.categories = config.categories;
             }
-
-            if (config.purity) {
-                this._searchParams.purity = this._normalizePurity(
-                    config.purity,
-                    this._hasApiKey
-                );
-            }
         }
 
         /**
