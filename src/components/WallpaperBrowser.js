@@ -284,7 +284,7 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         /**
-         * Creates the collapsible filters section with sort and categories
+         * Creates the collapsible filters section for sorting, categories, and purity controls.
          * @returns {Gtk.Revealer} The filters revealer widget
          * @private
          */
@@ -308,9 +308,14 @@ export const WallpaperBrowser = GObject.registerClass(
                 new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
             );
             filtersBox.append(this._createCategoriesCheckboxes());
-            filtersBox.append(
-                new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
-            );
+
+            const puritySeparator = new Gtk.Separator({
+                orientation: Gtk.Orientation.VERTICAL,
+            });
+            this._puritySeparator = puritySeparator;
+            puritySeparator.set_visible(this._purityControlsEnabled);
+
+            filtersBox.append(puritySeparator);
             filtersBox.append(this._createPurityControls());
 
             this._filtersRevealer.set_child(filtersBox);
@@ -870,6 +875,10 @@ export const WallpaperBrowser = GObject.registerClass(
             }
 
             this._purityBox.set_visible(this._purityControlsEnabled);
+
+            if (this._puritySeparator) {
+                this._puritySeparator.set_visible(this._purityControlsEnabled);
+            }
 
             if (!this._purityControlsEnabled) {
                 const normalizedPurity = this._normalizePurity(
