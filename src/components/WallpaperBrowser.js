@@ -1276,14 +1276,6 @@ export const WallpaperBrowser = GObject.registerClass(
 
             apiGroup.add(apiKeyRow);
 
-            const puritySwitchRow = new Adw.SwitchRow({
-                title: 'Show purity filters',
-                subtitle:
-                    'Enable SFW/Sketchy/NSFW controls in the wallpaper browser',
-                active: currentPurityControlsEnabled,
-            });
-            apiGroup.add(puritySwitchRow);
-
             // Help text for API key
             const apiHelpLabel = new Gtk.Label({
                 label: 'Get your API key from:\nhttps://wallhaven.cc/settings/account',
@@ -1375,6 +1367,19 @@ export const WallpaperBrowser = GObject.registerClass(
             contentBox.append(resolutionGroup);
             contentBox.append(presetsBox);
             contentBox.append(resolutionHelpLabel);
+
+            const purityGroup = new Adw.PreferencesGroup({
+                title: 'Content Filters',
+            });
+
+            const puritySwitchRow = new Adw.SwitchRow({
+                title: 'Show purity filters',
+                subtitle:
+                    'Enable SFW/Sketchy/NSFW controls in the wallpaper browser',
+                active: currentPurityControlsEnabled,
+            });
+            purityGroup.add(puritySwitchRow);
+            contentBox.append(purityGroup);
 
             // Action buttons
             const buttonBox = new Gtk.Box({
