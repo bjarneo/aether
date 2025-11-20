@@ -72,6 +72,8 @@ export const WallpaperBrowser = GObject.registerClass(
             this._totalPages = 1;
             this._isLoading = false;
             this._hasMorePages = true;
+            this._hasApiKey = false;
+            this._purityControlsEnabled = false;
             this._searchParams = {
                 q: '',
                 categories: '111', // All categories
@@ -226,6 +228,7 @@ export const WallpaperBrowser = GObject.registerClass(
 
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._updateUIFromConfig();
+                this._updatePurityControlsVisibility();
                 return GLib.SOURCE_REMOVE;
             });
 
@@ -281,7 +284,7 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         /**
-         * Creates the collapsible filters section with sort and categories
+         * Creates the collapsible filters section for sorting, categories, and purity controls.
          * @returns {Gtk.Revealer} The filters revealer widget
          * @private
          */
@@ -305,6 +308,15 @@ export const WallpaperBrowser = GObject.registerClass(
                 new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
             );
             filtersBox.append(this._createCategoriesCheckboxes());
+
+            const puritySeparator = new Gtk.Separator({
+                orientation: Gtk.Orientation.VERTICAL,
+            });
+            this._puritySeparator = puritySeparator;
+            puritySeparator.set_visible(this._purityControlsEnabled);
+
+            filtersBox.append(puritySeparator);
+            filtersBox.append(this._createPurityControls());
 
             this._filtersRevealer.set_child(filtersBox);
             return this._filtersRevealer;
@@ -367,6 +379,109 @@ export const WallpaperBrowser = GObject.registerClass(
             sortBox.append(this._sortDropdown);
 
             return sortBox;
+        }
+
+        /**
+         * Creates the purity checkboxes filter
+         * @returns {Gtk.Box} The purity checkboxes container
+         * @private
+         */
+        _createPurityControls() {
+            const purityBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 3,
+            });
+
+            this._purityBox = purityBox;
+
+            const purityLabel = new Gtk.Label({
+                label: 'Purity',
+                xalign: 0,
+                css_classes: ['caption', 'dim-label'],
+            });
+
+            const purityCheckBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+            });
+
+            this._sfwCheck = new Gtk.CheckButton({
+                label: 'SFW',
+                active: true,
+            });
+            this._sketchyCheck = new Gtk.CheckButton({
+                label: 'Sketchy',
+                active: false,
+            });
+            this._nsfwCheck = new Gtk.CheckButton({
+                label: 'NSFW',
+                active: false,
+                sensitive: this._hasApiKey,
+            });
+
+            const updatePurity = () => {
+                if (!this._purityControlsEnabled) {
+                    return;
+                }
+
+                const purity = [
+                    this._sfwCheck.get_active() ? '1' : '0',
+                    this._sketchyCheck.get_active() ? '1' : '0',
+                    this._nsfwCheck.get_active() ? '1' : '0',
+                ].join('');
+
+                this._searchParams.purity = this._normalizePurity(
+                    purity,
+                    this._hasApiKey
+                );
+                this._currentPage = 1;
+                this._hasMorePages = true;
+                this._persistFilters();
+                this._performSearch();
+            };
+
+            this._sfwCheckSignalId = this._sfwCheck.connect(
+                'toggled',
+                updatePurity
+            );
+            this._sketchyCheckSignalId = this._sketchyCheck.connect(
+                'toggled',
+                updatePurity
+            );
+            this._nsfwCheckSignalId = this._nsfwCheck.connect('toggled', () => {
+                const isActive = this._nsfwCheck.get_active();
+
+                if (isActive && !this._hasApiKey) {
+                    showToast(
+                        this,
+                        'NSFW requires a valid Wallhaven API key',
+                        3
+                    );
+
+                    withSignalBlocked(
+                        this._nsfwCheck,
+                        this._nsfwCheckSignalId,
+                        () => {
+                            this._nsfwCheck.set_active(false);
+                        }
+                    );
+
+                    return;
+                }
+
+                updatePurity();
+            });
+
+            purityCheckBox.append(this._sfwCheck);
+            purityCheckBox.append(this._sketchyCheck);
+            purityCheckBox.append(this._nsfwCheck);
+
+            purityBox.append(purityLabel);
+            purityBox.append(purityCheckBox);
+
+            purityBox.set_visible(this._purityControlsEnabled);
+
+            return purityBox;
         }
 
         /**
@@ -750,6 +865,90 @@ export const WallpaperBrowser = GObject.registerClass(
         }
 
         /**
+         * Updates visibility and state of purity controls based on configuration
+         * Resets purity to SFW-only when controls are disabled
+         * @private
+         */
+        _updatePurityControlsVisibility() {
+            if (!this._purityBox) {
+                return;
+            }
+
+            this._purityBox.set_visible(this._purityControlsEnabled);
+
+            if (this._puritySeparator) {
+                this._puritySeparator.set_visible(this._purityControlsEnabled);
+            }
+
+            if (!this._purityControlsEnabled) {
+                const normalizedPurity = this._normalizePurity(
+                    '100',
+                    this._hasApiKey
+                );
+                this._searchParams.purity = normalizedPurity;
+
+                if (this._sfwCheck && this._sketchyCheck && this._nsfwCheck) {
+                    if (this._sfwCheckSignalId) {
+                        withSignalBlocked(
+                            this._sfwCheck,
+                            this._sfwCheckSignalId,
+                            () => {
+                                this._sfwCheck.set_active(true);
+                            }
+                        );
+                    } else {
+                        this._sfwCheck.set_active(true);
+                    }
+
+                    if (this._sketchyCheckSignalId) {
+                        withSignalBlocked(
+                            this._sketchyCheck,
+                            this._sketchyCheckSignalId,
+                            () => {
+                                this._sketchyCheck.set_active(false);
+                            }
+                        );
+                    } else {
+                        this._sketchyCheck.set_active(false);
+                    }
+
+                    if (this._nsfwCheckSignalId) {
+                        withSignalBlocked(
+                            this._nsfwCheck,
+                            this._nsfwCheckSignalId,
+                            () => {
+                                this._nsfwCheck.set_active(false);
+                            }
+                        );
+                    } else {
+                        this._nsfwCheck.set_active(false);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Normalizes a purity string based on API key availability
+         * Ensures proper format and disables NSFW when API key is missing
+         * @param {string} purity - Raw purity string (e.g., "100", "110", "111")
+         * @param {boolean} hasApiKey - Whether a valid API key is configured
+         * @returns {string} Normalized purity string
+         * @private
+         */
+        _normalizePurity(purity, hasApiKey) {
+            const safePurity =
+                typeof purity === 'string' && purity.length === 3
+                    ? purity
+                    : '100';
+
+            if (hasApiKey) {
+                return safePurity;
+            }
+
+            return `${safePurity[0]}${safePurity[1]}0`;
+        }
+
+        /**
          * Loads wallhaven configuration from disk
          * @private
          */
@@ -760,10 +959,23 @@ export const WallpaperBrowser = GObject.registerClass(
                 'wallhaven.json',
             ]);
 
-            const config = loadJsonFile(configPath, {});
+            const defaultConfig = {
+                apiKey: '',
+                resolutions: '',
+                sorting: 'date_added',
+                categories: '111',
+                purity: '100',
+                purityControlsEnabled: false,
+            };
 
-            if (config.apiKey) {
-                wallhavenService.setApiKey(config.apiKey);
+            const config = loadJsonFile(configPath, defaultConfig);
+            const rawApiKey =
+                typeof config.apiKey === 'string' ? config.apiKey.trim() : '';
+
+            this._hasApiKey = rawApiKey.length > 0;
+
+            if (this._hasApiKey) {
+                wallhavenService.setApiKey(rawApiKey);
             }
 
             if (config.resolutions) {
@@ -777,6 +989,8 @@ export const WallpaperBrowser = GObject.registerClass(
             if (config.categories) {
                 this._searchParams.categories = config.categories;
             }
+
+            this._purityControlsEnabled = Boolean(config.purityControlsEnabled);
         }
 
         /**
@@ -836,6 +1050,41 @@ export const WallpaperBrowser = GObject.registerClass(
                     this._peopleCheck.set_active(cats[2] === '1');
                 }
             );
+
+            if (!this._sfwCheck || !this._sketchyCheck || !this._nsfwCheck) {
+                return;
+            }
+
+            const normalizedPurity = this._normalizePurity(
+                this._searchParams.purity,
+                this._hasApiKey
+            );
+
+            this._searchParams.purity = normalizedPurity;
+
+            withSignalBlocked(this._sfwCheck, this._sfwCheckSignalId, () => {
+                this._sfwCheck.set_active(normalizedPurity[0] === '1');
+            });
+
+            withSignalBlocked(
+                this._sketchyCheck,
+                this._sketchyCheckSignalId,
+                () => {
+                    this._sketchyCheck.set_active(normalizedPurity[1] === '1');
+                }
+            );
+
+            withSignalBlocked(this._nsfwCheck, this._nsfwCheckSignalId, () => {
+                const allowNsfw =
+                    normalizedPurity[2] === '1' &&
+                    this._hasApiKey &&
+                    this._purityControlsEnabled;
+
+                this._nsfwCheck.set_sensitive(
+                    this._hasApiKey && this._purityControlsEnabled
+                );
+                this._nsfwCheck.set_active(allowNsfw);
+            });
         }
 
         /**
@@ -859,23 +1108,39 @@ export const WallpaperBrowser = GObject.registerClass(
                 resolutions: '',
                 sorting: 'date_added',
                 categories: '111',
+                purity: '100',
+                purityControlsEnabled: false,
             };
 
             const config = loadJsonFile(configPath, defaultConfig);
 
             config.sorting = this._searchParams.sorting;
             config.categories = this._searchParams.categories;
+            config.purityControlsEnabled = this._purityControlsEnabled;
+
+            const effectivePurity = this._purityControlsEnabled
+                ? this._searchParams.purity
+                : '100';
+
+            const normalizedPurity = this._normalizePurity(
+                effectivePurity,
+                this._hasApiKey
+            );
+
+            config.purity = normalizedPurity;
+            this._searchParams.purity = normalizedPurity;
 
             saveJsonFile(configPath, config);
         }
 
         /**
-         * Saves wallhaven configuration (API key and resolutions)
+         * Saves wallhaven configuration (API key, resolutions, and purity controls)
          * @param {string} apiKey - Wallhaven API key
          * @param {string} resolutions - Resolution filter string
+         * @param {boolean} purityControlsEnabled - Whether purity controls are visible in the browser
          * @private
          */
-        _saveConfig(apiKey, resolutions) {
+        _saveConfig(apiKey, resolutions, purityControlsEnabled) {
             try {
                 const configDir = GLib.build_filenamev([
                     GLib.get_user_config_dir(),
@@ -893,19 +1158,49 @@ export const WallpaperBrowser = GObject.registerClass(
                     resolutions: '',
                     sorting: 'date_added',
                     categories: '111',
+                    purity: '100',
+                    purityControlsEnabled: false,
                 };
 
                 const config = loadJsonFile(configPath, defaultConfig);
 
-                config.apiKey = apiKey;
+                const sanitizedApiKey = apiKey.trim();
+                const hasApiKey = sanitizedApiKey.length > 0;
+
+                this._purityControlsEnabled = Boolean(purityControlsEnabled);
+
+                config.apiKey = sanitizedApiKey;
                 config.resolutions = resolutions;
                 config.sorting = this._searchParams.sorting;
                 config.categories = this._searchParams.categories;
+                config.purityControlsEnabled = this._purityControlsEnabled;
+
+                let normalizedPurity;
+
+                if (!this._purityControlsEnabled) {
+                    this._searchParams.purity = '100';
+                    normalizedPurity = this._normalizePurity('100', hasApiKey);
+                } else {
+                    normalizedPurity = this._normalizePurity(
+                        this._searchParams.purity,
+                        hasApiKey
+                    );
+                }
+
+                config.purity = normalizedPurity;
+                this._searchParams.purity = normalizedPurity;
 
                 saveJsonFile(configPath, config);
 
-                wallhavenService.setApiKey(apiKey);
+                this._hasApiKey = hasApiKey;
+
+                if (this._hasApiKey) {
+                    wallhavenService.setApiKey(sanitizedApiKey);
+                }
+
                 this._searchParams.resolutions = resolutions;
+                this._updateUIFromConfig();
+                this._updatePurityControlsVisibility();
             } catch (e) {
                 console.error('Failed to save config:', e.message);
                 throw e;
@@ -959,9 +1254,21 @@ export const WallpaperBrowser = GObject.registerClass(
                 'wallhaven.json',
             ]);
 
-            const config = loadJsonFile(configPath, {});
+            const defaultConfig = {
+                apiKey: '',
+                resolutions: '',
+                sorting: 'date_added',
+                categories: '111',
+                purity: '100',
+                purityControlsEnabled: false,
+            };
+
+            const config = loadJsonFile(configPath, defaultConfig);
             const currentApiKey = config.apiKey || '';
             const currentResolutions = config.resolutions || '';
+            const currentPurityControlsEnabled = Boolean(
+                config.purityControlsEnabled
+            );
 
             if (currentApiKey) {
                 apiKeyRow.set_text(currentApiKey);
@@ -1061,6 +1368,19 @@ export const WallpaperBrowser = GObject.registerClass(
             contentBox.append(presetsBox);
             contentBox.append(resolutionHelpLabel);
 
+            const purityGroup = new Adw.PreferencesGroup({
+                title: 'Content Filters',
+            });
+
+            const puritySwitchRow = new Adw.SwitchRow({
+                title: 'Show purity filters',
+                subtitle:
+                    'Enable SFW/Sketchy/NSFW controls in the wallpaper browser',
+                active: currentPurityControlsEnabled,
+            });
+            purityGroup.add(puritySwitchRow);
+            contentBox.append(purityGroup);
+
             // Action buttons
             const buttonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
@@ -1081,9 +1401,14 @@ export const WallpaperBrowser = GObject.registerClass(
             saveButton.connect('clicked', () => {
                 const apiKey = apiKeyRow.get_text().trim();
                 const resolutions = resolutionRow.get_text().trim();
+                const purityControlsEnabled = puritySwitchRow.get_active();
 
                 try {
-                    this._saveConfig(apiKey, resolutions);
+                    this._saveConfig(
+                        apiKey,
+                        resolutions,
+                        purityControlsEnabled
+                    );
 
                     // Refresh search with new filters
                     this._currentPage = 1;
