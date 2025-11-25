@@ -241,9 +241,19 @@ const AetherApplication = GObject.registerClass(
 
             // Handle import blueprint
             if (options.contains('import-blueprint')) {
-                const source = options
+                let source = options
                     .lookup_value('import-blueprint', GLib.VariantType.new('s'))
                     .get_string()[0];
+
+                // Parse aether:// protocol URLs
+                // Format: aether://import?url=ENCODED_URL
+                if (source.startsWith('aether://import?url=')) {
+                    // Extract and decode the URL parameter
+                    const urlParam = source.substring('aether://import?url='.length);
+                    source = decodeURIComponent(urlParam);
+                    print(`Parsed protocol URL: ${source}`);
+                }
+
                 const autoApply = options.contains('auto-apply');
 
                 // Keep application alive for async operation
