@@ -18,6 +18,7 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - **Advanced Color Tools** - Harmony generator, gradients, and adjustment sliders (vibrance, contrast, temperature)
 - **Color Lock System** - Protect specific colors while experimenting with adjustments
 - **Blueprint System** - Save and share themes as JSON files
+- **One-Click Blueprint Imports** - Install themes from websites via `aether://` protocol links (automatic setup on first run)
 - **Neovim Themes** - 37 LazyVim-compatible themes with preset matching
 - **Shader Manager** - 80+ GLSL screen shaders for hyprshade (color grading, effects, era vibes)
 - **Accessibility Checker** - Real-time WCAG contrast ratio validation
@@ -83,6 +84,8 @@ Options:
   -w, --wallpaper=FILE          Path to wallpaper image to load on startup
   -l, --list-blueprints         List all saved blueprint themes
   -a, --apply-blueprint=NAME    Apply a blueprint by name
+  -i, --import-blueprint=URL    Import blueprint from URL or file path
+  --auto-apply                  Automatically apply imported blueprint (use with --import-blueprint)
   -g, --generate=FILE           Extract colors from wallpaper and apply theme
   --extract-mode=MODE           Extraction mode: normal (default), monochromatic, analogous, pastel, material
   --light-mode                  Generate light mode theme (for --generate)
@@ -218,6 +221,30 @@ Blueprints are JSON files stored in `~/.config/aether/blueprints/`:
   }
 }
 ```
+
+### Sharing Themes with Protocol Links
+
+Aether supports **one-click theme installation** from websites using the `aether://` protocol. When you first launch Aether, it automatically registers as a handler for `aether://` links.
+
+**How it works:**
+1. Export your theme as a blueprint JSON file
+2. Host it on GitHub, your website, or a file-sharing service
+3. Create a link: `aether://import?url=https://example.com/theme.json`
+4. Share the link - users click it and the theme installs automatically!
+
+**Import themes via CLI:**
+```bash
+# Import from URL
+aether --import-blueprint https://example.com/theme.json
+
+# Import and auto-apply
+aether --import-blueprint https://example.com/theme.json --auto-apply
+
+# Import local file
+aether --import-blueprint /path/to/theme.json
+```
+
+See [PROTOCOL_HANDLER.md](PROTOCOL_HANDLER.md) for complete documentation and examples.
 
 ## Troubleshooting
 
