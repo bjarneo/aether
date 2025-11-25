@@ -51,9 +51,11 @@ import {
     ListBlueprintsCommand,
     ApplyBlueprintCommand,
     GenerateThemeCommand,
+    ImportBlueprintCommand,
 } from './cli/index.js';
 import {BlueprintWidget} from './components/BlueprintWidget.js';
 import {runMigrations} from './utils/migrations.js';
+import {ProtocolHandlerInstaller} from './utils/protocol-handler-installer.js';
 
 Adw.init();
 
@@ -151,6 +153,24 @@ const AetherApplication = GObject.registerClass(
                 'Show floating blueprint selector widget',
                 null
             );
+
+            this.add_main_option(
+                'import-blueprint',
+                'i'.charCodeAt(0),
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.STRING,
+                'Import a blueprint from URL or file path',
+                'URL|PATH'
+            );
+
+            this.add_main_option(
+                'auto-apply',
+                0,
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.NONE,
+                'Automatically apply imported blueprint (use with --import-blueprint)',
+                null
+            );
         }
 
         /**
@@ -204,6 +224,32 @@ const AetherApplication = GObject.registerClass(
                     extractionMode,
                     lightMode
                 )
+                    .then(success => {
+                        this.release();
+                        if (!success) {
+                            imports.system.exit(1);
+                        }
+                    })
+                    .catch(error => {
+                        printerr(`Error: ${error.message}`);
+                        this.release();
+                        imports.system.exit(1);
+                    });
+
+                return 0;
+            }
+
+            // Handle import blueprint
+            if (options.contains('import-blueprint')) {
+                const source = options
+                    .lookup_value('import-blueprint', GLib.VariantType.new('s'))
+                    .get_string()[0];
+                const autoApply = options.contains('auto-apply');
+
+                // Keep application alive for async operation
+                this.hold();
+
+                ImportBlueprintCommand.execute(source, autoApply)
                     .then(success => {
                         this.release();
                         if (!success) {
@@ -298,6 +344,9 @@ const AetherApplication = GObject.registerClass(
                 );
             }
             this.themeManager = themeManager;
+
+            // Install protocol handler on first run
+            ProtocolHandlerInstaller.ensureInstalled();
 
             // Install shaders only when GUI is activated
             this._installShaders();
