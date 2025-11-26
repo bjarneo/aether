@@ -1,10 +1,12 @@
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
 import {extractColorsFromWallpaperIM} from '../utils/imagemagick-color-extraction.js';
 import {adjustColor} from '../utils/color-utils.js';
+import {ensureDirectoryExists} from '../utils/file-utils.js';
 import {WallpaperBrowser} from './WallpaperBrowser.js';
 import {LocalWallpaperBrowser} from './LocalWallpaperBrowser.js';
 import {FavoritesView} from './FavoritesView.js';
@@ -438,14 +440,64 @@ export const PaletteEditor = GObject.registerClass(
             this.switchToEditorTab();
         }
 
-        loadBlueprintPalette(palette) {
+        async loadBlueprintPalette(palette) {
             if (palette.colors) {
                 this._originalPalette = [...palette.colors];
                 this.setPalette(palette.colors);
             }
 
-            if (palette.wallpaper) {
+            // Download wallpaper if wallpaperUrl is present
+            if (palette.wallpaperUrl && !palette.wallpaper) {
+                try {
+                    const wallpapersDir = GLib.build_filenamev([
+                        GLib.get_user_data_dir(),
+                        'aether',
+                        'wallpapers',
+                    ]);
+                    ensureDirectoryExists(wallpapersDir);
+
+                    // Extract filename from URL
+                    const urlParts = palette.wallpaperUrl.split('/');
+                    const filename = urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
+                    const wallpaperPath = GLib.build_filenamev([
+                        wallpapersDir,
+                        filename,
+                    ]);
+
+                    // Check if already downloaded
+                    const file = Gio.File.new_for_path(wallpaperPath);
+                    if (!file.query_exists(null)) {
+                        // Download wallpaper
+                        const {wallhavenService} = await import('../services/wallhaven-service.js');
+                        await wallhavenService.downloadWallpaper(
+                            palette.wallpaperUrl,
+                            wallpaperPath
+                        );
+                        console.log(`Downloaded wallpaper from blueprint: ${wallpaperPath}`);
+                    }
+
+                    // Load the downloaded wallpaper
+                    this.loadWallpaperWithoutExtraction(wallpaperPath);
+
+                    // Store metadata
+                    this._wallpaperMetadata = {
+                        url: palette.wallpaperUrl,
+                        source: palette.wallpaperSource || 'wallhaven',
+                    };
+                } catch (error) {
+                    console.error('Failed to download wallpaper from URL:', error);
+                    // Continue without wallpaper
+                }
+            } else if (palette.wallpaper) {
                 this.loadWallpaperWithoutExtraction(palette.wallpaper);
+
+                // Restore wallpaper metadata if available
+                if (palette.wallpaperUrl) {
+                    this._wallpaperMetadata = {
+                        url: palette.wallpaperUrl,
+                        source: palette.wallpaperSource || 'wallhaven',
+                    };
+                }
             }
 
             // Always reset additional images when loading blueprint

@@ -1,6 +1,9 @@
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import {ConfigWriter} from '../../utils/ConfigWriter.js';
 import {BlueprintService} from '../../services/BlueprintService.js';
 import {ColorMapper} from '../utils/color-mapper.js';
+import {ensureDirectoryExists} from '../../utils/file-utils.js';
 
 /**
  * Command handler for applying a blueprint theme
@@ -11,9 +14,9 @@ export class ApplyBlueprintCommand {
      * Executes the apply-blueprint command
      *
      * @param {string} name - Name of the blueprint to apply
-     * @returns {boolean} True if successful, false otherwise
+     * @returns {Promise<boolean>} True if successful, false otherwise
      */
-    static execute(name) {
+    static async execute(name) {
         if (!name) {
             print('Error: Blueprint name is required');
             print('Usage: aether --apply-blueprint <name>');
@@ -47,6 +50,16 @@ export class ApplyBlueprintCommand {
             }
 
             const palette = foundBlueprint.palette;
+
+            // Download wallpaper if wallpaperUrl is present and wallpaper is missing
+            let wallpaperPath = palette.wallpaper;
+            if (palette.wallpaperUrl && !wallpaperPath) {
+                wallpaperPath = await this._downloadWallpaper(palette.wallpaperUrl);
+                if (!wallpaperPath) {
+                    print('Warning: Failed to download wallpaper, continuing without it');
+                }
+            }
+
             const colorRoles = ColorMapper.mapColorsToRoles(palette.colors);
 
             const settings = foundBlueprint.settings || {};
@@ -56,7 +69,7 @@ export class ApplyBlueprintCommand {
             const configWriter = new ConfigWriter();
             configWriter.applyTheme(
                 colorRoles,
-                palette.wallpaper,
+                wallpaperPath,
                 settings,
                 lightMode,
                 appOverrides,
@@ -69,6 +82,50 @@ export class ApplyBlueprintCommand {
         } catch (e) {
             print(`Error: Failed to apply blueprint: ${e.message}`);
             return false;
+        }
+    }
+
+    /**
+     * Downloads a wallpaper from a URL
+     * @param {string} url - URL to download from
+     * @returns {Promise<string|null>} Path to downloaded wallpaper or null on failure
+     * @private
+     */
+    static async _downloadWallpaper(url) {
+        try {
+            print(`Downloading wallpaper from: ${url}`);
+
+            const wallpapersDir = GLib.build_filenamev([
+                GLib.get_user_data_dir(),
+                'aether',
+                'wallpapers',
+            ]);
+            ensureDirectoryExists(wallpapersDir);
+
+            // Extract filename from URL
+            const urlParts = url.split('/');
+            const filename = urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
+            const wallpaperPath = GLib.build_filenamev([
+                wallpapersDir,
+                filename,
+            ]);
+
+            // Check if already downloaded
+            const file = Gio.File.new_for_path(wallpaperPath);
+            if (file.query_exists(null)) {
+                print(`Wallpaper already downloaded: ${wallpaperPath}`);
+                return wallpaperPath;
+            }
+
+            // Download wallpaper
+            const {wallhavenService} = await import('../../services/wallhaven-service.js');
+            await wallhavenService.downloadWallpaper(url, wallpaperPath);
+
+            print(`✓ Wallpaper downloaded: ${wallpaperPath}`);
+            return wallpaperPath;
+        } catch (error) {
+            print(`Error downloading wallpaper: ${error.message}`);
+            return null;
         }
     }
 }
