@@ -143,6 +143,8 @@ export class DialogManager {
      * @param {string} config.placeholder - Placeholder text
      * @param {string} config.defaultValue - Default input value
      * @param {Function} config.onSubmit - Callback with input value
+     * @param {RegExp} config.validationPattern - Optional regex pattern for input validation
+     * @param {string} config.validationMessage - Optional error message for invalid input
      */
     showTextInput(config) {
         const {
@@ -151,6 +153,8 @@ export class DialogManager {
             placeholder = '',
             defaultValue = '',
             onSubmit,
+            validationPattern = null,
+            validationMessage = 'Invalid input',
         } = config;
 
         const dialog = new Adw.MessageDialog({
@@ -175,12 +179,55 @@ export class DialogManager {
             margin_bottom: 6,
         });
 
-        dialog.set_extra_child(entry);
+        // Validation error label (hidden by default)
+        let errorLabel = null;
+        if (validationPattern) {
+            errorLabel = new Gtk.Label({
+                label: validationMessage,
+                css_classes: ['error', 'caption'],
+                visible: false,
+                xalign: 0,
+                margin_start: 12,
+                margin_end: 12,
+                margin_bottom: 6,
+            });
+
+            const box = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 0,
+            });
+            box.append(entry);
+            box.append(errorLabel);
+            dialog.set_extra_child(box);
+        } else {
+            dialog.set_extra_child(entry);
+        }
 
         dialog.connect('response', (_, response) => {
-            if (response === 'save' && onSubmit) {
+            if (response === 'cancel') {
+                // Always allow cancel to close the dialog
+                return;
+            }
+
+            if (response === 'save') {
                 const value = entry.get_text().trim();
-                onSubmit(value);
+
+                // Validate if pattern is provided
+                if (validationPattern && !validationPattern.test(value)) {
+                    if (errorLabel) {
+                        errorLabel.set_visible(true);
+                    }
+                    // Prevent dialog from closing by calling force_close(false) and re-presenting
+                    GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                        dialog.present();
+                        return GLib.SOURCE_REMOVE;
+                    });
+                    return;
+                }
+
+                if (onSubmit) {
+                    onSubmit(value);
+                }
             }
         });
 
@@ -347,8 +394,10 @@ export class DialogManager {
     showThemeNameDialog(callback) {
         this.showTextInput({
             heading: 'Export Theme',
-            body: 'Enter a name for your theme',
+            body: 'Enter a name for your theme (lowercase letters and hyphens only)',
             placeholder: 'my-theme',
+            validationPattern: /^[a-z]([a-z-]*[a-z])?$/,
+            validationMessage: 'Theme name must contain only lowercase letters (a-z) and hyphens (-)',
             onSubmit: value => callback(value || 'my-theme'),
         });
     }
