@@ -530,10 +530,6 @@ export const PaletteEditor = GObject.registerClass(
             return this._lightMode;
         }
 
-        setAppOverridesVisible(visible) {
-            this._colorPalette.setAppOverridesVisible(visible);
-        }
-
         resetAppOverrides() {
             this._colorPalette.resetAppOverrides();
         }

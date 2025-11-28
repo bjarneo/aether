@@ -49,7 +49,6 @@ import {
  * - 'gradient-generated' (gradient: object) - Gradient colors generated
  * - 'light-mode-changed' (enabled: boolean) - Light mode toggled
  * - 'palette-from-color-generated' (palette: object) - Palette generated from single color
- * - 'app-overrides-enabled-changed' (enabled: boolean) - Per-app overrides toggled
  * - 'neovim-theme-changed' (enabled: boolean) - Neovim theme inclusion changed
  *
  * Configuration:
@@ -71,9 +70,6 @@ export const SettingsSidebar = GObject.registerClass(
             'light-mode-changed': {param_types: [GObject.TYPE_BOOLEAN]},
             'palette-from-color-generated': {
                 param_types: [GObject.TYPE_JSOBJECT],
-            },
-            'app-overrides-enabled-changed': {
-                param_types: [GObject.TYPE_BOOLEAN],
             },
             'neovim-theme-changed': {param_types: [GObject.TYPE_BOOLEAN]},
         },
@@ -106,7 +102,7 @@ export const SettingsSidebar = GObject.registerClass(
             this._selectedNeovimConfig = null;
             this._neovimPresetRows = []; // Store references to preset rows for visual feedback
             this._baseColor = '#89b4fa'; // Default base color for palette generation
-            this._enableAppOverrides = false; // Per-app color overrides (experimental)
+            this._enableAppOverrides = true; // Per-app color overrides (always enabled)
 
             // Load persisted settings
             this._loadSettings();
@@ -845,49 +841,6 @@ export const SettingsSidebar = GObject.registerClass(
             gtkRow.set_activatable_widget(this._gtkSwitch);
 
             expanderRow.add_row(gtkRow);
-
-            // Per-Application Color Overrides row
-            const appOverridesRow = new Adw.ActionRow({
-                title: 'Per-Application Color Overrides',
-                subtitle: 'Customize colors for specific apps',
-            });
-
-            const appOverridesInfoButton = new Gtk.Button({
-                icon_name: 'help-about-symbolic',
-                valign: Gtk.Align.CENTER,
-                tooltip_text:
-                    'Override color variables for individual application templates',
-                css_classes: ['flat', 'circular'],
-            });
-
-            const appOverridesSuffixBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-                valign: Gtk.Align.CENTER,
-            });
-
-            appOverridesSuffixBox.append(appOverridesInfoButton);
-
-            this._appOverridesSwitch = new Gtk.Switch({
-                active: this._enableAppOverrides,
-                valign: Gtk.Align.CENTER,
-            });
-
-            this._appOverridesSwitch.connect('notify::active', sw => {
-                this._enableAppOverrides = sw.get_active();
-                this.emit(
-                    'app-overrides-enabled-changed',
-                    this._enableAppOverrides
-                );
-                this.emit('settings-changed', this.getSettings());
-            });
-
-            appOverridesSuffixBox.append(this._appOverridesSwitch);
-
-            appOverridesRow.add_suffix(appOverridesSuffixBox);
-            appOverridesRow.set_activatable_widget(this._appOverridesSwitch);
-
-            expanderRow.add_row(appOverridesRow);
 
             return expanderRow;
         }

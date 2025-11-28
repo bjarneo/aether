@@ -513,9 +513,6 @@ const AetherWindow = GObject.registerClass(
             // Apply initial settings state (after UI is created)
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 const settings = this.settingsSidebar.getSettings();
-                this.paletteGenerator.setAppOverridesVisible(
-                    settings.enableAppOverrides || false
-                );
 
                 // Set initial neovim theme selection state
                 const neovimThemeSelected =
@@ -732,13 +729,6 @@ const AetherWindow = GObject.registerClass(
                 'palette-from-color-generated',
                 (_, colors) => {
                     this.paletteGenerator.applyHarmony(colors);
-                }
-            );
-
-            this.settingsSidebar.connect(
-                'app-overrides-enabled-changed',
-                (_, enabled) => {
-                    this.paletteGenerator.setAppOverridesVisible(enabled);
                 }
             );
 

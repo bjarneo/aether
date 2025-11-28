@@ -77,10 +77,10 @@ export const ColorPaletteSection = GObject.registerClass(
             });
             this.append(this._swatchGrid.widget);
 
-            // App color overrides (hidden by default)
+            // App color overrides (always visible)
             this._advancedGroup = new Adw.PreferencesGroup({
                 margin_top: 12,
-                visible: false,
+                visible: true,
             });
             this._appOverridesWidget = new AppColorOverrides();
             this._appOverridesWidget.connect(
@@ -199,10 +199,6 @@ export const ColorPaletteSection = GObject.registerClass(
         updateColor(index, color) {
             this._palette[index] = color;
             this._swatchGrid.updateSwatchColor(index, color);
-        }
-
-        setAppOverridesVisible(visible) {
-            this._advancedGroup.set_visible(visible);
         }
 
         loadAppOverrides(overrides) {
