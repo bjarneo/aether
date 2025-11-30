@@ -6,6 +6,7 @@ import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 
 import {getAppNameFromFileName} from '../../constants/templates.js';
+import {getTemplateMap, resolveTemplatePath} from '../../utils/template-utils.js';
 
 export const AppColorOverrides = GObject.registerClass(
     {
@@ -48,68 +49,35 @@ export const AppColorOverrides = GObject.registerClass(
         }
 
         _getAvailableApps() {
-            // Dynamically read from templates directory
-            // This file is at: src/components/palette/AppColorOverrides.js
-            // We need to go up 3 levels to get to project root, then into templates
-            const thisFilePath = Gio.File.new_for_path(
-                import.meta.url.replace('file://', '')
-            ).get_path();
-            const projectDir = GLib.path_get_dirname(
-                GLib.path_get_dirname(
-                    GLib.path_get_dirname(GLib.path_get_dirname(thisFilePath))
-                )
-            );
-            const templatesDir = GLib.build_filenamev([
-                projectDir,
-                'templates',
-            ]);
-
+            const templateMap = getTemplateMap();
             const apps = [];
-            const dir = Gio.File.new_for_path(templatesDir);
 
-            try {
-                const enumerator = dir.enumerate_children(
-                    'standard::name,standard::type',
-                    Gio.FileQueryInfoFlags.NONE,
-                    null
-                );
+            templateMap.forEach((filePath, fileName) => {
+                // Skip excluded files
+                const excludedFiles = [
+                    'aether.override.css',
+                    'gtk.css',
+                    'alacritty.toml',
+                    'ghostty.conf',
+                    'kitty.conf',
+                    'vencord.theme.css',
+                    'btop.theme',
+                ];
 
-                let fileInfo;
-                while ((fileInfo = enumerator.next_file(null)) !== null) {
-                    const fileName = fileInfo.get_name();
-
-                    // Skip excluded files
-                    const excludedFiles = [
-                        'aether.override.css',
-                        'gtk.css',
-                        'alacritty.toml',
-                        'ghostty.conf',
-                        'kitty.conf',
-                        'vencord.theme.css',
-                        'btop.theme',
-                    ];
-
-                    if (excludedFiles.includes(fileName)) {
-                        continue;
-                    }
-
-                    // Only process regular files
-                    if (fileInfo.get_file_type() === Gio.FileType.REGULAR) {
-                        const appName = this._getAppNameFromFileName(fileName);
-                        const label = this._getAppLabelFromFileName(fileName);
-
-                        apps.push({
-                            name: appName,
-                            label: label,
-                            file: fileName,
-                        });
-                    }
+                if (excludedFiles.includes(fileName)) {
+                    return;
                 }
 
-                enumerator.close(null);
-            } catch (e) {
-                console.error('Error reading templates directory:', e.message);
-            }
+                // We only care about the file name for app identification
+                const appName = this._getAppNameFromFileName(fileName);
+                const label = this._getAppLabelFromFileName(fileName);
+
+                apps.push({
+                    name: appName,
+                    label: label,
+                    file: fileName,
+                });
+            });
 
             // Sort alphabetically by label
             apps.sort((a, b) => a.label.localeCompare(b.label));
@@ -128,23 +96,8 @@ export const AppColorOverrides = GObject.registerClass(
         }
 
         _getUsedColorVariables(fileName) {
-            // Parse template file to find used color variables
-            const projectDir = GLib.path_get_dirname(
-                GLib.path_get_dirname(
-                    GLib.path_get_dirname(
-                        GLib.path_get_dirname(
-                            Gio.File.new_for_path(
-                                import.meta.url.replace('file://', '')
-                            ).get_path()
-                        )
-                    )
-                )
-            );
-            const templatePath = GLib.build_filenamev([
-                projectDir,
-                'templates',
-                fileName,
-            ]);
+            // Get template path (checking overrides first)
+            const templatePath = resolveTemplatePath(fileName);
 
             try {
                 const file = Gio.File.new_for_path(templatePath);
@@ -159,6 +112,7 @@ export const AppColorOverrides = GObject.registerClass(
                 // Match patterns like {background}, {foreground}, {color0}, etc.
                 // Also match descriptive names: {red}, {bright_red}, {blue}, etc.
                 // Also match {color0.strip}, {color0.rgb}, {color0.rgba}, {color0.yaru}
+                // And match {color.rgba:0.5} format
                 const regex =
                     /\{(background|foreground|color\d+|black|red|green|yellow|blue|magenta|cyan|white|bright_black|bright_red|bright_green|bright_yellow|bright_blue|bright_magenta|bright_cyan|bright_white)(?:\.[a-z]+)?(?::\d*\.?\d+)?\}/g;
                 let match;
@@ -450,6 +404,8 @@ export const AppColorOverrides = GObject.registerClass(
 
             // Get color variables used in this template
             const colorVars = this._getUsedColorVariables(app.file);
+
+            console.log(`Used variables for ${app.name}:`, colorVars);
 
             if (colorVars.length === 0) {
                 const emptyLabel = new Gtk.Label({

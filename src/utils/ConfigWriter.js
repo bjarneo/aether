@@ -12,6 +12,10 @@ import {
     deleteFile,
     fileExists,
 } from './file-utils.js';
+import {
+    getTemplateMap,
+    resolveTemplatePath,
+} from './template-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
 import {restartSwaybg} from './service-manager.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
@@ -218,93 +222,92 @@ export class ConfigWriter {
     }
 
     _processTemplates(variables, settings = {}, appOverrides = {}) {
-        enumerateDirectory(
-            this.templatesDir,
-            (fileInfo, templatePath, fileName) => {
-                // Skip neovim.lua if includeNeovim is false
-                if (
-                    fileName === 'neovim.lua' &&
-                    settings.includeNeovim === false
-                ) {
-                    return;
-                }
-
-                // Skip vencord.theme.css if includeVencord is false
-                if (
-                    fileName === 'vencord.theme.css' &&
-                    settings.includeVencord === false
-                ) {
-                    return;
-                }
-
-                // Skip aether.zed.json if includeZed is false
-                if (
-                    fileName === 'aether.zed.json' &&
-                    settings.includeZed === false
-                ) {
-                    return;
-                }
-
-                // Skip gtk.css if includeGtk is false
-                if (fileName === 'gtk.css' && settings.includeGtk === false) {
-                    return;
-                }
-
-                const outputPath = GLib.build_filenamev([
-                    this.themeDir,
-                    fileName,
-                ]);
-
-                // Handle vscode.empty.json - use when VSCode is disabled
-                if (fileName === 'vscode.empty.json') {
-                    if (settings.includeVscode === false) {
-                        // Write empty vscode.json when disabled
-                        const vscodeOutputPath = GLib.build_filenamev([
-                            this.themeDir,
-                            'vscode.json',
-                        ]);
-                        this._processTemplate(
-                            templatePath,
-                            vscodeOutputPath,
-                            variables,
-                            'vscode.empty.json',
-                            appOverrides
-                        );
-                    }
-                    return;
-                }
-
-                // If this is neovim.lua and a custom config is selected, write it directly
-                if (
-                    fileName === 'neovim.lua' &&
-                    settings.selectedNeovimConfig
-                ) {
-                    try {
-                        writeTextToFile(
-                            outputPath,
-                            settings.selectedNeovimConfig
-                        );
-                        console.log(
-                            `Applied selected Neovim theme to ${outputPath}`
-                        );
-                    } catch (e) {
-                        console.error(
-                            `Error writing custom neovim.lua:`,
-                            e.message
-                        );
-                    }
-                    return;
-                }
-
-                this._processTemplate(
-                    templatePath,
-                    outputPath,
-                    variables,
-                    fileName,
-                    appOverrides
-                );
+        const templateMap = getTemplateMap();
+        
+        templateMap.forEach((templatePath, fileName) => {
+            // Skip neovim.lua if includeNeovim is false
+            if (
+                fileName === 'neovim.lua' &&
+                settings.includeNeovim === false
+            ) {
+                return;
             }
-        );
+
+            // Skip vencord.theme.css if includeVencord is false
+            if (
+                fileName === 'vencord.theme.css' &&
+                settings.includeVencord === false
+            ) {
+                return;
+            }
+
+            // Skip aether.zed.json if includeZed is false
+            if (
+                fileName === 'aether.zed.json' &&
+                settings.includeZed === false
+            ) {
+                return;
+            }
+
+            // Skip gtk.css if includeGtk is false
+            if (fileName === 'gtk.css' && settings.includeGtk === false) {
+                return;
+            }
+
+            const outputPath = GLib.build_filenamev([
+                this.themeDir,
+                fileName,
+            ]);
+
+            // Handle vscode.empty.json - use when VSCode is disabled
+            if (fileName === 'vscode.empty.json') {
+                if (settings.includeVscode === false) {
+                    // Write empty vscode.json when disabled
+                    const vscodeOutputPath = GLib.build_filenamev([
+                        this.themeDir,
+                        'vscode.json',
+                    ]);
+                    this._processTemplate(
+                        templatePath,
+                        vscodeOutputPath,
+                        variables,
+                        'vscode.empty.json',
+                        appOverrides
+                    );
+                }
+                return;
+            }
+
+            // If this is neovim.lua and a custom config is selected, write it directly
+            if (
+                fileName === 'neovim.lua' &&
+                settings.selectedNeovimConfig
+            ) {
+                try {
+                    writeTextToFile(
+                        outputPath,
+                        settings.selectedNeovimConfig
+                    );
+                    console.log(
+                        `Applied selected Neovim theme to ${outputPath}`
+                    );
+                } catch (e) {
+                    console.error(
+                        `Error writing custom neovim.lua:`,
+                        e.message
+                    );
+                }
+                return;
+            }
+
+            this._processTemplate(
+                templatePath,
+                outputPath,
+                variables,
+                fileName,
+                appOverrides
+            );
+        });
     }
 
     _processTemplate(
@@ -441,91 +444,90 @@ export class ConfigWriter {
         settings = {},
         appOverrides = {}
     ) {
-        enumerateDirectory(
-            this.templatesDir,
-            (fileInfo, templatePath, fileName) => {
-                // Skip neovim.lua if includeNeovim is false
-                if (
-                    fileName === 'neovim.lua' &&
-                    settings.includeNeovim === false
-                ) {
-                    return;
-                }
-
-                // Skip vencord.theme.css if includeVencord is false
-                if (
-                    fileName === 'vencord.theme.css' &&
-                    settings.includeVencord === false
-                ) {
-                    return;
-                }
-
-                // Skip aether.zed.json if includeZed is false
-                if (
-                    fileName === 'aether.zed.json' &&
-                    settings.includeZed === false
-                ) {
-                    return;
-                }
-
-                // Skip gtk.css if includeGtk is false
-                if (fileName === 'gtk.css' && settings.includeGtk === false) {
-                    return;
-                }
-
-                const outputPath = GLib.build_filenamev([exportPath, fileName]);
-
-                // Handle vscode.empty.json - use when VSCode is disabled
-                if (fileName === 'vscode.empty.json') {
-                    if (settings.includeVscode === false) {
-                        // Write empty vscode.json when disabled
-                        const vscodeOutputPath = GLib.build_filenamev([
-                            exportPath,
-                            'vscode.json',
-                        ]);
-                        this._processTemplate(
-                            templatePath,
-                            vscodeOutputPath,
-                            variables,
-                            'vscode.empty.json',
-                            appOverrides
-                        );
-                    }
-                    return;
-                }
-
-                // If this is neovim.lua and a custom config is selected, write it directly
-                if (
-                    fileName === 'neovim.lua' &&
-                    settings.selectedNeovimConfig
-                ) {
-                    try {
-                        writeTextToFile(
-                            outputPath,
-                            settings.selectedNeovimConfig
-                        );
-                        console.log(
-                            `Exported selected Neovim theme to ${outputPath}`
-                        );
-                    } catch (e) {
-                        console.error(
-                            `Error writing custom neovim.lua:`,
-                            e.message
-                        );
-                    }
-                    return;
-                }
-
-                this._processTemplate(
-                    templatePath,
-                    outputPath,
-                    variables,
-                    fileName,
-                    appOverrides
-                );
-                console.log(`Processed template: ${fileName}`);
+        const templateMap = getTemplateMap();
+        
+        templateMap.forEach((templatePath, fileName) => {
+            // Skip neovim.lua if includeNeovim is false
+            if (
+                fileName === 'neovim.lua' &&
+                settings.includeNeovim === false
+            ) {
+                return;
             }
-        );
+
+            // Skip vencord.theme.css if includeVencord is false
+            if (
+                fileName === 'vencord.theme.css' &&
+                settings.includeVencord === false
+            ) {
+                return;
+            }
+
+            // Skip aether.zed.json if includeZed is false
+            if (
+                fileName === 'aether.zed.json' &&
+                settings.includeZed === false
+            ) {
+                return;
+            }
+
+            // Skip gtk.css if includeGtk is false
+            if (fileName === 'gtk.css' && settings.includeGtk === false) {
+                return;
+            }
+
+            const outputPath = GLib.build_filenamev([exportPath, fileName]);
+
+            // Handle vscode.empty.json - use when VSCode is disabled
+            if (fileName === 'vscode.empty.json') {
+                if (settings.includeVscode === false) {
+                    // Write empty vscode.json when disabled
+                    const vscodeOutputPath = GLib.build_filenamev([
+                        exportPath,
+                        'vscode.json',
+                    ]);
+                    this._processTemplate(
+                        templatePath,
+                        vscodeOutputPath,
+                        variables,
+                        'vscode.empty.json',
+                        appOverrides
+                    );
+                }
+                return;
+            }
+
+            // If this is neovim.lua and a custom config is selected, write it directly
+            if (
+                fileName === 'neovim.lua' &&
+                settings.selectedNeovimConfig
+            ) {
+                try {
+                    writeTextToFile(
+                        outputPath,
+                        settings.selectedNeovimConfig
+                    );
+                    console.log(
+                        `Exported selected Neovim theme to ${outputPath}`
+                    );
+                } catch (e) {
+                    console.error(
+                        `Error writing custom neovim.lua:`,
+                        e.message
+                    );
+                }
+                return;
+            }
+
+            this._processTemplate(
+                templatePath,
+                outputPath,
+                variables,
+                fileName,
+                appOverrides
+            );
+            console.log(`Processed template: ${fileName}`);
+        });
     }
 
     _handleLightModeMarker(themeDir, lightMode) {
@@ -558,10 +560,7 @@ export class ConfigWriter {
     _applyAetherThemeOverride(variables) {
         try {
             // Process the aether.override.css template
-            const templatePath = GLib.build_filenamev([
-                this.templatesDir,
-                'aether.override.css',
-            ]);
+            const templatePath = resolveTemplatePath('aether.override.css');
 
             // Write to omarchy themes folder (with other config files)
             const themeOverridePath = GLib.build_filenamev([

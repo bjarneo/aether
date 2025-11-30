@@ -24,6 +24,7 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - **Accessibility Checker** - Real-time WCAG contrast ratio validation
 - **Customizable UI** - Live theme reload and CSS variable system
 - **Multi-App Support** - Hyprland, Waybar, Kitty, Alacritty, btop, Mako, and 15+ more applications
+- **Custom Templates** - Override default templates with your own `~/aether-templates/`
 
 ## Requirements
 
@@ -151,6 +152,21 @@ When using `--generate`, you can specify an extraction mode to control the color
    - Runs `omarchy-theme-set aether` to apply across all configured applications
 
 Changes apply instantly via live reload.
+
+### Custom Templates
+
+You can override the default templates used by Aether to customize how themes are generated for specific applications.
+
+1. Create the templates directory:
+   ```bash
+   mkdir -p ~/aether-templates
+   ```
+2. Copy a default template (e.g., `hyprlock.conf`) or create a new one in this directory.
+3. Edit the file using Aether variables.
+
+Aether will automatically prioritize files in `~/aether-templates/` over the built-in defaults.
+
+See [TEMPLATE_VARIABLES.md](TEMPLATE_VARIABLES.md) for a complete list of available color variables and format modifiers (e.g., `{background.rgba:0.5}`, `{color5.strip}`).
 
 ### Screen Shaders
 
