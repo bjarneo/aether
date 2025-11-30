@@ -43,6 +43,7 @@ import {WallpaperEditor} from './components/WallpaperEditor.js';
 import {WallpaperBrowser} from './components/WallpaperBrowser.js';
 import {LocalWallpaperBrowser} from './components/LocalWallpaperBrowser.js';
 import {FavoritesView} from './components/FavoritesView.js';
+import {SchedulerView} from './components/SchedulerView.js';
 import {AboutDialog} from './components/AboutDialog.js';
 import {ConfigWriter} from './utils/ConfigWriter.js';
 import {DialogManager} from './utils/DialogManager.js';
@@ -55,6 +56,7 @@ import {
     ApplyBlueprintCommand,
     GenerateThemeCommand,
     ImportBlueprintCommand,
+    CheckScheduleCommand,
 } from './cli/index.js';
 import {BlueprintWidget} from './components/BlueprintWidget.js';
 import {runMigrations} from './utils/migrations.js';
@@ -174,6 +176,15 @@ const AetherApplication = GObject.registerClass(
                 'Automatically apply imported blueprint (use with --import-blueprint)',
                 null
             );
+
+            this.add_main_option(
+                'check-schedule',
+                0,
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.NONE,
+                'Check and apply scheduled theme changes (used by scheduler daemon)',
+                null
+            );
         }
 
         /**
@@ -277,6 +288,20 @@ const AetherApplication = GObject.registerClass(
                         imports.system.exit(1);
                     });
 
+                return 0;
+            }
+
+            // Handle schedule check (for background daemon)
+            if (options.contains('check-schedule')) {
+                this.hold();
+                CheckScheduleCommand.execute()
+                    .then(() => {
+                        this.release();
+                    })
+                    .catch(error => {
+                        printerr(`Error: ${error.message}`);
+                        this.release();
+                    });
                 return 0;
             }
 
@@ -667,6 +692,22 @@ const AetherWindow = GObject.registerClass(
                 'Blueprints',
                 'color-select-symbolic'
             );
+
+            // Scheduler page
+            this._schedulerView = new SchedulerView();
+            this._viewStack.add_titled_with_icon(
+                this._schedulerView,
+                'scheduler',
+                'Scheduler',
+                'alarm-symbolic'
+            );
+
+            // Refresh scheduler when switching to it
+            this._viewStack.connect('notify::visible-child-name', () => {
+                if (this._viewStack.get_visible_child_name() === 'scheduler') {
+                    this._schedulerView.refresh();
+                }
+            });
 
             // Connect view switcher to view stack
             this._viewSwitcher.set_stack(this._viewStack);

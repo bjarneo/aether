@@ -25,6 +25,7 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - **Accessibility Checker** - Real-time WCAG contrast ratio validation
 - **Customizable UI** - Live theme reload and CSS variable system
 - **Multi-App Support** - Hyprland, Waybar, Kitty, Alacritty, btop, Mako, and 15+ more applications
+- **Theme Scheduler** - Automatically switch themes at scheduled times (runs in background via systemd)
 - **Custom Templates** - Override default templates with your own `~/aether-templates/`
 
 ## Requirements
@@ -209,6 +210,34 @@ bind = $mainMod, F3, exec, hyprshade off
 - Artistic looks (golden-hour, cyberpunk-neon, vintage-film, faded-memory)
 - Nature themes (forest-green, ocean, arctic-blue, desert-sand, autumn-leaves)
 - Accessibility (protanopia, deuteranopia, tritanopia, high-contrast)
+
+### Theme Scheduler
+
+Automatically switch themes at scheduled times of day. The scheduler runs in the background via systemd, so it works even when Aether is closed.
+
+**Setup:**
+1. Open the **Scheduler** tab (alarm icon) in Aether
+2. Toggle **"Enable Scheduler"** to start the background service
+3. Click **"Add Schedule"** to create a new schedule:
+   - Set the time (HH:MM)
+   - Choose a blueprint to apply
+   - Select which days (every day, weekdays, weekends, or specific days)
+
+**Example Use Cases:**
+- Dark theme at 18:00, light theme at 08:00
+- Cozy warm theme on weekends
+- High contrast theme during work hours
+
+**CLI Commands:**
+```bash
+# Manually trigger a schedule check
+aether --check-schedule
+
+# View scheduler logs
+journalctl --user -u aether-scheduler.service -f
+```
+
+The scheduler uses a systemd user timer that checks every minute. Schedules are stored in `~/.config/aether/schedules.json`.
 
 ### Color Extraction Algorithm
 
