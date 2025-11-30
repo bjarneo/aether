@@ -9,23 +9,23 @@
 background = {background}
 foreground = {foreground}
 
-# ANSI colors 0-15
-color0  = {color0}    # Black
-color1  = {color1}    # Red
-color2  = {color2}    # Green
-color3  = {color3}    # Yellow
-color4  = {color4}    # Blue
-color5  = {color5}    # Magenta
-color6  = {color6}    # Cyan
-color7  = {color7}    # White
-color8  = {color8}    # Bright Black
-color9  = {color9}    # Bright Red
-color10 = {color10}   # Bright Green
-color11 = {color11}   # Bright Yellow
-color12 = {color12}   # Bright Blue
-color13 = {color13}   # Bright Magenta
-color14 = {color14}   # Bright Cyan
-color15 = {color15}   # Bright White
+# Semantic color names (recommended)
+black         = {black}         # ANSI 0
+red           = {red}           # ANSI 1
+green         = {green}         # ANSI 2
+yellow        = {yellow}        # ANSI 3
+blue          = {blue}          # ANSI 4
+magenta       = {magenta}       # ANSI 5
+cyan          = {cyan}          # ANSI 6
+white         = {white}         # ANSI 7
+bright_black  = {bright_black}  # ANSI 8
+bright_red    = {bright_red}    # ANSI 9
+bright_green  = {bright_green}  # ANSI 10
+bright_yellow = {bright_yellow} # ANSI 11
+bright_blue   = {bright_blue}   # ANSI 12
+bright_magenta = {bright_magenta} # ANSI 13
+bright_cyan   = {bright_cyan}   # ANSI 14
+bright_white  = {bright_white}  # ANSI 15
 
 # =====================================================
 # FORMAT MODIFIERS
@@ -34,29 +34,29 @@ color15 = {color15}   # Bright White
 # .strip - Removes the # prefix
 # Output: RRGGBB (e.g., 1e1e2e)
 stripped_bg = {background.strip}
-stripped_accent = {color5.strip}
+stripped_accent = {magenta.strip}
 
 # .rgb - Decimal RGB format
 # Output: R, G, B (e.g., 30, 30, 46)
 rgb_background = {background.rgb}
 rgb_foreground = {foreground.rgb}
-rgb_red = {color1.rgb}
+rgb_red = {red.rgb}
 
 # .rgba - RGBA format with default alpha (1.0)
 # Output: rgba(R, G, B, 1)
 rgba_background = {background.rgba}
-rgba_accent = {color5.rgba}
+rgba_accent = {magenta.rgba}
 
 # .rgba:VALUE - RGBA with custom alpha
 # Output: rgba(R, G, B, VALUE)
 rgba_transparent_bg = {background.rgba:0.5}
-rgba_semi_accent = {color5.rgba:0.8}
+rgba_semi_accent = {magenta.rgba:0.8}
 rgba_subtle = {foreground.rgba:0.3}
 rgba_glass = {background.rgba:0.85}
 
 # .yaru - Maps to Yaru icon theme variant
 # Output: Yaru, Yaru-blue, Yaru-red, etc.
-yaru_theme = {color5.yaru}
+yaru_theme = {magenta.yaru}
 
 # =====================================================
 # OTHER VARIABLES
@@ -77,11 +77,11 @@ wallpaper_path = {wallpaper}
 .container {
     background-color: {background};
     color: {foreground};
-    border: 1px solid {color8};
+    border: 1px solid {bright_black};
 }
 
 .button {
-    background: {color5};
+    background: {magenta};
     color: {background};
 }
 
@@ -92,7 +92,7 @@ wallpaper_path = {wallpaper}
 
 # Hyprland/Hyprlock Example
 # $bg_color = {background.rgba}
-# $accent = {color5.rgba:0.8}
+# $accent = {magenta.rgba:0.8}
 # $text = {foreground.rgba}
 
 # Alacritty/Terminal Example (uses stripped hex)
@@ -104,7 +104,7 @@ wallpaper_path = {wallpaper}
 /*
 @define-color background {background};
 @define-color foreground {foreground};
-@define-color accent {color5};
+@define-color accent {magenta};
 
 window {
     background-color: alpha(@background, 0.95);
@@ -115,5 +115,5 @@ window {
 # Kitty Example (uses RGB format)
 # background {background.rgb}
 # foreground {foreground.rgb}
-# color0 {color0.rgb}
+# black {black.rgb}
 

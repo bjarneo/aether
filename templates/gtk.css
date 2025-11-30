@@ -7,22 +7,22 @@
 @define-color background {background};
 @define-color foreground {foreground};
 
-@define-color black {color0};
-@define-color red {color1};
-@define-color green {color2};
-@define-color yellow {color3};
-@define-color blue {color4};
-@define-color magenta {color5};
-@define-color cyan {color6};
-@define-color white {color7};
-@define-color bright_black {color8};
-@define-color bright_red {color9};
-@define-color bright_green {color10};
-@define-color bright_yellow {color11};
-@define-color bright_blue {color12};
-@define-color bright_magenta {color13};
-@define-color bright_cyan {color14};
-@define-color bright_white {color15};
+@define-color black {black};
+@define-color red {red};
+@define-color green {green};
+@define-color yellow {yellow};
+@define-color blue {blue};
+@define-color magenta {magenta};
+@define-color cyan {cyan};
+@define-color white {white};
+@define-color bright_black {bright_black};
+@define-color bright_red {bright_red};
+@define-color bright_green {bright_green};
+@define-color bright_yellow {bright_yellow};
+@define-color bright_blue {bright_blue};
+@define-color bright_magenta {bright_magenta};
+@define-color bright_cyan {bright_cyan};
+@define-color bright_white {bright_white};
 
 /* Adwaita Color Overrides */
 @define-color accent_bg_color @blue;

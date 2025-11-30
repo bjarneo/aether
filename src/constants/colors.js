@@ -2,7 +2,7 @@
  * Color-related constants and default values
  */
 
-// ANSI color role definitions
+// ANSI color role definitions with semantic names
 export const ANSI_COLOR_ROLES = [
     {
         id: 'background',
@@ -10,44 +10,65 @@ export const ANSI_COLOR_ROLES = [
         description: 'Primary background color',
     },
     {id: 'foreground', label: 'Foreground', description: 'Primary text color'},
-    {id: 'color0', label: 'Black (0)', description: 'ANSI color 0'},
-    {id: 'color1', label: 'Red (1)', description: 'ANSI color 1'},
-    {id: 'color2', label: 'Green (2)', description: 'ANSI color 2'},
-    {id: 'color3', label: 'Yellow (3)', description: 'ANSI color 3'},
-    {id: 'color4', label: 'Blue (4)', description: 'ANSI color 4'},
-    {id: 'color5', label: 'Magenta (5)', description: 'ANSI color 5'},
-    {id: 'color6', label: 'Cyan (6)', description: 'ANSI color 6'},
-    {id: 'color7', label: 'White (7)', description: 'ANSI color 7'},
-    {id: 'color8', label: 'Bright Black (8)', description: 'ANSI color 8'},
-    {id: 'color9', label: 'Bright Red (9)', description: 'ANSI color 9'},
-    {id: 'color10', label: 'Bright Green (10)', description: 'ANSI color 10'},
-    {id: 'color11', label: 'Bright Yellow (11)', description: 'ANSI color 11'},
-    {id: 'color12', label: 'Bright Blue (12)', description: 'ANSI color 12'},
-    {id: 'color13', label: 'Bright Magenta (13)', description: 'ANSI color 13'},
-    {id: 'color14', label: 'Bright Cyan (14)', description: 'ANSI color 14'},
-    {id: 'color15', label: 'Bright White (15)', description: 'ANSI color 15'},
+    {id: 'black', label: 'Black', description: 'Normal black (ANSI 0)'},
+    {id: 'red', label: 'Red', description: 'Normal red (ANSI 1)'},
+    {id: 'green', label: 'Green', description: 'Normal green (ANSI 2)'},
+    {id: 'yellow', label: 'Yellow', description: 'Normal yellow (ANSI 3)'},
+    {id: 'blue', label: 'Blue', description: 'Normal blue (ANSI 4)'},
+    {id: 'magenta', label: 'Magenta', description: 'Normal magenta (ANSI 5)'},
+    {id: 'cyan', label: 'Cyan', description: 'Normal cyan (ANSI 6)'},
+    {id: 'white', label: 'White', description: 'Normal white (ANSI 7)'},
+    {id: 'bright_black', label: 'Bright Black', description: 'Bright black (ANSI 8)'},
+    {id: 'bright_red', label: 'Bright Red', description: 'Bright red (ANSI 9)'},
+    {id: 'bright_green', label: 'Bright Green', description: 'Bright green (ANSI 10)'},
+    {id: 'bright_yellow', label: 'Bright Yellow', description: 'Bright yellow (ANSI 11)'},
+    {id: 'bright_blue', label: 'Bright Blue', description: 'Bright blue (ANSI 12)'},
+    {id: 'bright_magenta', label: 'Bright Magenta', description: 'Bright magenta (ANSI 13)'},
+    {id: 'bright_cyan', label: 'Bright Cyan', description: 'Bright cyan (ANSI 14)'},
+    {id: 'bright_white', label: 'Bright White', description: 'Bright white (ANSI 15)'},
 ];
 
+// Map semantic names to color0-15 for backwards compatibility
+export const COLOR_NAME_TO_INDEX = {
+    black: 'color0',
+    red: 'color1',
+    green: 'color2',
+    yellow: 'color3',
+    blue: 'color4',
+    magenta: 'color5',
+    cyan: 'color6',
+    white: 'color7',
+    bright_black: 'color8',
+    bright_red: 'color9',
+    bright_green: 'color10',
+    bright_yellow: 'color11',
+    bright_blue: 'color12',
+    bright_magenta: 'color13',
+    bright_cyan: 'color14',
+    bright_white: 'color15',
+};
+
 // Default color scheme (Catppuccin-inspired)
+// Uses semantic names (black, red, etc.) as primary keys
 export const DEFAULT_COLORS = {
     background: '#1e1e2e',
     foreground: '#cdd6f4',
-    color0: '#45475a',
-    color1: '#f38ba8',
-    color2: '#a6e3a1',
-    color3: '#f9e2af',
-    color4: '#89b4fa',
-    color5: '#cba6f7',
-    color6: '#94e2d5',
-    color7: '#bac2de',
-    color8: '#585b70',
-    color9: '#f38ba8',
-    color10: '#a6e3a1',
-    color11: '#f9e2af',
-    color12: '#89b4fa',
-    color13: '#cba6f7',
-    color14: '#94e2d5',
-    color15: '#cdd6f4',
+    black: '#45475a',
+    red: '#f38ba8',
+    green: '#a6e3a1',
+    yellow: '#f9e2af',
+    blue: '#89b4fa',
+    magenta: '#cba6f7',
+    cyan: '#94e2d5',
+    white: '#bac2de',
+    bright_black: '#585b70',
+    bright_red: '#f38ba8',
+    bright_green: '#a6e3a1',
+    bright_yellow: '#f9e2af',
+    bright_blue: '#89b4fa',
+    bright_magenta: '#cba6f7',
+    bright_cyan: '#94e2d5',
+    bright_white: '#cdd6f4',
 };
 
 // ANSI color names for tooltips with descriptions

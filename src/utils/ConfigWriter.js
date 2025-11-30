@@ -39,9 +39,12 @@ import {ZedThemeApplier} from './theme-appliers/ZedThemeApplier.js';
  * - Manage light/dark mode indicators
  *
  * Template Variable Format:
- * - {background}, {foreground}, {color0}-{color15} - Direct hex colors
- * - {color5.strip} - Hex color without # prefix
- * - {color5.rgb} - Decimal RGB format (e.g., 255,0,255)
+ * - {background}, {foreground} - Primary colors
+ * - {black}, {red}, {green}, {yellow}, {blue}, {magenta}, {cyan}, {white} - Normal ANSI colors
+ * - {bright_black}, {bright_red}, etc. - Bright ANSI colors
+ * - {color.strip} - Hex color without # prefix
+ * - {color.rgb} - Decimal RGB format (e.g., 255,0,255)
+ * - {color.rgba:0.5} - RGBA format with alpha
  * - {wallpaper} - Path to wallpaper file
  *
  * File Paths:
@@ -90,7 +93,7 @@ export class ConfigWriter {
      * Applies theme with color roles and wallpaper
      * Main entry point for theme application
      *
-     * @param {Object} colorRoles - Color role assignments (background, foreground, color0-15)
+     * @param {Object} colorRoles - Color role assignments (background, foreground, black, red, etc.)
      * @param {string} wallpaperPath - Path to wallpaper file
      * @param {Object} [settings={}] - Theme settings
      * @param {boolean} [settings.includeGtk] - Apply GTK theming
@@ -214,10 +217,33 @@ export class ConfigWriter {
     _buildVariables(colorRoles, lightMode = false) {
         const variables = {};
 
-        // Use default colors as fallback
+        // Use default colors as fallback (now uses semantic names)
         Object.keys(DEFAULT_COLORS).forEach(key => {
             variables[key] = colorRoles[key] || DEFAULT_COLORS[key];
         });
+
+        // Add color0-15 aliases for backwards compatibility with existing templates
+        const indexAliases = {
+            color0: variables.black,
+            color1: variables.red,
+            color2: variables.green,
+            color3: variables.yellow,
+            color4: variables.blue,
+            color5: variables.magenta,
+            color6: variables.cyan,
+            color7: variables.white,
+            color8: variables.bright_black,
+            color9: variables.bright_red,
+            color10: variables.bright_green,
+            color11: variables.bright_yellow,
+            color12: variables.bright_blue,
+            color13: variables.bright_magenta,
+            color14: variables.bright_cyan,
+            color15: variables.bright_white,
+        };
+
+        // Add index aliases to variables
+        Object.assign(variables, indexAliases);
 
         // Add theme type for VSCode and other templates
         variables.theme_type = lightMode ? 'light' : 'dark';

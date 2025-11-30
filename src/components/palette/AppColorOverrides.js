@@ -153,17 +153,22 @@ export const AppColorOverrides = GObject.registerClass(
                 // Convert to sorted array
                 const varsArray = Array.from(colorVars);
 
-                // Custom sort: background first, foreground second, then color0-15
+                // Custom sort: background first, foreground second, then colors
+                const colorOrder = [
+                    'background', 'foreground',
+                    'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+                    'bright_black', 'bright_red', 'bright_green', 'bright_yellow',
+                    'bright_blue', 'bright_magenta', 'bright_cyan', 'bright_white',
+                    'color0', 'color1', 'color2', 'color3', 'color4', 'color5', 'color6', 'color7',
+                    'color8', 'color9', 'color10', 'color11', 'color12', 'color13', 'color14', 'color15',
+                ];
                 varsArray.sort((a, b) => {
-                    if (a === 'background') return -1;
-                    if (b === 'background') return 1;
-                    if (a === 'foreground') return -1;
-                    if (b === 'foreground') return 1;
-
-                    // Extract numbers from color variables
-                    const aNum = parseInt(a.replace('color', '')) || 0;
-                    const bNum = parseInt(b.replace('color', '')) || 0;
-                    return aNum - bNum;
+                    const aIndex = colorOrder.indexOf(a);
+                    const bIndex = colorOrder.indexOf(b);
+                    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+                    if (aIndex === -1) return 1;
+                    if (bIndex === -1) return -1;
+                    return aIndex - bIndex;
                 });
 
                 return varsArray;
@@ -177,83 +182,83 @@ export const AppColorOverrides = GObject.registerClass(
             // App-specific color descriptions showing what each color does in that template
             const colorDescriptionsByApp = {
                 hyprland: {
-                    color0: 'Active window border gradient start',
-                    color8: 'Active window border gradient end',
+                    black: 'Active window border gradient start',
+                    bright_black: 'Active window border gradient end',
                 },
                 hyprlock: {
                     background: 'Screen and input field background',
                     foreground: 'Text and placeholder color',
-                    color5: 'Outer ring color',
-                    color6: 'Password check indicator color',
+                    magenta: 'Outer ring color',
+                    cyan: 'Password check indicator color',
                 },
                 waybar: {
                     background: 'Bar background color',
                     foreground: 'Text and icon color',
-                    color0: 'Palette color 0',
-                    color1: 'Palette color 1',
-                    color2: 'Palette color 2',
-                    color3: 'Palette color 3',
-                    color4: 'Palette color 4',
-                    color5: 'Palette color 5',
-                    color6: 'Palette color 6',
-                    color7: 'Palette color 7',
-                    color8: 'Palette color 8',
-                    color9: 'Palette color 9',
-                    color10: 'Palette color 10',
-                    color11: 'Palette color 11',
-                    color12: 'Palette color 12',
-                    color13: 'Palette color 13',
-                    color14: 'Palette color 14',
-                    color15: 'Palette color 15',
+                    black: 'Black',
+                    red: 'Red',
+                    green: 'Green',
+                    yellow: 'Yellow',
+                    blue: 'Blue',
+                    magenta: 'Magenta',
+                    cyan: 'Cyan',
+                    white: 'White',
+                    bright_black: 'Bright black',
+                    bright_red: 'Bright red',
+                    bright_green: 'Bright green',
+                    bright_yellow: 'Bright yellow',
+                    bright_blue: 'Bright blue',
+                    bright_magenta: 'Bright magenta',
+                    bright_cyan: 'Bright cyan',
+                    bright_white: 'Bright white',
                 },
                 mako: {
                     foreground: 'Notification text color',
-                    color5: 'Notification border color',
+                    magenta: 'Notification border color',
                     background: 'Notification background color',
                 },
                 walker: {
                     foreground: 'Text color',
                     background: 'Window and input background',
-                    color4: 'Selected item highlight color',
-                    color8: 'Border and scrollbar color',
+                    blue: 'Selected item highlight color',
+                    bright_black: 'Border and scrollbar color',
                 },
                 wofi: {
                     background: 'Window and entry background',
                     foreground: 'Text and icon color',
-                    color2: 'Input and entry selected background',
-                    color8: 'Window border and scrollbar',
-                    color4: 'Window border color',
-                    color3: 'Scrollbar hover color',
-                    color5: 'Unused color variable',
-                    color15: 'Selected text bright color',
+                    green: 'Input and entry selected background',
+                    bright_black: 'Window border and scrollbar',
+                    blue: 'Window border color',
+                    yellow: 'Scrollbar hover color',
+                    magenta: 'Unused color variable',
+                    bright_white: 'Selected text bright color',
                 },
                 swayosd: {
                     background: 'OSD background color',
-                    color8: 'OSD border color',
+                    bright_black: 'OSD border color',
                     foreground: 'OSD label and icon color',
-                    color3: 'OSD progress bar color',
+                    yellow: 'OSD progress bar color',
                 },
                 chromium: {
                     background: 'Browser theme background color',
                 },
                 icons: {
-                    color5: 'System icon accent color',
+                    magenta: 'System icon accent color',
                 },
                 neovim: {
                     background: 'Default background (base00)',
                     foreground: 'Default foreground text (base05)',
-                    color0: 'Selection background (base02)',
-                    color1: 'Variables, errors, red (base08)',
-                    color2: 'Strings, green (base0B)',
-                    color3: 'Classes, types, yellow (base0A)',
-                    color4: 'Functions, keywords, blue (base0D)',
-                    color5: 'Keywords, storage, magenta (base0E)',
-                    color6: 'Support, regex, cyan (base0C)',
-                    color7: 'Dark foreground, light bg (base04/07)',
-                    color8: 'Lighter bg, comments (base01/03)',
-                    color9: 'Integers, constants, orange (base09)',
-                    color11: 'Deprecated, brown/yellow (base0F)',
-                    color15: 'Light foreground (base06)',
+                    black: 'Selection background (base02)',
+                    red: 'Variables, errors, red (base08)',
+                    green: 'Strings, green (base0B)',
+                    yellow: 'Classes, types, yellow (base0A)',
+                    blue: 'Functions, keywords, blue (base0D)',
+                    magenta: 'Keywords, storage, magenta (base0E)',
+                    cyan: 'Support, regex, cyan (base0C)',
+                    white: 'Dark foreground, light bg (base04/07)',
+                    bright_black: 'Lighter bg, comments (base01/03)',
+                    bright_red: 'Integers, constants, orange (base09)',
+                    bright_yellow: 'Deprecated, brown/yellow (base0F)',
+                    bright_white: 'Light foreground (base06)',
                 },
             };
 

@@ -1,4 +1,4 @@
-# Template Variables Guide
+# Custom Apps & Template Variables Guide
 
 Aether uses a template system to generate configuration files for various applications. This guide lists the available variables you can use when creating or modifying templates in `~/aether-templates/`.
 
@@ -8,28 +8,28 @@ Variables are enclosed in curly braces, e.g., `{background}`.
 
 ## Available Color Variables
 
-The following color roles are available for use in templates:
+The following color variables are available for use in templates:
 
 | Variable | Description | Typical Use |
 |----------|-------------|-------------|
 | `{background}` | Primary background color | Window backgrounds, panels |
 | `{foreground}` | Primary text color | Main text content |
-| `{color0}` | Black (ANSI 0) | Normal black |
-| `{color1}` | Red (ANSI 1) | Errors, warnings |
-| `{color2}` | Green (ANSI 2) | Success, confirmations |
-| `{color3}` | Yellow (ANSI 3) | Warnings, highlights |
-| `{color4}` | Blue (ANSI 4) | Info, links |
-| `{color5}` | Magenta (ANSI 5) | Constants, special elements |
-| `{color6}` | Cyan (ANSI 6) | Strings, secondary info |
-| `{color7}` | White (ANSI 7) | Regular text |
-| `{color8}` | Bright Black (ANSI 8) | Comments, dimmed text |
-| `{color9}` | Bright Red (ANSI 9) | Critical errors |
-| `{color10}` | Bright Green (ANSI 10) | Emphasized success |
-| `{color11}` | Bright Yellow (ANSI 11) | Important warnings |
-| `{color12}` | Bright Blue (ANSI 12) | Active links |
-| `{color13}` | Bright Magenta (ANSI 13) | Focused elements |
-| `{color14}` | Bright Cyan (ANSI 14) | Important data |
-| `{color15}` | Bright White (ANSI 15) | Bold text, headings |
+| `{black}` | Black (ANSI 0) | Normal black |
+| `{red}` | Red (ANSI 1) | Errors, warnings |
+| `{green}` | Green (ANSI 2) | Success, confirmations |
+| `{yellow}` | Yellow (ANSI 3) | Warnings, highlights |
+| `{blue}` | Blue (ANSI 4) | Info, links |
+| `{magenta}` | Magenta (ANSI 5) | Constants, special elements |
+| `{cyan}` | Cyan (ANSI 6) | Strings, secondary info |
+| `{white}` | White (ANSI 7) | Regular text |
+| `{bright_black}` | Bright Black (ANSI 8) | Comments, dimmed text |
+| `{bright_red}` | Bright Red (ANSI 9) | Critical errors |
+| `{bright_green}` | Bright Green (ANSI 10) | Emphasized success |
+| `{bright_yellow}` | Bright Yellow (ANSI 11) | Important warnings |
+| `{bright_blue}` | Bright Blue (ANSI 12) | Active links |
+| `{bright_magenta}` | Bright Magenta (ANSI 13) | Focused elements |
+| `{bright_cyan}` | Bright Cyan (ANSI 14) | Important data |
+| `{bright_white}` | Bright White (ANSI 15) | Bold text, headings |
 
 ## Format Modifiers
 
@@ -37,17 +37,17 @@ You can transform color values using modifiers appended to the variable name.
 
 ### 1. Standard Hex (Default)
 Output: `#RRGGBB`
-Usage: `{background}`, `{color1}`
+Usage: `{background}`, `{red}`
 
 ### 2. Strip Hash
 Removes the `#` prefix.
 Output: `RRGGBB`
-Usage: `{background.strip}`, `{color1.strip}`
+Usage: `{background.strip}`, `{red.strip}`
 
 ### 3. RGB Decimal
 Converts to comma-separated decimal RGB values.
 Output: `R, G, B` (e.g., `255, 100, 50`)
-Usage: `{background.rgb}`, `{color1.rgb}`
+Usage: `{background.rgb}`, `{red.rgb}`
 
 ### 4. RGBA
 Converts to CSS `rgba()` format.
@@ -58,12 +58,12 @@ Usage: `{background.rgba}`
 
 **Custom Alpha:**
 Output: `rgba(R, G, B, 0.5)`
-Usage: `{background.rgba:0.5}`, `{color1.rgba:0.8}`
+Usage: `{background.rgba:0.5}`, `{red.rgba:0.8}`
 
 ### 5. Yaru Theme
 Maps the color to the closest Ubuntu Yaru icon theme variant.
 Output: `Yaru`, `Yaru-blue`, `Yaru-red`, etc.
-Usage: `{color1.yaru}`
+Usage: `{red.yaru}`
 
 ## Other Variables
 
@@ -84,15 +84,15 @@ text_color = {foreground.strip}
 
 [Highlight]
 # Use RGB format
-selection = {color4.rgb}
+selection = {blue.rgb}
 # Use RGBA with transparency
-overlay = {color0.rgba:0.8}
+overlay = {black.rgba:0.8}
 
 [Terminal]
 # Standard hex values
-black = {color0}
-red = {color1}
-green = {color2}
+black = {black}
+red = {red}
+green = {green}
 ```
 
 ## Custom App Templates
@@ -158,14 +158,14 @@ Optional script that runs after the symlink is created. Must be executable (`chm
 [color]
 gradient = 1
 gradient_count = 8
-gradient_color_1 = '#{color6.strip}'
-gradient_color_2 = '#{color4.strip}'
-gradient_color_3 = '#{color12.strip}'
-gradient_color_4 = '#{color5.strip}'
-gradient_color_5 = '#{color13.strip}'
-gradient_color_6 = '#{color14.strip}'
-gradient_color_7 = '#{color13.strip}'
-gradient_color_8 = '#{color6.strip}'
+gradient_color_1 = '#{cyan.strip}'
+gradient_color_2 = '#{blue.strip}'
+gradient_color_3 = '#{bright_blue.strip}'
+gradient_color_4 = '#{magenta.strip}'
+gradient_color_5 = '#{bright_magenta.strip}'
+gradient_color_6 = '#{bright_cyan.strip}'
+gradient_color_7 = '#{bright_magenta.strip}'
+gradient_color_8 = '#{cyan.strip}'
 ```
 
 `~/aether-templates/apps/cava/post-apply.sh`:
