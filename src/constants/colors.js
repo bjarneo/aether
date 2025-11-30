@@ -48,27 +48,27 @@ export const COLOR_NAME_TO_INDEX = {
     bright_white: 'color15',
 };
 
-// Default color scheme (Catppuccin-inspired)
+// Default color scheme (Tokyo Night)
 // Uses semantic names (black, red, etc.) as primary keys
 export const DEFAULT_COLORS = {
-    background: '#1e1e2e',
-    foreground: '#cdd6f4',
-    black: '#45475a',
-    red: '#f38ba8',
-    green: '#a6e3a1',
-    yellow: '#f9e2af',
-    blue: '#89b4fa',
-    magenta: '#cba6f7',
-    cyan: '#94e2d5',
-    white: '#bac2de',
-    bright_black: '#585b70',
-    bright_red: '#f38ba8',
-    bright_green: '#a6e3a1',
-    bright_yellow: '#f9e2af',
-    bright_blue: '#89b4fa',
-    bright_magenta: '#cba6f7',
-    bright_cyan: '#94e2d5',
-    bright_white: '#cdd6f4',
+    background: '#1a1b26',
+    foreground: '#c0caf5',
+    black: '#15161e',
+    red: '#f7768e',
+    green: '#9ece6a',
+    yellow: '#e0af68',
+    blue: '#7aa2f7',
+    magenta: '#bb9af7',
+    cyan: '#7dcfff',
+    white: '#a9b1d6',
+    bright_black: '#414868',
+    bright_red: '#f7768e',
+    bright_green: '#9ece6a',
+    bright_yellow: '#e0af68',
+    bright_blue: '#7aa2f7',
+    bright_magenta: '#bb9af7',
+    bright_cyan: '#7dcfff',
+    bright_white: '#c0caf5',
 };
 
 // ANSI color names for tooltips with descriptions
