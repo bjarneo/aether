@@ -15,7 +15,6 @@ import {
 import {
     getTemplateMap,
     resolveTemplatePath,
-    getUserTemplatesDir,
 } from './template-utils.js';
 import {loadJsonFile} from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
@@ -576,15 +575,14 @@ export class ConfigWriter {
     }
 
     /**
-     * Processes templates from app folders in ~/aether-templates/apps/
+     * Processes templates from app folders in ~/.config/aether/custom/
      * @param {Object} variables - Template variables
      * @param {Object} appOverrides - Per-app color overrides
      * @private
      */
     _processAppTemplates(variables, appOverrides = {}) {
         try {
-            const userTemplatesDir = getUserTemplatesDir();
-            const appsDir = GLib.build_filenamev([userTemplatesDir, 'apps']);
+            const appsDir = GLib.build_filenamev([this.configDir, 'aether', 'custom']);
 
             if (!fileExists(appsDir)) {
                 return;
@@ -658,25 +656,24 @@ export class ConfigWriter {
     }
 
     /**
-     * Processes custom app folders from user templates directory
+     * Processes custom app folders from user config directory
      * Each folder can contain: config.json, template file(s), post-apply.sh
      * 
      * Structure:
-     * ~/aether-templates/
-     * ├── apps/
-     * │   ├── cava/
-     * │   │   ├── config.json      # { "template": "theme.ini", "destination": "~/.config/cava/themes/aether" }
-     * │   │   ├── theme.ini        # Template file with {color} variables
-     * │   │   └── post-apply.sh    # Optional script to run after
-     * │   └── another-app/
-     * │       └── ...
+     * ~/.config/aether/
+     * └── custom/
+     *     ├── cava/
+     *     │   ├── config.json      # { "template": "theme.ini", "destination": "~/.config/cava/themes/aether" }
+     *     │   ├── theme.ini        # Template file with {color} variables
+     *     │   └── post-apply.sh    # Optional script to run after
+     *     └── another-app/
+     *         └── ...
      * 
      * @private
      */
     _processSymlinks() {
         try {
-            const userTemplatesDir = getUserTemplatesDir();
-            const appsDir = GLib.build_filenamev([userTemplatesDir, 'apps']);
+            const appsDir = GLib.build_filenamev([this.configDir, 'aether', 'custom']);
 
             if (!fileExists(appsDir)) {
                 return;

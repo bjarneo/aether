@@ -157,32 +157,32 @@ Changes apply instantly via live reload.
 
 You can override the default templates used by Aether to customize how themes are generated for specific applications.
 
-1. Create the templates directory:
+1. Create the custom directory:
    ```bash
-   mkdir -p ~/aether-templates
+   mkdir -p ~/.config/aether/custom
    ```
 2. Copy a default template (e.g., `hyprlock.conf`) or create a new one in this directory.
 3. Edit the file using Aether variables.
 
-Aether will automatically prioritize files in `~/aether-templates/` over the built-in defaults.
+Aether will automatically prioritize files in `~/.config/aether/custom/` over the built-in defaults.
 
 #### Custom App Templates
 
 For applications not included in Aether by default, you can create app-specific templates with automatic symlinking:
 
 ```
-~/aether-templates/
-├── apps/
-│   └── cava/
-│       ├── config.json      # Template and destination path
-│       ├── theme.ini        # Your template file
-│       └── post-apply.sh    # Optional: runs after applying
-└── waybar.css               # Override default templates
+~/.config/aether/custom/
+├── hyprlock.conf            # Override default templates
+├── waybar.css
+└── cava/                    # Custom app with symlinking
+    ├── config.json
+    ├── theme.ini
+    └── post-apply.sh
 ```
 
 See [examples/aether-templates/](examples/aether-templates/) for a complete example with Cava.
 
-See [CUSTOM_APPS.md](CUSTOM_APPS.md) for a complete list of available color variables and format modifiers (e.g., `{background.rgba:0.5}`, `{color5.strip}`).
+See [CUSTOM_APPS.md](CUSTOM_APPS.md) for a complete list of available color variables and format modifiers (e.g., `{background.rgba:0.5}`, `{magenta.strip}`).
 
 ### Screen Shaders
 

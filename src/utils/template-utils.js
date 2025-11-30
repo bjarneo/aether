@@ -23,10 +23,10 @@ export function getProjectTemplatesDir() {
 
 /**
  * Gets the path to the user's custom templates directory
- * @returns {string} Path to user templates directory (~/aether-templates)
+ * @returns {string} Path to user templates directory (~/.config/aether/custom)
  */
 export function getUserTemplatesDir() {
-    return GLib.build_filenamev([GLib.get_home_dir(), 'aether-templates']);
+    return GLib.build_filenamev([GLib.get_user_config_dir(), 'aether', 'custom']);
 }
 
 /**
@@ -41,14 +41,22 @@ export function getTemplateMap() {
     // 1. Add default templates
     if (fileExists(projectDir)) {
         enumerateDirectory(projectDir, (fileInfo, filePath, fileName) => {
-             templates.set(fileName, filePath);
+            // Skip directories (like vscode-extension/)
+            if (fileInfo.get_file_type() === Gio.FileType.DIRECTORY) {
+                return;
+            }
+            templates.set(fileName, filePath);
         });
     }
 
     // 2. Add user overrides (overwriting defaults)
+    // Skip directories - they are custom app folders handled by getCustomApps()
     if (fileExists(userDir)) {
          enumerateDirectory(userDir, (fileInfo, filePath, fileName) => {
-             templates.set(fileName, filePath);
+            if (fileInfo.get_file_type() === Gio.FileType.DIRECTORY) {
+                return;
+            }
+            templates.set(fileName, filePath);
          });
     }
 
@@ -74,14 +82,13 @@ export function resolveTemplatePath(fileName) {
 }
 
 /**
- * Gets a list of custom apps from ~/aether-templates/apps/
+ * Gets a list of custom apps from ~/.config/aether/custom/
  * Each app folder should contain a config.json with template and destination
  * @returns {Array<{name: string, label: string, templatePath: string}>}
  */
 export function getCustomApps() {
     const apps = [];
-    const userDir = getUserTemplatesDir();
-    const appsDir = GLib.build_filenamev([userDir, 'apps']);
+    const appsDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether', 'custom']);
 
     if (!fileExists(appsDir)) {
         return apps;

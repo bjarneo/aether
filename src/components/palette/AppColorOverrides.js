@@ -69,15 +69,6 @@ export const AppColorOverrides = GObject.registerClass(
                     return;
                 }
 
-                // Skip the "apps" directory entry itself (but not its contents)
-                if (fileName === 'apps') {
-                    return;
-                }
-
-                // Skip files inside apps/ folder - they're added via getCustomApps()
-                if (filePath.includes('/apps/')) {
-                    return;
-                }
 
                 // We only care about the file name for app identification
                 const appName = this._getAppNameFromFileName(fileName);
@@ -92,7 +83,7 @@ export const AppColorOverrides = GObject.registerClass(
                 addedApps.add(appName);
             });
 
-            // Add custom apps from ~/aether-templates/apps/
+            // Add custom apps from ~/.config/aether/custom/
             const customApps = getCustomApps();
             customApps.forEach(customApp => {
                 // Skip if already added (avoid duplicates)

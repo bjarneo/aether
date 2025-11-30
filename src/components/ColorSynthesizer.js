@@ -10,22 +10,21 @@ import {ANSI_COLOR_ROLES, DEFAULT_COLORS} from '../constants/colors.js';
 /**
  * ColorSynthesizer - Color role assignment interface
  *
- * Displays and manages color assignments for theme roles (background, foreground, color0-15).
+ * Displays and manages color assignments for theme roles (background, foreground, black, red, etc.).
  * Provides a list of color roles with interactive color pickers for each role.
  *
  * Features:
- * - 18 color roles (background, foreground, cursor, color0-15)
+ * - 18 color roles (background, foreground, black, red, green, yellow, blue, magenta, cyan, white, bright_*)
  * - Color picker button for each role
- * - Auto-assignment when palette is loaded (background=color0, foreground=color15, etc.)
+ * - Auto-assignment when palette is loaded
  * - Manual adjustment via Gtk.ColorDialogButton
  * - Real-time color updates with signal emission
  *
  * Color Roles:
  * - background: Terminal/window background color
  * - foreground: Default text color
- * - cursor: Terminal cursor color
- * - color0-7: Regular ANSI colors (black, red, green, yellow, blue, magenta, cyan, white)
- * - color8-15: Bright ANSI colors
+ * - black, red, green, yellow, blue, magenta, cyan, white: Regular ANSI colors
+ * - bright_black, bright_red, etc.: Bright ANSI colors
  *
  * Signals:
  * - 'color-changed' (roleId: string, hexColor: string) - Emitted when any color is modified
@@ -157,22 +156,22 @@ export const ColorSynthesizer = GObject.registerClass(
             return {
                 background: this._palette[0],
                 foreground: this._palette[15],
-                color0: this._palette[0],
-                color1: this._palette[1],
-                color2: this._palette[2],
-                color3: this._palette[3],
-                color4: this._palette[4],
-                color5: this._palette[5],
-                color6: this._palette[6],
-                color7: this._palette[7],
-                color8: this._palette[8],
-                color9: this._palette[9],
-                color10: this._palette[10],
-                color11: this._palette[11],
-                color12: this._palette[12],
-                color13: this._palette[13],
-                color14: this._palette[14],
-                color15: this._palette[15],
+                black: this._palette[0],
+                red: this._palette[1],
+                green: this._palette[2],
+                yellow: this._palette[3],
+                blue: this._palette[4],
+                magenta: this._palette[5],
+                cyan: this._palette[6],
+                white: this._palette[7],
+                bright_black: this._palette[8],
+                bright_red: this._palette[9],
+                bright_green: this._palette[10],
+                bright_yellow: this._palette[11],
+                bright_blue: this._palette[12],
+                bright_magenta: this._palette[13],
+                bright_cyan: this._palette[14],
+                bright_white: this._palette[15],
             };
         }
 

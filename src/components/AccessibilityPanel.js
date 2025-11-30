@@ -53,7 +53,7 @@ import {applyCssToWidget} from '../utils/ui-helpers.js';
  *
  * Public Methods:
  * - updateColors(colors) - Updates analysis with new color palette
- *   - colors: Object with background, foreground, and color0-7 properties
+ *   - colors: Object with background, foreground, and ANSI color properties
  *   - Recalculates contrast and regenerates previews
  *
  * Integration:
@@ -69,14 +69,14 @@ import {applyCssToWidget} from '../utils/ui-helpers.js';
  * panel.updateColors({
  *     background: '#1e1e2e',
  *     foreground: '#cdd6f4',
- *     color0: '#45475a',
- *     color1: '#f38ba8',
- *     color2: '#a6e3a1',
- *     color3: '#f9e2af',
- *     color4: '#89b4fa',
- *     color5: '#f5c2e7',
- *     color6: '#94e2d5',
- *     color7: '#bac2de'
+ *     black: '#45475a',
+ *     red: '#f38ba8',
+ *     green: '#a6e3a1',
+ *     yellow: '#f9e2af',
+ *     blue: '#89b4fa',
+ *     magenta: '#f5c2e7',
+ *     cyan: '#94e2d5',
+ *     white: '#bac2de'
  * });
  * // Panel automatically updates contrast ratio and simulations
  */

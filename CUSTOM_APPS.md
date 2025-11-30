@@ -1,6 +1,6 @@
 # Custom Apps & Template Variables Guide
 
-Aether uses a template system to generate configuration files for various applications. This guide lists the available variables you can use when creating or modifying templates in `~/aether-templates/`.
+Aether uses a template system to generate configuration files for various applications. This guide lists the available variables you can use when creating or modifying templates in `~/.config/aether/custom/`.
 
 ## Basic Syntax
 
@@ -95,26 +95,38 @@ red = {red}
 green = {green}
 ```
 
-## Custom App Templates
+## Custom Templates
 
-You can create app-specific templates with automatic symlinking and post-apply scripts using the `apps/` folder structure.
+All custom templates go in `~/.config/aether/custom/`.
 
 ### Folder Structure
 
 ```
-~/aether-templates/
-├── apps/
-│   ├── cava/
-│   │   ├── config.json      # Required: template and destination
-│   │   ├── theme.ini        # Your template file
-│   │   └── post-apply.sh    # Optional: runs after symlinking
-│   └── another-app/
-│       ├── config.json
-│       └── template.conf
-├── waybar.css               # Override default templates
-├── hyprlock.conf
-└── ...
+~/.config/aether/custom/
+├── hyprlock.conf            # Override default templates
+├── waybar.css
+├── cava/                    # Custom app with symlinking
+│   ├── config.json
+│   ├── theme.ini
+│   └── post-apply.sh
+└── another-app/
+    ├── config.json
+    └── template.conf
 ```
+
+### Template Overrides
+
+To override a default template, simply place your version in `~/.config/aether/custom/`:
+
+```bash
+mkdir -p ~/.config/aether/custom
+# Copy and edit a template
+cp /path/to/aether/templates/hyprlock.conf ~/.config/aether/custom/
+```
+
+### Custom App Templates
+
+For apps not included in Aether, create a folder with `config.json`:
 
 ### config.json
 
@@ -145,7 +157,7 @@ Optional script that runs after the symlink is created. Must be executable (`chm
 
 ### Example: Cava Theme
 
-`~/aether-templates/apps/cava/config.json`:
+`~/.config/aether/custom/cava/config.json`:
 ```json
 {
     "template": "theme.ini",
@@ -153,22 +165,19 @@ Optional script that runs after the symlink is created. Must be executable (`chm
 }
 ```
 
-`~/aether-templates/apps/cava/theme.ini`:
+`~/.config/aether/custom/cava/theme.ini`:
 ```ini
 [color]
+background = 'default'
+foreground = '{magenta}'
+
 gradient = 1
-gradient_count = 8
-gradient_color_1 = '#{cyan.strip}'
-gradient_color_2 = '#{blue.strip}'
-gradient_color_3 = '#{bright_blue.strip}'
-gradient_color_4 = '#{magenta.strip}'
-gradient_color_5 = '#{bright_magenta.strip}'
-gradient_color_6 = '#{bright_cyan.strip}'
-gradient_color_7 = '#{bright_magenta.strip}'
-gradient_color_8 = '#{cyan.strip}'
+gradient_color_1 = '{blue}'
+gradient_color_2 = '{magenta}'
+gradient_color_3 = '{cyan}'
 ```
 
-`~/aether-templates/apps/cava/post-apply.sh`:
+`~/.config/aether/custom/cava/post-apply.sh`:
 ```bash
 #!/bin/bash
 
@@ -200,5 +209,6 @@ The `examples/aether-templates/` folder contains ready-to-use examples:
 
 To use the Cava example:
 ```bash
-cp -r examples/aether-templates/apps ~/aether-templates/
+mkdir -p ~/.config/aether/custom
+cp -r examples/aether-templates/apps/* ~/.config/aether/custom/
 ```
