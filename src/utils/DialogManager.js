@@ -393,7 +393,7 @@ export class DialogManager {
     // Legacy methods - redirect to new unified methods
     showThemeNameDialog(callback) {
         this.showTextInput({
-            heading: 'Export Theme',
+            heading: 'Export Omarchy Theme',
             body: 'Enter a name for your theme (lowercase letters and hyphens only)',
             placeholder: 'my-theme',
             validationPattern: /^[a-z]([a-z-]*[a-z])?$/,

@@ -41,7 +41,7 @@ export const ActionBar = GObject.registerClass(
             this.pack_start(this._toggleSettingsButton);
 
             // Export button (left side)
-            const exportButton = new Gtk.Button({label: 'Export Theme'});
+            const exportButton = new Gtk.Button({label: 'Export Omarchy Theme'});
             exportButton.connect('clicked', () => this.emit('export-theme'));
             this.pack_start(exportButton);
 
