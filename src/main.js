@@ -36,10 +36,13 @@ import Adw from 'gi://Adw?version=1';
 
 import {PaletteEditor} from './components/PaletteEditor.js';
 import {ColorSynthesizer} from './components/ColorSynthesizer.js';
-import {BlueprintManagerWindow} from './components/BlueprintManagerWindow.js';
+import {BlueprintsView} from './components/BlueprintsView.js';
 import {SettingsSidebar} from './components/SettingsSidebar.js';
 import {ActionBar} from './components/ActionBar.js';
 import {WallpaperEditor} from './components/WallpaperEditor.js';
+import {WallpaperBrowser} from './components/WallpaperBrowser.js';
+import {LocalWallpaperBrowser} from './components/LocalWallpaperBrowser.js';
+import {FavoritesView} from './components/FavoritesView.js';
 import {AboutDialog} from './components/AboutDialog.js';
 import {ConfigWriter} from './utils/ConfigWriter.js';
 import {DialogManager} from './utils/DialogManager.js';
@@ -487,20 +490,33 @@ const AetherWindow = GObject.registerClass(
         _initializeUI() {
             this.dialogManager = new DialogManager(this);
 
-            // Blueprint service will use the window version for saving
-            // We'll initialize it after creating the blueprint window
-            this.blueprintService = null;
 
             this.themeExporter = new ThemeExporter(
                 this.configWriter,
                 this.dialogManager
             );
 
+            // Create header bar first (contains ViewSwitcher)
+            this._createHeaderBar();
+
+            // Create main content (will connect to ViewSwitcher)
             const mainContent = this._createMainContent();
 
             // Wrap content in ToolbarView with header bar
             const toolbarView = new Adw.ToolbarView();
-            this._createHeaderBar();
+            
+            // Add subtle bottom border to header bar
+            const headerCss = new Gtk.CssProvider();
+            headerCss.load_from_data(`
+                headerbar {
+                    border-bottom: 1px solid alpha(@borders, 0.5);
+                }
+            `, -1);
+            this.headerBar.get_style_context().add_provider(
+                headerCss,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            );
+            
             toolbarView.add_top_bar(this.headerBar);
             toolbarView.set_content(mainContent);
 
@@ -526,7 +542,16 @@ const AetherWindow = GObject.registerClass(
         }
 
         _createHeaderBar() {
-            this.headerBar = new Adw.HeaderBar();
+            this.headerBar = new Adw.HeaderBar({
+                show_title: false,
+            });
+
+            // View switcher on the left with menu-like styling
+            this._viewSwitcher = new Adw.ViewSwitcher({
+                policy: Adw.ViewSwitcherPolicy.WIDE,
+                css_classes: ['linked'],
+            });
+            this.headerBar.pack_start(this._viewSwitcher);
 
             // Menu button on the right
             const menuButton = new Gtk.MenuButton({
@@ -549,23 +574,127 @@ const AetherWindow = GObject.registerClass(
         }
 
         _createMainContent() {
-            this.contentPage = new Adw.NavigationPage({title: 'Synthesizer'});
+            // Create main ViewStack for tab navigation
+            this._viewStack = new Adw.ViewStack();
 
-            // Create a stack to switch between main content and wallpaper editor
-            this.contentStack = new Gtk.Stack({
+            // Editor page
+            const editorPage = this._createEditorPage();
+            this._viewStack.add_titled_with_icon(
+                editorPage,
+                'editor',
+                'Editor',
+                'applications-graphics-symbolic'
+            );
+
+            // Wallhaven browser page
+            this._wallhavenBrowser = new WallpaperBrowser();
+            this._wallhavenBrowser.connect('wallpaper-selected', (_, path, metadata) => {
+                this._onBrowserWallpaperSelected(path, metadata);
+            });
+            this._wallhavenBrowser.connect('favorites-changed', () => {
+                if (this._favoritesView) {
+                    this._favoritesView.loadFavorites();
+                }
+            });
+            this._wallhavenBrowser.connect('add-to-additional-images', (_, wallpaper) => {
+                this.paletteGenerator.addWallhavenImage(wallpaper);
+            });
+            this._viewStack.add_titled_with_icon(
+                this._wallhavenBrowser,
+                'wallhaven',
+                'Wallhaven',
+                'web-browser-symbolic'
+            );
+
+            // Local wallpapers page
+            this._localBrowser = new LocalWallpaperBrowser();
+            this._localBrowser.connect('wallpaper-selected', (_, path) => {
+                this._onBrowserWallpaperSelected(path);
+            });
+            this._localBrowser.connect('favorites-changed', () => {
+                if (this._favoritesView) {
+                    this._favoritesView.loadFavorites();
+                }
+            });
+            this._viewStack.add_titled_with_icon(
+                this._localBrowser,
+                'local',
+                'Local',
+                'folder-pictures-symbolic'
+            );
+
+            // Favorites page
+            this._favoritesView = new FavoritesView();
+            this._favoritesView.connect('wallpaper-selected', (_, path) => {
+                this._onBrowserWallpaperSelected(path);
+            });
+            this._viewStack.add_titled_with_icon(
+                this._favoritesView,
+                'favorites',
+                'Favorites',
+                'emblem-favorite-symbolic'
+            );
+
+            // Blueprints page
+            this._blueprintsView = new BlueprintsView();
+            this._blueprintsView.connect('blueprint-applied', (_, blueprint) => {
+                this._loadBlueprint(blueprint);
+                // Switch back to editor after applying
+                this._viewStack.set_visible_child_name('editor');
+            });
+            this._blueprintsView.connect('save-requested', () => {
+                this._saveBlueprint();
+            });
+
+            this._viewStack.add_titled_with_icon(
+                this._blueprintsView,
+                'blueprints',
+                'Blueprints',
+                'color-select-symbolic'
+            );
+
+            // Connect view switcher to view stack
+            this._viewSwitcher.set_stack(this._viewStack);
+
+            // Wrap viewstack in navigation page
+            this.contentPage = new Adw.NavigationPage({title: 'Aether'});
+            this.contentPage.set_child(this._viewStack);
+
+            return this.contentPage;
+        }
+
+        /**
+         * Handle wallpaper selection from any browser
+         * Loads wallpaper into editor and switches to editor tab
+         * @private
+         */
+        _onBrowserWallpaperSelected(path, metadata = null) {
+            // Switch to editor tab
+            this._viewStack.set_visible_child_name('editor');
+            
+            // Load the wallpaper into palette generator
+            this.paletteGenerator.loadWallpaper(path);
+            
+            // Store metadata if provided (for wallhaven wallpapers)
+            if (metadata) {
+                this.paletteGenerator.setWallpaperMetadata(metadata);
+            }
+        }
+
+        _createEditorPage() {
+            // Create a stack for editor content (main view vs wallpaper editor)
+            this._editorStack = new Gtk.Stack({
                 transition_type: Gtk.StackTransitionType.SLIDE_LEFT_RIGHT,
                 transition_duration: 200,
             });
 
-            // Main content view
+            // Main editor view
             const mainContentView = this._createMainContentView();
-            this.contentStack.add_named(mainContentView, 'main');
+            this._editorStack.add_named(mainContentView, 'main');
 
             // Wallpaper editor will be added dynamically when needed
 
-            this.contentPage.set_child(this.contentStack);
-
-            return this.contentPage;
+            return this._editorStack;
         }
 
         _createMainContentView() {
@@ -647,16 +776,8 @@ const AetherWindow = GObject.registerClass(
                 this.settingsSplitView.collapsed = !visible;
             });
 
-            this.actionBar.connect('show-blueprints', () => {
-                this._showBlueprintManager();
-            });
-
             this.actionBar.connect('export-theme', () => {
                 this._exportTheme();
-            });
-
-            this.actionBar.connect('save-blueprint', () => {
-                this._saveBlueprint();
             });
 
             this.actionBar.connect('reset', () => {
@@ -690,6 +811,14 @@ const AetherWindow = GObject.registerClass(
 
             this.paletteGenerator.connect('apply-wallpaper', () => {
                 this._applyWallpaper();
+            });
+
+            this.paletteGenerator.connect('browse-wallhaven', () => {
+                this._viewStack.set_visible_child_name('wallhaven');
+            });
+
+            this.paletteGenerator.connect('browse-local', () => {
+                this._viewStack.set_visible_child_name('local');
             });
 
             this.colorSynthesizer.connect('color-changed', (_, role, color) => {
@@ -751,12 +880,45 @@ const AetherWindow = GObject.registerClass(
         }
 
         _loadBlueprint(blueprint) {
-            this.blueprintService.loadBlueprint(
-                blueprint,
-                this.paletteGenerator,
-                this.colorSynthesizer,
-                this.settingsSidebar
-            );
+            try {
+                console.log('Loading blueprint:', blueprint.name);
+
+                // Reset adjustment sliders when loading a blueprint
+                this.settingsSidebar.resetAdjustments();
+
+                // Reset per-application overrides when loading a blueprint
+                this.paletteGenerator.resetAppOverrides();
+
+                // Switch to custom tab for blueprint editing
+                this.paletteGenerator.switchToCustomTab();
+
+                // Load palette (colors, wallpaper, locks)
+                if (blueprint.palette) {
+                    this.paletteGenerator.loadBlueprintPalette(blueprint.palette);
+
+                    // Sync light mode to sidebar
+                    if (blueprint.palette.lightMode !== undefined) {
+                        this.settingsSidebar.setLightMode(blueprint.palette.lightMode);
+                    }
+
+                    // Auto-assign color roles from palette
+                    if (blueprint.palette.colors) {
+                        this.colorSynthesizer.setPalette(blueprint.palette.colors);
+                    }
+                }
+
+                // Load settings (including Neovim theme selection)
+                if (blueprint.settings) {
+                    if (blueprint.settings.selectedNeovimConfig !== undefined) {
+                        this.settingsSidebar.setNeovimTheme(
+                            blueprint.settings.selectedNeovimConfig
+                        );
+                    }
+                }
+            } catch (e) {
+                console.error(`Error loading blueprint: ${e.message}`);
+            }
+
             this._updateAccessibility();
         }
 
@@ -828,13 +990,17 @@ const AetherWindow = GObject.registerClass(
             const settings = this.settingsSidebar.getSettings();
             const lightMode = this.settingsSidebar.getLightMode();
 
-            // Initialize blueprint service if not already initialized
-            if (!this.blueprintService) {
-                // Show blueprint manager first to initialize the service
-                this._showBlueprintManager();
-            }
+            palette.lightMode = lightMode;
 
-            this.blueprintService.saveBlueprint(palette, settings, lightMode);
+            const blueprint = {
+                palette: palette,
+                timestamp: Date.now(),
+                settings: settings,
+            };
+
+            // Switch to blueprints tab and save
+            this._viewStack.set_visible_child_name('blueprints');
+            this._blueprintsView.saveBlueprint(blueprint);
         }
 
         _applyWallpaper() {
@@ -885,65 +1051,25 @@ const AetherWindow = GObject.registerClass(
                     }
                 );
 
-                this.contentStack.add_named(this._wallpaperEditor, 'editor');
+                this._editorStack.add_named(this._wallpaperEditor, 'wallpaper-editor');
             } else {
                 // Reset editor with new wallpaper and clear all filters
                 this._wallpaperEditor.resetEditor(wallpaperPath);
             }
 
-            // Switch to editor view
-            this.contentStack.set_visible_child_name('editor');
+            // Switch to wallpaper editor view
+            this._editorStack.set_visible_child_name('wallpaper-editor');
         }
 
         _hideWallpaperEditor() {
-            // Switch back to main view
-            this.contentStack.set_visible_child_name('main');
+            // Switch back to main editor view
+            this._editorStack.set_visible_child_name('main');
         }
 
-        _showBlueprintManager() {
-            // Create blueprint manager window if it doesn't exist
-            if (!this._blueprintManagerWindow) {
-                this._blueprintManagerWindow = new BlueprintManagerWindow();
-
-                // Initialize blueprint service with the window
-                if (!this.blueprintService) {
-                    this.blueprintService = new BlueprintService(
-                        this._blueprintManagerWindow
-                    );
-                }
-
-                // Handle blueprint applied
-                this._blueprintManagerWindow.connect(
-                    'blueprint-applied',
-                    (_, blueprint) => {
-                        this._loadBlueprint(blueprint);
-                    }
-                );
-
-                // Handle close requested
-                this._blueprintManagerWindow.connect('close-requested', () => {
-                    this._hideBlueprintManager();
-                });
-
-                this.contentStack.add_named(
-                    this._blueprintManagerWindow,
-                    'blueprints'
-                );
-            } else {
-                // Reload blueprints when showing the window
-                this._blueprintManagerWindow.loadBlueprints();
-            }
-
-            // Update header title
-            this.contentPage.set_title('Blueprints');
-
-            // Switch to blueprint manager view
-            this.contentStack.set_visible_child_name('blueprints');
-        }
-
-        _hideBlueprintManager() {
-            // Switch back to main view
-            this.contentStack.set_visible_child_name('main');
+        _showBlueprintsTab() {
+            // Switch to blueprints tab and reload
+            this._viewStack.set_visible_child_name('blueprints');
+            this._blueprintsView.loadBlueprints();
         }
     }
 );

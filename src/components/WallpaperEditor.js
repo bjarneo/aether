@@ -265,8 +265,7 @@ export const WallpaperEditor = GObject.registerClass(
 
         _onResetClicked() {
             // Reset all filters to defaults
-            // Note: Accessing _resetFilters() directly - could be made public via signal
-            this._filterControls._resetFilters();
+            this._filterControls.resetFilters();
         }
 
         _onCancelClicked() {

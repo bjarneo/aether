@@ -9,6 +9,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import {favoritesService} from '../services/favorites-service.js';
 import {thumbnailService} from '../services/thumbnail-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
+import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {uploadWallpaper} from '../utils/wallpaper-utils.js';
 
 /**
@@ -98,6 +99,15 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             ]);
 
             this._initializeUI();
+
+            // Initialize responsive grid manager (same as WallhavenBrowser)
+            this._gridManager = new ResponsiveGridManager(
+                this._gridFlow,
+                this._scrolledWindow,
+                this
+            );
+            this._gridManager.initialize();
+
             this._loadWallpapersAsync();
         }
 

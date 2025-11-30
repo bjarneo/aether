@@ -5,9 +5,7 @@ export const ActionBar = GObject.registerClass(
     {
         Signals: {
             'toggle-settings': {param_types: [GObject.TYPE_BOOLEAN]},
-            'show-blueprints': {},
             'export-theme': {},
-            'save-blueprint': {},
             reset: {},
             clear: {},
             'apply-theme': {},
@@ -42,25 +40,10 @@ export const ActionBar = GObject.registerClass(
             });
             this.pack_start(this._toggleSettingsButton);
 
-            // Blueprints button (left side)
-            const blueprintsButton = new Gtk.Button({
-                icon_name: 'view-list-symbolic',
-                tooltip_text: 'Open Blueprints',
-            });
-            blueprintsButton.connect('clicked', () =>
-                this.emit('show-blueprints')
-            );
-            this.pack_start(blueprintsButton);
-
             // Export button (left side)
             const exportButton = new Gtk.Button({label: 'Export Theme'});
             exportButton.connect('clicked', () => this.emit('export-theme'));
             this.pack_start(exportButton);
-
-            // Save Blueprint button (left side)
-            const saveButton = new Gtk.Button({label: 'Save Blueprint'});
-            saveButton.connect('clicked', () => this.emit('save-blueprint'));
-            this.pack_start(saveButton);
 
             // Apply Theme button (right side)
             const applyButton = new Gtk.Button({

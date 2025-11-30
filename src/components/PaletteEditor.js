@@ -7,27 +7,19 @@ import Adw from 'gi://Adw?version=1';
 import {extractColorsFromWallpaperIM} from '../utils/imagemagick-color-extraction.js';
 import {adjustColor} from '../utils/color-utils.js';
 import {ensureDirectoryExists} from '../utils/file-utils.js';
-import {WallpaperBrowser} from './WallpaperBrowser.js';
-import {LocalWallpaperBrowser} from './LocalWallpaperBrowser.js';
-import {FavoritesView} from './FavoritesView.js';
 import {registerCustomIcons} from '../utils/icon-utils.js';
 import {WallpaperSection} from './palette-editor/WallpaperSection.js';
 import {AdditionalImagesSection} from './palette-editor/AdditionalImagesSection.js';
 import {ColorPaletteSection} from './palette-editor/ColorPaletteSection.js';
-import {TabNavigation} from './palette-editor/TabNavigation.js';
 import {EmptyState} from './palette-editor/EmptyState.js';
 
 /**
  * PaletteEditor - Main component for palette creation and wallpaper management
  *
  * Primary interface for creating and managing color palettes from wallpapers.
- * Orchestrates multiple sub-components in a tabbed interface:
  *
  * Features:
- * - Tab 1 (Editor): Wallpaper selection, color extraction, palette editing
- * - Tab 2 (Wallhaven): Online wallpaper browser from wallhaven.cc
- * - Tab 3 (Local): Browse wallpapers from ~/Wallpapers directory
- * - Tab 4 (Favorites): Quick access to favorited wallpapers
+ * - Wallpaper selection and color extraction
  * - Color palette grid with 16 ANSI colors (editable)
  * - Lock colors to prevent adjustment changes
  * - Additional images management
@@ -37,10 +29,6 @@ import {EmptyState} from './palette-editor/EmptyState.js';
  * - WallpaperSection: Wallpaper preview and actions
  * - ColorPaletteSection: 16-color grid with editing and locking
  * - AdditionalImagesSection: Manage additional theme images
- * - TabNavigation: Unified tab navigation component
- * - WallpaperBrowser: Wallhaven.cc integration
- * - LocalWallpaperBrowser: Local file system browser
- * - FavoritesView: Favorited wallpapers display
  *
  * Signals:
  * - 'palette-generated' (palette: object) - Emitted when colors extracted
@@ -48,6 +36,8 @@ import {EmptyState} from './palette-editor/EmptyState.js';
  * - 'overrides-changed' (overrides: object) - Per-app overrides changed
  * - 'open-wallpaper-editor' (path: string) - Open wallpaper in editor
  * - 'apply-wallpaper' - Apply current wallpaper without extraction
+ * - 'browse-wallhaven' - User wants to browse Wallhaven
+ * - 'browse-local' - User wants to browse local wallpapers
  *
  * @class PaletteEditor
  * @extends {Gtk.Box}
@@ -60,12 +50,13 @@ export const PaletteEditor = GObject.registerClass(
             'overrides-changed': {param_types: [GObject.TYPE_JSOBJECT]},
             'open-wallpaper-editor': {param_types: [GObject.TYPE_STRING]},
             'apply-wallpaper': {},
+            'browse-wallhaven': {},
+            'browse-local': {},
         },
     },
     class PaletteEditor extends Gtk.Box {
         /**
          * Initializes PaletteEditor with all sub-components
-         * Sets up tab navigation, wallpaper browsers, and palette editing
          * @private
          */
         _init() {
@@ -79,112 +70,16 @@ export const PaletteEditor = GObject.registerClass(
             this._palette = [];
             this._originalPalette = [];
             this._lightMode = false;
-            this._wallpaperMetadata = null; // Store wallpaper URL and source
+            this._wallpaperMetadata = null;
 
             this._initializeUI();
         }
 
         /**
-         * Initializes all UI components and tab navigation
-         * Sets up 4 tabs: Editor, Wallhaven, Local, Favorites
-         * Connects signal handlers for wallpaper selection
+         * Initializes UI components
          * @private
          */
         _initializeUI() {
-            // Tab navigation
-            this._tabNavigation = new TabNavigation();
-            this._tabNavigation.connect('tab-changed', (_, tabName) => {
-                this._viewStack.set_visible_child_name(tabName);
-            });
-
-            const headerBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-            });
-            headerBox.append(this._tabNavigation);
-            this.append(headerBox);
-
-            // View stack for tabs
-            this._viewStack = new Adw.ViewStack();
-
-            // Editor tab
-            const editorView = this._createEditorView();
-            this._viewStack.add_named(editorView, 'editor');
-
-            // Wallhaven browser
-            this._wallhavenBrowser = new WallpaperBrowser();
-            this._wallhavenBrowser.connect(
-                'wallpaper-selected',
-                (_, path, metadata) => {
-                    this._onBrowserWallpaperSelected(path, metadata);
-                }
-            );
-            this._wallhavenBrowser.connect('favorites-changed', () => {
-                if (this._favoritesView) {
-                    this._favoritesView.loadFavorites();
-                }
-            });
-            this._wallhavenBrowser.connect(
-                'add-to-additional-images',
-                (_, wallpaper) => {
-                    this._additionalImages.addWallhavenImage(wallpaper);
-                }
-            );
-            this._viewStack.add_named(this._wallhavenBrowser, 'wallhaven');
-
-            // Local browser
-            this._localBrowser = new LocalWallpaperBrowser();
-            this._localBrowser.connect('wallpaper-selected', (_, path) => {
-                this._onBrowserWallpaperSelected(path);
-            });
-            this._localBrowser.connect('favorites-changed', () => {
-                if (this._favoritesView) {
-                    this._favoritesView.loadFavorites();
-                }
-            });
-            this._localBrowser.connect(
-                'add-to-additional-images',
-                (_, wallpaper) => {
-                    this._additionalImages.addImage(wallpaper.path);
-                }
-            );
-            this._viewStack.add_named(this._localBrowser, 'local');
-
-            // Favorites view
-            this._favoritesView = new FavoritesView();
-            this._favoritesView.connect('wallpaper-selected', (_, path) => {
-                this._onBrowserWallpaperSelected(path);
-            });
-            this._favoritesView.connect(
-                'add-to-additional-images',
-                (_, wallpaper) => {
-                    // For wallhaven type, use addWallhavenImage, for local use addImage
-                    if (wallpaper.type === 'wallhaven') {
-                        this._additionalImages.addWallhavenImage(wallpaper);
-                    } else {
-                        this._additionalImages.addImage(wallpaper.path);
-                    }
-                }
-            );
-            this._viewStack.add_named(this._favoritesView, 'favorites');
-
-            this.append(this._viewStack);
-
-            // Load default colors and favorites
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                this._loadDefaultColors();
-                this._favoritesView.loadFavorites();
-                return GLib.SOURCE_REMOVE;
-            });
-        }
-
-        /**
-         * Creates the main editor view tab
-         * Contains wallpaper section, additional images, and color palette
-         * @returns {Gtk.Box} Editor view widget
-         * @private
-         */
-        _createEditorView() {
             const viewBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 12,
@@ -198,12 +93,10 @@ export const PaletteEditor = GObject.registerClass(
                 this.loadWallpaper(path);
             });
             this._emptyState.connect('browse-wallhaven-clicked', () => {
-                this._tabNavigation.setActiveTab('wallhaven');
-                this._viewStack.set_visible_child_name('wallhaven');
+                this.emit('browse-wallhaven');
             });
             this._emptyState.connect('browse-local-clicked', () => {
-                this._tabNavigation.setActiveTab('local');
-                this._viewStack.set_visible_child_name('local');
+                this.emit('browse-local');
             });
             viewBox.append(this._emptyState);
 
@@ -242,20 +135,13 @@ export const PaletteEditor = GObject.registerClass(
             });
             viewBox.append(this._colorPalette);
 
-            return viewBox;
-        }
+            this.append(viewBox);
 
-        /**
-         * Handles wallpaper selection from browsers (Wallhaven, Local, Favorites)
-         * Switches to editor tab and loads the selected wallpaper
-         * @param {string} path - Path to selected wallpaper
-         * @param {Object} [metadata] - Optional wallpaper metadata (url, source)
-         * @private
-         */
-        _onBrowserWallpaperSelected(path, metadata = null) {
-            this._tabNavigation.setActiveTab('editor');
-            this._viewStack.set_visible_child_name('editor');
-            this.loadWallpaper(path, metadata);
+            // Load default colors
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._loadDefaultColors();
+                return GLib.SOURCE_REMOVE;
+            });
         }
 
         /**
@@ -270,6 +156,24 @@ export const PaletteEditor = GObject.registerClass(
             this._wallpaperSection.loadWallpaper(path);
             this._colorPalette.setWallpaper(path);
             this._wallpaperMetadata = metadata;
+        }
+
+        /**
+         * Sets wallpaper metadata (for wallhaven wallpapers)
+         * @param {Object} metadata - Metadata object with url and source
+         * @public
+         */
+        setWallpaperMetadata(metadata) {
+            this._wallpaperMetadata = metadata;
+        }
+
+        /**
+         * Adds a wallhaven image to additional images
+         * @param {Object} wallpaper - Wallpaper object from wallhaven
+         * @public
+         */
+        addWallhavenImage(wallpaper) {
+            this._additionalImages.addWallhavenImage(wallpaper);
         }
 
         /**
@@ -388,12 +292,6 @@ export const PaletteEditor = GObject.registerClass(
          * Applies color adjustments to the palette
          * Respects locked colors and only adjusts unlocked ones
          * @param {Object} values - Adjustment values
-         * @param {number} values.vibrance - Vibrance adjustment (-100 to 100)
-         * @param {number} values.contrast - Contrast adjustment (-100 to 100)
-         * @param {number} values.brightness - Brightness adjustment (-100 to 100)
-         * @param {number} values.hueShift - Hue shift (0 to 360)
-         * @param {number} values.temperature - Temperature adjustment (-100 to 100)
-         * @param {number} values.gamma - Gamma adjustment (0.1 to 3.0)
          * @private
          */
         _applyAdjustments(values) {
@@ -420,22 +318,17 @@ export const PaletteEditor = GObject.registerClass(
             this.emit('adjustments-applied', adjustedColors);
         }
 
-        resetAdjustments() {
+        _resetAdjustments() {
             if (this._originalPalette.length > 0) {
                 this.setPalette([...this._originalPalette]);
             }
         }
 
+        // Kept for backwards compatibility
         switchToEditorTab() {
-            if (this._viewStack) {
-                this._viewStack.set_visible_child_name('editor');
-            }
-            if (this._tabNavigation) {
-                this._tabNavigation.setActiveTab('editor');
-            }
+            // No-op since there are no internal tabs anymore
         }
 
-        // Kept for backwards compatibility
         switchToCustomTab() {
             this.switchToEditorTab();
         }
@@ -486,7 +379,6 @@ export const PaletteEditor = GObject.registerClass(
                     };
                 } catch (error) {
                     console.error('Failed to download wallpaper from URL:', error);
-                    // Continue without wallpaper
                 }
             } else if (palette.wallpaper) {
                 this.loadWallpaperWithoutExtraction(palette.wallpaper);
@@ -501,7 +393,6 @@ export const PaletteEditor = GObject.registerClass(
             }
 
             // Always reset additional images when loading blueprint
-            // Then load blueprint's images if they exist
             if (
                 palette.additionalImages &&
                 Array.isArray(palette.additionalImages)

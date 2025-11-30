@@ -752,9 +752,10 @@ export const WallpaperBrowser = GObject.registerClass(
          * @private
          */
         async _downloadAndUseWallpaper(wallpaper) {
-            try {
-                showToast(this, 'Downloading wallpaper...', 0);
+            // Show downloading toast (auto-dismiss after 2 seconds)
+            showToast(this, 'Downloading wallpaper...');
 
+            try {
                 // Use permanent data directory instead of cache
                 const wallpapersDir = GLib.build_filenamev([
                     GLib.get_user_data_dir(),

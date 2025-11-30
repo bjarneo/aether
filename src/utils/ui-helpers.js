@@ -150,7 +150,7 @@ export function findAncestor(widget, type) {
  * @param {Gtk.Widget} widget - Widget to start searching from
  * @param {string} message - Toast message text
  * @param {number} [timeout=2] - Toast timeout in seconds
- * @returns {boolean} Whether toast was shown successfully
+ * @returns {Adw.Toast|null} The toast object (for dismissing later) or null if failed
  */
 export function showToast(widget, message, timeout = 2) {
     const toast = new Adw.Toast({
@@ -162,11 +162,11 @@ export function showToast(widget, message, timeout = 2) {
 
     if (!toastOverlay) {
         console.warn('No ToastOverlay found in widget hierarchy');
-        return false;
+        return null;
     }
 
     toastOverlay.add_toast(toast);
-    return true;
+    return toast;
 }
 
 /**

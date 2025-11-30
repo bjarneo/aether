@@ -8,6 +8,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import {favoritesService} from '../services/favorites-service.js';
 import {thumbnailService} from '../services/thumbnail-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
+import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {wallhavenService} from '../services/wallhaven-service.js';
 
 export const FavoritesView = GObject.registerClass(
@@ -25,6 +26,14 @@ export const FavoritesView = GObject.registerClass(
             });
 
             this._initializeUI();
+
+            // Initialize responsive grid manager (same as WallhavenBrowser)
+            this._gridManager = new ResponsiveGridManager(
+                this._gridFlow,
+                this._scrolledWindow,
+                this
+            );
+            this._gridManager.initialize();
         }
 
         _initializeUI() {
