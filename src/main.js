@@ -672,6 +672,9 @@ const AetherWindow = GObject.registerClass(
             // Switch to editor tab
             this._viewStack.set_visible_child_name('editor');
             
+            // Reset adjustments when changing wallpaper
+            this.settingsSidebar.resetAdjustments();
+            
             // Load the wallpaper into palette generator
             this.paletteGenerator.loadWallpaper(path);
             
@@ -798,6 +801,7 @@ const AetherWindow = GObject.registerClass(
         _connectSignals() {
             this.paletteGenerator.connect('palette-generated', (_, colors) => {
                 this.colorSynthesizer.setPalette(colors);
+                this.settingsSidebar.resetAdjustments();
                 this._updateAccessibility();
                 this._updateAppOverrideColors();
             });
