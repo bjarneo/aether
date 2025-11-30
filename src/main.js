@@ -252,7 +252,9 @@ const AetherApplication = GObject.registerClass(
                 // Format: aether://import?url=ENCODED_URL
                 if (source.startsWith('aether://import?url=')) {
                     // Extract and decode the URL parameter
-                    const urlParam = source.substring('aether://import?url='.length);
+                    const urlParam = source.substring(
+                        'aether://import?url='.length
+                    );
                     source = decodeURIComponent(urlParam);
                     print(`Parsed protocol URL: ${source}`);
                 }
@@ -490,7 +492,6 @@ const AetherWindow = GObject.registerClass(
         _initializeUI() {
             this.dialogManager = new DialogManager(this);
 
-
             this.themeExporter = new ThemeExporter(
                 this.configWriter,
                 this.dialogManager
@@ -504,19 +505,24 @@ const AetherWindow = GObject.registerClass(
 
             // Wrap content in ToolbarView with header bar
             const toolbarView = new Adw.ToolbarView();
-            
+
             // Add subtle bottom border to header bar
             const headerCss = new Gtk.CssProvider();
-            headerCss.load_from_data(`
+            headerCss.load_from_data(
+                `
                 headerbar {
                     border-bottom: 1px solid alpha(@borders, 0.5);
                 }
-            `, -1);
-            this.headerBar.get_style_context().add_provider(
-                headerCss,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            `,
+                -1
             );
-            
+            this.headerBar
+                .get_style_context()
+                .add_provider(
+                    headerCss,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
+
             toolbarView.add_top_bar(this.headerBar);
             toolbarView.set_content(mainContent);
 
@@ -588,17 +594,23 @@ const AetherWindow = GObject.registerClass(
 
             // Wallhaven browser page
             this._wallhavenBrowser = new WallpaperBrowser();
-            this._wallhavenBrowser.connect('wallpaper-selected', (_, path, metadata) => {
-                this._onBrowserWallpaperSelected(path, metadata);
-            });
+            this._wallhavenBrowser.connect(
+                'wallpaper-selected',
+                (_, path, metadata) => {
+                    this._onBrowserWallpaperSelected(path, metadata);
+                }
+            );
             this._wallhavenBrowser.connect('favorites-changed', () => {
                 if (this._favoritesView) {
                     this._favoritesView.loadFavorites();
                 }
             });
-            this._wallhavenBrowser.connect('add-to-additional-images', (_, wallpaper) => {
-                this.paletteGenerator.addWallhavenImage(wallpaper);
-            });
+            this._wallhavenBrowser.connect(
+                'add-to-additional-images',
+                (_, wallpaper) => {
+                    this.paletteGenerator.addWallhavenImage(wallpaper);
+                }
+            );
             this._viewStack.add_titled_with_icon(
                 this._wallhavenBrowser,
                 'wallhaven',
@@ -637,11 +649,14 @@ const AetherWindow = GObject.registerClass(
 
             // Blueprints page
             this._blueprintsView = new BlueprintsView();
-            this._blueprintsView.connect('blueprint-applied', (_, blueprint) => {
-                this._loadBlueprint(blueprint);
-                // Switch back to editor after applying
-                this._viewStack.set_visible_child_name('editor');
-            });
+            this._blueprintsView.connect(
+                'blueprint-applied',
+                (_, blueprint) => {
+                    this._loadBlueprint(blueprint);
+                    // Switch back to editor after applying
+                    this._viewStack.set_visible_child_name('editor');
+                }
+            );
             this._blueprintsView.connect('save-requested', () => {
                 this._saveBlueprint();
             });
@@ -671,14 +686,14 @@ const AetherWindow = GObject.registerClass(
         _onBrowserWallpaperSelected(path, metadata = null) {
             // Switch to editor tab
             this._viewStack.set_visible_child_name('editor');
-            
+
             // Reset adjustments and app overrides when changing wallpaper
             this.settingsSidebar.resetAdjustments();
             this.paletteGenerator.resetAppOverrides();
-            
+
             // Load the wallpaper into palette generator
             this.paletteGenerator.loadWallpaper(path);
-            
+
             // Store metadata if provided (for wallhaven wallpapers)
             if (metadata) {
                 this.paletteGenerator.setWallpaperMetadata(metadata);
@@ -899,16 +914,22 @@ const AetherWindow = GObject.registerClass(
 
                 // Load palette (colors, wallpaper, locks)
                 if (blueprint.palette) {
-                    this.paletteGenerator.loadBlueprintPalette(blueprint.palette);
+                    this.paletteGenerator.loadBlueprintPalette(
+                        blueprint.palette
+                    );
 
                     // Sync light mode to sidebar
                     if (blueprint.palette.lightMode !== undefined) {
-                        this.settingsSidebar.setLightMode(blueprint.palette.lightMode);
+                        this.settingsSidebar.setLightMode(
+                            blueprint.palette.lightMode
+                        );
                     }
 
                     // Auto-assign color roles from palette
                     if (blueprint.palette.colors) {
-                        this.colorSynthesizer.setPalette(blueprint.palette.colors);
+                        this.colorSynthesizer.setPalette(
+                            blueprint.palette.colors
+                        );
                     }
                 }
 
@@ -1056,7 +1077,10 @@ const AetherWindow = GObject.registerClass(
                     }
                 );
 
-                this._editorStack.add_named(this._wallpaperEditor, 'wallpaper-editor');
+                this._editorStack.add_named(
+                    this._wallpaperEditor,
+                    'wallpaper-editor'
+                );
             } else {
                 // Reset editor with new wallpaper and clear all filters
                 this._wallpaperEditor.resetEditor(wallpaperPath);

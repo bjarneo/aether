@@ -1,7 +1,11 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
-import {loadJsonFile, saveJsonFile, ensureDirectoryExists} from '../utils/file-utils.js';
+import {
+    loadJsonFile,
+    saveJsonFile,
+    ensureDirectoryExists,
+} from '../utils/file-utils.js';
 
 const AETHER_API_BASE_URL = 'https://aether.oever.li/api';
 
@@ -102,7 +106,8 @@ class AetherApiService {
     _getImageMimeType(filePath) {
         const lower = filePath.toLowerCase();
         if (lower.endsWith('.png')) return 'image/png';
-        if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+        if (lower.endsWith('.jpg') || lower.endsWith('.jpeg'))
+            return 'image/jpeg';
         if (lower.endsWith('.webp')) return 'image/webp';
         if (lower.endsWith('.gif')) return 'image/gif';
         return 'application/octet-stream';
@@ -207,10 +212,11 @@ class AetherApiService {
 
         // Check if we have a wallpaper to upload
         const wallpaperPath = blueprint.palette?.wallpaper;
-        const hasWallpaper = wallpaperPath && 
+        const hasWallpaper =
+            wallpaperPath &&
             GLib.file_test(wallpaperPath, GLib.FileTest.EXISTS);
 
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             const url = `${AETHER_API_BASE_URL}/blueprints`;
             const message = Soup.Message.new('POST', url);
 
@@ -223,10 +229,9 @@ class AetherApiService {
             }
 
             // Set Authorization header
-            message.get_request_headers().append(
-                'Authorization',
-                `Bearer ${this._apiKey}`
-            );
+            message
+                .get_request_headers()
+                .append('Authorization', `Bearer ${this._apiKey}`);
 
             let bodyBytes;
             let contentType;
@@ -235,7 +240,11 @@ class AetherApiService {
                 // Use multipart/form-data for uploading with wallpaper
                 const boundary = `----AetherBoundary${Date.now()}${Math.random().toString(36).substring(2)}`;
                 contentType = `multipart/form-data; boundary=${boundary}`;
-                bodyBytes = this._buildMultipartBody(boundary, blueprintData, wallpaperPath);
+                bodyBytes = this._buildMultipartBody(
+                    boundary,
+                    blueprintData,
+                    wallpaperPath
+                );
             } else {
                 // Use simple JSON for blueprints without wallpaper
                 contentType = 'application/json';
@@ -255,7 +264,8 @@ class AetherApiService {
                 null,
                 (session, result) => {
                     try {
-                        const responseBytes = session.send_and_read_finish(result);
+                        const responseBytes =
+                            session.send_and_read_finish(result);
                         const status = message.get_status();
                         const decoder = new TextDecoder('utf-8');
                         const text = decoder.decode(responseBytes.get_data());
@@ -267,15 +277,26 @@ class AetherApiService {
                             json = {message: text || 'Unknown error'};
                         }
 
-                        if (status === Soup.Status.CREATED || status === Soup.Status.OK) {
+                        if (
+                            status === Soup.Status.CREATED ||
+                            status === Soup.Status.OK
+                        ) {
                             resolve({
                                 success: true,
                                 id: json.id,
-                                message: json.message || 'Blueprint posted successfully',
+                                message:
+                                    json.message ||
+                                    'Blueprint posted successfully',
                             });
                         } else {
-                            const errorMessage = json.message || json.error || `Request failed with status ${status}`;
-                            console.error(`API Error (${status}):`, errorMessage);
+                            const errorMessage =
+                                json.message ||
+                                json.error ||
+                                `Request failed with status ${status}`;
+                            console.error(
+                                `API Error (${status}):`,
+                                errorMessage
+                            );
                             resolve({
                                 success: false,
                                 message: errorMessage,

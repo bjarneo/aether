@@ -96,7 +96,8 @@ export const BlueprintsView = GObject.registerClass(
         _createSaveSection() {
             const group = new Adw.PreferencesGroup({
                 title: 'Save Current Theme',
-                description: 'Save your current color palette as a reusable blueprint',
+                description:
+                    'Save your current color palette as a reusable blueprint',
             });
 
             const saveRow = new Adw.ActionRow({
@@ -808,7 +809,8 @@ export const BlueprintsView = GObject.registerClass(
                     spinnerDialog.present();
 
                     try {
-                        const result = await aetherApiService.postBlueprint(blueprint);
+                        const result =
+                            await aetherApiService.postBlueprint(blueprint);
 
                         spinnerDialog.close();
 
@@ -822,7 +824,9 @@ export const BlueprintsView = GObject.registerClass(
                         } else {
                             dm.showMessage({
                                 heading: 'Post Failed',
-                                body: result.message || 'Failed to post blueprint',
+                                body:
+                                    result.message ||
+                                    'Failed to post blueprint',
                             });
                         }
                     } catch (e) {
@@ -832,7 +836,8 @@ export const BlueprintsView = GObject.registerClass(
                         const dm = new DialogManager(this.get_root());
                         dm.showMessage({
                             heading: 'Post Failed',
-                            body: e.message || 'An error occurred while posting',
+                            body:
+                                e.message || 'An error occurred while posting',
                         });
                     }
                 },
@@ -844,4 +849,3 @@ export const BlueprintsView = GObject.registerClass(
         }
     }
 );
-

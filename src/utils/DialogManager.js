@@ -397,7 +397,8 @@ export class DialogManager {
             body: 'Enter a name for your theme (lowercase letters and hyphens only)',
             placeholder: 'my-theme',
             validationPattern: /^[a-z]([a-z-]*[a-z])?$/,
-            validationMessage: 'Theme name must contain only lowercase letters (a-z) and hyphens (-)',
+            validationMessage:
+                'Theme name must contain only lowercase letters (a-z) and hyphens (-)',
             onSubmit: value => callback(value || 'my-theme'),
         });
     }

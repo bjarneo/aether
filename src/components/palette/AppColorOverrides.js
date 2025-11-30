@@ -6,7 +6,11 @@ import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 
 import {getAppNameFromFileName} from '../../constants/templates.js';
-import {getTemplateMap, resolveTemplatePath, getCustomApps} from '../../utils/template-utils.js';
+import {
+    getTemplateMap,
+    resolveTemplatePath,
+    getCustomApps,
+} from '../../utils/template-utils.js';
 
 export const AppColorOverrides = GObject.registerClass(
     {
@@ -69,7 +73,6 @@ export const AppColorOverrides = GObject.registerClass(
                     return;
                 }
 
-
                 // We only care about the file name for app identification
                 const appName = this._getAppNameFromFileName(fileName);
                 const label = this._getAppLabelFromFileName(fileName);
@@ -118,7 +121,8 @@ export const AppColorOverrides = GObject.registerClass(
 
         _getUsedColorVariables(app) {
             // Get template path - use templatePath if available, otherwise resolve from fileName
-            const templatePath = app.templatePath || resolveTemplatePath(app.file);
+            const templatePath =
+                app.templatePath || resolveTemplatePath(app.file);
 
             try {
                 const file = Gio.File.new_for_path(templatePath);
@@ -146,17 +150,46 @@ export const AppColorOverrides = GObject.registerClass(
 
                 // Custom sort: background first, foreground second, then colors
                 const colorOrder = [
-                    'background', 'foreground',
-                    'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
-                    'bright_black', 'bright_red', 'bright_green', 'bright_yellow',
-                    'bright_blue', 'bright_magenta', 'bright_cyan', 'bright_white',
-                    'color0', 'color1', 'color2', 'color3', 'color4', 'color5', 'color6', 'color7',
-                    'color8', 'color9', 'color10', 'color11', 'color12', 'color13', 'color14', 'color15',
+                    'background',
+                    'foreground',
+                    'black',
+                    'red',
+                    'green',
+                    'yellow',
+                    'blue',
+                    'magenta',
+                    'cyan',
+                    'white',
+                    'bright_black',
+                    'bright_red',
+                    'bright_green',
+                    'bright_yellow',
+                    'bright_blue',
+                    'bright_magenta',
+                    'bright_cyan',
+                    'bright_white',
+                    'color0',
+                    'color1',
+                    'color2',
+                    'color3',
+                    'color4',
+                    'color5',
+                    'color6',
+                    'color7',
+                    'color8',
+                    'color9',
+                    'color10',
+                    'color11',
+                    'color12',
+                    'color13',
+                    'color14',
+                    'color15',
                 ];
                 varsArray.sort((a, b) => {
                     const aIndex = colorOrder.indexOf(a);
                     const bIndex = colorOrder.indexOf(b);
-                    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+                    if (aIndex === -1 && bIndex === -1)
+                        return a.localeCompare(b);
                     if (aIndex === -1) return 1;
                     if (bIndex === -1) return -1;
                     return aIndex - bIndex;
@@ -164,7 +197,10 @@ export const AppColorOverrides = GObject.registerClass(
 
                 return varsArray;
             } catch (e) {
-                console.error(`Error reading template for ${app.name}:`, e.message);
+                console.error(
+                    `Error reading template for ${app.name}:`,
+                    e.message
+                );
                 return [];
             }
         }

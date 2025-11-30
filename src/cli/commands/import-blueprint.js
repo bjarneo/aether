@@ -209,9 +209,7 @@ export class ImportBlueprintCommand {
 
             // Generate filename with timestamp to avoid conflicts
             const timestamp = Date.now();
-            const safeName = name
-                .replace(/[^a-zA-Z0-9-_]/g, '_')
-                .toLowerCase();
+            const safeName = name.replace(/[^a-zA-Z0-9-_]/g, '_').toLowerCase();
             const filename = `${safeName}_imported_${timestamp}.json`;
             const filePath = GLib.build_filenamev([blueprintsDir, filename]);
 

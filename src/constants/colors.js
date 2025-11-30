@@ -18,14 +18,42 @@ export const ANSI_COLOR_ROLES = [
     {id: 'magenta', label: 'Magenta', description: 'Normal magenta (ANSI 5)'},
     {id: 'cyan', label: 'Cyan', description: 'Normal cyan (ANSI 6)'},
     {id: 'white', label: 'White', description: 'Normal white (ANSI 7)'},
-    {id: 'bright_black', label: 'Bright Black', description: 'Bright black (ANSI 8)'},
+    {
+        id: 'bright_black',
+        label: 'Bright Black',
+        description: 'Bright black (ANSI 8)',
+    },
     {id: 'bright_red', label: 'Bright Red', description: 'Bright red (ANSI 9)'},
-    {id: 'bright_green', label: 'Bright Green', description: 'Bright green (ANSI 10)'},
-    {id: 'bright_yellow', label: 'Bright Yellow', description: 'Bright yellow (ANSI 11)'},
-    {id: 'bright_blue', label: 'Bright Blue', description: 'Bright blue (ANSI 12)'},
-    {id: 'bright_magenta', label: 'Bright Magenta', description: 'Bright magenta (ANSI 13)'},
-    {id: 'bright_cyan', label: 'Bright Cyan', description: 'Bright cyan (ANSI 14)'},
-    {id: 'bright_white', label: 'Bright White', description: 'Bright white (ANSI 15)'},
+    {
+        id: 'bright_green',
+        label: 'Bright Green',
+        description: 'Bright green (ANSI 10)',
+    },
+    {
+        id: 'bright_yellow',
+        label: 'Bright Yellow',
+        description: 'Bright yellow (ANSI 11)',
+    },
+    {
+        id: 'bright_blue',
+        label: 'Bright Blue',
+        description: 'Bright blue (ANSI 12)',
+    },
+    {
+        id: 'bright_magenta',
+        label: 'Bright Magenta',
+        description: 'Bright magenta (ANSI 13)',
+    },
+    {
+        id: 'bright_cyan',
+        label: 'Bright Cyan',
+        description: 'Bright cyan (ANSI 14)',
+    },
+    {
+        id: 'bright_white',
+        label: 'Bright White',
+        description: 'Bright white (ANSI 15)',
+    },
 ];
 
 // Map semantic names to color0-15 for backwards compatibility

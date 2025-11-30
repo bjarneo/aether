@@ -32,7 +32,10 @@ export class ProtocolHandlerInstaller {
         ]);
         ensureDirectoryExists(configDir);
 
-        const flagPath = GLib.build_filenamev([configDir, '.protocol-handler-installed']);
+        const flagPath = GLib.build_filenamev([
+            configDir,
+            '.protocol-handler-installed',
+        ]);
         const timestamp = new Date().toISOString();
         writeTextToFile(flagPath, `Installed on: ${timestamp}\n`);
     }
@@ -96,7 +99,9 @@ Terminal=false
                 }
             } catch (error) {
                 // Non-critical if update-desktop-database is not available
-                console.log('⚠ Could not update desktop database (non-critical)');
+                console.log(
+                    '⚠ Could not update desktop database (non-critical)'
+                );
             }
 
             // 4. Register as default handler for aether:// protocol
@@ -128,7 +133,9 @@ Terminal=false
 
             return true;
         } catch (error) {
-            console.error(`Protocol handler installation failed: ${error.message}`);
+            console.error(
+                `Protocol handler installation failed: ${error.message}`
+            );
             return false;
         }
     }

@@ -660,8 +660,9 @@ export const BlueprintManagerWindow = GObject.registerClass(
                     spinnerDialog.present();
 
                     try {
-                        const result = await aetherApiService.postBlueprint(blueprint);
-                        
+                        const result =
+                            await aetherApiService.postBlueprint(blueprint);
+
                         // Close spinner dialog
                         spinnerDialog.close();
 
@@ -675,7 +676,9 @@ export const BlueprintManagerWindow = GObject.registerClass(
                         } else {
                             dm.showMessage({
                                 heading: 'Post Failed',
-                                body: result.message || 'Failed to post blueprint',
+                                body:
+                                    result.message ||
+                                    'Failed to post blueprint',
                             });
                         }
                     } catch (e) {
@@ -686,7 +689,8 @@ export const BlueprintManagerWindow = GObject.registerClass(
                         const dm = new DialogManager(this.get_root());
                         dm.showMessage({
                             heading: 'Post Failed',
-                            body: e.message || 'An error occurred while posting',
+                            body:
+                                e.message || 'An error occurred while posting',
                         });
                     }
                 },

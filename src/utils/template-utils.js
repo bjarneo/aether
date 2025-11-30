@@ -1,6 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import { enumerateDirectory, fileExists, loadJsonFile } from './file-utils.js';
+import {enumerateDirectory, fileExists, loadJsonFile} from './file-utils.js';
 
 /**
  * Gets the path to the default project templates directory
@@ -10,14 +10,12 @@ export function getProjectTemplatesDir() {
     const thisFilePath = Gio.File.new_for_path(
         import.meta.url.replace('file://', '')
     ).get_path();
-    
+
     // src/utils/template-utils.js -> src/utils -> src -> root
     const projectDir = GLib.path_get_dirname(
-        GLib.path_get_dirname(
-            GLib.path_get_dirname(thisFilePath)
-        )
+        GLib.path_get_dirname(GLib.path_get_dirname(thisFilePath))
     );
-    
+
     return GLib.build_filenamev([projectDir, 'templates']);
 }
 
@@ -26,7 +24,11 @@ export function getProjectTemplatesDir() {
  * @returns {string} Path to user templates directory (~/.config/aether/custom)
  */
 export function getUserTemplatesDir() {
-    return GLib.build_filenamev([GLib.get_user_config_dir(), 'aether', 'custom']);
+    return GLib.build_filenamev([
+        GLib.get_user_config_dir(),
+        'aether',
+        'custom',
+    ]);
 }
 
 /**
@@ -52,12 +54,12 @@ export function getTemplateMap() {
     // 2. Add user overrides (overwriting defaults)
     // Skip directories - they are custom app folders handled by getCustomApps()
     if (fileExists(userDir)) {
-         enumerateDirectory(userDir, (fileInfo, filePath, fileName) => {
+        enumerateDirectory(userDir, (fileInfo, filePath, fileName) => {
             if (fileInfo.get_file_type() === Gio.FileType.DIRECTORY) {
                 return;
             }
             templates.set(fileName, filePath);
-         });
+        });
     }
 
     return templates;
@@ -88,7 +90,11 @@ export function resolveTemplatePath(fileName) {
  */
 export function getCustomApps() {
     const apps = [];
-    const appsDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'aether', 'custom']);
+    const appsDir = GLib.build_filenamev([
+        GLib.get_user_config_dir(),
+        'aether',
+        'custom',
+    ]);
 
     if (!fileExists(appsDir)) {
         return apps;
@@ -122,7 +128,10 @@ export function getCustomApps() {
                 continue;
             }
 
-            const templatePath = GLib.build_filenamev([appPath, config.template]);
+            const templatePath = GLib.build_filenamev([
+                appPath,
+                config.template,
+            ]);
             if (!fileExists(templatePath)) {
                 continue;
             }
@@ -141,4 +150,3 @@ export function getCustomApps() {
 
     return apps;
 }
-

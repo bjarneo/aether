@@ -351,7 +351,9 @@ export const PaletteEditor = GObject.registerClass(
 
                     // Extract filename from URL
                     const urlParts = palette.wallpaperUrl.split('/');
-                    const filename = urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
+                    const filename =
+                        urlParts[urlParts.length - 1] ||
+                        'imported-wallpaper.jpg';
                     const wallpaperPath = GLib.build_filenamev([
                         wallpapersDir,
                         filename,
@@ -361,12 +363,16 @@ export const PaletteEditor = GObject.registerClass(
                     const file = Gio.File.new_for_path(wallpaperPath);
                     if (!file.query_exists(null)) {
                         // Download wallpaper
-                        const {wallhavenService} = await import('../services/wallhaven-service.js');
+                        const {wallhavenService} = await import(
+                            '../services/wallhaven-service.js'
+                        );
                         await wallhavenService.downloadWallpaper(
                             palette.wallpaperUrl,
                             wallpaperPath
                         );
-                        console.log(`Downloaded wallpaper from blueprint: ${wallpaperPath}`);
+                        console.log(
+                            `Downloaded wallpaper from blueprint: ${wallpaperPath}`
+                        );
                     }
 
                     // Load the downloaded wallpaper
@@ -378,7 +384,10 @@ export const PaletteEditor = GObject.registerClass(
                         source: palette.wallpaperSource || 'wallhaven',
                     };
                 } catch (error) {
-                    console.error('Failed to download wallpaper from URL:', error);
+                    console.error(
+                        'Failed to download wallpaper from URL:',
+                        error
+                    );
                 }
             } else if (palette.wallpaper) {
                 this.loadWallpaperWithoutExtraction(palette.wallpaper);

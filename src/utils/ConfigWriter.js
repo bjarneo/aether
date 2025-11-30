@@ -12,10 +12,7 @@ import {
     deleteFile,
     fileExists,
 } from './file-utils.js';
-import {
-    getTemplateMap,
-    resolveTemplatePath,
-} from './template-utils.js';
+import {getTemplateMap, resolveTemplatePath} from './template-utils.js';
 import {loadJsonFile} from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
 import {restartSwaybg} from './service-manager.js';
@@ -252,7 +249,7 @@ export class ConfigWriter {
 
     _processTemplates(variables, settings = {}, appOverrides = {}) {
         const templateMap = getTemplateMap();
-        
+
         templateMap.forEach((templatePath, fileName) => {
             // Skip copy.json - it's a config file, not a template
             if (fileName === 'copy.json') {
@@ -270,10 +267,7 @@ export class ConfigWriter {
             }
 
             // Skip neovim.lua if includeNeovim is false
-            if (
-                fileName === 'neovim.lua' &&
-                settings.includeNeovim === false
-            ) {
+            if (fileName === 'neovim.lua' && settings.includeNeovim === false) {
                 return;
             }
 
@@ -298,10 +292,7 @@ export class ConfigWriter {
                 return;
             }
 
-            const outputPath = GLib.build_filenamev([
-                this.themeDir,
-                fileName,
-            ]);
+            const outputPath = GLib.build_filenamev([this.themeDir, fileName]);
 
             // Handle vscode.empty.json - use when VSCode is disabled
             if (fileName === 'vscode.empty.json') {
@@ -323,15 +314,9 @@ export class ConfigWriter {
             }
 
             // If this is neovim.lua and a custom config is selected, write it directly
-            if (
-                fileName === 'neovim.lua' &&
-                settings.selectedNeovimConfig
-            ) {
+            if (fileName === 'neovim.lua' && settings.selectedNeovimConfig) {
                 try {
-                    writeTextToFile(
-                        outputPath,
-                        settings.selectedNeovimConfig
-                    );
+                    writeTextToFile(outputPath, settings.selectedNeovimConfig);
                     console.log(
                         `Applied selected Neovim theme to ${outputPath}`
                     );
@@ -489,13 +474,10 @@ export class ConfigWriter {
         appOverrides = {}
     ) {
         const templateMap = getTemplateMap();
-        
+
         templateMap.forEach((templatePath, fileName) => {
             // Skip neovim.lua if includeNeovim is false
-            if (
-                fileName === 'neovim.lua' &&
-                settings.includeNeovim === false
-            ) {
+            if (fileName === 'neovim.lua' && settings.includeNeovim === false) {
                 return;
             }
 
@@ -542,15 +524,9 @@ export class ConfigWriter {
             }
 
             // If this is neovim.lua and a custom config is selected, write it directly
-            if (
-                fileName === 'neovim.lua' &&
-                settings.selectedNeovimConfig
-            ) {
+            if (fileName === 'neovim.lua' && settings.selectedNeovimConfig) {
                 try {
-                    writeTextToFile(
-                        outputPath,
-                        settings.selectedNeovimConfig
-                    );
+                    writeTextToFile(outputPath, settings.selectedNeovimConfig);
                     console.log(
                         `Exported selected Neovim theme to ${outputPath}`
                     );
@@ -582,7 +558,11 @@ export class ConfigWriter {
      */
     _processAppTemplates(variables, appOverrides = {}) {
         try {
-            const appsDir = GLib.build_filenamev([this.configDir, 'aether', 'custom']);
+            const appsDir = GLib.build_filenamev([
+                this.configDir,
+                'aether',
+                'custom',
+            ]);
 
             if (!fileExists(appsDir)) {
                 return;
@@ -593,7 +573,10 @@ export class ConfigWriter {
                     return;
                 }
 
-                const configPath = GLib.build_filenamev([appPath, 'config.json']);
+                const configPath = GLib.build_filenamev([
+                    appPath,
+                    'config.json',
+                ]);
                 if (!fileExists(configPath)) {
                     return;
                 }
@@ -603,14 +586,20 @@ export class ConfigWriter {
                     return;
                 }
 
-                const templatePath = GLib.build_filenamev([appPath, config.template]);
+                const templatePath = GLib.build_filenamev([
+                    appPath,
+                    config.template,
+                ]);
                 if (!fileExists(templatePath)) {
                     return;
                 }
 
                 // Output file named: appName-templateName
                 const outputFileName = `${appName}-${config.template}`;
-                const outputPath = GLib.build_filenamev([this.themeDir, outputFileName]);
+                const outputPath = GLib.build_filenamev([
+                    this.themeDir,
+                    outputFileName,
+                ]);
 
                 // Process template with variables
                 this._processTemplate(
@@ -621,7 +610,9 @@ export class ConfigWriter {
                     appOverrides
                 );
 
-                console.log(`[${appName}] Processed template: ${config.template}`);
+                console.log(
+                    `[${appName}] Processed template: ${config.template}`
+                );
             });
         } catch (e) {
             console.error('Error processing app templates:', e.message);
@@ -658,7 +649,7 @@ export class ConfigWriter {
     /**
      * Processes custom app folders from user config directory
      * Each folder can contain: config.json, template file(s), post-apply.sh
-     * 
+     *
      * Structure:
      * ~/.config/aether/
      * └── custom/
@@ -668,12 +659,16 @@ export class ConfigWriter {
      *     │   └── post-apply.sh    # Optional script to run after
      *     └── another-app/
      *         └── ...
-     * 
+     *
      * @private
      */
     _processSymlinks() {
         try {
-            const appsDir = GLib.build_filenamev([this.configDir, 'aether', 'custom']);
+            const appsDir = GLib.build_filenamev([
+                this.configDir,
+                'aether',
+                'custom',
+            ]);
 
             if (!fileExists(appsDir)) {
                 return;
@@ -704,7 +699,9 @@ export class ConfigWriter {
             const configPath = GLib.build_filenamev([appPath, 'config.json']);
 
             if (!fileExists(configPath)) {
-                console.warn(`App folder '${appName}' missing config.json, skipping`);
+                console.warn(
+                    `App folder '${appName}' missing config.json, skipping`
+                );
                 return;
             }
 
@@ -722,10 +719,15 @@ export class ConfigWriter {
             ]);
 
             // The template file in the app folder
-            const templatePath = GLib.build_filenamev([appPath, config.template]);
+            const templatePath = GLib.build_filenamev([
+                appPath,
+                config.template,
+            ]);
 
             if (!fileExists(templatePath)) {
-                console.warn(`Template '${config.template}' not found in ${appName}/`);
+                console.warn(
+                    `Template '${config.template}' not found in ${appName}/`
+                );
                 return;
             }
 
@@ -749,13 +751,19 @@ export class ConfigWriter {
                 console.log(`[${appName}] Symlinked -> ${destPath}`);
 
                 // Run post-apply.sh if it exists
-                const postApplyPath = GLib.build_filenamev([appPath, 'post-apply.sh']);
+                const postApplyPath = GLib.build_filenamev([
+                    appPath,
+                    'post-apply.sh',
+                ]);
                 if (fileExists(postApplyPath)) {
                     this._runPostApplyScript(postApplyPath, appName);
                 }
             }
         } catch (e) {
-            console.error(`Error processing app folder '${appName}':`, e.message);
+            console.error(
+                `Error processing app folder '${appName}':`,
+                e.message
+            );
         }
     }
 
@@ -770,7 +778,10 @@ export class ConfigWriter {
             GLib.spawn_command_line_async(`bash "${scriptPath}"`);
             console.log(`[${appName}] Executed post-apply.sh`);
         } catch (e) {
-            console.error(`[${appName}] Error running post-apply.sh:`, e.message);
+            console.error(
+                `[${appName}] Error running post-apply.sh:`,
+                e.message
+            );
         }
     }
 

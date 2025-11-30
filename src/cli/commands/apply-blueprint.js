@@ -54,9 +54,13 @@ export class ApplyBlueprintCommand {
             // Download wallpaper if wallpaperUrl is present and wallpaper is missing
             let wallpaperPath = palette.wallpaper;
             if (palette.wallpaperUrl && !wallpaperPath) {
-                wallpaperPath = await this._downloadWallpaper(palette.wallpaperUrl);
+                wallpaperPath = await this._downloadWallpaper(
+                    palette.wallpaperUrl
+                );
                 if (!wallpaperPath) {
-                    print('Warning: Failed to download wallpaper, continuing without it');
+                    print(
+                        'Warning: Failed to download wallpaper, continuing without it'
+                    );
                 }
             }
 
@@ -104,7 +108,8 @@ export class ApplyBlueprintCommand {
 
             // Extract filename from URL
             const urlParts = url.split('/');
-            const filename = urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
+            const filename =
+                urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
             const wallpaperPath = GLib.build_filenamev([
                 wallpapersDir,
                 filename,
@@ -118,7 +123,9 @@ export class ApplyBlueprintCommand {
             }
 
             // Download wallpaper
-            const {wallhavenService} = await import('../../services/wallhaven-service.js');
+            const {wallhavenService} = await import(
+                '../../services/wallhaven-service.js'
+            );
             await wallhavenService.downloadWallpaper(url, wallpaperPath);
 
             print(`✓ Wallpaper downloaded: ${wallpaperPath}`);
