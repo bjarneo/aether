@@ -34,6 +34,11 @@ export const FavoritesView = GObject.registerClass(
                 this
             );
             this._gridManager.initialize();
+
+            // Load favorites when view becomes visible
+            this.connect('map', () => {
+                this.loadFavorites();
+            });
         }
 
         _initializeUI() {
