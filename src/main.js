@@ -672,8 +672,9 @@ const AetherWindow = GObject.registerClass(
             // Switch to editor tab
             this._viewStack.set_visible_child_name('editor');
             
-            // Reset adjustments when changing wallpaper
+            // Reset adjustments and app overrides when changing wallpaper
             this.settingsSidebar.resetAdjustments();
+            this.paletteGenerator.resetAppOverrides();
             
             // Load the wallpaper into palette generator
             this.paletteGenerator.loadWallpaper(path);
