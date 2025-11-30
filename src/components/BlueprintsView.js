@@ -523,9 +523,9 @@ export const BlueprintsView = GObject.registerClass(
                 margin_bottom: 12,
             });
 
-            // Apply button
+            // Use button
             const applyButton = new Gtk.Button({
-                label: 'Apply',
+                label: 'Use',
                 hexpand: true,
                 css_classes: ['suggested-action'],
             });
