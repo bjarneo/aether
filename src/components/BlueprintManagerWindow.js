@@ -14,6 +14,7 @@ import {
 } from '../utils/file-utils.js';
 import {DialogManager} from '../utils/DialogManager.js';
 import {thumbnailService} from '../services/thumbnail-service.js';
+import {aetherApiService} from '../services/aether-api-service.js';
 
 /**
  * BlueprintManagerWindow - Ultra-compact blueprint manager
@@ -78,6 +79,13 @@ export const BlueprintManagerWindow = GObject.registerClass(
             });
             importButton.connect('clicked', () => this._importBlueprint());
             headerBar.pack_end(importButton);
+
+            const apiKeyButton = new Gtk.Button({
+                icon_name: 'network-server-symbolic',
+                tooltip_text: 'Community API Settings',
+            });
+            apiKeyButton.connect('clicked', () => this._showApiKeyDialog());
+            headerBar.pack_end(apiKeyButton);
 
             const refreshButton = new Gtk.Button({
                 icon_name: 'view-refresh-symbolic',
@@ -413,6 +421,9 @@ export const BlueprintManagerWindow = GObject.registerClass(
 
             const menu = Gio.Menu.new();
             menu.append('Export', 'blueprint.export');
+            if (aetherApiService.hasApiKey()) {
+                menu.append('Post to Community', 'blueprint.post');
+            }
             menu.append('Delete', 'blueprint.delete');
             menuButton.set_menu_model(menu);
 
@@ -423,6 +434,12 @@ export const BlueprintManagerWindow = GObject.registerClass(
                 this._exportBlueprint(blueprint)
             );
             actionGroup.add_action(exportAction);
+
+            const postAction = Gio.SimpleAction.new('post', null);
+            postAction.connect('activate', () =>
+                this._postToCommunity(blueprint)
+            );
+            actionGroup.add_action(postAction);
 
             const deleteAction = Gio.SimpleAction.new('delete', null);
             deleteAction.connect('activate', () =>
@@ -533,6 +550,147 @@ export const BlueprintManagerWindow = GObject.registerClass(
                 child.set_visible(visible);
                 child = child.get_next_sibling();
             }
+        }
+
+        /**
+         * Show dialog to configure Aether Community API key
+         * @private
+         */
+        _showApiKeyDialog() {
+            const currentKey = aetherApiService.getApiKey();
+            const dialog = new Adw.MessageDialog({
+                heading: 'Aether Community API Key',
+                body: 'Enter your API key to post blueprints to https://aether.oever.li/\n\nYou can get an API key from your account settings on the website.',
+                transient_for: this.get_root(),
+            });
+
+            dialog.add_response('cancel', 'Cancel');
+            dialog.add_response('save', 'Save');
+            dialog.set_response_appearance(
+                'save',
+                Adw.ResponseAppearance.SUGGESTED
+            );
+
+            const entry = new Gtk.Entry({
+                placeholder_text: 'sk_live_...',
+                text: currentKey,
+                margin_start: 12,
+                margin_end: 12,
+                margin_top: 6,
+                margin_bottom: 6,
+            });
+
+            dialog.set_extra_child(entry);
+
+            dialog.connect('response', (_, response) => {
+                if (response === 'save') {
+                    const apiKey = entry.get_text().trim();
+                    aetherApiService.setApiKey(apiKey);
+
+                    // Refresh UI to show/hide "Post to Community" options
+                    this._updateUI();
+
+                    const dm = new DialogManager(this.get_root());
+                    if (apiKey) {
+                        dm.showMessage({
+                            heading: 'API Key Saved',
+                            body: 'Your API key has been saved. You can now post blueprints to the community.',
+                        });
+                    } else {
+                        dm.showMessage({
+                            heading: 'API Key Removed',
+                            body: 'Your API key has been removed.',
+                        });
+                    }
+                }
+            });
+
+            dialog.present();
+        }
+
+        /**
+         * Post a blueprint to the Aether community as a draft
+         * @param {Object} blueprint - The blueprint to post
+         * @private
+         */
+        async _postToCommunity(blueprint) {
+            if (!aetherApiService.hasApiKey()) {
+                const dm = new DialogManager(this.get_root());
+                dm.showMessage({
+                    heading: 'API Key Required',
+                    body: 'Please configure your API key first using the server icon in the header.',
+                });
+                return;
+            }
+
+            // Show confirmation dialog
+            const dialogManager = new DialogManager(this.get_root());
+            dialogManager.showConfirmation({
+                heading: 'Post to Community',
+                body: `Post "${blueprint.name}" to the Aether community as a draft?\n\nYou can publish it from the website when ready.`,
+                confirmText: 'Post',
+                cancelText: 'Cancel',
+                onConfirm: async () => {
+                    // Create and show spinner dialog
+                    const spinnerDialog = new Adw.MessageDialog({
+                        heading: 'Uploading...',
+                        body: `Posting "${blueprint.name}" to the community`,
+                        transient_for: this.get_root(),
+                        close_response: '',
+                    });
+
+                    const spinnerBox = new Gtk.Box({
+                        orientation: Gtk.Orientation.VERTICAL,
+                        spacing: 12,
+                        margin_start: 24,
+                        margin_end: 24,
+                        margin_top: 12,
+                        margin_bottom: 12,
+                        halign: Gtk.Align.CENTER,
+                    });
+
+                    const spinner = new Gtk.Spinner({
+                        spinning: true,
+                        width_request: 32,
+                        height_request: 32,
+                    });
+                    spinnerBox.append(spinner);
+
+                    spinnerDialog.set_extra_child(spinnerBox);
+                    spinnerDialog.present();
+
+                    try {
+                        const result = await aetherApiService.postBlueprint(blueprint);
+                        
+                        // Close spinner dialog
+                        spinnerDialog.close();
+
+                        const dm = new DialogManager(this.get_root());
+
+                        if (result.success) {
+                            dm.showMessage({
+                                heading: 'Blueprint Posted',
+                                body: `"${blueprint.name}" has been posted as a draft.\n\nVisit https://aether.oever.li/ to publish it.`,
+                            });
+                        } else {
+                            dm.showMessage({
+                                heading: 'Post Failed',
+                                body: result.message || 'Failed to post blueprint',
+                            });
+                        }
+                    } catch (e) {
+                        // Close spinner dialog
+                        spinnerDialog.close();
+
+                        console.error('Error posting blueprint:', e.message);
+                        const dm = new DialogManager(this.get_root());
+                        dm.showMessage({
+                            heading: 'Post Failed',
+                            body: e.message || 'An error occurred while posting',
+                        });
+                    }
+                },
+            });
         }
 
         get widget() {
