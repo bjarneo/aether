@@ -95,3 +95,6 @@ red = {color1}
 green = {color2}
 ```
 
+## Demo File
+
+For a comprehensive example showing all variables and modifiers, see [examples/aether-templates/demo.txt](examples/aether-templates/demo.txt).
