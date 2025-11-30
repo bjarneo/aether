@@ -180,7 +180,7 @@ For applications not included in Aether by default, you can create app-specific 
     └── post-apply.sh
 ```
 
-See [examples/aether-templates/](examples/aether-templates/) for a complete example with Cava.
+See [examples/custom/](examples/custom/) for a complete example with Cava.
 
 See [CUSTOM_APPS.md](CUSTOM_APPS.md) for a complete list of available color variables and format modifiers (e.g., `{background.rgba:0.5}`, `{magenta.strip}`).
 

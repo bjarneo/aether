@@ -199,10 +199,10 @@ pgrep -x cava && pkill -USR2 cava
 
 ## Examples
 
-The `examples/aether-templates/` folder contains ready-to-use examples:
+The `examples/custom/` folder contains ready-to-use examples:
 
-- **[demo.txt](examples/aether-templates/demo.txt)** - Comprehensive example showing all variables and modifiers
-- **[apps/cava/](examples/aether-templates/apps/cava/)** - Complete custom app example with:
+- **[demo.txt](examples/custom/demo.txt)** - Comprehensive example showing all variables and modifiers
+- **[apps/cava/](examples/custom/apps/cava/)** - Complete custom app example with:
   - `config.json` - Template and destination configuration
   - `theme.ini` - Cava theme template with gradient colors
   - `post-apply.sh` - Script to set the theme in cava config and reload
@@ -210,5 +210,5 @@ The `examples/aether-templates/` folder contains ready-to-use examples:
 To use the Cava example:
 ```bash
 mkdir -p ~/.config/aether/custom
-cp -r examples/aether-templates/apps/* ~/.config/aether/custom/
+cp -r examples/custom/apps/* ~/.config/aether/custom/
 ```
