@@ -6,7 +6,7 @@ import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 
 import {getAppNameFromFileName} from '../../constants/templates.js';
-import {getTemplateMap, resolveTemplatePath} from '../../utils/template-utils.js';
+import {getTemplateMap, resolveTemplatePath, getCustomApps} from '../../utils/template-utils.js';
 
 export const AppColorOverrides = GObject.registerClass(
     {
@@ -51,6 +51,7 @@ export const AppColorOverrides = GObject.registerClass(
         _getAvailableApps() {
             const templateMap = getTemplateMap();
             const apps = [];
+            const addedApps = new Set();
 
             templateMap.forEach((filePath, fileName) => {
                 // Skip excluded files
@@ -68,6 +69,16 @@ export const AppColorOverrides = GObject.registerClass(
                     return;
                 }
 
+                // Skip the "apps" directory entry itself (but not its contents)
+                if (fileName === 'apps') {
+                    return;
+                }
+
+                // Skip files inside apps/ folder - they're added via getCustomApps()
+                if (filePath.includes('/apps/')) {
+                    return;
+                }
+
                 // We only care about the file name for app identification
                 const appName = this._getAppNameFromFileName(fileName);
                 const label = this._getAppLabelFromFileName(fileName);
@@ -76,7 +87,26 @@ export const AppColorOverrides = GObject.registerClass(
                     name: appName,
                     label: label,
                     file: fileName,
+                    templatePath: filePath,
                 });
+                addedApps.add(appName);
+            });
+
+            // Add custom apps from ~/aether-templates/apps/
+            const customApps = getCustomApps();
+            customApps.forEach(customApp => {
+                // Skip if already added (avoid duplicates)
+                if (addedApps.has(customApp.name)) {
+                    return;
+                }
+
+                apps.push({
+                    name: customApp.name,
+                    label: customApp.label,
+                    file: null,
+                    templatePath: customApp.templatePath,
+                });
+                addedApps.add(customApp.name);
             });
 
             // Sort alphabetically by label
@@ -95,9 +125,9 @@ export const AppColorOverrides = GObject.registerClass(
             return appName.charAt(0).toUpperCase() + appName.slice(1);
         }
 
-        _getUsedColorVariables(fileName) {
-            // Get template path (checking overrides first)
-            const templatePath = resolveTemplatePath(fileName);
+        _getUsedColorVariables(app) {
+            // Get template path - use templatePath if available, otherwise resolve from fileName
+            const templatePath = app.templatePath || resolveTemplatePath(app.file);
 
             try {
                 const file = Gio.File.new_for_path(templatePath);
@@ -138,7 +168,7 @@ export const AppColorOverrides = GObject.registerClass(
 
                 return varsArray;
             } catch (e) {
-                console.error(`Error reading template ${fileName}:`, e.message);
+                console.error(`Error reading template for ${app.name}:`, e.message);
                 return [];
             }
         }
@@ -403,7 +433,7 @@ export const AppColorOverrides = GObject.registerClass(
             const appOverrides = this._overrides[app.name] || {};
 
             // Get color variables used in this template
-            const colorVars = this._getUsedColorVariables(app.file);
+            const colorVars = this._getUsedColorVariables(app);
 
             console.log(`Used variables for ${app.name}:`, colorVars);
 

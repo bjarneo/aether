@@ -1,6 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import { enumerateDirectory, fileExists } from './file-utils.js';
+import { enumerateDirectory, fileExists, loadJsonFile } from './file-utils.js';
 
 /**
  * Gets the path to the default project templates directory
@@ -71,5 +71,67 @@ export function resolveTemplatePath(fileName) {
 
     const projectDir = getProjectTemplatesDir();
     return GLib.build_filenamev([projectDir, fileName]);
+}
+
+/**
+ * Gets a list of custom apps from ~/aether-templates/apps/
+ * Each app folder should contain a config.json with template and destination
+ * @returns {Array<{name: string, label: string, templatePath: string}>}
+ */
+export function getCustomApps() {
+    const apps = [];
+    const userDir = getUserTemplatesDir();
+    const appsDir = GLib.build_filenamev([userDir, 'apps']);
+
+    if (!fileExists(appsDir)) {
+        return apps;
+    }
+
+    try {
+        const dir = Gio.File.new_for_path(appsDir);
+        const enumerator = dir.enumerate_children(
+            'standard::name,standard::type',
+            Gio.FileQueryInfoFlags.NONE,
+            null
+        );
+
+        let fileInfo;
+        while ((fileInfo = enumerator.next_file(null)) !== null) {
+            // Only process directories
+            if (fileInfo.get_file_type() !== Gio.FileType.DIRECTORY) {
+                continue;
+            }
+
+            const appName = fileInfo.get_name();
+            const appPath = GLib.build_filenamev([appsDir, appName]);
+            const configPath = GLib.build_filenamev([appPath, 'config.json']);
+
+            if (!fileExists(configPath)) {
+                continue;
+            }
+
+            const config = loadJsonFile(configPath, null);
+            if (!config || !config.template) {
+                continue;
+            }
+
+            const templatePath = GLib.build_filenamev([appPath, config.template]);
+            if (!fileExists(templatePath)) {
+                continue;
+            }
+
+            apps.push({
+                name: appName,
+                label: appName.charAt(0).toUpperCase() + appName.slice(1),
+                templatePath: templatePath,
+            });
+        }
+
+        enumerator.close(null);
+    } catch (e) {
+        console.error('Error reading apps directory:', e.message);
+    }
+
+    return apps;
 }
 

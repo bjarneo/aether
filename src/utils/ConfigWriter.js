@@ -15,7 +15,9 @@ import {
 import {
     getTemplateMap,
     resolveTemplatePath,
+    getUserTemplatesDir,
 } from './template-utils.js';
+import {loadJsonFile} from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
 import {restartSwaybg} from './service-manager.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
@@ -151,6 +153,8 @@ export class ConfigWriter {
             }
 
             this._handleLightModeMarker(this.themeDir, lightMode);
+            this._processAppTemplates(variables, appOverrides);
+            this._processSymlinks();
             this._applyOmarchyTheme(sync);
 
             return true;
@@ -225,6 +229,21 @@ export class ConfigWriter {
         const templateMap = getTemplateMap();
         
         templateMap.forEach((templatePath, fileName) => {
+            // Skip copy.json - it's a config file, not a template
+            if (fileName === 'copy.json') {
+                return;
+            }
+
+            // Skip apps directory - processed separately
+            if (templatePath.includes('/apps/')) {
+                return;
+            }
+
+            // Skip scripts directory contents (legacy)
+            if (templatePath.includes('/scripts/')) {
+                return;
+            }
+
             // Skip neovim.lua if includeNeovim is false
             if (
                 fileName === 'neovim.lua' &&
@@ -530,6 +549,61 @@ export class ConfigWriter {
         });
     }
 
+    /**
+     * Processes templates from app folders in ~/aether-templates/apps/
+     * @param {Object} variables - Template variables
+     * @param {Object} appOverrides - Per-app color overrides
+     * @private
+     */
+    _processAppTemplates(variables, appOverrides = {}) {
+        try {
+            const userTemplatesDir = getUserTemplatesDir();
+            const appsDir = GLib.build_filenamev([userTemplatesDir, 'apps']);
+
+            if (!fileExists(appsDir)) {
+                return;
+            }
+
+            enumerateDirectory(appsDir, (fileInfo, appPath, appName) => {
+                if (fileInfo.get_file_type() !== Gio.FileType.DIRECTORY) {
+                    return;
+                }
+
+                const configPath = GLib.build_filenamev([appPath, 'config.json']);
+                if (!fileExists(configPath)) {
+                    return;
+                }
+
+                const config = loadJsonFile(configPath, null);
+                if (!config || !config.template) {
+                    return;
+                }
+
+                const templatePath = GLib.build_filenamev([appPath, config.template]);
+                if (!fileExists(templatePath)) {
+                    return;
+                }
+
+                // Output file named: appName-templateName
+                const outputFileName = `${appName}-${config.template}`;
+                const outputPath = GLib.build_filenamev([this.themeDir, outputFileName]);
+
+                // Process template with variables
+                this._processTemplate(
+                    templatePath,
+                    outputPath,
+                    variables,
+                    outputFileName,
+                    appOverrides
+                );
+
+                console.log(`[${appName}] Processed template: ${config.template}`);
+            });
+        } catch (e) {
+            console.error('Error processing app templates:', e.message);
+        }
+    }
+
     _handleLightModeMarker(themeDir, lightMode) {
         const markerPath = GLib.build_filenamev([themeDir, 'light.mode']);
         const file = Gio.File.new_for_path(markerPath);
@@ -554,6 +628,126 @@ export class ConfigWriter {
             } catch (e) {
                 console.error('Error removing light.mode file:', e.message);
             }
+        }
+    }
+
+    /**
+     * Processes custom app folders from user templates directory
+     * Each folder can contain: config.json, template file(s), post-apply.sh
+     * 
+     * Structure:
+     * ~/aether-templates/
+     * ├── apps/
+     * │   ├── cava/
+     * │   │   ├── config.json      # { "template": "theme.ini", "destination": "~/.config/cava/themes/aether" }
+     * │   │   ├── theme.ini        # Template file with {color} variables
+     * │   │   └── post-apply.sh    # Optional script to run after
+     * │   └── another-app/
+     * │       └── ...
+     * 
+     * @private
+     */
+    _processSymlinks() {
+        try {
+            const userTemplatesDir = getUserTemplatesDir();
+            const appsDir = GLib.build_filenamev([userTemplatesDir, 'apps']);
+
+            if (!fileExists(appsDir)) {
+                return;
+            }
+
+            // Enumerate app folders
+            enumerateDirectory(appsDir, (fileInfo, appPath, appName) => {
+                // Only process directories
+                if (fileInfo.get_file_type() !== Gio.FileType.DIRECTORY) {
+                    return;
+                }
+
+                this._processAppFolder(appPath, appName);
+            });
+        } catch (e) {
+            console.error('Error processing app folders:', e.message);
+        }
+    }
+
+    /**
+     * Processes a single app folder
+     * @param {string} appPath - Full path to the app folder
+     * @param {string} appName - Name of the app folder
+     * @private
+     */
+    _processAppFolder(appPath, appName) {
+        try {
+            const configPath = GLib.build_filenamev([appPath, 'config.json']);
+
+            if (!fileExists(configPath)) {
+                console.warn(`App folder '${appName}' missing config.json, skipping`);
+                return;
+            }
+
+            const config = loadJsonFile(configPath, null);
+            if (!config || !config.template || !config.destination) {
+                console.warn(`App folder '${appName}' has invalid config.json`);
+                return;
+            }
+
+            // Source is the generated file in theme directory (named after app folder)
+            const generatedFileName = `${appName}-${config.template}`;
+            const sourcePath = GLib.build_filenamev([
+                this.themeDir,
+                generatedFileName,
+            ]);
+
+            // The template file in the app folder
+            const templatePath = GLib.build_filenamev([appPath, config.template]);
+
+            if (!fileExists(templatePath)) {
+                console.warn(`Template '${config.template}' not found in ${appName}/`);
+                return;
+            }
+
+            // Expand ~ in destination path
+            let destPath = config.destination;
+            if (destPath.startsWith('~/')) {
+                destPath = GLib.build_filenamev([
+                    GLib.get_home_dir(),
+                    destPath.slice(2),
+                ]);
+            }
+
+            // Ensure destination directory exists
+            const destDir = GLib.path_get_dirname(destPath);
+            ensureDirectoryExists(destDir);
+
+            // Create symlink
+            const success = createSymlink(sourcePath, destPath, appName);
+
+            if (success) {
+                console.log(`[${appName}] Symlinked -> ${destPath}`);
+
+                // Run post-apply.sh if it exists
+                const postApplyPath = GLib.build_filenamev([appPath, 'post-apply.sh']);
+                if (fileExists(postApplyPath)) {
+                    this._runPostApplyScript(postApplyPath, appName);
+                }
+            }
+        } catch (e) {
+            console.error(`Error processing app folder '${appName}':`, e.message);
+        }
+    }
+
+    /**
+     * Runs a post-apply script
+     * @param {string} scriptPath - Full path to the script
+     * @param {string} appName - Name of the app (for logging)
+     * @private
+     */
+    _runPostApplyScript(scriptPath, appName) {
+        try {
+            GLib.spawn_command_line_async(`bash "${scriptPath}"`);
+            console.log(`[${appName}] Executed post-apply.sh`);
+        } catch (e) {
+            console.error(`[${appName}] Error running post-apply.sh:`, e.message);
         }
     }
 

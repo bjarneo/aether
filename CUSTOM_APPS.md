@@ -95,6 +95,110 @@ red = {color1}
 green = {color2}
 ```
 
-## Demo File
+## Custom App Templates
 
-For a comprehensive example showing all variables and modifiers, see [examples/aether-templates/demo.txt](examples/aether-templates/demo.txt).
+You can create app-specific templates with automatic symlinking and post-apply scripts using the `apps/` folder structure.
+
+### Folder Structure
+
+```
+~/aether-templates/
+├── apps/
+│   ├── cava/
+│   │   ├── config.json      # Required: template and destination
+│   │   ├── theme.ini        # Your template file
+│   │   └── post-apply.sh    # Optional: runs after symlinking
+│   └── another-app/
+│       ├── config.json
+│       └── template.conf
+├── waybar.css               # Override default templates
+├── hyprlock.conf
+└── ...
+```
+
+### config.json
+
+Each app folder must contain a `config.json`:
+
+```json
+{
+    "template": "theme.ini",
+    "destination": "~/.config/cava/themes/aether"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `template` | Yes | Filename of the template in this folder |
+| `destination` | Yes | Target path for the symlink (supports `~`) |
+
+### post-apply.sh
+
+Optional script that runs after the symlink is created. Must be executable (`chmod +x`).
+
+### How It Works
+
+1. Aether processes the template with color variables
+2. Writes the result to `~/.config/omarchy/themes/aether/{appname}-{template}`
+3. Creates a symlink from that file to your destination
+4. Runs `post-apply.sh` if it exists
+
+### Example: Cava Theme
+
+`~/aether-templates/apps/cava/config.json`:
+```json
+{
+    "template": "theme.ini",
+    "destination": "~/.config/cava/themes/aether"
+}
+```
+
+`~/aether-templates/apps/cava/theme.ini`:
+```ini
+[color]
+gradient = 1
+gradient_count = 8
+gradient_color_1 = '#{color6.strip}'
+gradient_color_2 = '#{color4.strip}'
+gradient_color_3 = '#{color12.strip}'
+gradient_color_4 = '#{color5.strip}'
+gradient_color_5 = '#{color13.strip}'
+gradient_color_6 = '#{color14.strip}'
+gradient_color_7 = '#{color13.strip}'
+gradient_color_8 = '#{color6.strip}'
+```
+
+`~/aether-templates/apps/cava/post-apply.sh`:
+```bash
+#!/bin/bash
+
+config_file="$HOME/.config/cava/config"
+
+if [ ! -f "$config_file" ]; then
+    exit 0
+fi
+
+# Set theme = 'aether' in cava config
+if ! grep -q "^theme = 'aether'" "$config_file"; then
+    sed -i "/^theme = /d" "$config_file"
+    sed -i "/^\[color\]/a theme = 'aether'" "$config_file"
+fi
+
+# Reload cava
+pgrep -x cava && pkill -USR2 cava
+```
+
+## Examples
+
+The `examples/aether-templates/` folder contains ready-to-use examples:
+
+- **[demo.txt](examples/aether-templates/demo.txt)** - Comprehensive example showing all variables and modifiers
+- **[apps/cava/](examples/aether-templates/apps/cava/)** - Complete custom app example with:
+  - `config.json` - Template and destination configuration
+  - `theme.ini` - Cava theme template with gradient colors
+  - `post-apply.sh` - Script to set the theme in cava config and reload
+
+To use the Cava example:
+```bash
+cp -r examples/aether-templates/apps ~/aether-templates/
+```

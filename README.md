@@ -166,7 +166,23 @@ You can override the default templates used by Aether to customize how themes ar
 
 Aether will automatically prioritize files in `~/aether-templates/` over the built-in defaults.
 
-See [TEMPLATE_VARIABLES.md](TEMPLATE_VARIABLES.md) for a complete list of available color variables and format modifiers (e.g., `{background.rgba:0.5}`, `{color5.strip}`).
+#### Custom App Templates
+
+For applications not included in Aether by default, you can create app-specific templates with automatic symlinking:
+
+```
+~/aether-templates/
+├── apps/
+│   └── cava/
+│       ├── config.json      # Template and destination path
+│       ├── theme.ini        # Your template file
+│       └── post-apply.sh    # Optional: runs after applying
+└── waybar.css               # Override default templates
+```
+
+See [examples/aether-templates/](examples/aether-templates/) for a complete example with Cava.
+
+See [CUSTOM_APPS.md](CUSTOM_APPS.md) for a complete list of available color variables and format modifiers (e.g., `{background.rgba:0.5}`, `{color5.strip}`).
 
 ### Screen Shaders
 
