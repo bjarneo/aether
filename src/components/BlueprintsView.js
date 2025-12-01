@@ -207,7 +207,7 @@ export const BlueprintsView = GObject.registerClass(
             const apiKeyRow = new Adw.ActionRow({
                 title: 'API Key',
                 subtitle: aetherApiService.hasApiKey()
-                    ? 'Connected to aether.oever.li'
+                    ? 'Connected to aethr.no'
                     : 'Configure to share blueprints online',
             });
 
@@ -259,7 +259,7 @@ export const BlueprintsView = GObject.registerClass(
             });
             openButton.connect('clicked', () => {
                 Gio.AppInfo.launch_default_for_uri(
-                    'https://aether.oever.li/',
+                    'https://aethr.no/',
                     null
                 );
             });
@@ -691,7 +691,7 @@ export const BlueprintsView = GObject.registerClass(
             const currentKey = aetherApiService.getApiKey();
             const dialog = new Adw.MessageDialog({
                 heading: 'Aether Community API Key',
-                body: 'Enter your API key to post blueprints to aether.oever.li\n\nGet your API key from your account settings on the website.',
+                body: 'Enter your API key to post blueprints to aethr.no\n\nGet your API key from your account settings on the website.',
                 transient_for: this.get_root(),
             });
 
@@ -745,7 +745,7 @@ export const BlueprintsView = GObject.registerClass(
 
             this._apiKeyRow.set_subtitle(
                 hasKey
-                    ? 'Connected to aether.oever.li'
+                    ? 'Connected to aethr.no'
                     : 'Configure to share blueprints online'
             );
 
@@ -819,7 +819,7 @@ export const BlueprintsView = GObject.registerClass(
                         if (result.success) {
                             dm.showMessage({
                                 heading: 'Blueprint Posted',
-                                body: `"${blueprint.name}" has been posted as a draft.\n\nVisit aether.oever.li to publish it.`,
+                                body: `"${blueprint.name}" has been posted as a draft.\n\nVisit aethr.no to publish it.`,
                             });
                         } else {
                             dm.showMessage({

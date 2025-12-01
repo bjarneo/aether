@@ -560,7 +560,7 @@ export const BlueprintManagerWindow = GObject.registerClass(
             const currentKey = aetherApiService.getApiKey();
             const dialog = new Adw.MessageDialog({
                 heading: 'Aether Community API Key',
-                body: 'Enter your API key to post blueprints to https://aether.oever.li/\n\nYou can get an API key from your account settings on the website.',
+                body: 'Enter your API key to post blueprints to https://aethr.no/\n\nYou can get an API key from your account settings on the website.',
                 transient_for: this.get_root(),
             });
 
@@ -671,7 +671,7 @@ export const BlueprintManagerWindow = GObject.registerClass(
                         if (result.success) {
                             dm.showMessage({
                                 heading: 'Blueprint Posted',
-                                body: `"${blueprint.name}" has been posted as a draft.\n\nVisit https://aether.oever.li/ to publish it.`,
+                                body: `"${blueprint.name}" has been posted as a draft.\n\nVisit https://aethr.no/ to publish it.`,
                             });
                         } else {
                             dm.showMessage({

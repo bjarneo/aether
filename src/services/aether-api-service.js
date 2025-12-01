@@ -7,7 +7,7 @@ import {
     ensureDirectoryExists,
 } from '../utils/file-utils.js';
 
-const AETHER_API_BASE_URL = 'https://aether.oever.li/api';
+const AETHER_API_BASE_URL = 'https://aethr.no/api';
 
 /**
  * AetherApiService - Service for interacting with the Aether community API

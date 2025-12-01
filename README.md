@@ -18,7 +18,7 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - **Advanced Color Tools** - Harmony generator, gradients, and adjustment sliders (vibrance, contrast, temperature)
 - **Color Lock System** - Protect specific colors while experimenting with adjustments
 - **Blueprint System** - Save and share themes as JSON files
-- **Community Sharing** - Post blueprints to [aether.oever.li](https://aether.oever.li/) directly from the app
+- **Community Sharing** - Post blueprints to [aethr.no](https://aethr.no/) directly from the app
 - **One-Click Blueprint Imports** - Install themes from websites via `aether://` protocol links (automatic setup on first run)
 - **Neovim Themes** - 37 LazyVim-compatible themes with preset matching
 - **Shader Manager** - 80+ GLSL screen shaders for hyprshade (color grading, effects, era vibes)
@@ -321,7 +321,7 @@ See [PROTOCOL_HANDLER.md](PROTOCOL_HANDLER.md) for complete documentation and ex
 
 ### Community Sharing
 
-Share your blueprints with the Aether community at [aether.oever.li](https://aether.oever.li/):
+Share your blueprints with the Aether community at [aethr.no](https://aethr.no/):
 
 1. Open the Blueprint Manager (click the palette icon)
 2. Click the **server icon** (🖥️) in the header
