@@ -40,6 +40,16 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 
 ## Installation
 
+### Quick Install (Arch Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bjarneo/aether/main/install.sh | bash
+```
+
+This installs from the AUR automatically.
+
+### Manual Installation
+
 1. Install system dependencies:
 ```bash
 sudo pacman -S gjs gtk4 libadwaita libsoup3 imagemagick
@@ -68,7 +78,8 @@ To open with a specific wallpaper:
 cp li.oever.aether.desktop ~/.local/share/applications/
 ```
 
-Or install via AUR:
+### AUR (Alternative)
+
 ```bash
 yay -S aether
 # or
