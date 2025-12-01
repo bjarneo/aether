@@ -879,7 +879,8 @@ export class ConfigWriter {
                     'background',
                 ]);
                 createSymlink(wallpaperPath, symlinkPath, 'wallpaper');
-                restartSwaybg(wallpaperPath);
+                // Restart swaybg using the symlink (no path needed, it uses the symlink)
+                restartSwaybg();
             }
         } catch (e) {
             console.error('Error applying wallpaper:', e.message);

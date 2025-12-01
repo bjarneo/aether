@@ -9,18 +9,30 @@ import {copyFile, ensureDirectoryExists} from './file-utils.js';
 
 /**
  * Restarts swaybg wallpaper service with a new wallpaper
- * @param {string} wallpaperPath - Path to the wallpaper image
+ * Uses uwsm-app to properly launch in the Hyprland/uwsm environment
  * @returns {boolean} Success status
  */
-export function restartSwaybg(wallpaperPath) {
+export function restartSwaybg() {
     try {
-        console.log('Restarting swaybg with wallpaper:', wallpaperPath);
+        // Use the symlink path that omarchy uses
+        const backgroundLink = GLib.build_filenamev([
+            GLib.get_home_dir(),
+            '.config',
+            'omarchy',
+            'current',
+            'background',
+        ]);
+
+        console.log('Restarting swaybg with background link:', backgroundLink);
 
         // Kill existing swaybg process
         GLib.spawn_command_line_async('pkill -x swaybg');
 
-        // Start swaybg with new wallpaper
-        GLib.spawn_command_line_async(`swaybg -i "${wallpaperPath}" -m fill`);
+        // Start swaybg using uwsm-app like omarchy does
+        // setsid is used to detach from the current session
+        GLib.spawn_command_line_async(
+            `setsid uwsm-app -- swaybg -i "${backgroundLink}" -m fill`
+        );
 
         console.log('Swaybg restarted successfully');
         return true;
