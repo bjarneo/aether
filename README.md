@@ -36,7 +36,7 @@ A visual theming application for Omarchy. Create beautiful desktop themes throug
 - libsoup3 - HTTP client library for wallhaven API
 - **ImageMagick** - Intelligent color extraction and image filter processing
 - **hyprshade** - Screen shader manager (optional, for shader effects)
-- **Omarchy** - Distro
+- **Omarchy** - Distro (optional - see [Standalone Usage](docs/STANDALONE.md) for other systems)
 
 ## Installation
 
@@ -195,7 +195,7 @@ For applications not included in Aether by default, you can create app-specific 
 
 See [examples/custom/](examples/custom/) for a complete example with Cava.
 
-See [CUSTOM_APPS.md](CUSTOM_APPS.md) for a complete list of available color variables and format modifiers (e.g., `{background.rgba:0.5}`, `{magenta.strip}`).
+See [CUSTOM_APPS.md](docs/CUSTOM_APPS.md) for a complete list of available color variables and format modifiers (e.g., `{background.rgba:0.5}`, `{magenta.strip}`).
 
 ### Screen Shaders
 

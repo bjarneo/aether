@@ -8,6 +8,19 @@ import {copyFile, ensureDirectoryExists} from './file-utils.js';
  */
 
 /**
+ * Checks if omarchy is installed by looking for the omarchy-theme-set command
+ * @returns {boolean} True if omarchy is available
+ */
+export function isOmarchyInstalled() {
+    try {
+        const [success] = GLib.spawn_command_line_sync('which omarchy-theme-set');
+        return success;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
  * Restarts swaybg wallpaper service with a new wallpaper
  * Uses uwsm-app to properly launch in the Hyprland/uwsm environment
  * @returns {boolean} Success status

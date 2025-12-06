@@ -998,7 +998,7 @@ const AetherWindow = GObject.registerClass(
                 const appOverrides = this.paletteGenerator.getAppOverrides();
                 const additionalImages =
                     this.paletteGenerator.getAdditionalImages();
-                this.configWriter.applyTheme(
+                const result = this.configWriter.applyTheme(
                     colors,
                     palette.wallpaper,
                     settings,
@@ -1006,6 +1006,14 @@ const AetherWindow = GObject.registerClass(
                     appOverrides,
                     additionalImages
                 );
+
+                if (result.success) {
+                    const message = result.isOmarchy
+                        ? 'Theme applied successfully'
+                        : `Theme created at ${result.themePath}`;
+                    const toast = new Adw.Toast({title: message, timeout: 3});
+                    this.toastOverlay.add_toast(toast);
+                }
             } catch (e) {
                 console.error(`Error applying theme: ${e.message}`);
             }

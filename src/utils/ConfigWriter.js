@@ -15,7 +15,7 @@ import {
 import {getTemplateMap, resolveTemplatePath} from './template-utils.js';
 import {loadJsonFile} from './file-utils.js';
 import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
-import {restartSwaybg} from './service-manager.js';
+import {restartSwaybg, isOmarchyInstalled} from './service-manager.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
 import {getAppNameFromFileName} from '../constants/templates.js';
 import {GtkThemeApplier} from './theme-appliers/GtkThemeApplier.js';
@@ -45,8 +45,9 @@ import {ZedThemeApplier} from './theme-appliers/ZedThemeApplier.js';
  *
  * File Paths:
  * - Templates: {projectDir}/templates/
- * - Output: ~/.config/omarchy/themes/aether/
- * - Wallpapers: ~/.config/omarchy/themes/aether/backgrounds/
+ * - Output: ~/.config/aether/theme/
+ * - Wallpapers: ~/.config/aether/theme/backgrounds/
+ * - Omarchy symlink: ~/.config/omarchy/themes/aether/ → ~/.config/aether/theme/
  *
  * @class ConfigWriter
  */
@@ -70,7 +71,14 @@ export class ConfigWriter {
             this.projectDir,
             'templates',
         ]);
+        // Theme files stored in ~/.config/aether/theme/
         this.themeDir = GLib.build_filenamev([
+            this.configDir,
+            'aether',
+            'theme',
+        ]);
+        // Symlink target for omarchy compatibility
+        this.omarchyThemeDir = GLib.build_filenamev([
             this.configDir,
             'omarchy',
             'themes',
@@ -100,7 +108,7 @@ export class ConfigWriter {
      * @param {Object} [appOverrides={}] - Per-application template overrides
      * @param {Array<string>} [additionalImages=[]] - Additional images to copy
      * @param {boolean} [sync=false] - Use synchronous theme application
-     * @returns {boolean} Success status
+     * @returns {{success: boolean, isOmarchy: boolean, themePath: string}} Result object
      */
     applyTheme(
         colorRoles,
@@ -111,6 +119,8 @@ export class ConfigWriter {
         additionalImages = [],
         sync = false
     ) {
+        const isOmarchy = isOmarchyInstalled();
+
         try {
             this._createThemeDirectory();
 
@@ -154,17 +164,21 @@ export class ConfigWriter {
             this._handleLightModeMarker(this.themeDir, lightMode);
             this._processAppTemplates(variables, appOverrides);
             this._processSymlinks();
-            this._applyOmarchyTheme(sync);
 
-            return true;
+            // Only apply omarchy theme if omarchy is installed
+            if (isOmarchy) {
+                this._applyOmarchyTheme(sync);
+            }
+
+            return {success: true, isOmarchy, themePath: this.themeDir};
         } catch (e) {
             console.error('Error applying theme:', e.message);
-            return false;
+            return {success: false, isOmarchy, themePath: this.themeDir};
         }
     }
 
     /**
-     * Creates theme directory and cleans backgrounds directory
+     * Creates theme directory, cleans backgrounds directory, and creates omarchy symlink
      * @private
      */
     _createThemeDirectory() {
@@ -173,6 +187,40 @@ export class ConfigWriter {
         const bgDir = GLib.build_filenamev([this.themeDir, 'backgrounds']);
         ensureDirectoryExists(bgDir);
         cleanDirectory(bgDir);
+
+        // Create symlink from omarchy themes dir to aether theme dir
+        this._createOmarchySymlink();
+    }
+
+    /**
+     * Creates symlink from ~/.config/omarchy/themes/aether -> ~/.config/aether/theme
+     * If the omarchy path exists as a regular directory (not symlink), it will be deleted first
+     * @private
+     */
+    _createOmarchySymlink() {
+        try {
+            const omarchyThemesParent = GLib.path_get_dirname(this.omarchyThemeDir);
+            ensureDirectoryExists(omarchyThemesParent);
+
+            // Remove existing directory if it's not a symlink
+            const omarchyFile = Gio.File.new_for_path(this.omarchyThemeDir);
+            if (omarchyFile.query_exists(null)) {
+                const fileInfo = omarchyFile.query_info(
+                    'standard::is-symlink',
+                    Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS,
+                    null
+                );
+
+                if (!fileInfo.get_is_symlink()) {
+                    console.log('Removing existing omarchy theme directory...');
+                    omarchyFile.trash(null);
+                }
+            }
+
+            createSymlink(this.themeDir, this.omarchyThemeDir, 'omarchy theme');
+        } catch (e) {
+            console.error('Error creating omarchy symlink:', e.message);
+        }
     }
 
     /**

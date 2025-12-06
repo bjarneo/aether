@@ -16,7 +16,7 @@ Aether is a GTK/Libadwaita theming application for Omarchy. It provides a visual
    - Caches results for instant re-extraction
 4. Colors auto-assign to UI roles (background, foreground, color0-15)
 5. User customizes colors/settings in GUI
-6. "Apply Theme" processes templates → writes to `~/.config/omarchy/themes/aether/` → runs `omarchy-theme-set aether`
+6. "Apply Theme" processes templates → writes to `~/.config/aether/theme/` → symlinks to `~/.config/omarchy/themes/aether/` → runs `omarchy-theme-set aether`
 
 ## Running the Application
 
@@ -213,8 +213,9 @@ The "Find Wallpaper" tab contains a sub-navigation with 3 tabs:
 **ConfigWriter** (`src/utils/ConfigWriter.js`)
 - Processes templates from `templates/` directory
 - Replaces variables: `{background}`, `{color0}`, `{color5.strip}` (no #), `{color5.rgb}` (decimal RGB)
-- Writes processed configs to `~/.config/omarchy/themes/aether/`
-- Copies wallpaper to `~/.config/omarchy/themes/aether/backgrounds/`
+- Writes processed configs to `~/.config/aether/theme/`
+- Symlinks `~/.config/omarchy/themes/aether/` → `~/.config/aether/theme/`
+- Copies wallpaper to `~/.config/aether/theme/backgrounds/`
 - Executes `omarchy-theme-set aether` via `GLib.spawn_command_line_async()`
 
 ### Services
@@ -351,8 +352,9 @@ ShaderManager switch OFF → hyprshade off → emit 'shader-changed' 'off'
 - Pywal colors: `~/.cache/wal/colors`
 
 **Theme output:**
-- Generated configs: `~/.config/omarchy/themes/aether/`
-- Wallpaper copy: `~/.config/omarchy/themes/aether/backgrounds/`
+- Generated configs: `~/.config/aether/theme/`
+- Wallpaper copy: `~/.config/aether/theme/backgrounds/`
+- Omarchy symlink: `~/.config/omarchy/themes/aether/` → `~/.config/aether/theme/`
 
 ## Theming System
 
@@ -370,7 +372,7 @@ The theme system manages CSS file monitoring and live reload. Theming is done th
 4. **Live reload**: File monitors detect changes and reload CSS automatically
 
 When you apply a theme in Aether:
-- `templates/aether.override.css` → processed → `~/.config/omarchy/themes/aether/aether.override.css`
+- `templates/aether.override.css` → processed → `~/.config/aether/theme/aether.override.css`
 - Symlink created: `~/.config/aether/theme.override.css` → omarchy theme file
 - Aether's UI updates automatically with the new colors
 
@@ -457,7 +459,7 @@ After adding new UI elements:
 - **User overrides:** `~/.config/aether/theme.override.css` (editable or symlinked to omarchy theme)
 - **Template (source):** `templates/aether.override.css` (defines color → GTK variable mapping)
 - **Template (GTK apps):** `templates/gtk.css` (for system-wide GTK theming when enabled)
-- **Generated override:** `~/.config/omarchy/themes/aether/aether.override.css` (processed template)
+- **Generated override:** `~/.config/aether/theme/aether.override.css` (processed template)
 
 ### Common Mistakes to Avoid
 
