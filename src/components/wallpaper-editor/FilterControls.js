@@ -1,29 +1,20 @@
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
-import Gdk from 'gi://Gdk?version=4.0';
 import GLib from 'gi://GLib';
 
-import {applyCssToWidget} from '../../utils/ui-helpers.js';
 import {createWrapperRow} from '../../utils/ui-builders.js';
 import {
-    TONE_PRESETS,
     FILTER_PRESETS,
     DEFAULT_FILTERS,
 } from '../../utils/image-filter-utils.js';
-import {rgbToHsl, hslToHex} from '../../utils/color-utils.js';
 import {SPACING, GRID} from '../../constants/ui-constants.js';
+import {ToneColorPicker} from './ToneColorPicker.js';
+import {PresetGrid} from './PresetGrid.js';
 
 // UI constants
 const SLIDER_WIDTH = 200; // Slightly wider for better UX
 const DOUBLE_CLICK_TIMEOUT_MS = 300; // Time window for detecting double-clicks
-
-/**
- * Helper function to convert RGB (0-255) to hex color
- */
-function rgbToHex(r, g, b) {
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
 
 /**
  * FilterControls - Tabbed UI controls for adjusting image filters
@@ -330,7 +321,16 @@ export const FilterControls = GObject.registerClass(
                 description: 'Apply color wash over image',
             });
 
-            toneGroup.add(createWrapperRow({child: this._createToneGrid(), addMargins: false}));
+            // Use ToneColorPicker component
+            this._toneColorPicker = new ToneColorPicker({
+                initialTone: this._filters.tone,
+                initialSaturation: this._filters.toneSaturation || 100,
+                initialLightness: this._filters.toneLightness || 50,
+            });
+            this._toneColorPicker.connect('tone-selected', (_, toneData) => {
+                this._onToneSelected(toneData);
+            });
+            toneGroup.add(createWrapperRow({child: this._toneColorPicker, addMargins: false}));
 
             toneGroup.add(
                 this._createSliderRow(
@@ -349,6 +349,30 @@ export const FilterControls = GObject.registerClass(
 
             scrolled.set_child(box);
             return scrolled;
+        }
+
+        /**
+         * Handle tone selection from ToneColorPicker
+         * @param {Object} toneData - Tone data (hue, saturation, lightness, or null)
+         * @private
+         */
+        _onToneSelected(toneData) {
+            if (toneData === null || toneData.hue === null) {
+                // Clear tone
+                this._filters.tone = null;
+                this._setSliderValue('toneAmount', 0);
+            } else {
+                // Set tone
+                this._filters.tone = toneData.hue;
+                this._filters.toneSaturation = toneData.saturation || 100;
+                this._filters.toneLightness = toneData.lightness || 50;
+                // Auto-set amount to 30% if it's 0
+                if (this._filters.toneAmount === 0) {
+                    this._setSliderValue('toneAmount', 30);
+                }
+            }
+            this._updateActiveFilterCount();
+            this.emit('filter-changed', this._filters);
         }
 
         /**
@@ -485,82 +509,13 @@ export const FilterControls = GObject.registerClass(
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
             });
 
-            const box = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 16,
-                margin_top: SPACING.MD,
-                margin_bottom: 18,
-                margin_start: 18,
-                margin_end: 18,
+            const presetGrid = new PresetGrid();
+            presetGrid.connect('preset-selected', (_, preset) => {
+                this._applyPreset(preset);
             });
 
-            // Mood presets (Muted, Dramatic, Soft, Vibrant)
-            box.append(
-                this._createPresetCategory('Mood', [
-                    FILTER_PRESETS[0], // Muted
-                    FILTER_PRESETS[1], // Dramatic
-                    FILTER_PRESETS[2], // Soft
-                    FILTER_PRESETS[4], // Vibrant
-                ])
-            );
-
-            // Color presets (Cool, Warm, Vintage, Faded)
-            box.append(
-                this._createPresetCategory('Color', [
-                    FILTER_PRESETS[6], // Cool
-                    FILTER_PRESETS[7], // Warm
-                    FILTER_PRESETS[3], // Vintage
-                    FILTER_PRESETS[5], // Faded
-                ])
-            );
-
-            // Cinematic presets (Cinematic, Film, Crisp, Portrait)
-            box.append(
-                this._createPresetCategory('Cinematic', [
-                    FILTER_PRESETS[8], // Cinematic
-                    FILTER_PRESETS[9], // Film
-                    FILTER_PRESETS[10], // Crisp
-                    FILTER_PRESETS[11], // Portrait
-                ])
-            );
-
-            scrolled.set_child(box);
+            scrolled.set_child(presetGrid);
             return scrolled;
-        }
-
-        /**
-         * Create a preset category group with 4 presets
-         */
-        _createPresetCategory(categoryName, presets) {
-            const group = new Adw.PreferencesGroup({
-                title: categoryName,
-            });
-
-            const grid = new Gtk.FlowBox({
-                max_children_per_line: 2,
-                min_children_per_line: 2,
-                selection_mode: Gtk.SelectionMode.NONE,
-                column_spacing: GRID.COLUMN_SPACING,
-                row_spacing: GRID.ROW_SPACING,
-                homogeneous: true,
-            });
-
-            presets.forEach(preset => {
-                const button = new Gtk.Button({
-                    label: preset.name,
-                    height_request: 50,
-                    css_classes: ['card'],
-                });
-
-                button.connect('clicked', () => {
-                    this._applyPreset(preset);
-                });
-
-                grid.append(button);
-            });
-
-            group.add(createWrapperRow({child: grid, addMargins: false}));
-            return group;
         }
 
         /**
@@ -648,176 +603,6 @@ export const FilterControls = GObject.registerClass(
             this._sliders[key] = {scale, valueLabel, defaultValue, unit};
 
             return row;
-        }
-
-        /**
-         * Create the tone color picker grid
-         */
-        _createToneGrid() {
-            const grid = new Gtk.FlowBox({
-                max_children_per_line: 4,
-                selection_mode: Gtk.SelectionMode.NONE,
-                column_spacing: 8,
-                row_spacing: 8,
-                margin_top: 8,
-                margin_bottom: 8,
-            });
-
-            TONE_PRESETS.forEach(tone => {
-                const button = new Gtk.Button({
-                    width_request: 52,
-                    height_request: 36,
-                    tooltip_text: `${tone.name} tone`,
-                });
-
-                const css = `* { 
-                    background: ${tone.color}; 
-                    border: 2px solid alpha(white, 0.2);
-                    min-width: 52px;
-                    min-height: 36px;
-                }
-                *:hover { 
-                    border: 2px solid white;
-                    transform: scale(1.05);
-                }`;
-                applyCssToWidget(button, css);
-
-                button.connect('clicked', () => {
-                    this._filters.tone = tone.hue;
-                    // Auto-set amount to 30% if it's 0
-                    if (this._filters.toneAmount === 0) {
-                        this._setSliderValue('toneAmount', 30);
-                    }
-                    // Update custom color button to show this color too
-                    this._updateCustomColorButton();
-                    this._updateActiveFilterCount();
-                    this.emit('filter-changed', this._filters);
-                });
-
-                grid.append(button);
-            });
-
-            // Custom color button
-            this._customColorButton = new Gtk.Button({
-                icon_name: 'color-select-symbolic',
-                width_request: 52,
-                height_request: 36,
-                tooltip_text: 'Pick custom tone color',
-            });
-            this._customColorButton.connect('clicked', () => {
-                this._openCustomColorPicker();
-            });
-            grid.append(this._customColorButton);
-
-            // Update custom button appearance if there's a selected tone
-            this._updateCustomColorButton();
-
-            // Clear button
-            const clearButton = new Gtk.Button({
-                icon_name: 'edit-clear-symbolic',
-                width_request: 52,
-                height_request: 36,
-                tooltip_text: 'Clear tone',
-            });
-            clearButton.connect('clicked', () => {
-                this._filters.tone = null;
-                this._setSliderValue('toneAmount', 0);
-                this._updateCustomColorButton();
-                this._updateActiveFilterCount();
-                this.emit('filter-changed', this._filters);
-            });
-            grid.append(clearButton);
-
-            return grid;
-        }
-
-        /**
-         * Open custom color picker dialog for tone
-         */
-        _openCustomColorPicker() {
-            const colorDialog = new Gtk.ColorDialog();
-
-            // Set initial color if one is selected
-            let initialColor = new Gdk.RGBA();
-            if (this._filters.tone !== null) {
-                // Convert HSL to RGB using existing utility with stored values
-                const s = this._filters.toneSaturation || 100;
-                const l = this._filters.toneLightness || 50;
-                const hexColor = hslToHex(this._filters.tone, s, l);
-                initialColor.parse(hexColor);
-            } else {
-                // Default to blue
-                initialColor.red = 0.5;
-                initialColor.green = 0.5;
-                initialColor.blue = 1.0;
-                initialColor.alpha = 1.0;
-            }
-
-            colorDialog.choose_rgba(
-                this.get_root(),
-                initialColor,
-                null,
-                (dialog, result) => {
-                    try {
-                        const color = dialog.choose_rgba_finish(result);
-
-                        // Convert RGBA to HSL using existing utility
-                        const r = color.red * 255;
-                        const g = color.green * 255;
-                        const b = color.blue * 255;
-                        const hsl = rgbToHsl(r, g, b);
-
-                        // Store full HSL values for accurate color representation
-                        this._filters.tone = Math.round(hsl.h);
-                        this._filters.toneSaturation = Math.round(hsl.s);
-                        this._filters.toneLightness = Math.round(hsl.l);
-
-                        // Auto-set amount to 30% if it's 0
-                        if (this._filters.toneAmount === 0) {
-                            this._setSliderValue('toneAmount', 30);
-                        }
-
-                        // Update the custom color button to show the selected color
-                        this._updateCustomColorButton();
-                        this._updateActiveFilterCount();
-
-                        this.emit('filter-changed', this._filters);
-                    } catch (e) {
-                        // User cancelled
-                    }
-                }
-            );
-        }
-
-        /**
-         * Update the custom color button appearance
-         */
-        _updateCustomColorButton() {
-            if (!this._customColorButton) return;
-
-            if (this._filters.tone !== null) {
-                // Show the selected color as background using stored HSL values
-                const s = this._filters.toneSaturation || 100;
-                const l = this._filters.toneLightness || 50;
-                const hexColor = hslToHex(this._filters.tone, s, l);
-                const css = `* {
-                    background: ${hexColor};
-                    border: 2px solid alpha(white, 0.2);
-                    min-width: 52px;
-                    min-height: 36px;
-                }
-                *:hover {
-                    border: 2px solid white;
-                    transform: scale(1.05);
-                }`;
-                applyCssToWidget(this._customColorButton, css);
-                // Remove icon when showing color
-                this._customColorButton.set_icon_name(null);
-            } else {
-                // Reset to default icon appearance
-                applyCssToWidget(this._customColorButton, '');
-                this._customColorButton.set_icon_name('color-select-symbolic');
-            }
         }
 
         /**
