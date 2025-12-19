@@ -8,6 +8,7 @@ import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {uploadWallpaper} from '../../utils/wallpaper-utils.js';
 import {SPACING} from '../../constants/ui-constants.js';
+import {themeState} from '../../state/ThemeState.js';
 
 /**
  * WallpaperSection - Handles wallpaper preview, upload, and actions
@@ -28,10 +29,30 @@ export const WallpaperSection = GObject.registerClass(
                 visible: false, // Hidden until wallpaper is loaded
             });
 
-            this._currentWallpaper = null;
+            this._currentWallpaper = themeState.getWallpaper();
             this._spinner = null;
 
             this._buildUI();
+            this._connectThemeState();
+        }
+
+        /**
+         * Connect to centralized theme state signals
+         * @private
+         */
+        _connectThemeState() {
+            // Listen for wallpaper changes
+            themeState.connect('wallpaper-changed', (_, wallpaperPath) => {
+                if (wallpaperPath && wallpaperPath !== this._currentWallpaper) {
+                    this.loadWallpaper(wallpaperPath);
+                }
+            });
+
+            // Listen for state reset
+            themeState.connect('state-reset', () => {
+                this._currentWallpaper = null;
+                this.set_visible(false);
+            });
         }
 
         _buildUI() {

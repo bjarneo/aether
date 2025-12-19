@@ -13,6 +13,7 @@ import {AdditionalImagesSection} from './palette-editor/AdditionalImagesSection.
 import {ColorPaletteSection} from './palette-editor/ColorPaletteSection.js';
 import {EmptyState} from './palette-editor/EmptyState.js';
 import {SPACING} from '../constants/ui-constants.js';
+import {themeState} from '../state/ThemeState.js';
 
 /**
  * PaletteEditor - Main component for palette creation and wallpaper management
@@ -68,12 +69,46 @@ export const PaletteEditor = GObject.registerClass(
 
             registerCustomIcons();
 
-            this._palette = [];
-            this._originalPalette = [];
-            this._lightMode = false;
-            this._wallpaperMetadata = null;
+            // Local state references (synced with themeState)
+            this._palette = themeState.getPalette();
+            this._originalPalette = [...this._palette];
+            this._lightMode = themeState.getLightMode();
+            this._wallpaperMetadata = themeState.getWallpaperMetadata();
 
             this._initializeUI();
+            this._connectThemeState();
+        }
+
+        /**
+         * Connect to centralized theme state signals
+         * @private
+         */
+        _connectThemeState() {
+            // Listen for external palette changes
+            themeState.connect('palette-changed', (_, palette) => {
+                // Only update if different (avoid loops)
+                if (JSON.stringify(palette) !== JSON.stringify(this._palette)) {
+                    this._palette = [...palette];
+                    this._colorPalette.setPalette(palette);
+                }
+            });
+
+            // Listen for light mode changes
+            themeState.connect('light-mode-changed', (_, lightMode) => {
+                this._lightMode = lightMode;
+            });
+
+            // Listen for wallpaper changes
+            themeState.connect('wallpaper-changed', (_, wallpaperPath) => {
+                if (wallpaperPath && wallpaperPath !== this._wallpaperSection?.getCurrentWallpaper()) {
+                    this.loadWallpaper(wallpaperPath, themeState.getWallpaperMetadata());
+                }
+            });
+
+            // Listen for state reset
+            themeState.connect('state-reset', () => {
+                this.reset();
+            });
         }
 
         /**
@@ -129,6 +164,8 @@ export const PaletteEditor = GObject.registerClass(
             this._colorPalette.connect('color-changed', (_, index, color) => {
                 this._palette[index] = color;
                 this._originalPalette[index] = color;
+                // Update centralized state
+                themeState.setColor(index, color);
                 this.emit('palette-generated', this._palette);
             });
             this._colorPalette.connect('overrides-changed', (_, overrides) => {
@@ -157,6 +194,8 @@ export const PaletteEditor = GObject.registerClass(
             this._wallpaperSection.loadWallpaper(path);
             this._colorPalette.setWallpaper(path);
             this._wallpaperMetadata = metadata;
+            // Update centralized state
+            themeState.setWallpaper(path, metadata);
         }
 
         /**
@@ -257,11 +296,17 @@ export const PaletteEditor = GObject.registerClass(
          * Sets the current color palette
          * Updates internal state and color palette section
          * @param {string[]} colors - Array of 16 hex colors
+         * @param {Object} [options] - Options
+         * @param {boolean} [options.updateState=true] - Whether to update themeState
          * @public
          */
-        setPalette(colors) {
+        setPalette(colors, {updateState = true} = {}) {
             this._palette = [...colors];
             this._colorPalette.setPalette(colors);
+            // Update centralized state (unless called from state listener)
+            if (updateState) {
+                themeState.setPalette(colors, {silent: true});
+            }
         }
 
         /**
@@ -429,6 +474,7 @@ export const PaletteEditor = GObject.registerClass(
 
         setLightMode(lightMode) {
             this._lightMode = lightMode;
+            themeState.setLightMode(lightMode);
         }
 
         getLightMode() {
@@ -465,6 +511,7 @@ export const PaletteEditor = GObject.registerClass(
 
         setNeovimThemeSelected(selected) {
             this._colorPalette.setNeovimThemeSelected(selected);
+            themeState.setNeovimTheme(selected ? 'selected' : null);
         }
 
         reset() {
@@ -473,6 +520,8 @@ export const PaletteEditor = GObject.registerClass(
             this._colorPalette.reset();
             this._emptyState.set_visible(true);
             this._loadDefaultColors();
+            // Reset centralized state
+            themeState.reset();
         }
     }
 );

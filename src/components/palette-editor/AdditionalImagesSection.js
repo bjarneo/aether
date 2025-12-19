@@ -6,6 +6,7 @@ import GdkPixbuf from 'gi://GdkPixbuf';
 import {uploadMultipleWallpapers} from '../../utils/wallpaper-utils.js';
 import {wallhavenService} from '../../services/wallhaven-service.js';
 import {SPACING} from '../../constants/ui-constants.js';
+import {themeState} from '../../state/ThemeState.js';
 
 /**
  * AdditionalImagesSection - Manages additional background images
@@ -26,8 +27,26 @@ export const AdditionalImagesSection = GObject.registerClass(
                 visible: true,
             });
 
-            this._images = [];
+            // Initialize from centralized state
+            this._images = themeState.getAdditionalImages();
             this._buildUI();
+            this._connectThemeState();
+
+            // Display any existing images
+            if (this._images.length > 0) {
+                this._updateDisplay();
+            }
+        }
+
+        /**
+         * Connect to centralized theme state signals
+         * @private
+         */
+        _connectThemeState() {
+            // Listen for state reset
+            themeState.connect('state-reset', () => {
+                this.reset();
+            });
         }
 
         _buildUI() {
@@ -73,6 +92,8 @@ export const AdditionalImagesSection = GObject.registerClass(
             uploadMultipleWallpapers(this.get_root(), paths => {
                 if (paths && paths.length > 0) {
                     this._images.push(...paths);
+                    // Sync with centralized state
+                    themeState.setAdditionalImages([...this._images]);
                     this._updateDisplay();
                     this.emit('images-changed', this._images);
                 }
@@ -131,6 +152,8 @@ export const AdditionalImagesSection = GObject.registerClass(
             });
             removeBtn.connect('clicked', () => {
                 this._images.splice(index, 1);
+                // Sync with centralized state
+                themeState.setAdditionalImages([...this._images]);
                 this._updateDisplay();
                 this.emit('images-changed', this._images);
             });
@@ -169,6 +192,8 @@ export const AdditionalImagesSection = GObject.registerClass(
             }
 
             this._images.push(imagePath);
+            // Sync with centralized state
+            themeState.addAdditionalImage(imagePath);
             this._updateDisplay();
             this.emit('images-changed', this._images);
         }
@@ -196,6 +221,7 @@ export const AdditionalImagesSection = GObject.registerClass(
 
         reset() {
             this._images = [];
+            themeState.setAdditionalImages([]);
             this._updateDisplay();
         }
     }

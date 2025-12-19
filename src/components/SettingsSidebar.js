@@ -33,6 +33,7 @@ import {
     saveJsonFile,
     ensureDirectoryExists,
 } from '../utils/file-utils.js';
+import {themeState} from '../state/ThemeState.js';
 
 /**
  * SettingsSidebar - Comprehensive theme settings and customization panel
@@ -115,6 +116,50 @@ export const SettingsSidebar = GObject.registerClass(
             this._loadSettings();
 
             this._initializeUI();
+            this._connectThemeState();
+        }
+
+        /**
+         * Connect to centralized theme state signals
+         * @private
+         */
+        _connectThemeState() {
+            // Listen for light mode changes from other components
+            themeState.connect('light-mode-changed', (_, lightMode) => {
+                if (this._lightMode !== lightMode) {
+                    this._lightMode = lightMode;
+                    // Update UI switch if exists
+                    if (this._lightModeSwitch) {
+                        this._lightModeSwitch.set_active(lightMode);
+                    }
+                }
+            });
+
+            // Listen for adjustments changes
+            themeState.connect('adjustments-changed', (_, adjustments) => {
+                if (this._adjustmentControls) {
+                    this._adjustmentControls.setValues(adjustments);
+                }
+            });
+
+            // Listen for neovim theme changes
+            themeState.connect('neovim-theme-changed', (_, theme) => {
+                if (theme && theme !== this._selectedNeovimConfig) {
+                    this._selectedNeovimConfig = theme;
+                    this._updateNeovimPresetSelection(theme);
+                }
+            });
+
+            // Listen for state reset
+            themeState.connect('state-reset', () => {
+                this.resetAdjustments();
+                this._lightMode = false;
+                if (this._lightModeSwitch) {
+                    this._lightModeSwitch.set_active(false);
+                }
+                this._selectedNeovimConfig = null;
+                this._updateNeovimPresetSelection(null);
+            });
         }
 
         /**
@@ -204,6 +249,7 @@ export const SettingsSidebar = GObject.registerClass(
                 active: this._lightMode,
                 onChanged: (active) => {
                     this._lightMode = active;
+                    themeState.setLightMode(active);
                     this.emit('light-mode-changed', this._lightMode);
                 },
             });
@@ -228,8 +274,14 @@ export const SettingsSidebar = GObject.registerClass(
             });
 
             this._adjustmentControls = new ColorAdjustmentControls(
-                values => this.emit('adjustments-changed', values),
-                () => this.emit('adjustments-reset')
+                values => {
+                    themeState.setAdjustments(values);
+                    this.emit('adjustments-changed', values);
+                },
+                () => {
+                    themeState.resetAdjustments();
+                    this.emit('adjustments-reset');
+                }
             );
 
             expanderRow.add_row(createWrapperRow({

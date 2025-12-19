@@ -6,6 +6,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import {rgbaToHex} from '../utils/color-utils.js';
 import {applyCssToWidget, forEachChild} from '../utils/ui-helpers.js';
 import {ANSI_COLOR_ROLES, DEFAULT_COLORS} from '../constants/colors.js';
+import {themeState} from '../state/ThemeState.js';
 
 /**
  * ColorSynthesizer - Color role assignment interface
@@ -19,6 +20,7 @@ import {ANSI_COLOR_ROLES, DEFAULT_COLORS} from '../constants/colors.js';
  * - Auto-assignment when palette is loaded
  * - Manual adjustment via Gtk.ColorDialogButton
  * - Real-time color updates with signal emission
+ * - Integration with centralized ThemeState
  *
  * Color Roles:
  * - background: Terminal/window background color
@@ -67,6 +69,31 @@ export const ColorSynthesizer = GObject.registerClass(
 
             this.append(this._listBox);
             this._initializeDefaults();
+            this._connectThemeState();
+        }
+
+        /**
+         * Connect to centralized theme state signals
+         * @private
+         */
+        _connectThemeState() {
+            // Listen for palette changes from ThemeState
+            themeState.connect('palette-changed', (_, palette) => {
+                // Only update if different to avoid loops
+                if (JSON.stringify(palette) !== JSON.stringify(this._palette)) {
+                    this.setPalette(palette);
+                }
+            });
+
+            // Listen for color role changes
+            themeState.connect('color-roles-changed', (_, colorRoles) => {
+                this.loadColors(colorRoles);
+            });
+
+            // Listen for state reset
+            themeState.connect('state-reset', () => {
+                this.reset();
+            });
         }
 
         _createColorRoleRow(role) {
@@ -108,6 +135,8 @@ export const ColorSynthesizer = GObject.registerClass(
                 const rgba = colorButton.get_rgba();
                 const hex = rgbaToHex(rgba);
                 this._colorRoles.set(role.id, hex);
+                // Update centralized state
+                themeState.setColorRole(role.id, hex);
                 this.emit('color-changed', role.id, hex);
                 this._updateColorButtonStyle(colorButton, hex);
             });

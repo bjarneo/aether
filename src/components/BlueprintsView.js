@@ -23,6 +23,7 @@ import {
     createIconButton,
 } from '../utils/ui-builders.js';
 import {SPACING, GRID} from '../constants/ui-constants.js';
+import {themeState} from '../state/ThemeState.js';
 
 /**
  * BlueprintsView - Full-featured blueprints management tab
@@ -505,6 +506,8 @@ export const BlueprintsView = GObject.registerClass(
                 css_classes: ['suggested-action'],
             });
             applyButton.connect('clicked', () => {
+                // Load blueprint into centralized state
+                themeState.fromBlueprint(blueprint);
                 this.emit('blueprint-applied', blueprint);
             });
             buttonBox.append(applyButton);

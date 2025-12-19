@@ -11,6 +11,10 @@
  * - FavoritesView: Favorite wallpapers
  * - SchedulerView: Theme scheduling
  *
+ * State Management:
+ * Components share state through ThemeState (src/state/ThemeState.js).
+ * AetherWindow connects component signals for UI coordination only.
+ *
  * @module AetherWindow
  */
 
@@ -33,6 +37,7 @@ import {SchedulerView} from './components/SchedulerView.js';
 import {ConfigWriter} from './utils/ConfigWriter.js';
 import {DialogManager} from './utils/DialogManager.js';
 import {ThemeExporter} from './services/ThemeExporter.js';
+import {themeState} from './state/ThemeState.js';
 
 /**
  * AetherWindow - Main application window
@@ -56,6 +61,24 @@ export const AetherWindow = GObject.registerClass(
             this.configWriter = new ConfigWriter();
             this._initializeUI();
             this._connectSignals();
+            this._connectThemeState();
+        }
+
+        /**
+         * Connect to centralized theme state for cross-component coordination
+         * @private
+         */
+        _connectThemeState() {
+            // Update accessibility when palette or color roles change
+            themeState.connect('palette-changed', () => {
+                this._updateAccessibility();
+                this._updateAppOverrideColors();
+            });
+
+            themeState.connect('color-roles-changed', () => {
+                this._updateAccessibility();
+                this._updateAppOverrideColors();
+            });
         }
 
         /**
@@ -293,15 +316,10 @@ export const AetherWindow = GObject.registerClass(
 
             // Reset adjustments and app overrides when changing wallpaper
             this.settingsSidebar.resetAdjustments();
-            this.paletteGenerator.resetAppOverrides();
+            themeState.resetAppOverrides();
 
-            // Load the wallpaper into palette generator
-            this.paletteGenerator.loadWallpaper(path);
-
-            // Store metadata if provided (for wallhaven wallpapers)
-            if (metadata) {
-                this.paletteGenerator.setWallpaperMetadata(metadata);
-            }
+            // Load the wallpaper into centralized state (components react via signals)
+            themeState.setWallpaper(path, metadata);
         }
 
         /**
@@ -438,14 +456,13 @@ export const AetherWindow = GObject.registerClass(
 
         /**
          * Connect all component signals
+         * UI coordination signals - state is managed by ThemeState
          * @private
          */
         _connectSignals() {
+            // Palette generation triggers UI updates (already handled by themeState signals)
             this.paletteGenerator.connect('palette-generated', (_, colors) => {
-                this.colorSynthesizer.setPalette(colors);
                 this.settingsSidebar.resetAdjustments();
-                this._updateAccessibility();
-                this._updateAppOverrideColors();
             });
 
             this.paletteGenerator.connect(
@@ -465,11 +482,6 @@ export const AetherWindow = GObject.registerClass(
 
             this.paletteGenerator.connect('browse-local', () => {
                 this._viewStack.set_visible_child_name('local');
-            });
-
-            this.colorSynthesizer.connect('color-changed', () => {
-                this._updateAccessibility();
-                this._updateAppOverrideColors();
             });
 
             // Connect settings sidebar signals
@@ -492,7 +504,7 @@ export const AetherWindow = GObject.registerClass(
             this.settingsSidebar.connect(
                 'light-mode-changed',
                 (_, lightMode) => {
-                    this.paletteGenerator.setLightMode(lightMode);
+                    themeState.setLightMode(lightMode);
                 }
             );
 
@@ -510,6 +522,8 @@ export const AetherWindow = GObject.registerClass(
             this.settingsSidebar.connect(
                 'neovim-theme-changed',
                 (_, selected) => {
+                    const settings = this.settingsSidebar.getSettings();
+                    themeState.setNeovimTheme(settings.selectedNeovimConfig);
                     this.paletteGenerator.setNeovimThemeSelected(selected);
                 }
             );
@@ -520,8 +534,8 @@ export const AetherWindow = GObject.registerClass(
          * @private
          */
         _updateAccessibility() {
-            const colors = this.colorSynthesizer.getColors();
-            this.settingsSidebar.updateAccessibility(colors);
+            const colorRoles = themeState.getColorRoles();
+            this.settingsSidebar.updateAccessibility(colorRoles);
         }
 
         /**
@@ -529,12 +543,14 @@ export const AetherWindow = GObject.registerClass(
          * @private
          */
         _updateAppOverrideColors() {
-            const colors = this.colorSynthesizer.getColors();
-            this.paletteGenerator.updateAppOverrideColors(colors);
+            const colorRoles = themeState.getColorRoles();
+            this.paletteGenerator.updateAppOverrideColors(colorRoles);
         }
 
         /**
          * Load a blueprint into the editor
+         * Blueprint is already loaded into themeState by BlueprintsView.
+         * This handles additional UI coordination.
          * @param {Object} blueprint - Blueprint data
          * @private
          */
@@ -545,40 +561,14 @@ export const AetherWindow = GObject.registerClass(
                 // Reset adjustment sliders when loading a blueprint
                 this.settingsSidebar.resetAdjustments();
 
-                // Reset per-application overrides when loading a blueprint
-                this.paletteGenerator.resetAppOverrides();
-
                 // Switch to custom tab for blueprint editing
                 this.paletteGenerator.switchToCustomTab();
 
-                // Load palette (colors, wallpaper, locks)
-                if (blueprint.palette) {
-                    this.paletteGenerator.loadBlueprintPalette(
-                        blueprint.palette
-                    );
-
-                    // Sync light mode to sidebar
-                    if (blueprint.palette.lightMode !== undefined) {
-                        this.settingsSidebar.setLightMode(
-                            blueprint.palette.lightMode
-                        );
-                    }
-
-                    // Auto-assign color roles from palette
-                    if (blueprint.palette.colors) {
-                        this.colorSynthesizer.setPalette(
-                            blueprint.palette.colors
-                        );
-                    }
-                }
-
                 // Load settings (including Neovim theme selection)
-                if (blueprint.settings) {
-                    if (blueprint.settings.selectedNeovimConfig !== undefined) {
-                        this.settingsSidebar.setNeovimTheme(
-                            blueprint.settings.selectedNeovimConfig
-                        );
-                    }
+                if (blueprint.settings?.selectedNeovimConfig !== undefined) {
+                    this.settingsSidebar.setNeovimTheme(
+                        blueprint.settings.selectedNeovimConfig
+                    );
                 }
             } catch (e) {
                 console.error(`Error loading blueprint: ${e.message}`);
@@ -593,16 +583,18 @@ export const AetherWindow = GObject.registerClass(
          */
         _applyCurrentTheme() {
             try {
-                const colors = this.colorSynthesizer.getColors();
-                const palette = this.paletteGenerator.getPalette();
+                // Get state from centralized store
+                const colorRoles = themeState.getColorRoles();
+                const wallpaperPath = themeState.getWallpaper();
+                const lightMode = themeState.getLightMode();
+                const appOverrides = themeState.getAppOverrides();
+                const additionalImages = themeState.getAdditionalImages();
+                // Settings still from component (not in themeState)
                 const settings = this.settingsSidebar.getSettings();
-                const lightMode = this.settingsSidebar.getLightMode();
-                const appOverrides = this.paletteGenerator.getAppOverrides();
-                const additionalImages =
-                    this.paletteGenerator.getAdditionalImages();
+
                 const result = this.configWriter.applyTheme({
-                    colorRoles: colors,
-                    wallpaperPath: palette.wallpaper,
+                    colorRoles,
+                    wallpaperPath,
                     settings,
                     lightMode,
                     appOverrides,
@@ -626,9 +618,9 @@ export const AetherWindow = GObject.registerClass(
          * @private
          */
         _resetApplication() {
-            this.paletteGenerator.reset();
-            this.paletteGenerator.resetAppOverrides();
-            this.colorSynthesizer.reset();
+            // Reset centralized state - components react via signals
+            themeState.reset();
+            // Also reset component-specific UI state
             this.settingsSidebar.resetAdjustments();
             this.settingsSidebar.setNeovimTheme(null);
             console.log('Application reset to launch state');
@@ -674,17 +666,10 @@ export const AetherWindow = GObject.registerClass(
          * @private
          */
         _saveBlueprint() {
-            const palette = this.paletteGenerator.getPalette();
-            const settings = this.settingsSidebar.getSettings();
-            const lightMode = this.settingsSidebar.getLightMode();
-
-            palette.lightMode = lightMode;
-
-            const blueprint = {
-                palette: palette,
-                timestamp: Date.now(),
-                settings: settings,
-            };
+            // Get blueprint from centralized state
+            const blueprint = themeState.toBlueprint();
+            // Add settings (not in themeState)
+            blueprint.settings = this.settingsSidebar.getSettings();
 
             // Switch to blueprints tab and save
             this._viewStack.set_visible_child_name('blueprints');
@@ -697,8 +682,10 @@ export const AetherWindow = GObject.registerClass(
          */
         _applyWallpaper() {
             try {
-                const palette = this.paletteGenerator.getPalette();
-                this.configWriter.applyWallpaper(palette.wallpaper);
+                const wallpaperPath = themeState.getWallpaper();
+                if (wallpaperPath) {
+                    this.configWriter.applyWallpaper(wallpaperPath);
+                }
             } catch (e) {
                 console.error(`Error applying wallpaper: ${e.message}`);
             }
@@ -709,15 +696,17 @@ export const AetherWindow = GObject.registerClass(
          * @private
          */
         _exportTheme() {
-            const colors = this.colorSynthesizer.getColors();
-            const palette = this.paletteGenerator.getPalette();
+            // Get state from centralized store
+            const colorRoles = themeState.getColorRoles();
+            const wallpaperPath = themeState.getWallpaper();
+            const lightMode = themeState.getLightMode();
+            const appOverrides = themeState.getAppOverrides();
+            // Settings still from component
             const settings = this.settingsSidebar.getSettings();
-            const lightMode = this.settingsSidebar.getLightMode();
-            const appOverrides = this.paletteGenerator.getAppOverrides();
 
             this.themeExporter.setThemeData(
-                colors,
-                palette.wallpaper,
+                colorRoles,
+                wallpaperPath,
                 settings,
                 lightMode,
                 appOverrides
@@ -730,7 +719,8 @@ export const AetherWindow = GObject.registerClass(
          * @param {string} wallpaperPath - Path to wallpaper
          */
         loadWallpaperFromCLI(wallpaperPath) {
-            this.paletteGenerator.loadWallpaper(wallpaperPath);
+            // Set in centralized state, components react via signals
+            themeState.setWallpaper(wallpaperPath);
         }
 
         /**

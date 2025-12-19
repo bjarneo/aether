@@ -7,6 +7,7 @@ import {ColorPickerDialog} from '../palette/color-picker-dialog.js';
 import {WallpaperColorPicker} from '../palette/wallpaper-color-picker.js';
 import {AppColorOverrides} from '../palette/AppColorOverrides.js';
 import {SPACING} from '../../constants/ui-constants.js';
+import {themeState} from '../../state/ThemeState.js';
 
 /**
  * ColorPaletteSection - Manages the color palette display and editing
@@ -29,11 +30,43 @@ export const ColorPaletteSection = GObject.registerClass(
                 margin_top: SPACING.MD,
             });
 
-            this._palette = [];
-            this._currentWallpaper = null;
-            this._appOverrides = {};
+            // Initialize from centralized state
+            this._palette = themeState.getPalette();
+            this._currentWallpaper = themeState.getWallpaper();
+            this._appOverrides = themeState.getAppOverrides();
 
             this._buildUI();
+            this._connectThemeState();
+        }
+
+        /**
+         * Connect to centralized theme state signals
+         * @private
+         */
+        _connectThemeState() {
+            // Listen for palette changes from ThemeState
+            themeState.connect('palette-changed', (_, palette) => {
+                if (JSON.stringify(palette) !== JSON.stringify(this._palette)) {
+                    this._palette = [...palette];
+                    this._swatchGrid.setPalette(palette);
+                }
+            });
+
+            // Listen for wallpaper changes
+            themeState.connect('wallpaper-changed', (_, wallpaperPath) => {
+                this._currentWallpaper = wallpaperPath || null;
+            });
+
+            // Listen for app overrides changes
+            themeState.connect('app-overrides-changed', (_, overrides) => {
+                this._appOverrides = {...overrides};
+                this._appOverridesWidget.loadFromBlueprint(overrides);
+            });
+
+            // Listen for state reset
+            themeState.connect('state-reset', () => {
+                this.reset();
+            });
         }
 
         _buildUI() {
@@ -103,6 +136,8 @@ export const ColorPaletteSection = GObject.registerClass(
             dialog.openShadePicker(index, currentColor, color => {
                 this._palette[index] = color;
                 this._swatchGrid.updateSwatchColor(index, color);
+                // Update centralized state
+                themeState.setColor(index, color);
                 this.emit('color-changed', index, color);
             });
         }
@@ -160,6 +195,8 @@ export const ColorPaletteSection = GObject.registerClass(
                 this._palette[index] = color;
                 this._swatchGrid.updateSwatchColor(index, color);
                 miniSwatchGrid.updateSwatchColor(index, color);
+                // Update centralized state
+                themeState.setColor(index, color);
                 this.emit('color-changed', index, color);
             });
 
