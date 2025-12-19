@@ -74,6 +74,7 @@ export const PaletteEditor = GObject.registerClass(
             this._originalPalette = [...this._palette];
             this._lightMode = themeState.getLightMode();
             this._wallpaperMetadata = themeState.getWallpaperMetadata();
+            this._currentWallpaper = themeState.getWallpaper();
 
             this._initializeUI();
             this._connectThemeState();
@@ -100,7 +101,7 @@ export const PaletteEditor = GObject.registerClass(
 
             // Listen for wallpaper changes
             themeState.connect('wallpaper-changed', (_, wallpaperPath) => {
-                if (wallpaperPath && wallpaperPath !== this._wallpaperSection?.getCurrentWallpaper()) {
+                if (wallpaperPath && wallpaperPath !== this._currentWallpaper) {
                     this.loadWallpaper(wallpaperPath, themeState.getWallpaperMetadata());
                 }
             });
@@ -190,6 +191,7 @@ export const PaletteEditor = GObject.registerClass(
          * @public
          */
         loadWallpaper(path, metadata = null) {
+            this._currentWallpaper = path;
             this._emptyState.set_visible(false);
             this._wallpaperSection.loadWallpaper(path);
             this._colorPalette.setWallpaper(path);
@@ -515,6 +517,7 @@ export const PaletteEditor = GObject.registerClass(
         }
 
         reset() {
+            this._currentWallpaper = null;
             this._wallpaperSection.reset();
             this._additionalImages.reset();
             this._colorPalette.reset();
