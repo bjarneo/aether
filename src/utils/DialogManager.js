@@ -157,81 +157,102 @@ export class DialogManager {
             validationMessage = 'Invalid input',
         } = config;
 
-        const dialog = new Adw.MessageDialog({
-            heading,
-            body,
-            transient_for: this.window,
+        const dialog = new Adw.Dialog({
+            title: heading,
+            content_width: 360,
+            content_height: -1,
         });
 
-        dialog.add_response('cancel', 'Cancel');
-        dialog.add_response('save', 'Save');
-        dialog.set_response_appearance(
-            'save',
-            Adw.ResponseAppearance.SUGGESTED
-        );
+        const toolbarView = new Adw.ToolbarView();
+        const headerBar = new Adw.HeaderBar({show_title: true});
+        toolbarView.add_top_bar(headerBar);
 
+        const contentBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 12,
+            margin_start: 24,
+            margin_end: 24,
+            margin_top: 12,
+            margin_bottom: 24,
+        });
+
+        // Body text
+        const bodyLabel = new Gtk.Label({
+            label: body,
+            wrap: true,
+            xalign: 0,
+        });
+        contentBox.append(bodyLabel);
+
+        // Entry field
         const entry = new Gtk.Entry({
             placeholder_text: placeholder,
             text: defaultValue,
-            margin_start: 12,
-            margin_end: 12,
-            margin_top: 6,
-            margin_bottom: 6,
         });
+        contentBox.append(entry);
 
         // Validation error label (hidden by default)
-        let errorLabel = null;
-        if (validationPattern) {
-            errorLabel = new Gtk.Label({
-                label: validationMessage,
-                css_classes: ['error', 'caption'],
-                visible: false,
-                xalign: 0,
-                margin_start: 12,
-                margin_end: 12,
-                margin_bottom: 6,
-            });
+        const errorLabel = new Gtk.Label({
+            label: validationMessage,
+            css_classes: ['error', 'caption'],
+            visible: false,
+            xalign: 0,
+        });
+        contentBox.append(errorLabel);
 
-            const box = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 0,
-            });
-            box.append(entry);
-            box.append(errorLabel);
-            dialog.set_extra_child(box);
-        } else {
-            dialog.set_extra_child(entry);
-        }
+        // Button box
+        const buttonBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 12,
+            homogeneous: true,
+            margin_top: 12,
+        });
 
-        dialog.connect('response', (_, response) => {
-            if (response === 'cancel') {
-                // Always allow cancel to close the dialog
-                return;
+        const cancelButton = new Gtk.Button({label: 'Cancel'});
+        const saveButton = new Gtk.Button({
+            label: 'Save',
+            css_classes: ['suggested-action'],
+        });
+
+        cancelButton.connect('clicked', () => {
+            dialog.close();
+        });
+
+        saveButton.connect('clicked', () => {
+            const value = entry.get_text().trim();
+
+            // Validate if pattern is provided
+            if (validationPattern && !validationPattern.test(value)) {
+                errorLabel.set_visible(true);
+                entry.add_css_class('error');
+                return; // Don't close dialog, let user fix the input
             }
 
-            if (response === 'save') {
-                const value = entry.get_text().trim();
-
-                // Validate if pattern is provided
-                if (validationPattern && !validationPattern.test(value)) {
-                    if (errorLabel) {
-                        errorLabel.set_visible(true);
-                    }
-                    // Prevent dialog from closing by calling force_close(false) and re-presenting
-                    GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                        dialog.present();
-                        return GLib.SOURCE_REMOVE;
-                    });
-                    return;
-                }
-
-                if (onSubmit) {
-                    onSubmit(value);
-                }
+            dialog.close();
+            if (onSubmit) {
+                onSubmit(value);
             }
         });
 
-        dialog.present();
+        // Allow Enter key to submit
+        entry.connect('activate', () => {
+            saveButton.emit('clicked');
+        });
+
+        // Clear error styling when user starts typing
+        entry.connect('changed', () => {
+            errorLabel.set_visible(false);
+            entry.remove_css_class('error');
+        });
+
+        buttonBox.append(cancelButton);
+        buttonBox.append(saveButton);
+        contentBox.append(buttonBox);
+
+        toolbarView.set_content(contentBox);
+        dialog.set_child(toolbarView);
+
+        dialog.present(this.window);
     }
 
     /**
