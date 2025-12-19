@@ -325,8 +325,26 @@ export const ThemeState = GObject.registerClass(
          */
         _updateColorRolesFromPalette() {
             this._colorRoles = {
+                // Semantic names (used by ColorSynthesizer UI)
                 background: this._palette[0],
                 foreground: this._palette[15],
+                black: this._palette[0],
+                red: this._palette[1],
+                green: this._palette[2],
+                yellow: this._palette[3],
+                blue: this._palette[4],
+                magenta: this._palette[5],
+                cyan: this._palette[6],
+                white: this._palette[7],
+                bright_black: this._palette[8],
+                bright_red: this._palette[9],
+                bright_green: this._palette[10],
+                bright_yellow: this._palette[11],
+                bright_blue: this._palette[12],
+                bright_magenta: this._palette[13],
+                bright_cyan: this._palette[14],
+                bright_white: this._palette[15],
+                // color0-15 aliases (used by templates)
                 color0: this._palette[0],
                 color1: this._palette[1],
                 color2: this._palette[2],
@@ -354,8 +372,26 @@ export const ThemeState = GObject.registerClass(
          */
         _createDefaultColorRoles() {
             return {
+                // Semantic names (used by ColorSynthesizer UI)
                 background: DEFAULT_PALETTE[0],
                 foreground: DEFAULT_PALETTE[15],
+                black: DEFAULT_PALETTE[0],
+                red: DEFAULT_PALETTE[1],
+                green: DEFAULT_PALETTE[2],
+                yellow: DEFAULT_PALETTE[3],
+                blue: DEFAULT_PALETTE[4],
+                magenta: DEFAULT_PALETTE[5],
+                cyan: DEFAULT_PALETTE[6],
+                white: DEFAULT_PALETTE[7],
+                bright_black: DEFAULT_PALETTE[8],
+                bright_red: DEFAULT_PALETTE[9],
+                bright_green: DEFAULT_PALETTE[10],
+                bright_yellow: DEFAULT_PALETTE[11],
+                bright_blue: DEFAULT_PALETTE[12],
+                bright_magenta: DEFAULT_PALETTE[13],
+                bright_cyan: DEFAULT_PALETTE[14],
+                bright_white: DEFAULT_PALETTE[15],
+                // color0-15 aliases (used by templates)
                 color0: DEFAULT_PALETTE[0],
                 color1: DEFAULT_PALETTE[1],
                 color2: DEFAULT_PALETTE[2],
