@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import System from 'system';
 import {hexToRgb, rgbToHsl, hslToHex, rgbToHex} from './color-utils.js';
 import {
     readFileAsText,
@@ -1410,6 +1411,9 @@ export async function extractColorsWithImageMagick(
         if (cacheKey) {
             savePaletteToCache(cacheKey, palette);
         }
+
+        // Hint garbage collector after heavy processing to release subprocess memory
+        System.gc();
 
         return palette;
     } catch (e) {

@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import System from 'system';
 
 /**
  * image-filter-utils.js - Professional image filter processing using ImageMagick
@@ -605,6 +606,9 @@ export async function applyFiltersWithImageMagick(
                         reject(new Error('ImageMagick failed'));
                         return;
                     }
+
+                    // Hint garbage collector after heavy processing to release subprocess memory
+                    System.gc();
 
                     resolve(outputPath);
                 } catch (e) {
