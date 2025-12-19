@@ -6,369 +6,88 @@ https://github.com/user-attachments/assets/3d92271f-d874-49a0-ac66-66749e330135
 
 # Aether
 
-A visual theming application for Omarchy. Create beautiful desktop themes through real-time color manipulation, wallpaper integration, and template-based theme generation.
+A visual theming application for [Omarchy](https://omarchy.org). Extract colors from wallpapers and apply cohesive themes across your entire desktop.
 
-## Key Features
+> **Not using Omarchy?** Aether works standalone on any Linux desktop with Hyprland. See the [Standalone Guide](docs/standalone.md) for setup.
 
-- **Intelligent Color Extraction** - Advanced ImageMagick-based algorithm with automatic image classification (monochrome, low-diversity, chromatic)
-- **Smart Palette Generation** - Adaptive strategies ensure readability and preserve image aesthetics
-- **Image Filter Editor** - Apply blur, exposure, vignette, grain, and 12 presets before color extraction
-- **Wallpaper Browsing** - Integrated wallhaven.cc browser, local wallpaper manager, and favorites system
-- **Color Presets** - 10 popular themes: Dracula, Nord, Gruvbox, Tokyo Night, Catppuccin, and more
-- **Advanced Color Tools** - Harmony generator, gradients, and adjustment sliders (vibrance, contrast, temperature)
-- **Color Lock System** - Protect specific colors while experimenting with adjustments
-- **Blueprint System** - Save and share themes as JSON files
-- **Community Sharing** - Post blueprints to [aethr.no](https://aethr.no/) directly from the app
-- **One-Click Blueprint Imports** - Install themes from websites via `aether://` protocol links (automatic setup on first run)
-- **Neovim Themes** - 37 LazyVim-compatible themes with preset matching
-- **Shader Manager** - 80+ GLSL screen shaders for hyprshade (color grading, effects, era vibes)
-- **Accessibility Checker** - Real-time WCAG contrast ratio validation
-- **Customizable UI** - Live theme reload and CSS variable system
-- **Multi-App Support** - Hyprland, Waybar, Kitty, Alacritty, btop, Mako, and 15+ more applications
-- **Theme Scheduler** - Automatically switch themes at scheduled times (runs in background via systemd)
-- **Custom Templates** - Override default templates with your own `~/aether-templates/`
+## Features
 
-## Requirements
+- **Color Extraction** — Intelligent palette generation from any wallpaper
+- **Wallpaper Browser** — Search wallhaven.cc or browse local files
+- **Image Filters** — Edit wallpapers before extraction (blur, exposure, presets)
+- **Color Presets** — Dracula, Nord, Gruvbox, Catppuccin, and more
+- **Blueprints** — Save and share themes as JSON
+- **Screen Shaders** — 80+ GLSL effects via hyprshade
+- **Multi-App Support** — Hyprland, Waybar, Kitty, Neovim, and 15+ more
+- **Theme Scheduler** — Auto-switch themes at scheduled times
 
-- GJS (GNOME JavaScript bindings)
-- GTK 4
-- Libadwaita 1
-- libsoup3 - HTTP client library for wallhaven API
-- **ImageMagick** - Intelligent color extraction and image filter processing
-- **hyprshade** - Screen shader manager (optional, for shader effects)
-- **Omarchy** - Distro (optional - see [Standalone Usage](docs/STANDALONE.md) for other systems)
+## Quick Start
 
-## Installation
-
-### Quick Install (Arch Linux)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/bjarneo/aether/main/install.sh | bash
-```
-
-This installs from the AUR automatically.
-
-### Manual Installation
-
-1. Install system dependencies:
-```bash
-sudo pacman -S gjs gtk4 libadwaita libsoup3 imagemagick
-```
-
-2. Clone the repository:
-```bash
-git clone https://github.com/bjarneo/aether.git
-cd aether
-```
-
-3. Run Aether:
-```bash
-./aether
-```
-
-To open with a specific wallpaper:
-```bash
-./aether --wallpaper /path/to/image.png
-# or short form
-./aether -w /path/to/image.png
-```
-
-4. (Optional) Install desktop entry:
-```bash
-cp li.oever.aether.desktop ~/.local/share/applications/
-```
-
-### AUR (Alternative)
+### Install (Arch Linux)
 
 ```bash
 yay -S aether
-# or
-paru -S aether
 ```
 
-## Usage
-
-### Command Line Options
+Or install manually:
 
 ```bash
-./aether [OPTIONS]
-
-Options:
-  -h, --help                    Show help message
-  -w, --wallpaper=FILE          Path to wallpaper image to load on startup
-  -l, --list-blueprints         List all saved blueprint themes
-  -a, --apply-blueprint=NAME    Apply a blueprint by name
-  -i, --import-blueprint=URL    Import blueprint from URL or file path
-  --auto-apply                  Automatically apply imported blueprint (use with --import-blueprint)
-  -g, --generate=FILE           Extract colors from wallpaper and apply theme
-  --extract-mode=MODE           Extraction mode: normal (default), monochromatic, analogous, pastel, material
-  --light-mode                  Generate light mode theme (for --generate)
-  --widget-blueprint            Show floating blueprint selector widget
+sudo pacman -S gjs gtk4 libadwaita libsoup3 imagemagick
+git clone https://github.com/bjarneo/aether.git
+cd aether && ./aether
 ```
 
-Examples:
-```bash
-# Launch GUI with wallpaper
-./aether --wallpaper ~/Pictures/wallpaper.jpg
+### Basic Usage
 
-# List saved blueprints
-./aether -l
+1. Select a wallpaper (drag & drop, file picker, or wallhaven browser)
+2. Click **Extract** to generate a color palette
+3. Adjust colors as needed
+4. Click **Apply Theme**
+
+That's it! Your theme is now applied across all configured applications.
+
+## CLI
+
+```bash
+# Generate theme from wallpaper (no GUI)
+aether -g ~/wallpaper.jpg
 
 # Apply saved blueprint
-./aether -a BLUEPRINT_NAME
+aether -a "My Theme"
 
-# Generate and apply theme from wallpaper (CLI only, no GUI)
-./aether --generate ~/Pictures/wallpaper.jpg
-./aether -g ~/Pictures/wallpaper.jpg
+# List blueprints
+aether -l
 
-# Generate theme with specific extraction mode
-./aether -g wallpaper.jpg --extract-mode=monochromatic
-./aether -g wallpaper.jpg --extract-mode=analogous
-./aether -g wallpaper.jpg --extract-mode=pastel
-./aether -g wallpaper.jpg --extract-mode=material
-
-# Generate light mode theme
-./aether -g wallpaper.jpg --light-mode
-./aether -g wallpaper.jpg --extract-mode=pastel --light-mode
-
-# Floating widget for quick blueprint switching
-./aether --widget-blueprint
+# Open with wallpaper
+aether -w ~/wallpaper.jpg
 ```
 
-#### Extraction Modes
+See `aether --help` for all options.
 
-When using `--generate`, you can specify an extraction mode to control the color palette style:
+## Documentation
 
-- **normal** (default) - Auto-detects image type and applies appropriate strategy (monochrome, low-diversity, or chromatic)
-- **monochromatic** - Generates single-hue palette from the dominant color in the image
-- **analogous** - Generates harmonious adjacent hues for a cohesive color scheme
-- **pastel** - Generates soft, muted palette with reduced saturation
-- **material** - Uses actual image colors with Material Design's clean neutral backgrounds and subtle refinement for readability
-
-### Basic Workflow
-
-1. **Create a palette:**
-   - Upload a wallpaper and extract colors with intelligent ImageMagick algorithm
-   - (Optional) Edit wallpaper with filters before extraction
-   - Browse wallhaven.cc, local wallpapers, or favorites
-   - Choose from 10 color presets
-   - Generate color harmonies or gradients
-
-2. **Customize colors:**
-   - Adjust individual colors with the color picker
-   - Use sliders: vibrance, contrast, brightness, hue, temperature
-   - Lock colors to protect them from slider adjustments
-
-3. **Apply theme:**
-   - Click "Apply Theme" button
-   - Aether processes templates and writes to `~/.config/omarchy/themes/aether/`
-   - Runs `omarchy-theme-set aether` to apply across all configured applications
-
-Changes apply instantly via live reload.
-
-### Custom Templates
-
-You can override the default templates used by Aether to customize how themes are generated for specific applications.
-
-1. Create the custom directory:
-   ```bash
-   mkdir -p ~/.config/aether/custom
-   ```
-2. Copy a default template (e.g., `hyprlock.conf`) or create a new one in this directory.
-3. Edit the file using Aether variables.
-
-Aether will automatically prioritize files in `~/.config/aether/custom/` over the built-in defaults.
-
-#### Custom App Templates
-
-For applications not included in Aether by default, you can create app-specific templates with automatic symlinking:
-
-```
-~/.config/aether/custom/
-├── hyprlock.conf            # Override default templates
-├── waybar.css
-└── cava/                    # Custom app with symlinking
-    ├── config.json
-    ├── theme.ini
-    └── post-apply.sh
-```
-
-See [examples/custom/](examples/custom/) for a complete example with Cava.
-
-See [CUSTOM_APPS.md](docs/CUSTOM_APPS.md) for a complete list of available color variables and format modifiers (e.g., `{background.rgba:0.5}`, `{magenta.strip}`).
-
-### Screen Shaders
-
-Aether includes many GLSL screen shaders for hyprshade. Shaders are automatically installed to `~/.config/hypr/shaders/` when you run Aether. Use the Shader Manager in the Settings sidebar to toggle effects, or bind them directly in your Hyprland config.
-
-**Shader Location:** `~/.config/hypr/shaders/`
-
-Add your own `.glsl` files to this directory and they will automatically appear in the Shader Manager list. For GLSL shader tutorials, see [The Book of Shaders](https://thebookofshaders.com/), [Shadertoy](https://www.shadertoy.com/), or [LearnOpenGL - Shaders](https://learnopengl.com/Getting-started/Shaders).
-
-**Manual Binding Example:**
-```conf
-# In ~/.config/hypr/hyprland.conf
-bind = $mainMod, F1, exec, hyprshade toggle grayscale
-bind = $mainMod, F2, exec, hyprshade toggle retro-glow
-bind = $mainMod, F3, exec, hyprshade off
-```
-
-**Shader Categories:**
-- Color corrections (grayscale, sepia, duotone, tritone)
-- Temperature adjustments (warm-tone, cool-tone, amber, blue-light-reduce)
-- Saturation effects (saturate, desaturate, color-pop, pastel)
-- Era vibes (40s, 50s, 60s, 70s, 80s, 90s, 00s)
-- Artistic looks (golden-hour, cyberpunk-neon, vintage-film, faded-memory)
-- Nature themes (forest-green, ocean, arctic-blue, desert-sand, autumn-leaves)
-- Accessibility (protanopia, deuteranopia, tritanopia, high-contrast)
-
-### Theme Scheduler
-
-Automatically switch themes at scheduled times of day. The scheduler runs in the background via systemd, so it works even when Aether is closed.
-
-**Setup:**
-1. Open the **Scheduler** tab (alarm icon) in Aether
-2. Toggle **"Enable Scheduler"** to start the background service
-3. Click **"Add Schedule"** to create a new schedule:
-   - Set the time (HH:MM)
-   - Choose a blueprint to apply
-   - Select which days (every day, weekdays, weekends, or specific days)
-
-**Example Use Cases:**
-- Dark theme at 18:00, light theme at 08:00
-- Cozy warm theme on weekends
-- High contrast theme during work hours
-
-**CLI Commands:**
-```bash
-# Manually trigger a schedule check
-aether --check-schedule
-
-# View scheduler logs
-journalctl --user -u aether-scheduler.service -f
-```
-
-The scheduler uses a systemd user timer that checks every minute. Schedules are stored in `~/.config/aether/schedules.json`.
-
-### Color Extraction Algorithm
-
-Aether uses an advanced ImageMagick-based extraction system that:
-
-- **Automatically classifies images** as monochrome, low-diversity, or chromatic
-- **Adapts palette generation** strategy based on image characteristics
-- **Ensures readability** through intelligent brightness normalization
-- **Preserves image aesthetics** by prioritizing hue accuracy
-- **Caches results** for instant re-extraction (< 0.1s)
-
-## Development
-
-```bash
-# Run directly
-./aether
-# or
-gjs -m src/main.js
-
-# Format code
-npm run format
-```
-
-### Template System
-
-Templates in `templates/` support variable substitution:
-- `{background}`, `{foreground}` - Base colors
-- `{color0}` through `{color15}` - ANSI colors
-- `{color5.strip}` - Color without `#` prefix
-- `{color5.rgb}` - Decimal RGB format (e.g., `203,166,247`)
-
-### Blueprint Format
-
-Blueprints are JSON files stored in `~/.config/aether/blueprints/`:
-```json
-{
-  "name": "My Theme",
-  "timestamp": 1234567890,
-  "palette": {
-    "wallpaper": "/path/to/wallpaper.png",
-    "lightMode": false,
-    "colors": ["#1e1e2e", "#f38ba8", "..."]
-  }
-}
-```
-
-### Sharing Themes with Protocol Links
-
-Aether supports **one-click theme installation** from websites using the `aether://` protocol. When you first launch Aether, it automatically registers as a handler for `aether://` links.
-
-**How it works:**
-1. Export your theme as a blueprint JSON file
-2. Host it on GitHub, your website, or a file-sharing service
-3. Create a link: `aether://import?url=https://example.com/theme.json`
-4. Share the link - users click it and the theme installs automatically!
-
-**Import themes via CLI:**
-```bash
-# Import from URL
-aether --import-blueprint https://example.com/theme.json
-
-# Import and auto-apply
-aether --import-blueprint https://example.com/theme.json --auto-apply
-
-# Import local file
-aether --import-blueprint /path/to/theme.json
-```
-
-See [PROTOCOL_HANDLER.md](PROTOCOL_HANDLER.md) for complete documentation and examples.
-
-### Community Sharing
-
-Share your blueprints with the Aether community at [aethr.no](https://aethr.no/):
-
-1. Open the Blueprint Manager (click the palette icon)
-2. Click the **server icon** (🖥️) in the header
-3. Enter your API key from your account settings on the website
-4. Click the menu (⋮) on any blueprint and select **"Post to Community"**
-
-Blueprints are posted as drafts, giving you a chance to review and publish them on the website. Wallpaper images are automatically uploaded with your blueprint.
-
-## Troubleshooting
-
-**App won't start:**
-```bash
-pacman -S gjs gtk4 libadwaita libsoup3
-gjs -m src/main.js  # Check for errors
-```
-
-**ImageMagick not found:**
-```bash
-pacman -S imagemagick
-magick --version  # Verify installation
-```
-
-**Wallhaven not loading:**
-- Check internet connection and libsoup3 installation
-- Rate limit: 45 requests/minute without API key
-- Add API key in settings for higher limits
-- Clear cache: `rm -rf ~/.cache/aether/wallhaven-*`
-
-**Waybar disappears when applying theme from widget mode:**
-This is a known issue when running Aether with `LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so` (required for `--widget-blueprint` mode). The layer-shell library gets inherited by child processes, causing conflicts with waybar's own layer-shell usage.
-
-**Solution:** Aether automatically clears `LD_PRELOAD` when spawning `omarchy-theme-set` to prevent this conflict (see `ConfigWriter.js:609`). The fix uses `env -u LD_PRELOAD` to ensure waybar restarts cleanly without inheriting the layer-shell library.
+| Guide | Description |
+|-------|-------------|
+| [Installation](docs/installation.md) | Detailed setup instructions |
+| [Color Extraction](docs/color-extraction.md) | How the algorithm works |
+| [Wallpaper Editor](docs/wallpaper-editor.md) | Image filters & presets |
+| [Wallhaven](docs/wallhaven.md) | Browse online wallpapers |
+| [Blueprints](docs/blueprints.md) | Save & restore themes |
+| [Custom Templates](docs/custom-templates.md) | Add support for your apps |
+| [Shaders](docs/shaders.md) | Screen effects and filters |
+| [Scheduler](docs/scheduler.md) | Automatic theme switching |
+| [Sharing](docs/sharing.md) | Community sharing & protocol links |
+| [Standalone](docs/standalone.md) | Using Aether without Omarchy |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues |
 
 ## Contributing
 
-Aether is designed to be extensible. Key areas:
-- **Templates**: Add new apps in `templates/` directory
+- **Templates**: Add apps in `templates/`
 - **Presets**: Add themes to `src/constants/presets.js`
-- **UI Components**: Extend components in `src/components/`
-- **Color Tools**: Enhance `color-harmony.js` or `color-adjustment-controls.js`
-- **Theming**: Add CSS variables in `theme-manager.js`
+- **Components**: Extend `src/components/`
 
-See `CLAUDE.md` for detailed architecture documentation.
+See [CLAUDE.md](CLAUDE.md) for architecture details.
 
 ## License
 
-MIT
-
-## Creator
-[Bjarne Øverli](https://x.com/iamdothash)
+MIT — Created by [Bjarne Øverli](https://x.com/iamdothash)
