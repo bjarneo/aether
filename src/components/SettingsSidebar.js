@@ -247,7 +247,7 @@ export const SettingsSidebar = GObject.registerClass(
                 title: 'Light Mode',
                 subtitle: 'Generate light color scheme',
                 active: this._lightMode,
-                onChanged: (active) => {
+                onChanged: active => {
                     this._lightMode = active;
                     themeState.setLightMode(active);
                     this.emit('light-mode-changed', this._lightMode);
@@ -284,9 +284,11 @@ export const SettingsSidebar = GObject.registerClass(
                 }
             );
 
-            expanderRow.add_row(createWrapperRow({
-                child: this._adjustmentControls.widget,
-            }));
+            expanderRow.add_row(
+                createWrapperRow({
+                    child: this._adjustmentControls.widget,
+                })
+            );
 
             return expanderRow;
         }
@@ -413,7 +415,9 @@ export const SettingsSidebar = GObject.registerClass(
                 return GLib.SOURCE_REMOVE;
             });
 
-            expanderRow.add_row(createWrapperRow({child: controlsBox, addMargins: false}));
+            expanderRow.add_row(
+                createWrapperRow({child: controlsBox, addMargins: false})
+            );
 
             return expanderRow;
         }
@@ -539,7 +543,9 @@ export const SettingsSidebar = GObject.registerClass(
 
             controlsBox.append(generateButton);
 
-            expanderRow.add_row(createWrapperRow({child: controlsBox, addMargins: false}));
+            expanderRow.add_row(
+                createWrapperRow({child: controlsBox, addMargins: false})
+            );
 
             return expanderRow;
         }
@@ -611,7 +617,9 @@ export const SettingsSidebar = GObject.registerClass(
             });
             scrolled.set_child(listBox);
 
-            expanderRow.add_row(createWrapperRow({child: scrolled, addMargins: false}));
+            expanderRow.add_row(
+                createWrapperRow({child: scrolled, addMargins: false})
+            );
 
             return expanderRow;
         }
@@ -690,7 +698,9 @@ export const SettingsSidebar = GObject.registerClass(
             });
             scrolled.set_child(listBox);
 
-            expanderRow.add_row(createWrapperRow({child: scrolled, addMargins: false}));
+            expanderRow.add_row(
+                createWrapperRow({child: scrolled, addMargins: false})
+            );
 
             return expanderRow;
         }
@@ -717,7 +727,7 @@ export const SettingsSidebar = GObject.registerClass(
                 title: 'Include Neovim Template',
                 subtitle: 'Copy neovim.lua to theme directory',
                 active: this._includeNeovim,
-                onChanged: (active) => {
+                onChanged: active => {
                     this._includeNeovim = active;
                     emitSettingsChanged();
                 },
@@ -730,7 +740,7 @@ export const SettingsSidebar = GObject.registerClass(
                 title: 'Include Vencord Theme',
                 subtitle: 'Copy vencord.theme.css to theme directory',
                 active: this._includeVencord,
-                onChanged: (active) => {
+                onChanged: active => {
                     this._includeVencord = active;
                     emitSettingsChanged();
                 },
@@ -743,7 +753,7 @@ export const SettingsSidebar = GObject.registerClass(
                 title: 'Include Zed Theme',
                 subtitle: 'Copy aether.zed.json to ~/.config/zed/themes/',
                 active: this._includeZed,
-                onChanged: (active) => {
+                onChanged: active => {
                     this._includeZed = active;
                     emitSettingsChanged();
                 },
@@ -754,9 +764,10 @@ export const SettingsSidebar = GObject.registerClass(
             // VSCode template
             const {row: vscodeRow, switch: vscodeSwitch} = createSwitchRow({
                 title: 'Include VSCode Theme',
-                subtitle: 'Copy vscode.json to ~/.vscode/extensions/theme-aether/themes/',
+                subtitle:
+                    'Copy vscode.json to ~/.vscode/extensions/theme-aether/themes/',
                 active: this._includeVscode,
-                onChanged: (active) => {
+                onChanged: active => {
                     this._includeVscode = active;
                     emitSettingsChanged();
                 },
@@ -794,7 +805,9 @@ export const SettingsSidebar = GObject.registerClass(
             fontBox.append(this._fontSelector);
 
             // Add to expander as a child
-            expanderRow.add_row(createWrapperRow({child: fontBox, addMargins: false}));
+            expanderRow.add_row(
+                createWrapperRow({child: fontBox, addMargins: false})
+            );
 
             return expanderRow;
         }

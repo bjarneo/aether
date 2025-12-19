@@ -370,7 +370,11 @@ export const LogLevel = {
  * @param {string} [level='error'] - Log level
  * @param {Object} [additionalContext={}] - Additional context
  */
-export function logError(error, level = LogLevel.ERROR, additionalContext = {}) {
+export function logError(
+    error,
+    level = LogLevel.ERROR,
+    additionalContext = {}
+) {
     const timestamp = new Date().toISOString();
     const context = error instanceof AetherError ? error.context : {};
 
@@ -387,13 +391,21 @@ export function logError(error, level = LogLevel.ERROR, additionalContext = {}) 
     // Log based on level
     switch (level) {
         case LogLevel.DEBUG:
-            console.debug(`[${timestamp}] DEBUG:`, error.message, logEntry.context);
+            console.debug(
+                `[${timestamp}] DEBUG:`,
+                error.message,
+                logEntry.context
+            );
             break;
         case LogLevel.INFO:
             console.info(`[${timestamp}] INFO:`, error.message);
             break;
         case LogLevel.WARN:
-            console.warn(`[${timestamp}] WARN:`, error.message, logEntry.context);
+            console.warn(
+                `[${timestamp}] WARN:`,
+                error.message,
+                logEntry.context
+            );
             break;
         case LogLevel.ERROR:
         default:
@@ -430,7 +442,11 @@ export function withErrorLogging(fn, context = '', defaultValue = null) {
  * @param {*} [defaultValue=null] - Default value to return on error
  * @returns {Promise<T|*>}
  */
-export async function withErrorLoggingAsync(fn, context = '', defaultValue = null) {
+export async function withErrorLoggingAsync(
+    fn,
+    context = '',
+    defaultValue = null
+) {
     try {
         return await fn();
     } catch (error) {
@@ -454,13 +470,22 @@ export function getUserMessage(error) {
     }
 
     // Handle common error types
-    if (error.message?.includes('ENOENT') || error.message?.includes('not found')) {
+    if (
+        error.message?.includes('ENOENT') ||
+        error.message?.includes('not found')
+    ) {
         return 'File or resource not found';
     }
-    if (error.message?.includes('EACCES') || error.message?.includes('permission')) {
+    if (
+        error.message?.includes('EACCES') ||
+        error.message?.includes('permission')
+    ) {
         return 'Permission denied';
     }
-    if (error.message?.includes('ECONNREFUSED') || error.message?.includes('network')) {
+    if (
+        error.message?.includes('ECONNREFUSED') ||
+        error.message?.includes('network')
+    ) {
         return 'Network connection failed';
     }
 

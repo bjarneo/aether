@@ -210,7 +210,10 @@ export function migrateBlueprintPaths() {
             }
 
             try {
-                const blueprintPath = GLib.build_filenamev([blueprintsDir, fileName]);
+                const blueprintPath = GLib.build_filenamev([
+                    blueprintsDir,
+                    fileName,
+                ]);
                 const blueprint = loadJsonFile(blueprintPath, null);
 
                 if (!blueprint) {

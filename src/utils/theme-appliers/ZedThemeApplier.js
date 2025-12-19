@@ -103,7 +103,10 @@ export class ZedThemeApplier {
             ensureDirectoryExists(zedThemesPath);
 
             // Copy the theme file
-            const destPath = GLib.build_filenamev([zedThemesPath, OUTPUT_FILENAME]);
+            const destPath = GLib.build_filenamev([
+                zedThemesPath,
+                OUTPUT_FILENAME,
+            ]);
             const success = copyFile(sourcePath, destPath);
 
             if (success) {

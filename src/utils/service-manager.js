@@ -14,7 +14,9 @@ import GLib from 'gi://GLib';
  */
 export function isOmarchyInstalled() {
     try {
-        const [success] = GLib.spawn_command_line_sync('which omarchy-theme-set');
+        const [success] = GLib.spawn_command_line_sync(
+            'which omarchy-theme-set'
+        );
         return success;
     } catch (e) {
         return false;

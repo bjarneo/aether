@@ -2,7 +2,11 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
 import {blueprintService} from '../../services/BlueprintService.js';
-import {saveJsonFile, loadJsonFile, fileExists} from '../../utils/file-utils.js';
+import {
+    saveJsonFile,
+    loadJsonFile,
+    fileExists,
+} from '../../utils/file-utils.js';
 
 /**
  * Command handler for importing blueprint themes from URLs or files

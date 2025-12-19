@@ -331,7 +331,12 @@ export const FilterControls = GObject.registerClass(
             this._toneColorPicker.connect('tone-selected', (_, toneData) => {
                 this._onToneSelected(toneData);
             });
-            toneGroup.add(createWrapperRow({child: this._toneColorPicker, addMargins: false}));
+            toneGroup.add(
+                createWrapperRow({
+                    child: this._toneColorPicker,
+                    addMargins: false,
+                })
+            );
 
             toneGroup.add(
                 this._createSliderRow(

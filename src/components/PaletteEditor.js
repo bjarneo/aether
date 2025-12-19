@@ -102,7 +102,10 @@ export const PaletteEditor = GObject.registerClass(
             // Listen for wallpaper changes
             themeState.connect('wallpaper-changed', (_, wallpaperPath) => {
                 if (wallpaperPath && wallpaperPath !== this._currentWallpaper) {
-                    this.loadWallpaper(wallpaperPath, themeState.getWallpaperMetadata());
+                    this.loadWallpaper(
+                        wallpaperPath,
+                        themeState.getWallpaperMetadata()
+                    );
                 }
             });
 

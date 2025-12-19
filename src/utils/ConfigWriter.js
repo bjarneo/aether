@@ -200,7 +200,9 @@ export class ConfigWriter {
      */
     _createOmarchySymlink() {
         try {
-            const omarchyThemesParent = GLib.path_get_dirname(this.omarchyThemeDir);
+            const omarchyThemesParent = GLib.path_get_dirname(
+                this.omarchyThemeDir
+            );
             ensureDirectoryExists(omarchyThemesParent);
 
             // Remove existing directory if it's not a symlink

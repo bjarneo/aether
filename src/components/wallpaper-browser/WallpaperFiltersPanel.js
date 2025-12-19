@@ -58,7 +58,8 @@ export const WallpaperFiltersPanel = GObject.registerClass(
             });
 
             this._hasApiKey = options.hasApiKey ?? false;
-            this._purityControlsEnabled = options.purityControlsEnabled ?? false;
+            this._purityControlsEnabled =
+                options.purityControlsEnabled ?? false;
             this._initialFilters = options.initialFilters ?? {};
 
             // Signal IDs for blocking during programmatic updates
@@ -260,7 +261,10 @@ export const WallpaperFiltersPanel = GObject.registerClass(
                 this._emitFiltersChanged({purity});
             };
 
-            this._signalIds.sfw = this._sfwCheck.connect('toggled', updatePurity);
+            this._signalIds.sfw = this._sfwCheck.connect(
+                'toggled',
+                updatePurity
+            );
             this._signalIds.sketchy = this._sketchyCheck.connect(
                 'toggled',
                 updatePurity
@@ -334,9 +338,13 @@ export const WallpaperFiltersPanel = GObject.registerClass(
                         this._generalCheck.set_active(cats[0] === '1');
                     }
                 );
-                withSignalBlocked(this._animeCheck, this._signalIds.anime, () => {
-                    this._animeCheck.set_active(cats[1] === '1');
-                });
+                withSignalBlocked(
+                    this._animeCheck,
+                    this._signalIds.anime,
+                    () => {
+                        this._animeCheck.set_active(cats[1] === '1');
+                    }
+                );
                 withSignalBlocked(
                     this._peopleCheck,
                     this._signalIds.people,

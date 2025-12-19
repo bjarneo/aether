@@ -10,10 +10,7 @@ import {favoritesService} from '../services/favorites-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {WallpaperFiltersPanel} from './wallpaper-browser/WallpaperFiltersPanel.js';
-import {
-    removeAllChildren,
-    showToast,
-} from '../utils/ui-helpers.js';
+import {removeAllChildren, showToast} from '../utils/ui-helpers.js';
 import {
     ensureDirectoryExists,
     loadJsonFile,
@@ -299,9 +296,12 @@ export const WallpaperBrowser = GObject.registerClass(
                 },
             });
 
-            this._filtersPanel.connect('filters-changed', (_, changedFilters) => {
-                this._onFiltersChanged(changedFilters);
-            });
+            this._filtersPanel.connect(
+                'filters-changed',
+                (_, changedFilters) => {
+                    this._onFiltersChanged(changedFilters);
+                }
+            );
 
             // Keep reference for toggle button
             this._filtersRevealer = this._filtersPanel;
@@ -653,7 +653,9 @@ export const WallpaperBrowser = GObject.registerClass(
                 return;
             }
 
-            this._filtersPanel.setPurityControlsEnabled(this._purityControlsEnabled);
+            this._filtersPanel.setPurityControlsEnabled(
+                this._purityControlsEnabled
+            );
 
             if (!this._purityControlsEnabled) {
                 const normalizedPurity = this._normalizePurity(

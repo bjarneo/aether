@@ -74,7 +74,8 @@ export function runCommandAsync(argv, options = {}) {
 
             proc.communicate_utf8_async(null, null, (source, result) => {
                 try {
-                    const [, stdout, stderr] = source.communicate_utf8_finish(result);
+                    const [, stdout, stderr] =
+                        source.communicate_utf8_finish(result);
                     const exitCode = source.get_exit_status();
 
                     resolve({
@@ -171,7 +172,8 @@ export function readFileAsync(path) {
 
             file.load_contents_async(null, (source, result) => {
                 try {
-                    const [success, contents] = source.load_contents_finish(result);
+                    const [success, contents] =
+                        source.load_contents_finish(result);
 
                     if (!success) {
                         reject(new Error(`Failed to read file: ${path}`));
@@ -215,7 +217,8 @@ export function writeFileAsync(path, content) {
                 null,
                 (source, result) => {
                     try {
-                        const [success] = source.replace_contents_finish(result);
+                        const [success] =
+                            source.replace_contents_finish(result);
                         resolve(success);
                     } catch (e) {
                         reject(e);
@@ -235,7 +238,7 @@ export function writeFileAsync(path, content) {
  * @returns {Promise<boolean>} True if file exists
  */
 export function fileExistsAsync(path) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         try {
             const file = Gio.File.new_for_path(path);
 
@@ -309,19 +312,15 @@ export function deleteFileAsync(path) {
         try {
             const file = Gio.File.new_for_path(path);
 
-            file.delete_async(
-                GLib.PRIORITY_DEFAULT,
-                null,
-                (source, result) => {
-                    try {
-                        const success = source.delete_finish(result);
-                        resolve(success);
-                    } catch (e) {
-                        // File might not exist, that's ok
-                        resolve(false);
-                    }
+            file.delete_async(GLib.PRIORITY_DEFAULT, null, (source, result) => {
+                try {
+                    const success = source.delete_finish(result);
+                    resolve(success);
+                } catch (e) {
+                    // File might not exist, that's ok
+                    resolve(false);
                 }
-            );
+            });
         } catch (e) {
             resolve(false);
         }
@@ -363,7 +362,8 @@ export function listDirectoryAsync(dirPath) {
                 null,
                 (source, result) => {
                     try {
-                        const enumerator = source.enumerate_children_finish(result);
+                        const enumerator =
+                            source.enumerate_children_finish(result);
                         const entries = [];
 
                         const processNext = () => {
@@ -373,7 +373,10 @@ export function listDirectoryAsync(dirPath) {
                                 null,
                                 (enumSource, enumResult) => {
                                     try {
-                                        const infos = enumSource.next_files_finish(enumResult);
+                                        const infos =
+                                            enumSource.next_files_finish(
+                                                enumResult
+                                            );
 
                                         if (infos.length === 0) {
                                             resolve(entries);
@@ -386,9 +389,15 @@ export function listDirectoryAsync(dirPath) {
 
                                             entries.push({
                                                 name,
-                                                path: GLib.build_filenamev([dirPath, name]),
-                                                isDirectory: type === Gio.FileType.DIRECTORY,
-                                                isSymlink: info.get_is_symlink(),
+                                                path: GLib.build_filenamev([
+                                                    dirPath,
+                                                    name,
+                                                ]),
+                                                isDirectory:
+                                                    type ===
+                                                    Gio.FileType.DIRECTORY,
+                                                isSymlink:
+                                                    info.get_is_symlink(),
                                             });
                                         }
 
@@ -427,7 +436,7 @@ export function listDirectoryAsync(dirPath) {
  * // Small delay to ensure file is written
  */
 export function delay(ms) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
             resolve();
             return GLib.SOURCE_REMOVE;
@@ -505,12 +514,16 @@ export function throttle(fn, limitMs) {
             fn.apply(this, args);
         } else if (!pendingTimeoutId) {
             const remaining = limitMs - (now - lastRun);
-            pendingTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, remaining, () => {
-                pendingTimeoutId = null;
-                lastRun = GLib.get_monotonic_time() / 1000;
-                fn.apply(this, args);
-                return GLib.SOURCE_REMOVE;
-            });
+            pendingTimeoutId = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                remaining,
+                () => {
+                    pendingTimeoutId = null;
+                    lastRun = GLib.get_monotonic_time() / 1000;
+                    fn.apply(this, args);
+                    return GLib.SOURCE_REMOVE;
+                }
+            );
         }
     };
 }

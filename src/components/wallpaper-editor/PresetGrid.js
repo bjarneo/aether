@@ -90,7 +90,9 @@ export const PresetGrid = GObject.registerClass(
          */
         _buildUI() {
             PRESET_CATEGORIES.forEach(category => {
-                this.append(this._createPresetCategory(category.name, category.presets));
+                this.append(
+                    this._createPresetCategory(category.name, category.presets)
+                );
             });
         }
 
@@ -158,7 +160,9 @@ export const PresetGrid = GObject.registerClass(
          * @returns {Array|null} Array of presets or null if category not found
          */
         getPresetsByCategory(categoryName) {
-            const category = PRESET_CATEGORIES.find(c => c.name === categoryName);
+            const category = PRESET_CATEGORIES.find(
+                c => c.name === categoryName
+            );
             return category ? category.presets : null;
         }
     }

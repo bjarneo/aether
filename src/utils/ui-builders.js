@@ -49,13 +49,7 @@ import {applyCssToWidget} from './ui-helpers.js';
  * group.add(row);
  */
 export function createSwitchRow(config) {
-    const {
-        title,
-        subtitle = '',
-        active = false,
-        onChanged,
-        tooltip,
-    } = config;
+    const {title, subtitle = '', active = false, onChanged, tooltip} = config;
 
     const row = new Adw.ActionRow({
         title,
@@ -72,7 +66,7 @@ export function createSwitchRow(config) {
     }
 
     if (onChanged) {
-        switchWidget.connect('notify::active', (sw) => {
+        switchWidget.connect('notify::active', sw => {
             onChanged(sw.get_active());
         });
     }
@@ -134,14 +128,14 @@ export function createColorPickerRow(config) {
     }
 
     // Defer dialog creation until widget is realized
-    button.connect('realize', (btn) => {
+    button.connect('realize', btn => {
         if (!btn.dialog) {
             btn.dialog = new Gtk.ColorDialog({with_alpha: withAlpha});
         }
     });
 
     if (onChanged) {
-        button.connect('notify::rgba', (btn) => {
+        button.connect('notify::rgba', btn => {
             const color = btn.get_rgba();
             const hex = rgbaToHex(color);
             onChanged(hex);
@@ -190,13 +184,7 @@ function rgbaToHex(rgba) {
  * });
  */
 export function createDropdownRow(config) {
-    const {
-        title,
-        subtitle = '',
-        options,
-        selected = 0,
-        onChanged,
-    } = config;
+    const {title, subtitle = '', options, selected = 0, onChanged} = config;
 
     const row = new Adw.ActionRow({
         title,
@@ -214,7 +202,7 @@ export function createDropdownRow(config) {
     dropdown.set_selected(selected);
 
     if (onChanged) {
-        dropdown.connect('notify::selected', (dd) => {
+        dropdown.connect('notify::selected', dd => {
             const index = dd.get_selected();
             const label = options[index];
             onChanged(index, label);
@@ -299,7 +287,7 @@ export function createSliderRow(config) {
     let valueLabel = null;
     const defaultValue = value;
 
-    const formatValue = (val) => `${Math.round(val)}${unit}`;
+    const formatValue = val => `${Math.round(val)}${unit}`;
 
     if (showValue) {
         valueLabel = new Gtk.Label({
@@ -524,12 +512,7 @@ export function createPreferencesGroup(config) {
  * expander.add_row(someRow);
  */
 export function createExpanderRow(config) {
-    const {
-        title,
-        subtitle = '',
-        expanded = false,
-        iconName,
-    } = config;
+    const {title, subtitle = '', expanded = false, iconName} = config;
 
     const row = new Adw.ExpanderRow({
         title,
@@ -559,12 +542,7 @@ export function createExpanderRow(config) {
  * @returns {{row: Adw.ActionRow, checkbox: Gtk.CheckButton}} Row and checkbox widgets
  */
 export function createCheckboxRow(config) {
-    const {
-        title,
-        subtitle = '',
-        active = false,
-        onChanged,
-    } = config;
+    const {title, subtitle = '', active = false, onChanged} = config;
 
     const row = new Adw.ActionRow({
         title,
@@ -577,7 +555,7 @@ export function createCheckboxRow(config) {
     });
 
     if (onChanged) {
-        checkbox.connect('toggled', (cb) => {
+        checkbox.connect('toggled', cb => {
             onChanged(cb.get_active());
         });
     }
@@ -682,8 +660,12 @@ export function createScrolledWindow(config) {
     } = config;
 
     const scrolled = new Gtk.ScrolledWindow({
-        hscrollbar_policy: hscroll ? Gtk.PolicyType.AUTOMATIC : Gtk.PolicyType.NEVER,
-        vscrollbar_policy: vscroll ? Gtk.PolicyType.AUTOMATIC : Gtk.PolicyType.NEVER,
+        hscrollbar_policy: hscroll
+            ? Gtk.PolicyType.AUTOMATIC
+            : Gtk.PolicyType.NEVER,
+        vscrollbar_policy: vscroll
+            ? Gtk.PolicyType.AUTOMATIC
+            : Gtk.PolicyType.NEVER,
     });
 
     if (minHeight) {
@@ -897,12 +879,7 @@ export function createLinkRow(config) {
  * });
  */
 export function createPresetRow(config) {
-    const {
-        title,
-        subtitle = '',
-        preview,
-        onActivated,
-    } = config;
+    const {title, subtitle = '', preview, onActivated} = config;
 
     const row = new Adw.ActionRow({
         title,
@@ -992,12 +969,7 @@ export function createToolbar(config) {
  * });
  */
 export function createIconButton(config) {
-    const {
-        iconName,
-        tooltip,
-        cssClasses = [],
-        onClicked,
-    } = config;
+    const {iconName, tooltip, cssClasses = [], onClicked} = config;
 
     const button = new Gtk.Button({
         icon_name: iconName,
@@ -1077,22 +1049,13 @@ export function createActionButtonGroup(config) {
  * expanderRow.add_row(row);
  */
 export function createWrapperRow(config) {
-    const {
-        child,
-        addMargins = true,
-        margins = {},
-    } = config;
+    const {child, addMargins = true, margins = {}} = config;
 
     if (!addMargins) {
         return new Adw.ActionRow({child});
     }
 
-    const {
-        start = 12,
-        end = 12,
-        top = 6,
-        bottom = 6,
-    } = margins;
+    const {start = 12, end = 12, top = 6, bottom = 6} = margins;
 
     const wrapper = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,
@@ -1189,11 +1152,7 @@ export function createSearchEntry(config) {
  * setSpinning(false);
  */
 export function createSpinnerRow(config) {
-    const {
-        title,
-        subtitle = '',
-        spinning = true,
-    } = config;
+    const {title, subtitle = '', spinning = true} = config;
 
     const row = new Adw.ActionRow({
         title,
@@ -1207,7 +1166,7 @@ export function createSpinnerRow(config) {
 
     row.add_suffix(spinner);
 
-    const setSpinning = (active) => spinner.set_spinning(active);
+    const setSpinning = active => spinner.set_spinning(active);
 
     return {row, spinner, setSpinning};
 }
@@ -1274,7 +1233,7 @@ export function createEntryRow(config) {
     row.add_suffix(entry);
 
     const getText = () => entry.get_text();
-    const setText = (newText) => entry.set_text(newText);
+    const setText = newText => entry.set_text(newText);
 
     return {row, entry, getText, setText};
 }

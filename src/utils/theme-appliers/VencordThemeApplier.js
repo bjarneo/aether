@@ -130,14 +130,19 @@ export class VencordThemeApplier {
                 ensureDirectoryExists(themePath);
 
                 // Copy the theme file
-                const destPath = GLib.build_filenamev([themePath, OUTPUT_FILENAME]);
+                const destPath = GLib.build_filenamev([
+                    themePath,
+                    OUTPUT_FILENAME,
+                ]);
                 const success = copyFile(sourcePath, destPath);
 
                 if (success) {
                     console.log(`Copied Vencord theme to: ${destPath}`);
                     successCount++;
                 } else {
-                    console.error(`Failed to copy Vencord theme to: ${destPath}`);
+                    console.error(
+                        `Failed to copy Vencord theme to: ${destPath}`
+                    );
                 }
             } catch (e) {
                 console.error(
