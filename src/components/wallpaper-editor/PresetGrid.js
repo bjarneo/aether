@@ -17,6 +17,7 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
 import {FILTER_PRESETS} from '../../utils/image-filter-utils.js';
+import {createWrapperRow} from '../../utils/ui-builders.js';
 
 /**
  * Preset categories with their associated presets
@@ -118,7 +119,7 @@ export const PresetGrid = GObject.registerClass(
                 grid.append(button);
             });
 
-            group.add(new Adw.ActionRow({child: grid}));
+            group.add(createWrapperRow({child: grid, addMargins: false}));
             return group;
         }
 

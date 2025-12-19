@@ -20,6 +20,7 @@ import {
     createSwitchRow,
     createExpanderRow,
     createColorPickerRow,
+    createWrapperRow,
 } from '../utils/ui-builders.js';
 import {
     rgbaToHex,
@@ -230,16 +231,9 @@ export const SettingsSidebar = GObject.registerClass(
                 () => this.emit('adjustments-reset')
             );
 
-            const controlsWrapper = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                margin_start: 12,
-                margin_end: 12,
-                margin_top: 6,
-                margin_bottom: 6,
-            });
-            controlsWrapper.append(this._adjustmentControls.widget);
-
-            expanderRow.add_row(new Adw.ActionRow({child: controlsWrapper}));
+            expanderRow.add_row(createWrapperRow({
+                child: this._adjustmentControls.widget,
+            }));
 
             return expanderRow;
         }
@@ -366,7 +360,7 @@ export const SettingsSidebar = GObject.registerClass(
                 return GLib.SOURCE_REMOVE;
             });
 
-            expanderRow.add_row(new Adw.ActionRow({child: controlsBox}));
+            expanderRow.add_row(createWrapperRow({child: controlsBox, addMargins: false}));
 
             return expanderRow;
         }
@@ -492,7 +486,7 @@ export const SettingsSidebar = GObject.registerClass(
 
             controlsBox.append(generateButton);
 
-            expanderRow.add_row(new Adw.ActionRow({child: controlsBox}));
+            expanderRow.add_row(createWrapperRow({child: controlsBox, addMargins: false}));
 
             return expanderRow;
         }
@@ -564,7 +558,7 @@ export const SettingsSidebar = GObject.registerClass(
             });
             scrolled.set_child(listBox);
 
-            expanderRow.add_row(new Adw.ActionRow({child: scrolled}));
+            expanderRow.add_row(createWrapperRow({child: scrolled, addMargins: false}));
 
             return expanderRow;
         }
@@ -643,7 +637,7 @@ export const SettingsSidebar = GObject.registerClass(
             });
             scrolled.set_child(listBox);
 
-            expanderRow.add_row(new Adw.ActionRow({child: scrolled}));
+            expanderRow.add_row(createWrapperRow({child: scrolled, addMargins: false}));
 
             return expanderRow;
         }
@@ -747,7 +741,7 @@ export const SettingsSidebar = GObject.registerClass(
             fontBox.append(this._fontSelector);
 
             // Add to expander as a child
-            expanderRow.add_row(new Adw.ActionRow({child: fontBox}));
+            expanderRow.add_row(createWrapperRow({child: fontBox, addMargins: false}));
 
             return expanderRow;
         }

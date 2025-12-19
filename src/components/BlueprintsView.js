@@ -233,31 +233,11 @@ export const BlueprintsView = GObject.registerClass(
             group.add(apiKeyRow);
 
             // Website link
-            const websiteRow = new Adw.ActionRow({
+            const {row: websiteRow} = createLinkRow({
                 title: 'Browse Community',
                 subtitle: 'Discover themes shared by others',
-                activatable: true,
+                url: 'https://aethr.no/',
             });
-
-            const linkIcon = new Gtk.Image({
-                icon_name: 'web-browser-symbolic',
-                valign: Gtk.Align.CENTER,
-            });
-            websiteRow.add_prefix(linkIcon);
-
-            const openButton = new Gtk.Button({
-                icon_name: 'external-link-symbolic',
-                valign: Gtk.Align.CENTER,
-                css_classes: ['flat'],
-            });
-            openButton.connect('clicked', () => {
-                Gio.AppInfo.launch_default_for_uri(
-                    'https://aethr.no/',
-                    null
-                );
-            });
-            websiteRow.add_suffix(openButton);
-            websiteRow.set_activatable_widget(openButton);
 
             group.add(websiteRow);
 

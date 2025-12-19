@@ -5,6 +5,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import GLib from 'gi://GLib';
 
 import {applyCssToWidget} from '../../utils/ui-helpers.js';
+import {createWrapperRow} from '../../utils/ui-builders.js';
 import {
     TONE_PRESETS,
     FILTER_PRESETS,
@@ -328,7 +329,7 @@ export const FilterControls = GObject.registerClass(
                 description: 'Apply color wash over image',
             });
 
-            toneGroup.add(new Adw.ActionRow({child: this._createToneGrid()}));
+            toneGroup.add(createWrapperRow({child: this._createToneGrid(), addMargins: false}));
 
             toneGroup.add(
                 this._createSliderRow(
@@ -557,7 +558,7 @@ export const FilterControls = GObject.registerClass(
                 grid.append(button);
             });
 
-            group.add(new Adw.ActionRow({child: grid}));
+            group.add(createWrapperRow({child: grid, addMargins: false}));
             return group;
         }
 

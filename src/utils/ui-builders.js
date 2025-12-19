@@ -1061,7 +1061,8 @@ export function createActionButtonGroup(config) {
  *
  * @param {Object} config - Configuration options
  * @param {Gtk.Widget} config.child - Widget to wrap
- * @param {Object} [config.margins] - Margin overrides
+ * @param {boolean} [config.addMargins=true] - Whether to add margin wrapper
+ * @param {Object} [config.margins] - Margin overrides (only if addMargins=true)
  * @param {number} [config.margins.start=12] - Start margin
  * @param {number} [config.margins.end=12] - End margin
  * @param {number} [config.margins.top=6] - Top margin
@@ -1078,8 +1079,13 @@ export function createActionButtonGroup(config) {
 export function createWrapperRow(config) {
     const {
         child,
+        addMargins = true,
         margins = {},
     } = config;
+
+    if (!addMargins) {
+        return new Adw.ActionRow({child});
+    }
 
     const {
         start = 12,
