@@ -292,9 +292,9 @@ export const PaletteEditor = GObject.registerClass(
          * Applies color adjustments to the palette
          * Respects locked colors and only adjusts unlocked ones
          * @param {Object} values - Adjustment values
-         * @private
+         * @public
          */
-        _applyAdjustments(values) {
+        applyAdjustments(values) {
             if (this._originalPalette.length === 0) return;
 
             const lockedColors = this._colorPalette.getLockedColors();
@@ -318,7 +318,11 @@ export const PaletteEditor = GObject.registerClass(
             this.emit('adjustments-applied', adjustedColors);
         }
 
-        _resetAdjustments() {
+        /**
+         * Resets adjustments and restores original palette
+         * @public
+         */
+        resetAdjustments() {
             if (this._originalPalette.length > 0) {
                 this.setPalette([...this._originalPalette]);
             }

@@ -889,11 +889,11 @@ const AetherWindow = GObject.registerClass(
 
             // Connect settings sidebar signals
             this.settingsSidebar.connect('adjustments-changed', (_, values) => {
-                this.paletteGenerator._applyAdjustments(values);
+                this.paletteGenerator.applyAdjustments(values);
             });
 
             this.settingsSidebar.connect('adjustments-reset', () => {
-                this.paletteGenerator._resetAdjustments();
+                this.paletteGenerator.resetAdjustments();
             });
 
             this.settingsSidebar.connect('preset-applied', (_, preset) => {
