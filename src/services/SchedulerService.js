@@ -337,15 +337,15 @@ export class SchedulerService {
         const appOverrides = palette.appOverrides || {};
 
         const configWriter = new ConfigWriter();
-        configWriter.applyTheme(
+        configWriter.applyTheme({
             colorRoles,
-            palette.wallpaper,
+            wallpaperPath: palette.wallpaper,
             settings,
             lightMode,
             appOverrides,
-            [],
-            true // sync mode
-        );
+            additionalImages: [],
+            sync: true,
+        });
 
         return true;
     }

@@ -99,15 +99,15 @@ export class GenerateThemeCommand {
 
             print('Applying theme...');
 
-            configWriter.applyTheme(
+            configWriter.applyTheme({
                 colorRoles,
                 wallpaperPath,
                 settings,
                 lightMode,
                 appOverrides,
                 additionalImages,
-                true // sync = true for CLI
-            );
+                sync: true,
+            });
 
             print('✓ Theme applied successfully');
             return true;

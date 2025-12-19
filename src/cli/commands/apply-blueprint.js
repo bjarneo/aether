@@ -71,15 +71,15 @@ export class ApplyBlueprintCommand {
             const appOverrides = palette.appOverrides || {};
 
             const configWriter = new ConfigWriter();
-            configWriter.applyTheme(
+            configWriter.applyTheme({
                 colorRoles,
                 wallpaperPath,
                 settings,
                 lightMode,
                 appOverrides,
-                [],
-                true
-            );
+                additionalImages: [],
+                sync: true,
+            });
 
             print(`✓ Applied blueprint: ${foundBlueprint.name || name}`);
             return true;

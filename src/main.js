@@ -998,14 +998,14 @@ const AetherWindow = GObject.registerClass(
                 const appOverrides = this.paletteGenerator.getAppOverrides();
                 const additionalImages =
                     this.paletteGenerator.getAdditionalImages();
-                const result = this.configWriter.applyTheme(
-                    colors,
-                    palette.wallpaper,
+                const result = this.configWriter.applyTheme({
+                    colorRoles: colors,
+                    wallpaperPath: palette.wallpaper,
                     settings,
                     lightMode,
                     appOverrides,
-                    additionalImages
-                );
+                    additionalImages,
+                });
 
                 if (result.success) {
                     const message = result.isOmarchy

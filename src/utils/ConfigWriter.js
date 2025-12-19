@@ -97,28 +97,29 @@ export class ConfigWriter {
      * Applies theme with color roles and wallpaper
      * Main entry point for theme application
      *
-     * @param {Object} colorRoles - Color role assignments (background, foreground, black, red, etc.)
-     * @param {string} wallpaperPath - Path to wallpaper file
-     * @param {Object} [settings={}] - Theme settings
-     * @param {boolean} [settings.includeGtk] - Apply GTK theming
-     * @param {boolean} [settings.includeVencord] - Apply Vencord (Discord) theme
-     * @param {boolean} [settings.includeZed] - Apply Zed editor theme
-     * @param {boolean} [settings.includeVscode] - Apply VSCode theme
-     * @param {boolean} [lightMode=false] - Light mode flag
-     * @param {Object} [appOverrides={}] - Per-application template overrides
-     * @param {Array<string>} [additionalImages=[]] - Additional images to copy
-     * @param {boolean} [sync=false] - Use synchronous theme application
+     * @param {Object} options - Theme application options
+     * @param {Object} options.colorRoles - Color role assignments (background, foreground, black, red, etc.)
+     * @param {string} [options.wallpaperPath] - Path to wallpaper file
+     * @param {Object} [options.settings={}] - Theme settings
+     * @param {boolean} [options.settings.includeGtk] - Apply GTK theming
+     * @param {boolean} [options.settings.includeVencord] - Apply Vencord (Discord) theme
+     * @param {boolean} [options.settings.includeZed] - Apply Zed editor theme
+     * @param {boolean} [options.settings.includeVscode] - Apply VSCode theme
+     * @param {boolean} [options.lightMode=false] - Light mode flag
+     * @param {Object} [options.appOverrides={}] - Per-application template overrides
+     * @param {Array<string>} [options.additionalImages=[]] - Additional images to copy
+     * @param {boolean} [options.sync=false] - Use synchronous theme application
      * @returns {{success: boolean, isOmarchy: boolean, themePath: string}} Result object
      */
-    applyTheme(
+    applyTheme({
         colorRoles,
         wallpaperPath,
         settings = {},
         lightMode = false,
         appOverrides = {},
         additionalImages = [],
-        sync = false
-    ) {
+        sync = false,
+    }) {
         const isOmarchy = isOmarchyInstalled();
 
         try {
