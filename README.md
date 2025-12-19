@@ -78,6 +78,7 @@ See `aether --help` for all options.
 | [Scheduler](docs/scheduler.md) | Automatic theme switching |
 | [Sharing](docs/sharing.md) | Community sharing & protocol links |
 | [CLI Reference](docs/cli.md) | Command-line options |
+| [File System](docs/filesystem.md) | Where Aether stores files |
 | [Standalone](docs/standalone.md) | Using Aether without Omarchy |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues |
 
