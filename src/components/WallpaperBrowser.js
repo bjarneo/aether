@@ -9,11 +9,10 @@ import {wallhavenService} from '../services/wallhaven-service.js';
 import {favoritesService} from '../services/favorites-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
+import {WallpaperFiltersPanel} from './wallpaper-browser/WallpaperFiltersPanel.js';
 import {
     removeAllChildren,
     showToast,
-    withSignalBlocked,
-    updateWithoutSignal,
 } from '../utils/ui-helpers.js';
 import {
     ensureDirectoryExists,
@@ -286,274 +285,52 @@ export const WallpaperBrowser = GObject.registerClass(
 
         /**
          * Creates the collapsible filters section for sorting, categories, and purity controls.
-         * @returns {Gtk.Revealer} The filters revealer widget
+         * @returns {WallpaperFiltersPanel} The filters panel widget
          * @private
          */
         _createFiltersSection() {
-            this._filtersRevealer = new Gtk.Revealer({
-                transition_type: Gtk.RevealerTransitionType.SLIDE_DOWN,
-                reveal_child: false,
+            this._filtersPanel = new WallpaperFiltersPanel({
+                hasApiKey: this._hasApiKey,
+                purityControlsEnabled: this._purityControlsEnabled,
+                initialFilters: {
+                    sorting: this._searchParams.sorting,
+                    categories: this._searchParams.categories,
+                    purity: this._searchParams.purity,
+                },
             });
 
-            const filtersBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: SPACING.MD,
-                margin_top: SPACING.SM,
-                margin_bottom: SPACING.SM,
-                margin_start: SPACING.MD,
-                margin_end: SPACING.MD,
+            this._filtersPanel.connect('filters-changed', (_, changedFilters) => {
+                this._onFiltersChanged(changedFilters);
             });
 
-            filtersBox.append(this._createSortDropdown());
-            filtersBox.append(
-                new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
-            );
-            filtersBox.append(this._createCategoriesCheckboxes());
+            // Keep reference for toggle button
+            this._filtersRevealer = this._filtersPanel;
 
-            const puritySeparator = new Gtk.Separator({
-                orientation: Gtk.Orientation.VERTICAL,
-            });
-            this._puritySeparator = puritySeparator;
-            puritySeparator.set_visible(this._purityControlsEnabled);
-
-            filtersBox.append(puritySeparator);
-            filtersBox.append(this._createPurityControls());
-
-            this._filtersRevealer.set_child(filtersBox);
-            return this._filtersRevealer;
+            return this._filtersPanel;
         }
 
         /**
-         * Creates the sort dropdown filter
-         * @returns {Gtk.Box} The sort dropdown container
+         * Handle filter changes from the filters panel
+         * @param {Object} changedFilters - The filters that changed
          * @private
          */
-        _createSortDropdown() {
-            const sortBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 3,
-            });
+        _onFiltersChanged(changedFilters) {
+            // Update search params
+            Object.assign(this._searchParams, changedFilters);
 
-            const sortLabel = new Gtk.Label({
-                label: 'Sort',
-                xalign: 0,
-                css_classes: ['caption', 'dim-label'],
-            });
-
-            this._sortDropdown = new Gtk.DropDown({
-                model: new Gtk.StringList(),
-            });
-
-            const sortModel = this._sortDropdown.get_model();
-            [
-                'Latest',
-                'Relevance',
-                'Random',
-                'Views',
-                'Favorites',
-                'Top List',
-            ].forEach(item => {
-                sortModel.append(item);
-            });
-
-            this._sortDropdownSignalId = this._sortDropdown.connect(
-                'notify::selected',
-                () => {
-                    const sortMethods = [
-                        'date_added',
-                        'relevance',
-                        'random',
-                        'views',
-                        'favorites',
-                        'toplist',
-                    ];
-                    this._searchParams.sorting =
-                        sortMethods[this._sortDropdown.get_selected()];
-                    this._currentPage = 1;
-                    this._hasMorePages = true;
-                    this._persistFilters();
-                    this._performSearch();
-                }
-            );
-
-            sortBox.append(sortLabel);
-            sortBox.append(this._sortDropdown);
-
-            return sortBox;
-        }
-
-        /**
-         * Creates the purity checkboxes filter
-         * @returns {Gtk.Box} The purity checkboxes container
-         * @private
-         */
-        _createPurityControls() {
-            const purityBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 3,
-            });
-
-            this._purityBox = purityBox;
-
-            const purityLabel = new Gtk.Label({
-                label: 'Purity',
-                xalign: 0,
-                css_classes: ['caption', 'dim-label'],
-            });
-
-            const purityCheckBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: SPACING.SM,
-            });
-
-            this._sfwCheck = new Gtk.CheckButton({
-                label: 'SFW',
-                active: true,
-            });
-            this._sketchyCheck = new Gtk.CheckButton({
-                label: 'Sketchy',
-                active: false,
-            });
-            this._nsfwCheck = new Gtk.CheckButton({
-                label: 'NSFW',
-                active: false,
-                sensitive: this._hasApiKey,
-            });
-
-            const updatePurity = () => {
-                if (!this._purityControlsEnabled) {
-                    return;
-                }
-
-                const purity = [
-                    this._sfwCheck.get_active() ? '1' : '0',
-                    this._sketchyCheck.get_active() ? '1' : '0',
-                    this._nsfwCheck.get_active() ? '1' : '0',
-                ].join('');
-
+            // Normalize purity if needed
+            if (changedFilters.purity) {
                 this._searchParams.purity = this._normalizePurity(
-                    purity,
+                    changedFilters.purity,
                     this._hasApiKey
                 );
-                this._currentPage = 1;
-                this._hasMorePages = true;
-                this._persistFilters();
-                this._performSearch();
-            };
+            }
 
-            this._sfwCheckSignalId = this._sfwCheck.connect(
-                'toggled',
-                updatePurity
-            );
-            this._sketchyCheckSignalId = this._sketchyCheck.connect(
-                'toggled',
-                updatePurity
-            );
-            this._nsfwCheckSignalId = this._nsfwCheck.connect('toggled', () => {
-                const isActive = this._nsfwCheck.get_active();
-
-                if (isActive && !this._hasApiKey) {
-                    showToast(
-                        this,
-                        'NSFW requires a valid Wallhaven API key',
-                        3
-                    );
-
-                    withSignalBlocked(
-                        this._nsfwCheck,
-                        this._nsfwCheckSignalId,
-                        () => {
-                            this._nsfwCheck.set_active(false);
-                        }
-                    );
-
-                    return;
-                }
-
-                updatePurity();
-            });
-
-            purityCheckBox.append(this._sfwCheck);
-            purityCheckBox.append(this._sketchyCheck);
-            purityCheckBox.append(this._nsfwCheck);
-
-            purityBox.append(purityLabel);
-            purityBox.append(purityCheckBox);
-
-            purityBox.set_visible(this._purityControlsEnabled);
-
-            return purityBox;
-        }
-
-        /**
-         * Creates the categories checkboxes filter
-         * @returns {Gtk.Box} The categories checkboxes container
-         * @private
-         */
-        _createCategoriesCheckboxes() {
-            const categoriesBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 3,
-            });
-
-            const categoriesLabel = new Gtk.Label({
-                label: 'Categories',
-                xalign: 0,
-                css_classes: ['caption', 'dim-label'],
-            });
-
-            const categoriesCheckBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: SPACING.SM,
-            });
-
-            this._generalCheck = new Gtk.CheckButton({
-                label: 'General',
-                active: true,
-            });
-            this._animeCheck = new Gtk.CheckButton({
-                label: 'Anime',
-                active: true,
-            });
-            this._peopleCheck = new Gtk.CheckButton({
-                label: 'People',
-                active: true,
-            });
-
-            const updateCategories = () => {
-                const cats = [
-                    this._generalCheck.get_active() ? '1' : '0',
-                    this._animeCheck.get_active() ? '1' : '0',
-                    this._peopleCheck.get_active() ? '1' : '0',
-                ].join('');
-                this._searchParams.categories = cats;
-                this._currentPage = 1;
-                this._hasMorePages = true;
-                this._persistFilters();
-                this._performSearch();
-            };
-
-            this._generalCheckSignalId = this._generalCheck.connect(
-                'toggled',
-                updateCategories
-            );
-            this._animeCheckSignalId = this._animeCheck.connect(
-                'toggled',
-                updateCategories
-            );
-            this._peopleCheckSignalId = this._peopleCheck.connect(
-                'toggled',
-                updateCategories
-            );
-
-            categoriesCheckBox.append(this._generalCheck);
-            categoriesCheckBox.append(this._animeCheck);
-            categoriesCheckBox.append(this._peopleCheck);
-
-            categoriesBox.append(categoriesLabel);
-            categoriesBox.append(categoriesCheckBox);
-
-            return categoriesBox;
+            // Reset pagination and search
+            this._currentPage = 1;
+            this._hasMorePages = true;
+            this._persistFilters();
+            this._performSearch();
         }
 
         /**
@@ -872,15 +649,11 @@ export const WallpaperBrowser = GObject.registerClass(
          * @private
          */
         _updatePurityControlsVisibility() {
-            if (!this._purityBox) {
+            if (!this._filtersPanel) {
                 return;
             }
 
-            this._purityBox.set_visible(this._purityControlsEnabled);
-
-            if (this._puritySeparator) {
-                this._puritySeparator.set_visible(this._purityControlsEnabled);
-            }
+            this._filtersPanel.setPurityControlsEnabled(this._purityControlsEnabled);
 
             if (!this._purityControlsEnabled) {
                 const normalizedPurity = this._normalizePurity(
@@ -889,43 +662,10 @@ export const WallpaperBrowser = GObject.registerClass(
                 );
                 this._searchParams.purity = normalizedPurity;
 
-                if (this._sfwCheck && this._sketchyCheck && this._nsfwCheck) {
-                    if (this._sfwCheckSignalId) {
-                        withSignalBlocked(
-                            this._sfwCheck,
-                            this._sfwCheckSignalId,
-                            () => {
-                                this._sfwCheck.set_active(true);
-                            }
-                        );
-                    } else {
-                        this._sfwCheck.set_active(true);
-                    }
-
-                    if (this._sketchyCheckSignalId) {
-                        withSignalBlocked(
-                            this._sketchyCheck,
-                            this._sketchyCheckSignalId,
-                            () => {
-                                this._sketchyCheck.set_active(false);
-                            }
-                        );
-                    } else {
-                        this._sketchyCheck.set_active(false);
-                    }
-
-                    if (this._nsfwCheckSignalId) {
-                        withSignalBlocked(
-                            this._nsfwCheck,
-                            this._nsfwCheckSignalId,
-                            () => {
-                                this._nsfwCheck.set_active(false);
-                            }
-                        );
-                    } else {
-                        this._nsfwCheck.set_active(false);
-                    }
-                }
+                // Update panel with normalized purity
+                this._filtersPanel.setFilters({
+                    purity: normalizedPurity,
+                });
             }
         }
 
@@ -1000,60 +740,7 @@ export const WallpaperBrowser = GObject.registerClass(
          * @private
          */
         _updateUIFromConfig() {
-            if (this._sortDropdown) {
-                const sortMethods = [
-                    'date_added',
-                    'relevance',
-                    'random',
-                    'views',
-                    'favorites',
-                    'toplist',
-                ];
-                const index = sortMethods.indexOf(this._searchParams.sorting);
-                if (index !== -1) {
-                    updateWithoutSignal(
-                        this._sortDropdown,
-                        this._sortDropdownSignalId,
-                        index
-                    );
-                }
-            }
-
-            if (
-                !this._generalCheck ||
-                !this._animeCheck ||
-                !this._peopleCheck
-            ) {
-                return;
-            }
-
-            const cats = this._searchParams.categories;
-
-            withSignalBlocked(
-                this._generalCheck,
-                this._generalCheckSignalId,
-                () => {
-                    this._generalCheck.set_active(cats[0] === '1');
-                }
-            );
-
-            withSignalBlocked(
-                this._animeCheck,
-                this._animeCheckSignalId,
-                () => {
-                    this._animeCheck.set_active(cats[1] === '1');
-                }
-            );
-
-            withSignalBlocked(
-                this._peopleCheck,
-                this._peopleCheckSignalId,
-                () => {
-                    this._peopleCheck.set_active(cats[2] === '1');
-                }
-            );
-
-            if (!this._sfwCheck || !this._sketchyCheck || !this._nsfwCheck) {
+            if (!this._filtersPanel) {
                 return;
             }
 
@@ -1061,32 +748,17 @@ export const WallpaperBrowser = GObject.registerClass(
                 this._searchParams.purity,
                 this._hasApiKey
             );
-
             this._searchParams.purity = normalizedPurity;
 
-            withSignalBlocked(this._sfwCheck, this._sfwCheckSignalId, () => {
-                this._sfwCheck.set_active(normalizedPurity[0] === '1');
+            // Update filters panel with current search params
+            this._filtersPanel.setFilters({
+                sorting: this._searchParams.sorting,
+                categories: this._searchParams.categories,
+                purity: normalizedPurity,
             });
 
-            withSignalBlocked(
-                this._sketchyCheck,
-                this._sketchyCheckSignalId,
-                () => {
-                    this._sketchyCheck.set_active(normalizedPurity[1] === '1');
-                }
-            );
-
-            withSignalBlocked(this._nsfwCheck, this._nsfwCheckSignalId, () => {
-                const allowNsfw =
-                    normalizedPurity[2] === '1' &&
-                    this._hasApiKey &&
-                    this._purityControlsEnabled;
-
-                this._nsfwCheck.set_sensitive(
-                    this._hasApiKey && this._purityControlsEnabled
-                );
-                this._nsfwCheck.set_active(allowNsfw);
-            });
+            // Update API key status
+            this._filtersPanel.setHasApiKey(this._hasApiKey);
         }
 
         /**
