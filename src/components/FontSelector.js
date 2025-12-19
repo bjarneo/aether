@@ -6,6 +6,7 @@ import Pango from 'gi://Pango';
 
 import {FontManager} from '../services/font-manager.js';
 import {showToast} from '../utils/ui-helpers.js';
+import {createInfoRow} from '../utils/ui-builders.js';
 
 /**
  * FontSelector - Component for selecting and managing system fonts
@@ -258,7 +259,7 @@ export const FontSelector = GObject.registerClass(
             const fonts = this._fontManager.getInstalledFonts();
 
             if (fonts.length === 0) {
-                const emptyRow = new Adw.ActionRow({
+                const {row: emptyRow} = createInfoRow({
                     title: 'No monospace fonts found',
                     subtitle: 'Install fonts to ~/.local/share/fonts/',
                 });

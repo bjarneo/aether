@@ -4,6 +4,7 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
 import {showToast} from '../utils/ui-helpers.js';
+import {createInfoRow} from '../utils/ui-builders.js';
 import {FilterConfirmationDialog} from './wallpaper-editor/FilterConfirmationDialog.js';
 
 /**
@@ -166,7 +167,7 @@ export const ShaderManager = GObject.registerClass(
          */
         _buildShaderList() {
             if (this._shaders.length === 0) {
-                const emptyRow = new Adw.ActionRow({
+                const {row: emptyRow} = createInfoRow({
                     title: 'No shaders found',
                     subtitle: 'Install shaders to ~/.config/hypr/shaders',
                 });
@@ -404,7 +405,7 @@ export const ShaderManager = GObject.registerClass(
          * @param {string} message - Error message
          */
         _showError(message) {
-            const errorRow = new Adw.ActionRow({
+            const {row: errorRow} = createInfoRow({
                 title: 'Error',
                 subtitle: message,
             });
