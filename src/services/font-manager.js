@@ -1,6 +1,8 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
+import {readFileAsText, fileExists} from '../utils/file-utils.js';
+
 /**
  * FontManager - Service for managing system fonts
  *
@@ -80,11 +82,9 @@ export class FontManager {
                 'kitty.conf',
             ]);
 
-            const file = Gio.File.new_for_path(kittyConfPath);
-            if (file.query_exists(null)) {
-                const [success, contents] = file.load_contents(null);
-                if (success) {
-                    const text = new TextDecoder('utf-8').decode(contents);
+            if (fileExists(kittyConfPath)) {
+                const text = readFileAsText(kittyConfPath);
+                if (text) {
                     // Look for line: font_family Font Name
                     const match = text.match(/^font_family\s+(.+)$/m);
                     if (match && match[1]) {
@@ -106,11 +106,9 @@ export class FontManager {
                 'alacritty.toml',
             ]);
 
-            const file = Gio.File.new_for_path(alacrittyTomlPath);
-            if (file.query_exists(null)) {
-                const [success, contents] = file.load_contents(null);
-                if (success) {
-                    const text = new TextDecoder('utf-8').decode(contents);
+            if (fileExists(alacrittyTomlPath)) {
+                const text = readFileAsText(alacrittyTomlPath);
+                if (text) {
                     // Look for line: family = "Font Name"
                     const match = text.match(/family\s*=\s*"([^"]+)"/);
                     if (match && match[1]) {

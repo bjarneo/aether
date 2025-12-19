@@ -2,7 +2,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
 import {BlueprintService} from '../../services/BlueprintService.js';
-import {saveJsonFile} from '../../utils/file-utils.js';
+import {saveJsonFile, loadJsonFile, fileExists} from '../../utils/file-utils.js';
 
 /**
  * Command handler for importing blueprint themes from URLs or files
@@ -157,33 +157,24 @@ export class ImportBlueprintCommand {
      * @private
      */
     static _loadLocalBlueprint(filePath) {
-        try {
-            const file = Gio.File.new_for_path(filePath);
-
-            if (!file.query_exists(null)) {
-                print(`Error: File not found: ${filePath}`);
-                return null;
-            }
-
-            const [success, contents] = file.load_contents(null);
-            if (!success) {
-                print(`Error: Failed to read file: ${filePath}`);
-                return null;
-            }
-
-            const text = new TextDecoder('utf-8').decode(contents);
-            const blueprintData = JSON.parse(text);
-
-            // Extract name from blueprint or filename
-            const name =
-                blueprintData.name ||
-                GLib.path_get_basename(filePath).replace('.json', '');
-
-            return {data: blueprintData, name};
-        } catch (error) {
-            print(`Error: Failed to load blueprint: ${error.message}`);
+        if (!fileExists(filePath)) {
+            print(`Error: File not found: ${filePath}`);
             return null;
         }
+
+        const blueprintData = loadJsonFile(filePath, null);
+
+        if (!blueprintData) {
+            print(`Error: Failed to load blueprint from: ${filePath}`);
+            return null;
+        }
+
+        // Extract name from blueprint or filename
+        const name =
+            blueprintData.name ||
+            GLib.path_get_basename(filePath).replace('.json', '');
+
+        return {data: blueprintData, name};
     }
 
     /**

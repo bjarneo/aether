@@ -2,7 +2,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 
-import {ensureDirectoryExists} from '../utils/file-utils.js';
+import {ensureDirectoryExists, loadJsonFile} from '../utils/file-utils.js';
 
 /**
  * FavoritesService - Manages wallpaper favorites with efficient storage and lookup
@@ -30,45 +30,32 @@ export const FavoritesService = GObject.registerClass(
         }
 
         _loadFavorites() {
-            try {
-                const file = Gio.File.new_for_path(this._configPath);
+            const favArray = loadJsonFile(this._configPath, []);
 
-                if (!file.query_exists(null)) {
-                    return;
-                }
-
-                const [success, contents] = file.load_contents(null);
-                if (!success) {
-                    return;
-                }
-
-                const decoder = new TextDecoder('utf-8');
-                const text = decoder.decode(contents);
-                const favArray = JSON.parse(text);
-
-                // Process favorites and build index
-                favArray.forEach(fav => {
-                    if (typeof fav === 'string') {
-                        // Double-encoded string (bug from refactoring) - parse it first
-                        try {
-                            const parsed = JSON.parse(fav);
-                            const jsonStr = JSON.stringify(parsed);
-                            this._addToIndex(jsonStr);
-                        } catch (e) {
-                            console.error(
-                                'Failed to parse double-encoded favorite:',
-                                e.message
-                            );
-                        }
-                    } else {
-                        // Proper object format - convert to JSON string for internal storage
-                        const jsonStr = JSON.stringify(fav);
-                        this._addToIndex(jsonStr);
-                    }
-                });
-            } catch (e) {
-                console.error('Failed to load favorites:', e.message);
+            if (!Array.isArray(favArray)) {
+                return;
             }
+
+            // Process favorites and build index
+            favArray.forEach(fav => {
+                if (typeof fav === 'string') {
+                    // Double-encoded string (bug from refactoring) - parse it first
+                    try {
+                        const parsed = JSON.parse(fav);
+                        const jsonStr = JSON.stringify(parsed);
+                        this._addToIndex(jsonStr);
+                    } catch (e) {
+                        console.error(
+                            'Failed to parse double-encoded favorite:',
+                            e.message
+                        );
+                    }
+                } else {
+                    // Proper object format - convert to JSON string for internal storage
+                    const jsonStr = JSON.stringify(fav);
+                    this._addToIndex(jsonStr);
+                }
+            });
         }
 
         _addToIndex(jsonStr) {

@@ -1,6 +1,8 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
+import {loadJsonFile, saveJsonFile} from './file-utils.js';
+
 /**
  * Migration utilities for Aether
  * Handles data migrations between versions
@@ -208,19 +210,16 @@ export function migrateBlueprintPaths() {
             }
 
             try {
-                const blueprintFile = dir.get_child(fileName);
-                const [success, contents] = blueprintFile.load_contents(null);
+                const blueprintPath = GLib.build_filenamev([blueprintsDir, fileName]);
+                const blueprint = loadJsonFile(blueprintPath, null);
 
-                if (!success) {
+                if (!blueprint) {
                     console.warn(
                         `[Migration] Failed to load blueprint: ${fileName}`
                     );
                     result.failed++;
                     continue;
                 }
-
-                const text = new TextDecoder('utf-8').decode(contents);
-                const blueprint = JSON.parse(text);
 
                 // Check if blueprint has wallpaper path that needs updating
                 if (
@@ -230,23 +229,16 @@ export function migrateBlueprintPaths() {
                 ) {
                     // Update the path
                     const oldPath = blueprint.palette.wallpaper;
-                    const fileName = GLib.path_get_basename(oldPath);
+                    const wallpaperFileName = GLib.path_get_basename(oldPath);
                     const newPath = GLib.build_filenamev([
                         newDataPath,
-                        fileName,
+                        wallpaperFileName,
                     ]);
 
                     blueprint.palette.wallpaper = newPath;
 
                     // Write updated blueprint
-                    const updatedJson = JSON.stringify(blueprint, null, 2);
-                    blueprintFile.replace_contents(
-                        new TextEncoder().encode(updatedJson),
-                        null,
-                        false,
-                        Gio.FileCreateFlags.REPLACE_DESTINATION,
-                        null
-                    );
+                    saveJsonFile(blueprintPath, blueprint);
 
                     console.log(`[Migration] Updated blueprint: ${fileName}`);
                     result.updated++;

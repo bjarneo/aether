@@ -5,6 +5,8 @@ import {
     ensureDirectoryExists,
     enumerateDirectory,
     copyFile,
+    readFileAsText,
+    writeTextToFile,
 } from '../file-utils.js';
 
 /**
@@ -131,17 +133,12 @@ export class VscodeThemeApplier {
     _processAndCopyFile(sourcePath, destPath, variables) {
         try {
             // Read source file
-            const sourceFile = Gio.File.new_for_path(sourcePath);
-            const [success, contents] = sourceFile.load_contents(null);
+            let content = readFileAsText(sourcePath);
 
-            if (!success) {
+            if (!content) {
                 console.error(`Failed to read ${sourcePath}`);
                 return;
             }
-
-            // Process content with variable substitution
-            const decoder = new TextDecoder('utf-8');
-            let content = decoder.decode(contents);
 
             // Replace all variables in format {variable}
             Object.entries(variables).forEach(([key, value]) => {
@@ -150,14 +147,7 @@ export class VscodeThemeApplier {
             });
 
             // Write to destination
-            const destFile = Gio.File.new_for_path(destPath);
-            destFile.replace_contents(
-                content,
-                null,
-                false,
-                Gio.FileCreateFlags.REPLACE_DESTINATION,
-                null
-            );
+            writeTextToFile(destPath, content);
         } catch (e) {
             console.error(
                 `Error processing VSCode file ${GLib.path_get_basename(sourcePath)}:`,
