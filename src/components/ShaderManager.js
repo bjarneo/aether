@@ -6,6 +6,7 @@ import Adw from 'gi://Adw?version=1';
 import {showToast} from '../utils/ui-helpers.js';
 import {createInfoRow} from '../utils/ui-builders.js';
 import {FilterConfirmationDialog} from './wallpaper-editor/FilterConfirmationDialog.js';
+import {SPACING} from '../constants/ui-constants.js';
 
 /**
  * ShaderManager - Component for managing hyprshade screen shaders
@@ -94,10 +95,10 @@ export const ShaderManager = GObject.registerClass(
 
             const contentBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
             });
 
             contentBox.append(this._scrolledWindow);

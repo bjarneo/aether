@@ -20,6 +20,7 @@ import {
     loadJsonFile,
     saveJsonFile,
 } from '../utils/file-utils.js';
+import {SPACING, GRID} from '../constants/ui-constants.js';
 
 /**
  * WallpaperBrowser - GTK widget for browsing and downloading wallpapers from wallhaven.cc
@@ -65,7 +66,7 @@ export const WallpaperBrowser = GObject.registerClass(
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
 
             this._currentPage = 1;
@@ -118,7 +119,7 @@ export const WallpaperBrowser = GObject.registerClass(
                 orientation: Gtk.Orientation.VERTICAL,
                 valign: Gtk.Align.CENTER,
                 halign: Gtk.Align.CENTER,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
             const spinner = new Gtk.Spinner({
                 width_request: 48,
@@ -138,7 +139,7 @@ export const WallpaperBrowser = GObject.registerClass(
                 orientation: Gtk.Orientation.VERTICAL,
                 valign: Gtk.Align.CENTER,
                 halign: Gtk.Align.CENTER,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
             this._errorLabel = new Gtk.Label({
                 label: 'Failed to load wallpapers',
@@ -162,15 +163,15 @@ export const WallpaperBrowser = GObject.registerClass(
             // Wallpaper grid - start with default 3 columns, will be updated based on screen size
             this._gridFlow = new Gtk.FlowBox({
                 valign: Gtk.Align.START,
-                max_children_per_line: 3,
-                min_children_per_line: 2,
+                max_children_per_line: GRID.MAX_COLUMNS,
+                min_children_per_line: GRID.MIN_COLUMNS,
                 selection_mode: Gtk.SelectionMode.NONE,
-                column_spacing: 12,
-                row_spacing: 12,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                column_spacing: GRID.COLUMN_SPACING,
+                row_spacing: GRID.ROW_SPACING,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
                 homogeneous: true,
             });
 
@@ -213,11 +214,11 @@ export const WallpaperBrowser = GObject.registerClass(
         _createSearchActionBar() {
             const actionBar = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-                margin_top: 6,
-                margin_bottom: 6,
-                margin_start: 12,
-                margin_end: 12,
+                spacing: SPACING.SM,
+                margin_top: SPACING.SM,
+                margin_bottom: SPACING.SM,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
             });
 
             // Search entry
@@ -296,11 +297,11 @@ export const WallpaperBrowser = GObject.registerClass(
 
             const filtersBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
-                margin_top: 6,
-                margin_bottom: 6,
-                margin_start: 12,
-                margin_end: 12,
+                spacing: SPACING.MD,
+                margin_top: SPACING.SM,
+                margin_bottom: SPACING.SM,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
             });
 
             filtersBox.append(this._createSortDropdown());
@@ -402,7 +403,7 @@ export const WallpaperBrowser = GObject.registerClass(
 
             const purityCheckBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
 
             this._sfwCheck = new Gtk.CheckButton({
@@ -503,7 +504,7 @@ export const WallpaperBrowser = GObject.registerClass(
 
             const categoriesCheckBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
 
             this._generalCheck = new Gtk.CheckButton({
@@ -1228,11 +1229,11 @@ export const WallpaperBrowser = GObject.registerClass(
 
             const contentBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                spacing: SPACING.MD,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
             });
 
             // API Configuration Group
@@ -1293,7 +1294,7 @@ export const WallpaperBrowser = GObject.registerClass(
                 title: 'Resolution Filters',
                 description:
                     'Filter wallpapers by resolution (comma-separated, e.g., "1920x1080,2560x1440")',
-                margin_top: 12,
+                margin_top: SPACING.MD,
             });
 
             const resolutionRow = new Adw.EntryRow({
@@ -1307,11 +1308,11 @@ export const WallpaperBrowser = GObject.registerClass(
             // Common resolutions as presets
             const presetsBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
                 halign: Gtk.Align.START,
-                margin_start: 12,
-                margin_end: 12,
-                margin_top: 6,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
+                margin_top: SPACING.SM,
             });
 
             const presets = [
@@ -1385,9 +1386,9 @@ export const WallpaperBrowser = GObject.registerClass(
             // Action buttons
             const buttonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
                 halign: Gtk.Align.END,
-                margin_top: 12,
+                margin_top: SPACING.MD,
             });
 
             const cancelButton = new Gtk.Button({

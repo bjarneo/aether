@@ -11,6 +11,7 @@ import {
     resolveTemplatePath,
     getCustomApps,
 } from '../../utils/template-utils.js';
+import {SPACING} from '../../constants/ui-constants.js';
 
 export const AppColorOverrides = GObject.registerClass(
     {
@@ -366,8 +367,8 @@ export const AppColorOverrides = GObject.registerClass(
             const resetButton = new Gtk.Button({
                 label: 'Reset All Overrides',
                 css_classes: ['destructive-action'],
-                margin_top: 12,
-                margin_bottom: 12,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
                 margin_start: 12,
                 margin_end: 12,
             });
@@ -434,9 +435,9 @@ export const AppColorOverrides = GObject.registerClass(
 
             const content = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_top: 12,
-                margin_bottom: 12,
+                spacing: SPACING.MD,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
                 margin_start: 12,
                 margin_end: 12,
             });
@@ -473,8 +474,8 @@ export const AppColorOverrides = GObject.registerClass(
                 const emptyLabel = new Gtk.Label({
                     label: 'No color variables found in this template',
                     css_classes: ['dim-label'],
-                    margin_top: 12,
-                    margin_bottom: 12,
+                    margin_top: SPACING.MD,
+                    margin_bottom: SPACING.MD,
                 });
                 overridesGroup.add(emptyLabel);
             } else {
@@ -499,8 +500,8 @@ export const AppColorOverrides = GObject.registerClass(
             // Button row
             const buttonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-                margin_top: 12,
+                spacing: SPACING.SM,
+                margin_top: SPACING.MD,
                 halign: Gtk.Align.END,
             });
 

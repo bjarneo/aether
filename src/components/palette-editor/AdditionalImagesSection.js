@@ -5,6 +5,7 @@ import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {uploadMultipleWallpapers} from '../../utils/wallpaper-utils.js';
 import {wallhavenService} from '../../services/wallhaven-service.js';
+import {SPACING} from '../../constants/ui-constants.js';
 
 /**
  * AdditionalImagesSection - Manages additional background images
@@ -20,8 +21,8 @@ export const AdditionalImagesSection = GObject.registerClass(
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 6,
-                margin_top: 12,
+                spacing: SPACING.SM,
+                margin_top: SPACING.MD,
                 visible: true,
             });
 
@@ -33,7 +34,7 @@ export const AdditionalImagesSection = GObject.registerClass(
             // Header with label and add button
             const headerBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
 
             const label = new Gtk.Label({
@@ -58,8 +59,8 @@ export const AdditionalImagesSection = GObject.registerClass(
             // Grid for additional images (hidden when empty)
             this._imagesGrid = new Gtk.FlowBox({
                 selection_mode: Gtk.SelectionMode.NONE,
-                column_spacing: 6,
-                row_spacing: 6,
+                column_spacing: SPACING.SM,
+                row_spacing: SPACING.SM,
                 homogeneous: true,
                 max_children_per_line: 4,
                 min_children_per_line: 2,

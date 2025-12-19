@@ -11,6 +11,7 @@ import {ShaderManager} from './ShaderManager.js';
 import {FontSelector} from './FontSelector.js';
 import {COLOR_PRESETS} from '../constants/presets.js';
 import {NEOVIM_PRESETS} from '../constants/neovim-presets.js';
+import {SPACING, SIDEBAR} from '../constants/ui-constants.js';
 import {
     applyCssToWidget,
     removeAllChildren,
@@ -130,11 +131,11 @@ export const SettingsSidebar = GObject.registerClass(
 
             const contentBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                spacing: SPACING.MD,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
             });
 
             // Light Mode Section
@@ -252,11 +253,11 @@ export const SettingsSidebar = GObject.registerClass(
 
             const controlsBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_start: 12,
-                margin_end: 12,
-                margin_top: 12,
-                margin_bottom: 12,
+                spacing: SPACING.MD,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
             });
 
             // Start color selection
@@ -329,7 +330,7 @@ export const SettingsSidebar = GObject.registerClass(
             this._gradientPreviewBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 0,
-                margin_top: 12,
+                margin_top: SPACING.MD,
                 height_request: 40,
                 css_classes: ['card'],
             });
@@ -339,7 +340,7 @@ export const SettingsSidebar = GObject.registerClass(
             const generateButton = new Gtk.Button({
                 label: 'Generate Palette',
                 halign: Gtk.Align.CENTER,
-                margin_top: 6,
+                margin_top: SPACING.SM,
                 css_classes: ['suggested-action'],
             });
             generateButton.connect('clicked', () => this._generateGradient());
@@ -422,11 +423,11 @@ export const SettingsSidebar = GObject.registerClass(
 
             const controlsBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_start: 12,
-                margin_end: 12,
-                margin_top: 12,
-                margin_bottom: 12,
+                spacing: SPACING.MD,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
             });
 
             // Base color selection row
@@ -554,7 +555,7 @@ export const SettingsSidebar = GObject.registerClass(
             const scrolled = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-                height_request: 300,
+                height_request: SIDEBAR.SCROLLED_LIST_HEIGHT,
             });
             scrolled.set_child(listBox);
 
@@ -633,7 +634,7 @@ export const SettingsSidebar = GObject.registerClass(
             const scrolled = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-                height_request: 300,
+                height_request: SIDEBAR.SCROLLED_LIST_HEIGHT,
             });
             scrolled.set_child(listBox);
 
@@ -732,10 +733,10 @@ export const SettingsSidebar = GObject.registerClass(
             // Wrap in a box with padding
             const fontBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                margin_start: 12,
-                margin_end: 12,
-                margin_top: 12,
-                margin_bottom: 12,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
             });
 
             fontBox.append(this._fontSelector);
@@ -768,7 +769,7 @@ export const SettingsSidebar = GObject.registerClass(
             // Create a box to hold the info button, clear button, and switch
             const suffixBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
                 valign: Gtk.Align.CENTER,
             });
 

@@ -7,6 +7,7 @@ import Pango from 'gi://Pango';
 import {FontManager} from '../services/font-manager.js';
 import {showToast} from '../utils/ui-helpers.js';
 import {createInfoRow} from '../utils/ui-builders.js';
+import {SPACING} from '../constants/ui-constants.js';
 
 /**
  * FontSelector - Component for selecting and managing system fonts
@@ -39,7 +40,7 @@ export const FontSelector = GObject.registerClass(
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
 
             this._fontManager = new FontManager();
@@ -58,7 +59,7 @@ export const FontSelector = GObject.registerClass(
         _buildUI() {
             const contentBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
 
             // Font preview section
@@ -139,8 +140,8 @@ export const FontSelector = GObject.registerClass(
         _createInstalledFontsPage() {
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 6,
-                margin_top: 12,
+                spacing: SPACING.SM,
+                margin_top: SPACING.MD,
             });
 
             // Search entry
@@ -190,8 +191,8 @@ export const FontSelector = GObject.registerClass(
         _createActionButtons() {
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-                margin_top: 6,
+                spacing: SPACING.SM,
+                margin_top: SPACING.SM,
             });
 
             // Apply font button

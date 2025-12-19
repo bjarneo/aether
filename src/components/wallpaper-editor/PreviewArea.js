@@ -7,6 +7,7 @@ import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {applyCssToWidget} from '../../utils/ui-helpers.js';
 import {applyFiltersWithImageMagick} from '../../utils/image-filter-utils.js';
+import {SPACING} from '../../constants/ui-constants.js';
 
 // Preview performance constants
 const PREVIEW_MAX_WIDTH = 800; // Maximum preview width for performance vs quality balance
@@ -48,7 +49,7 @@ export const PreviewArea = GObject.registerClass(
         _buildUI() {
             const headerBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
+                spacing: SPACING.MD,
                 margin_bottom: 0,
             });
 

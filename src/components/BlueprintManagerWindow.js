@@ -15,6 +15,7 @@ import {
 import {DialogManager} from '../utils/DialogManager.js';
 import {thumbnailService} from '../services/thumbnail-service.js';
 import {aetherApiService} from '../services/aether-api-service.js';
+import {SPACING, GRID} from '../constants/ui-constants.js';
 
 /**
  * BlueprintManagerWindow - Ultra-compact blueprint manager
@@ -136,8 +137,8 @@ export const BlueprintManagerWindow = GObject.registerClass(
                 min_children_per_line: 2,
                 selection_mode: Gtk.SelectionMode.NONE,
                 homogeneous: false,
-                row_spacing: 6,
-                column_spacing: 6,
+                row_spacing: SPACING.SM,
+                column_spacing: SPACING.SM,
                 margin_start: 6,
                 margin_end: 6,
                 margin_top: 6,
@@ -398,7 +399,7 @@ export const BlueprintManagerWindow = GObject.registerClass(
         _createButtons(blueprint) {
             const buttonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
                 margin_start: 6,
                 margin_end: 6,
                 margin_top: 4,
@@ -641,11 +642,11 @@ export const BlueprintManagerWindow = GObject.registerClass(
 
                     const spinnerBox = new Gtk.Box({
                         orientation: Gtk.Orientation.VERTICAL,
-                        spacing: 12,
+                        spacing: SPACING.MD,
                         margin_start: 24,
                         margin_end: 24,
-                        margin_top: 12,
-                        margin_bottom: 12,
+                        margin_top: SPACING.MD,
+                        margin_bottom: SPACING.MD,
                         halign: Gtk.Align.CENTER,
                     });
 

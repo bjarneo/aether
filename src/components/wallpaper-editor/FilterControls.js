@@ -12,6 +12,7 @@ import {
     DEFAULT_FILTERS,
 } from '../../utils/image-filter-utils.js';
 import {rgbToHsl, hslToHex} from '../../utils/color-utils.js';
+import {SPACING, GRID} from '../../constants/ui-constants.js';
 
 // UI constants
 const SLIDER_WIDTH = 200; // Slightly wider for better UX
@@ -73,7 +74,7 @@ export const FilterControls = GObject.registerClass(
             // Active filter indicator at top
             const headerBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
+                spacing: SPACING.MD,
                 margin_top: 8,
                 margin_bottom: 4,
                 margin_start: 18,
@@ -138,7 +139,7 @@ export const FilterControls = GObject.registerClass(
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 0,
-                margin_top: 12,
+                margin_top: SPACING.MD,
                 margin_bottom: 18,
                 margin_start: 18,
                 margin_end: 18,
@@ -244,7 +245,7 @@ export const FilterControls = GObject.registerClass(
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 20,
-                margin_top: 12,
+                margin_top: SPACING.MD,
                 margin_bottom: 18,
                 margin_start: 18,
                 margin_end: 18,
@@ -362,7 +363,7 @@ export const FilterControls = GObject.registerClass(
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 20,
-                margin_top: 12,
+                margin_top: SPACING.MD,
                 margin_bottom: 18,
                 margin_start: 18,
                 margin_end: 18,
@@ -487,7 +488,7 @@ export const FilterControls = GObject.registerClass(
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 16,
-                margin_top: 12,
+                margin_top: SPACING.MD,
                 margin_bottom: 18,
                 margin_start: 18,
                 margin_end: 18,
@@ -539,8 +540,8 @@ export const FilterControls = GObject.registerClass(
                 max_children_per_line: 2,
                 min_children_per_line: 2,
                 selection_mode: Gtk.SelectionMode.NONE,
-                column_spacing: 12,
-                row_spacing: 12,
+                column_spacing: GRID.COLUMN_SPACING,
+                row_spacing: GRID.ROW_SPACING,
                 homogeneous: true,
             });
 

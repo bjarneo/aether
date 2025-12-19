@@ -18,6 +18,7 @@ import Adw from 'gi://Adw?version=1';
 
 import {FILTER_PRESETS} from '../../utils/image-filter-utils.js';
 import {createWrapperRow} from '../../utils/ui-builders.js';
+import {SPACING, GRID} from '../../constants/ui-constants.js';
 
 /**
  * Preset categories with their associated presets
@@ -74,7 +75,7 @@ export const PresetGrid = GObject.registerClass(
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 16,
-                margin_top: 12,
+                margin_top: SPACING.MD,
                 margin_bottom: 18,
                 margin_start: 18,
                 margin_end: 18,
@@ -109,8 +110,8 @@ export const PresetGrid = GObject.registerClass(
                 max_children_per_line: 2,
                 min_children_per_line: 2,
                 selection_mode: Gtk.SelectionMode.NONE,
-                column_spacing: 12,
-                row_spacing: 12,
+                column_spacing: GRID.COLUMN_SPACING,
+                row_spacing: GRID.ROW_SPACING,
                 homogeneous: true,
             });
 

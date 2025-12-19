@@ -7,6 +7,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import GdkPixbuf from 'gi://GdkPixbuf';
 
 import {uploadWallpaper} from '../../utils/wallpaper-utils.js';
+import {SPACING} from '../../constants/ui-constants.js';
 
 /**
  * WallpaperSection - Handles wallpaper preview, upload, and actions
@@ -41,7 +42,7 @@ export const WallpaperSection = GObject.registerClass(
 
             const buttonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
                 valign: Gtk.Align.CENTER,
             });
 
@@ -61,7 +62,7 @@ export const WallpaperSection = GObject.registerClass(
             // Edit button
             const editButtonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
 
             editButtonBox.append(
@@ -88,7 +89,7 @@ export const WallpaperSection = GObject.registerClass(
             // Apply wallpaper button
             const applyWallpaperButtonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
 
             applyWallpaperButtonBox.append(

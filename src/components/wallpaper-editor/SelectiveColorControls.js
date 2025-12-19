@@ -1,6 +1,7 @@
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
+import {SPACING} from '../../constants/ui-constants.js';
 
 /**
  * SelectiveColorControls - HSL-style color range adjustments (like Lightroom)
@@ -192,7 +193,7 @@ export const SelectiveColorControls = GObject.registerClass(
 
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
+                spacing: SPACING.MD,
                 margin_top: 8,
                 margin_bottom: 8,
             });

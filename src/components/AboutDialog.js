@@ -3,6 +3,7 @@ import Gtk from 'gi://Gtk?version=4.0';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
+import {SPACING} from '../constants/ui-constants.js';
 
 export class AboutDialog {
     static show(parent) {
@@ -72,9 +73,9 @@ export class AboutDialog {
         // Buttons box
         const buttonsBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
+            spacing: SPACING.MD,
             halign: Gtk.Align.FILL,
-            margin_top: 12,
+            margin_top: SPACING.MD,
         });
 
         // Report Issue button

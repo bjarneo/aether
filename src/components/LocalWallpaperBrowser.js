@@ -11,6 +11,7 @@ import {thumbnailService} from '../services/thumbnail-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {uploadWallpaper} from '../utils/wallpaper-utils.js';
+import {SPACING, GRID} from '../constants/ui-constants.js';
 
 /**
  * LocalWallpaperBrowser - Component for browsing local wallpapers from ~/Wallpapers
@@ -90,7 +91,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
 
             this._wallpapersPath = GLib.build_filenamev([
@@ -127,7 +128,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 orientation: Gtk.Orientation.VERTICAL,
                 valign: Gtk.Align.CENTER,
                 halign: Gtk.Align.CENTER,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
             const spinner = new Gtk.Spinner({
                 width_request: 48,
@@ -147,7 +148,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 orientation: Gtk.Orientation.VERTICAL,
                 valign: Gtk.Align.CENTER,
                 halign: Gtk.Align.CENTER,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
             const emptyIcon = new Gtk.Image({
                 icon_name: 'folder-symbolic',
@@ -177,15 +178,15 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             // Wallpaper grid
             this._gridFlow = new Gtk.FlowBox({
                 valign: Gtk.Align.START,
-                max_children_per_line: 3,
-                min_children_per_line: 2,
+                max_children_per_line: GRID.MAX_COLUMNS,
+                min_children_per_line: GRID.MIN_COLUMNS,
                 selection_mode: Gtk.SelectionMode.NONE,
-                column_spacing: 12,
-                row_spacing: 12,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                column_spacing: GRID.COLUMN_SPACING,
+                row_spacing: GRID.ROW_SPACING,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
                 homogeneous: true,
             });
 
@@ -199,11 +200,11 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         _createToolbar() {
             const toolbarBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-                margin_top: 6,
-                margin_bottom: 6,
-                margin_start: 12,
-                margin_end: 12,
+                spacing: SPACING.SM,
+                margin_top: SPACING.SM,
+                margin_bottom: SPACING.SM,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
             });
 
             // Path label

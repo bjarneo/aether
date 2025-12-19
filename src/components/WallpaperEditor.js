@@ -9,6 +9,7 @@ import {
     applyFiltersWithImageMagick,
     getProcessedWallpaperCachePath,
 } from '../utils/image-filter-utils.js';
+import {SPACING} from '../constants/ui-constants.js';
 
 /**
  * WallpaperEditor - Professional wallpaper filter editor component
@@ -127,9 +128,9 @@ export const WallpaperEditor = GObject.registerClass(
             // Header
             const headerBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
+                spacing: SPACING.MD,
                 margin_top: 18,
-                margin_bottom: 12,
+                margin_bottom: SPACING.MD,
                 margin_start: 18,
                 margin_end: 18,
             });
@@ -154,7 +155,7 @@ export const WallpaperEditor = GObject.registerClass(
             // Action buttons box (Apply and Cancel)
             const actionBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
 
             this._applySpinner = new Gtk.Spinner({

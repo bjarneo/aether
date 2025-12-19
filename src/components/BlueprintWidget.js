@@ -6,6 +6,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 import Gtk4LayerShell from 'gi://Gtk4LayerShell?version=1.0';
 import {BlueprintService} from '../services/BlueprintService.js';
 import {createColorSwatchRow} from '../utils/blueprint-ui-helpers.js';
+import {SPACING} from '../constants/ui-constants.js';
 
 /**
  * BlueprintWidget - Minimal layer shell widget for blueprint selection
@@ -96,7 +97,7 @@ export const BlueprintWidget = GObject.registerClass(
             // Search entry - always visible for filtering
             const searchBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
                 margin_start: 12,
                 margin_end: 12,
                 margin_top: 6,

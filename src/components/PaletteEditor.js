@@ -12,6 +12,7 @@ import {WallpaperSection} from './palette-editor/WallpaperSection.js';
 import {AdditionalImagesSection} from './palette-editor/AdditionalImagesSection.js';
 import {ColorPaletteSection} from './palette-editor/ColorPaletteSection.js';
 import {EmptyState} from './palette-editor/EmptyState.js';
+import {SPACING} from '../constants/ui-constants.js';
 
 /**
  * PaletteEditor - Main component for palette creation and wallpaper management
@@ -62,7 +63,7 @@ export const PaletteEditor = GObject.registerClass(
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
 
             registerCustomIcons();
@@ -82,8 +83,8 @@ export const PaletteEditor = GObject.registerClass(
         _initializeUI() {
             const viewBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_top: 12,
+                spacing: SPACING.MD,
+                margin_top: SPACING.MD,
                 hexpand: true,
             });
 

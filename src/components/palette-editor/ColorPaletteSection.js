@@ -6,6 +6,7 @@ import {ColorSwatchGrid} from '../palette/color-swatch-grid.js';
 import {ColorPickerDialog} from '../palette/color-picker-dialog.js';
 import {WallpaperColorPicker} from '../palette/wallpaper-color-picker.js';
 import {AppColorOverrides} from '../palette/AppColorOverrides.js';
+import {SPACING} from '../../constants/ui-constants.js';
 
 /**
  * ColorPaletteSection - Manages the color palette display and editing
@@ -24,8 +25,8 @@ export const ColorPaletteSection = GObject.registerClass(
         _init() {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_top: 12,
+                spacing: SPACING.MD,
+                margin_top: SPACING.MD,
             });
 
             this._palette = [];
@@ -39,7 +40,7 @@ export const ColorPaletteSection = GObject.registerClass(
             // Header with title and pick button
             const headerBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
 
             const label = new Gtk.Label({
@@ -79,7 +80,7 @@ export const ColorPaletteSection = GObject.registerClass(
 
             // App color overrides (always visible)
             this._advancedGroup = new Adw.PreferencesGroup({
-                margin_top: 12,
+                margin_top: SPACING.MD,
                 visible: true,
             });
             this._appOverridesWidget = new AppColorOverrides();
@@ -120,11 +121,11 @@ export const ColorPaletteSection = GObject.registerClass(
 
             const content = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                spacing: SPACING.MD,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
             });
 
             // Swatch selector label
@@ -132,7 +133,7 @@ export const ColorPaletteSection = GObject.registerClass(
                 label: 'Select a color slot to replace:',
                 css_classes: ['caption', 'dim-label'],
                 xalign: 0,
-                margin_bottom: 6,
+                margin_bottom: SPACING.SM,
             });
             content.append(selectorLabel);
 

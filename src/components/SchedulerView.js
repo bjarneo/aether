@@ -4,6 +4,7 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 import {SchedulerService} from '../services/SchedulerService.js';
 import {ScheduleDialog} from './ScheduleDialog.js';
+import {SPACING} from '../constants/ui-constants.js';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -69,7 +70,7 @@ export const SchedulerView = GObject.registerClass(
 
             const titleBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
+                spacing: SPACING.MD,
             });
 
             const icon = new Gtk.Image({
@@ -155,7 +156,7 @@ export const SchedulerView = GObject.registerClass(
             const buttonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 halign: Gtk.Align.CENTER,
-                margin_top: 12,
+                margin_top: SPACING.MD,
             });
 
             const addButton = new Gtk.Button({

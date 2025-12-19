@@ -4,6 +4,7 @@ import Adw from 'gi://Adw?version=1';
 import Gdk from 'gi://Gdk?version=4.0';
 
 import {uploadWallpaper} from '../../utils/wallpaper-utils.js';
+import {SPACING} from '../../constants/ui-constants.js';
 
 /**
  * EmptyState - Initial state shown when no wallpaper is loaded
@@ -45,7 +46,7 @@ export const EmptyState = GObject.registerClass(
             const title = new Gtk.Label({
                 label: 'Get Started in 3 Easy Steps',
                 css_classes: ['title-1'],
-                margin_top: 12,
+                margin_top: SPACING.MD,
             });
             this.append(title);
 
@@ -77,7 +78,7 @@ export const EmptyState = GObject.registerClass(
             // Quick start buttons
             const buttonsBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
+                spacing: SPACING.MD,
                 halign: Gtk.Align.CENTER,
             });
 

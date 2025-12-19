@@ -7,6 +7,7 @@ import {
     simulateColorBlindness,
 } from '../utils/accessibility-utils.js';
 import {applyCssToWidget} from '../utils/ui-helpers.js';
+import {SPACING} from '../constants/ui-constants.js';
 
 /**
  * AccessibilityPanel - Component for accessibility analysis and color blindness simulation
@@ -173,8 +174,8 @@ export const AccessibilityPanel = GObject.registerClass(
                 label: 'Large text sample',
                 halign: Gtk.Align.CENTER,
                 hexpand: true,
-                margin_top: 12,
-                margin_bottom: 12,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
             });
             this._previewLargeLabel.add_css_class('title-3');
             this._previewLargeBox.append(this._previewLargeLabel);
@@ -190,10 +191,10 @@ export const AccessibilityPanel = GObject.registerClass(
             const group = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 8,
-                margin_start: 12,
-                margin_end: 12,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
                 margin_top: 8,
-                margin_bottom: 12,
+                margin_bottom: SPACING.MD,
             });
 
             const label = new Gtk.Label({
@@ -205,7 +206,7 @@ export const AccessibilityPanel = GObject.registerClass(
 
             const typesBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
 
             this._blindnessTypes = [

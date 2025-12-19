@@ -1,6 +1,7 @@
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
+import {SPACING} from '../constants/ui-constants.js';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -137,7 +138,7 @@ export const ScheduleDialog = GObject.registerClass(
             const quickBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 8,
-                margin_bottom: 12,
+                margin_bottom: SPACING.MD,
                 halign: Gtk.Align.CENTER,
             });
 

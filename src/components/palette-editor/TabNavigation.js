@@ -1,5 +1,6 @@
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
+import {SPACING} from '../../constants/ui-constants.js';
 
 /**
  * TabNavigation - Custom tab navigation for Editor/Wallhaven/Local/Favorites
@@ -31,7 +32,7 @@ export const TabNavigation = GObject.registerClass(
             });
             const editorBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
             editorBox.append(
                 new Gtk.Image({
@@ -58,7 +59,7 @@ export const TabNavigation = GObject.registerClass(
             const wallhavenBtn = new Gtk.ToggleButton();
             const wallhavenBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
             wallhavenBox.append(
                 new Gtk.Image({
@@ -79,7 +80,7 @@ export const TabNavigation = GObject.registerClass(
             const localBtn = new Gtk.ToggleButton();
             const localBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
             localBox.append(
                 new Gtk.Image({
@@ -100,7 +101,7 @@ export const TabNavigation = GObject.registerClass(
             const favBtn = new Gtk.ToggleButton();
             const favBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
             });
             favBox.append(
                 new Gtk.Image({

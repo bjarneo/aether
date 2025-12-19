@@ -22,6 +22,7 @@ import {
     createToolbar,
     createIconButton,
 } from '../utils/ui-builders.js';
+import {SPACING, GRID} from '../constants/ui-constants.js';
 
 /**
  * BlueprintsView - Full-featured blueprints management tab
@@ -169,8 +170,8 @@ export const BlueprintsView = GObject.registerClass(
                 min_children_per_line: 2,
                 selection_mode: Gtk.SelectionMode.NONE,
                 homogeneous: false,
-                row_spacing: 12,
-                column_spacing: 12,
+                row_spacing: GRID.ROW_SPACING,
+                column_spacing: GRID.COLUMN_SPACING,
             });
 
             // Empty state
@@ -490,11 +491,11 @@ export const BlueprintsView = GObject.registerClass(
         _createButtons(blueprint) {
             const buttonBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-                margin_start: 12,
-                margin_end: 12,
+                spacing: SPACING.SM,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
                 margin_top: 8,
-                margin_bottom: 12,
+                margin_bottom: SPACING.MD,
             });
 
             // Use button
@@ -763,11 +764,11 @@ export const BlueprintsView = GObject.registerClass(
 
                     const spinnerBox = new Gtk.Box({
                         orientation: Gtk.Orientation.VERTICAL,
-                        spacing: 12,
+                        spacing: SPACING.MD,
                         margin_start: 24,
                         margin_end: 24,
-                        margin_top: 12,
-                        margin_bottom: 12,
+                        margin_top: SPACING.MD,
+                        margin_bottom: SPACING.MD,
                         halign: Gtk.Align.CENTER,
                     });
 

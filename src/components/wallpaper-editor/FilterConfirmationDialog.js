@@ -2,6 +2,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
+import {SPACING} from '../../constants/ui-constants.js';
 
 /**
  * FilterConfirmationDialog - Safety countdown dialog for filter application
@@ -70,8 +71,8 @@ export const FilterConfirmationDialog = GObject.registerClass(
             this._countdownLabel = new Gtk.Label({
                 label: this._formatCountdown(this._remainingSeconds),
                 css_classes: ['title-2'],
-                margin_top: 12,
-                margin_bottom: 12,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.MD,
             });
 
             // Add extra child for countdown display

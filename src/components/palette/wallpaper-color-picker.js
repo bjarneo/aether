@@ -7,6 +7,7 @@ import cairo from 'gi://cairo';
 
 import {applyCssToWidget} from '../../utils/ui-helpers.js';
 import {rgbToHex, hexToRgb} from '../../utils/color-utils.js';
+import {SPACING} from '../../constants/ui-constants.js';
 
 // Constants
 const ZOOM_CONFIG = {
@@ -56,7 +57,7 @@ export const WallpaperColorPicker = GObject.registerClass(
         _init(wallpaperPath) {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
+                spacing: SPACING.MD,
                 hexpand: true,
             });
 
@@ -91,8 +92,8 @@ export const WallpaperColorPicker = GObject.registerClass(
         _createHeader() {
             const headerBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
-                margin_bottom: 12,
+                spacing: SPACING.MD,
+                margin_bottom: SPACING.MD,
             });
 
             const titleLabel = new Gtk.Label({
@@ -116,7 +117,7 @@ export const WallpaperColorPicker = GObject.registerClass(
 
             const zoomBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
+                spacing: SPACING.SM,
                 css_classes: ['linked'],
             });
 
@@ -156,7 +157,7 @@ export const WallpaperColorPicker = GObject.registerClass(
         _createContent() {
             const contentBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
+                spacing: SPACING.MD,
                 hexpand: true,
             });
 
@@ -236,7 +237,7 @@ export const WallpaperColorPicker = GObject.registerClass(
         _createColorPreview() {
             const previewBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 12,
+                spacing: SPACING.MD,
                 margin_top: 6,
             });
 
