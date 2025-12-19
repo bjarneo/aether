@@ -1005,25 +1005,27 @@ export const SettingsSidebar = GObject.registerClass(
             return this._lightMode;
         }
 
+        /**
+         * Updates the visual selection state of Neovim preset rows
+         * @param {string|null} config - The config name to select, or null to clear selection
+         * @private
+         */
+        _updateNeovimPresetSelection(config) {
+            if (!this._neovimPresetRows) return;
+
+            this._neovimPresetRows.forEach(item => {
+                item.icon.set_visible(config && item.preset.config === config);
+            });
+        }
+
         setNeovimTheme(config) {
             // Set the selected neovim config and update visual feedback
             this._selectedNeovimConfig = config;
+            this._updateNeovimPresetSelection(config);
 
-            // Find and mark the matching theme
-            if (config && this._neovimPresetRows) {
-                this._neovimPresetRows.forEach(item => {
-                    if (item.preset.config === config) {
-                        item.icon.set_visible(true);
-                    } else {
-                        item.icon.set_visible(false);
-                    }
-                });
+            if (config) {
                 this.emit('neovim-theme-changed', true);
             } else {
-                // Clear all selections
-                this._neovimPresetRows?.forEach(item => {
-                    item.icon.set_visible(false);
-                });
                 this.emit('neovim-theme-changed', false);
             }
         }
