@@ -77,6 +77,7 @@ See `aether --help` for all options.
 | [Shaders](docs/shaders.md) | Screen effects and filters |
 | [Scheduler](docs/scheduler.md) | Automatic theme switching |
 | [Sharing](docs/sharing.md) | Community sharing & protocol links |
+| [CLI Reference](docs/cli.md) | Command-line options |
 | [Standalone](docs/standalone.md) | Using Aether without Omarchy |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues |
 
