@@ -8,13 +8,18 @@ import {
     writeTextToFile,
     readFileAsText,
 } from '../utils/file-utils.js';
-import {BlueprintService} from './BlueprintService.js';
+import {blueprintService} from './BlueprintService.js';
 import {ConfigWriter} from '../utils/ConfigWriter.js';
 import {ColorMapper} from '../cli/utils/color-mapper.js';
 
 /**
  * Service for managing theme schedules
  * Handles schedule storage, validation, and systemd service management
+ *
+ * @example
+ * // Use singleton for stateless operations
+ * import { schedulerService } from './services/SchedulerService.js';
+ * const schedules = schedulerService.loadSchedules();
  */
 export class SchedulerService {
     constructor() {
@@ -34,7 +39,7 @@ export class SchedulerService {
         ]);
 
         ensureDirectoryExists(this.configDir);
-        this.blueprintService = new BlueprintService();
+        this.blueprintService = blueprintService;
     }
 
     /**
@@ -529,3 +534,8 @@ WantedBy=timers.target
         return nextSchedule;
     }
 }
+
+/**
+ * Singleton instance for CLI/stateless operations
+ */
+export const schedulerService = new SchedulerService();

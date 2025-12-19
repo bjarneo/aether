@@ -9,6 +9,20 @@ import {
 /**
  * Service for managing blueprint themes (saving, loading, listing, finding)
  * Centralizes all blueprint operations to ensure consistency between GUI and CLI
+ *
+ * Usage patterns:
+ * - CLI: Use exported singleton `blueprintService`
+ * - GUI: Create new instance with `new BlueprintService(blueprintManager)`
+ *
+ * @example
+ * // CLI usage (stateless operations)
+ * import { blueprintService } from './services/BlueprintService.js';
+ * const blueprints = blueprintService.loadAll();
+ *
+ * @example
+ * // GUI usage (with manager for UI operations)
+ * import { BlueprintService } from './services/BlueprintService.js';
+ * const service = new BlueprintService(blueprintManager);
  */
 export class BlueprintService {
     /**
@@ -214,3 +228,9 @@ export class BlueprintService {
         }
     }
 }
+
+/**
+ * Singleton instance for CLI/stateless operations
+ * Use this when you don't need GUI integration
+ */
+export const blueprintService = new BlueprintService();

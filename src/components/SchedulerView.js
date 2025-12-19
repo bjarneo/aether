@@ -2,7 +2,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
-import {SchedulerService} from '../services/SchedulerService.js';
+import {schedulerService} from '../services/SchedulerService.js';
 import {ScheduleDialog} from './ScheduleDialog.js';
 import {SPACING} from '../constants/ui-constants.js';
 
@@ -26,7 +26,7 @@ export const SchedulerView = GObject.registerClass(
                 spacing: 0,
             });
 
-            this.schedulerService = new SchedulerService();
+            this.schedulerService = schedulerService;
             this._initUI();
             this._loadSchedules();
         }

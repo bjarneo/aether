@@ -4,7 +4,7 @@ import Adw from 'gi://Adw?version=1';
 import GLib from 'gi://GLib';
 import Gdk from 'gi://Gdk?version=4.0';
 import Gtk4LayerShell from 'gi://Gtk4LayerShell?version=1.0';
-import {BlueprintService} from '../services/BlueprintService.js';
+import {blueprintService} from '../services/BlueprintService.js';
 import {createColorSwatchRow} from '../utils/ui-helpers.js';
 import {SPACING} from '../constants/ui-constants.js';
 
@@ -35,7 +35,7 @@ export const BlueprintWidget = GObject.registerClass(
                 default_height: 350,
             });
 
-            this.blueprintService = new BlueprintService();
+            this.blueprintService = blueprintService;
 
             // Configure GTK Layer Shell
             this._configureLayerShell();

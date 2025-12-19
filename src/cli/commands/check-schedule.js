@@ -1,4 +1,4 @@
-import {SchedulerService} from '../../services/SchedulerService.js';
+import {schedulerService} from '../../services/SchedulerService.js';
 
 /**
  * Command handler for checking and executing scheduled theme changes
@@ -15,7 +15,6 @@ export class CheckScheduleCommand {
         try {
             print('[Aether Scheduler] Running schedule check...');
 
-            const schedulerService = new SchedulerService();
             const result = schedulerService.runScheduleCheck();
 
             if (result.applied) {

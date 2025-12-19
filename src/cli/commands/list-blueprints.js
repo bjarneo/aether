@@ -1,4 +1,4 @@
-import {BlueprintService} from '../../services/BlueprintService.js';
+import {blueprintService} from '../../services/BlueprintService.js';
 
 /**
  * Command handler for listing all saved blueprint themes
@@ -11,7 +11,6 @@ export class ListBlueprintsCommand {
      */
     static execute() {
         try {
-            const blueprintService = new BlueprintService();
             const blueprints = blueprintService.loadAll();
 
             // Sort by timestamp (newest first)

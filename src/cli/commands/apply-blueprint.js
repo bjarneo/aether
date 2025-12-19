@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import {ConfigWriter} from '../../utils/ConfigWriter.js';
-import {BlueprintService} from '../../services/BlueprintService.js';
+import {blueprintService} from '../../services/BlueprintService.js';
 import {ColorMapper} from '../utils/color-mapper.js';
 import {ensureDirectoryExists} from '../../utils/file-utils.js';
 
@@ -24,7 +24,6 @@ export class ApplyBlueprintCommand {
         }
 
         try {
-            const blueprintService = new BlueprintService();
             const foundBlueprint = blueprintService.findByName(name);
 
             if (!foundBlueprint) {

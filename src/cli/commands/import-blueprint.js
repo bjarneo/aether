@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
-import {BlueprintService} from '../../services/BlueprintService.js';
+import {blueprintService} from '../../services/BlueprintService.js';
 import {saveJsonFile, loadJsonFile, fileExists} from '../../utils/file-utils.js';
 
 /**
@@ -48,7 +48,6 @@ export class ImportBlueprintCommand {
             }
 
             // Validate blueprint structure
-            const blueprintService = new BlueprintService();
             if (!blueprintService.validateBlueprint(blueprintData)) {
                 print('Error: Blueprint has invalid structure');
                 print('Required: palette.colors array with 16 hex colors');
