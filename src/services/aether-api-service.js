@@ -81,7 +81,7 @@ class AetherApiService {
     /**
      * Read file contents as Uint8Array
      * @param {string} filePath - Path to the file
-     * @returns {Uint8Array|null} File contents or null on error
+     * @returns {{contents: Uint8Array, error: string|null}} File contents and error message
      * @private
      */
     _readFileContents(filePath) {
@@ -89,12 +89,13 @@ class AetherApiService {
             const file = Gio.File.new_for_path(filePath);
             const [success, contents] = file.load_contents(null);
             if (success) {
-                return contents;
+                return { contents, error: null };
             }
+            return { contents: null, error: 'Failed to read file' };
         } catch (e) {
             console.error(`Failed to read file ${filePath}:`, e.message);
+            return { contents: null, error: e.message };
         }
-        return null;
     }
 
     /**
@@ -118,7 +119,7 @@ class AetherApiService {
      * @param {string} boundary - Multipart boundary string
      * @param {Object} blueprintData - Blueprint JSON data
      * @param {string|null} wallpaperPath - Path to wallpaper file or null
-     * @returns {Uint8Array} The complete multipart body
+     * @returns {{body: Uint8Array|null, error: string|null}} The multipart body and error
      * @private
      */
     _buildMultipartBody(boundary, blueprintData, wallpaperPath) {
@@ -137,7 +138,10 @@ class AetherApiService {
 
         // Add wallpaper part if present
         if (wallpaperPath) {
-            const imageData = this._readFileContents(wallpaperPath);
+            const { contents: imageData, error } = this._readFileContents(wallpaperPath);
+            if (error) {
+                return { body: null, error: `Failed to read wallpaper: ${error}` };
+            }
             if (imageData) {
                 const filename = GLib.path_get_basename(wallpaperPath);
                 const mimeType = this._getImageMimeType(wallpaperPath);
@@ -168,7 +172,7 @@ class AetherApiService {
             offset += part.length;
         }
 
-        return result;
+        return { body: result, error: null };
     }
 
     /**
@@ -181,7 +185,7 @@ class AetherApiService {
         if (!this.hasApiKey()) {
             return {
                 success: false,
-                message: 'No API key configured',
+                message: 'No API key configured. Go to Settings to add your aethr.no API key.',
             };
         }
 
@@ -223,7 +227,7 @@ class AetherApiService {
             if (!message) {
                 resolve({
                     success: false,
-                    message: 'Failed to create request',
+                    message: 'Failed to create network request. Please check your internet connection.',
                 });
                 return;
             }
@@ -240,11 +244,19 @@ class AetherApiService {
                 // Use multipart/form-data for uploading with wallpaper
                 const boundary = `----AetherBoundary${Date.now()}${Math.random().toString(36).substring(2)}`;
                 contentType = `multipart/form-data; boundary=${boundary}`;
-                bodyBytes = this._buildMultipartBody(
+                const result = this._buildMultipartBody(
                     boundary,
                     blueprintData,
                     wallpaperPath
                 );
+                if (result.error) {
+                    resolve({
+                        success: false,
+                        message: result.error,
+                    });
+                    return;
+                }
+                bodyBytes = result.body;
             } else {
                 // Use simple JSON for blueprints without wallpaper
                 contentType = 'application/json';
@@ -289,10 +301,11 @@ class AetherApiService {
                                     'Blueprint posted successfully',
                             });
                         } else {
+                            // Pass through the server error message
                             const errorMessage =
                                 json.message ||
                                 json.error ||
-                                `Request failed with status ${status}`;
+                                `Request failed (HTTP ${status})`;
                             console.error(
                                 `API Error (${status}):`,
                                 errorMessage
