@@ -1,7 +1,12 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import {copyZedTheme} from '../service-manager.js';
-import {deleteFile} from '../file-utils.js';
+import {copyFile, deleteFile, ensureDirectoryExists} from '../file-utils.js';
+
+/**
+ * Output filename for the Zed theme
+ * @constant {string}
+ */
+const OUTPUT_FILENAME = 'aether.json';
 
 /**
  * ZedThemeApplier - Handles Zed editor theme application
@@ -65,7 +70,7 @@ export class ZedThemeApplier {
             }
 
             // Copy to ~/.config/zed/themes/
-            const success = copyZedTheme(sourcePath);
+            const success = this._copyTheme(sourcePath);
 
             if (success) {
                 console.log('Applied Zed theme successfully');
@@ -76,6 +81,40 @@ export class ZedThemeApplier {
             return success;
         } catch (e) {
             console.error('Error applying Zed theme:', e.message);
+            return false;
+        }
+    }
+
+    /**
+     * Copies theme to Zed themes directory
+     * @param {string} sourcePath - Path to source theme file
+     * @returns {boolean} Success status
+     * @private
+     */
+    _copyTheme(sourcePath) {
+        try {
+            const zedThemesPath = GLib.build_filenamev([
+                this.configDir,
+                'zed',
+                'themes',
+            ]);
+
+            // Ensure the themes directory exists
+            ensureDirectoryExists(zedThemesPath);
+
+            // Copy the theme file
+            const destPath = GLib.build_filenamev([zedThemesPath, OUTPUT_FILENAME]);
+            const success = copyFile(sourcePath, destPath);
+
+            if (success) {
+                console.log(`Copied Zed theme to: ${destPath}`);
+            } else {
+                console.error(`Failed to copy Zed theme to: ${destPath}`);
+            }
+
+            return success;
+        } catch (e) {
+            console.error('Error copying Zed theme:', e.message);
             return false;
         }
     }
@@ -92,7 +131,7 @@ export class ZedThemeApplier {
                 this.configDir,
                 'zed',
                 'themes',
-                'aether.json',
+                OUTPUT_FILENAME,
             ]);
 
             const themeFile = Gio.File.new_for_path(zedThemePath);

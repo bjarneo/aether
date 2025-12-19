@@ -1,6 +1,27 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import {copyVencordTheme} from '../service-manager.js';
+import {copyFile, ensureDirectoryExists} from '../file-utils.js';
+
+/**
+ * Output filename for the Vencord theme
+ * @constant {string}
+ */
+const OUTPUT_FILENAME = 'aether.theme.css';
+
+/**
+ * All possible Vencord/Vesktop theme directories
+ * @constant {string[][]}
+ */
+const VENCORD_THEME_PATHS = [
+    // Vesktop (Flatpak)
+    ['.var', 'app', 'dev.vencord.Vesktop', 'config', 'vesktop', 'themes'],
+    // Vesktop (Native/AUR/AppImage)
+    ['.config', 'Vesktop', 'themes'],
+    // Vencord (Native/AUR)
+    ['.config', 'Vencord', 'themes'],
+    // Vencord (Flatpak Discord)
+    ['.var', 'app', 'com.discordapp.Discord', 'config', 'Vencord', 'themes'],
+];
 
 /**
  * VencordThemeApplier - Handles Vencord/Vesktop Discord theme application
@@ -62,7 +83,7 @@ export class VencordThemeApplier {
             }
 
             // Copy to all existing Vencord/Vesktop installations
-            const successCount = copyVencordTheme(sourcePath);
+            const successCount = this._copyToAllInstallations(sourcePath);
 
             if (successCount > 0) {
                 console.log(
@@ -79,6 +100,54 @@ export class VencordThemeApplier {
             console.error('Error applying Vencord theme:', e.message);
             return 0;
         }
+    }
+
+    /**
+     * Copies theme to all existing Vencord/Vesktop installations
+     * @param {string} sourcePath - Path to source theme file
+     * @returns {number} Number of successful copies
+     * @private
+     */
+    _copyToAllInstallations(sourcePath) {
+        const homeDir = GLib.get_home_dir();
+        let successCount = 0;
+
+        VENCORD_THEME_PATHS.forEach(pathComponents => {
+            try {
+                const themePath = GLib.build_filenamev([
+                    homeDir,
+                    ...pathComponents,
+                ]);
+                const parentDir = GLib.path_get_dirname(themePath);
+                const parentFile = Gio.File.new_for_path(parentDir);
+
+                // Only copy if the parent config directory exists (app is installed)
+                if (!parentFile.query_exists(null)) {
+                    return;
+                }
+
+                // Ensure the themes directory exists
+                ensureDirectoryExists(themePath);
+
+                // Copy the theme file
+                const destPath = GLib.build_filenamev([themePath, OUTPUT_FILENAME]);
+                const success = copyFile(sourcePath, destPath);
+
+                if (success) {
+                    console.log(`Copied Vencord theme to: ${destPath}`);
+                    successCount++;
+                } else {
+                    console.error(`Failed to copy Vencord theme to: ${destPath}`);
+                }
+            } catch (e) {
+                console.error(
+                    `Error copying Vencord theme to ${pathComponents.join('/')}:`,
+                    e.message
+                );
+            }
+        });
+
+        return successCount;
     }
 
     /**
