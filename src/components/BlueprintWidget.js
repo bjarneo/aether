@@ -5,7 +5,7 @@ import GLib from 'gi://GLib';
 import Gdk from 'gi://Gdk?version=4.0';
 import Gtk4LayerShell from 'gi://Gtk4LayerShell?version=1.0';
 import {BlueprintService} from '../services/BlueprintService.js';
-import {createColorSwatchRow} from '../utils/blueprint-ui-helpers.js';
+import {createColorSwatchRow} from '../utils/ui-helpers.js';
 import {SPACING} from '../constants/ui-constants.js';
 
 /**

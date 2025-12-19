@@ -7,7 +7,7 @@ import Adw from 'gi://Adw?version=1';
 import {extractColorsFromWallpaperIM} from '../utils/imagemagick-color-extraction.js';
 import {adjustColor} from '../utils/color-utils.js';
 import {ensureDirectoryExists} from '../utils/file-utils.js';
-import {registerCustomIcons} from '../utils/icon-utils.js';
+import {registerCustomIcons} from '../utils/ui-helpers.js';
 import {WallpaperSection} from './palette-editor/WallpaperSection.js';
 import {AdditionalImagesSection} from './palette-editor/AdditionalImagesSection.js';
 import {ColorPaletteSection} from './palette-editor/ColorPaletteSection.js';

@@ -1,10 +1,191 @@
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
+import Gdk from 'gi://Gdk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 import GObject from 'gi://GObject';
 
 /**
- * UI helper functions for creating common GTK widgets
+ * UI helper functions for creating common GTK widgets,
+ * managing icons, and building blueprint UI components.
  */
+
+// ============================================================================
+// Icon Utilities
+// ============================================================================
+
+let iconsRegistered = false;
+
+/**
+ * Get the absolute path to the icons directory
+ * @returns {string} Absolute path to icons directory
+ */
+export function getIconsDir() {
+    const scriptPath = import.meta.url.replace('file://', '');
+    const scriptDir = GLib.path_get_dirname(scriptPath);
+    const srcDir = GLib.path_get_dirname(scriptDir);
+    return GLib.build_filenamev([srcDir, 'icons']);
+}
+
+/**
+ * Register custom icons directory with GTK IconTheme
+ * This allows custom icons to work like system icons with proper theming
+ */
+export function registerCustomIcons() {
+    if (iconsRegistered) return;
+
+    const display = Gdk.Display.get_default();
+    const iconTheme = Gtk.IconTheme.get_for_display(display);
+    const iconsDir = getIconsDir();
+
+    iconTheme.add_search_path(iconsDir);
+    console.log('Custom icons directory registered:', iconsDir);
+
+    iconsRegistered = true;
+}
+
+/**
+ * Get the absolute path to an icon file in src/icons/
+ * @param {string} iconName - Icon filename (e.g., 'image-edit.svg')
+ * @returns {string} Absolute path to icon file
+ */
+export function getIconPath(iconName) {
+    return GLib.build_filenamev([getIconsDir(), iconName]);
+}
+
+/**
+ * Create a Gtk.Image from a custom SVG icon
+ * @param {string} iconName - Icon filename (e.g., 'image-edit.svg')
+ * @param {number} size - Icon size in pixels (default: 16)
+ * @returns {Gtk.Image} GTK Image widget with the custom icon
+ */
+export function createImageFromIcon(iconName, size = 16) {
+    const iconPath = getIconPath(iconName);
+    const file = Gio.File.new_for_path(iconPath);
+
+    if (!file.query_exists(null)) {
+        console.warn(`Icon file not found: ${iconPath}`);
+        return new Gtk.Image({
+            icon_name: 'image-missing',
+            pixel_size: size,
+        });
+    }
+
+    return new Gtk.Image({
+        file: iconPath,
+        pixel_size: size,
+    });
+}
+
+/**
+ * Set a custom icon on a button
+ * @param {Gtk.Button} button - Button to set icon on
+ * @param {string} iconName - Icon filename (e.g., 'image-edit.svg')
+ * @param {number} size - Icon size in pixels (default: 16)
+ */
+export function setButtonIcon(button, iconName, size = 16) {
+    const image = createImageFromIcon(iconName, size);
+    button.set_child(image);
+}
+
+// ============================================================================
+// Blueprint UI Helpers
+// ============================================================================
+
+/**
+ * Sets background color of a Gtk.Box using CSS
+ * @param {Gtk.Box} box - Box widget to style
+ * @param {string} color - Hex color string
+ */
+export function setBoxColor(box, color) {
+    const css = `* { background-color: ${color}; }`;
+    const provider = new Gtk.CssProvider();
+    provider.load_from_data(css, -1);
+    box.get_style_context().add_provider(
+        provider,
+        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+    );
+}
+
+/**
+ * Creates a color grid showing all 16 colors in 2 rows
+ * @param {Object} blueprint - Blueprint data
+ * @param {number} boxSize - Size of each color box (default: 20)
+ * @returns {Gtk.Box} Color grid widget
+ */
+export function createColorGrid(blueprint, boxSize = 20) {
+    const container = new Gtk.Box({
+        orientation: Gtk.Orientation.VERTICAL,
+        spacing: 1,
+    });
+
+    const colors = blueprint.palette?.colors || [];
+    if (colors.length === 0) return container;
+
+    // Row 1: colors 0-7
+    const row1 = new Gtk.Box({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        spacing: 1,
+    });
+    for (let i = 0; i < 8 && i < colors.length; i++) {
+        const box = new Gtk.Box({
+            width_request: boxSize,
+            height_request: boxSize,
+        });
+        setBoxColor(box, colors[i]);
+        row1.append(box);
+    }
+
+    // Row 2: colors 8-15
+    const row2 = new Gtk.Box({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        spacing: 1,
+    });
+    for (let i = 8; i < 16 && i < colors.length; i++) {
+        const box = new Gtk.Box({
+            width_request: boxSize,
+            height_request: boxSize,
+        });
+        setBoxColor(box, colors[i]);
+        row2.append(box);
+    }
+
+    container.append(row1);
+    container.append(row2);
+    return container;
+}
+
+/**
+ * Creates a horizontal color swatch row (for list views)
+ * @param {Object} blueprint - Blueprint data
+ * @param {number} swatchSize - Size of each swatch (default: 24)
+ * @param {number} maxSwatches - Maximum number of swatches to show (default: 8)
+ * @returns {Gtk.Box} Horizontal box with color swatches
+ */
+export function createColorSwatchRow(blueprint, swatchSize = 24, maxSwatches = 8) {
+    const colorBox = new Gtk.Box({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        spacing: 4,
+    });
+
+    const colors = blueprint.palette?.colors || [];
+    const displayColors = colors.slice(0, maxSwatches);
+
+    displayColors.forEach(color => {
+        const box = new Gtk.Box({
+            width_request: swatchSize,
+            height_request: swatchSize,
+        });
+        setBoxColor(box, color);
+        colorBox.append(box);
+    });
+
+    return colorBox;
+}
+
+// ============================================================================
+// General UI Helpers
+// ============================================================================
 
 /**
  * Creates a CSS provider and applies styles to a widget
