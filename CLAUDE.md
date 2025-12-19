@@ -34,28 +34,34 @@ npm run dev
 ## Architecture
 
 ### Entry Point & Window Management
-- **src/main.js**: Main entry point with `AetherApplication` and `AetherWindow`
-  - Uses Adw.NavigationSplitView for sidebar/content layout
-  - Sidebar: BlueprintManager (saved themes)
-  - Content: PaletteGenerator + ColorSynthesizer + ActionBar
+- **src/main.js**: Application entry point (minimal bootstrapping)
+- **src/AetherApplication.js**: GTK Application class, handles activation and CLI
+- **src/AetherWindow.js**: Main window with Adw.NavigationSplitView layout
+  - Sidebar: BlueprintsView (saved themes list)
+  - Content: PaletteEditor + ColorSynthesizer + ActionBar + SettingsSidebar
+
+### State Management
+- **src/state/ThemeState.js**: Centralized reactive state manager
+  - Manages: wallpaper path, colors (16 ANSI + adjusted), light mode, adjustments, locked colors
+  - Event-driven: components subscribe to state changes via `on()` / `off()`
+  - Single source of truth for theme data across all components
 
 ### Core Components
 
-**PaletteGenerator** (`src/components/PaletteGenerator.js`)
+**PaletteEditor** (`src/components/PaletteEditor.js`)
 - Two-tab interface: "Palette Editor", "Find Wallpaper"
 - Tab 1 (Palette Editor): Unified interface for wallpaper + custom palette creation
-  - File picker/drag-drop for wallpaper selection
-  - **Edit wallpaper button** (icon button next to Extract) - opens WallpaperEditor for filter application
-  - **Extract button** - Intelligent ImageMagick-based color extraction
-  - 16-color swatch grid with click-to-edit and lock feature
+  - Uses sub-components from `src/components/palette-editor/`:
+    - `WallpaperSection.js` - File picker/drag-drop, edit button, extract button
+    - `ColorSwatchGrid.js` - 16-color swatch grid with click-to-edit and lock feature
   - Loads default Catppuccin-inspired colors on startup
 - Tab 2 (Find Wallpaper): Three sub-tabs (Wallhaven, Local, Favorites)
   - WallpaperBrowser - wallhaven.cc API integration
   - LocalWallpaperBrowser - ~/Wallpapers directory browser
   - FavoritesView - Favorited wallpapers from any source
-- Calls `extractColorsFromWallpaperIM()` which uses advanced ImageMagick algorithm
-- Light mode flag (`_lightMode`) controlled by SettingsSidebar, saved to blueprints, affects extraction
-- Emits: `palette-generated` signal with 16 colors, `open-wallpaper-editor` signal with wallpaper path
+- Integrates with ThemeState for reactive color updates
+- Light mode flag controlled by SettingsSidebar, saved to blueprints
+- Emits: `palette-generated`, `open-wallpaper-editor` signals
 
 **WallpaperEditor** (`src/components/WallpaperEditor.js`)
 - Professional filter editor for wallpapers before color extraction
@@ -112,8 +118,15 @@ npm run dev
 - Bypasses color extraction cache (forces fresh extraction)
 
 **Sub-components:**
-- `src/components/wallpaper-editor/FilterControls.js` - All filter UI controls, presets, tone picker
+- `src/components/wallpaper-editor/FilterControls.js` - Filter UI controls organized into tabs
 - `src/components/wallpaper-editor/PreviewArea.js` - Preview with debounced IM rendering
+- `src/components/wallpaper-editor/filter-tabs/` - Modular filter tab components:
+  - `BasicFiltersTab.js` - Blur, brightness, contrast, saturation, hue
+  - `EffectsTab.js` - Sepia, invert effects
+  - `ProFiltersTab.js` - Exposure, sharpen, vignette, grain, shadows, highlights
+  - `ColorToneTab.js` - Preset tones and custom color picker
+  - `PresetsTab.js` - Quick preset buttons (12 presets)
+  - `SelectiveColorTab.js` - HSL adjustments for specific color ranges
 
 **Utilities:**
 - `src/utils/image-filter-utils.js` - ImageMagick command building, filter logic, cache management
@@ -125,11 +138,13 @@ npm run dev
 **WallpaperBrowser** (`src/components/WallpaperBrowser.js`)
 - Integrated wallhaven.cc API client for browsing/searching wallpapers
 - Search interface: query input, category filters (General/Anime/People), sorting options
-- Grid view with thumbnails (FlowBox, 2-3 columns)
+- Grid view with thumbnails (FlowBox, responsive columns)
 - Pagination controls (prev/next, page indicator)
-- Click wallpaper → downloads to `~/.local/share/aether/wallpapers/` → emits `wallpaper-selected` signal with URL metadata → switches to "Palette Editor" tab
-- Settings dialog (gear icon) for API key configuration (stored in `~/.config/aether/wallhaven.json`)
-- Thumbnail caching in `~/.cache/aether/wallhaven-thumbs/`
+- Click wallpaper → downloads to `~/.local/share/aether/wallpapers/` → emits `wallpaper-selected` signal
+- Settings dialog (gear icon) for API key configuration
+- Sub-components in `src/components/wallpaper-browser/`:
+  - `WallhavenToolbar.js` - Search, filters, sorting, pagination controls
+  - `ResponsiveGridManager.js` - Reusable responsive FlowBox layout manager
 
 **LocalWallpaperBrowser** (`src/components/LocalWallpaperBrowser.js`)
 - Browses local wallpapers from `~/Wallpapers` directory
@@ -203,12 +218,16 @@ The "Find Wallpaper" tab contains a sub-navigation with 3 tabs:
   - Shaders installed to ~/.config/hypr/shaders/
 - Emits: `shader-changed` signal with shader name or 'off'
 
-**BlueprintManager** (`src/components/BlueprintManager.js`)
+**BlueprintsView** (`src/components/BlueprintsView.js`)
+- Sidebar component displaying saved theme blueprints
+- Uses BlueprintService for persistence
+- Emits: `blueprint-applied` signal
+
+**BlueprintService** (`src/services/BlueprintService.js`)
 - Saves/loads theme blueprints as JSON in `~/.config/aether/blueprints/`
 - Blueprint format: `{ name, timestamp, palette: { wallpaper, wallpaperUrl, wallpaperSource, colors, lightMode } }`
 - Stores wallhaven URL for wallpaper restoration
-- Light mode setting now preserved in blueprints
-- Emits: `blueprint-applied` signal
+- Light mode setting preserved in blueprints
 
 **ConfigWriter** (`src/utils/ConfigWriter.js`)
 - Processes templates from `templates/` directory
@@ -218,7 +237,20 @@ The "Find Wallpaper" tab contains a sub-navigation with 3 tabs:
 - Copies wallpaper to `~/.config/aether/theme/backgrounds/`
 - Executes `omarchy-theme-set aether` via `GLib.spawn_command_line_async()`
 
+**Theme Appliers** (`src/utils/theme-appliers/`)
+- `GtkThemeApplier.js` - Handles GTK theme application
+- `VscodeThemeApplier.js` - Handles VS Code theme generation
+
 ### Services
+
+**service-locator.js**: Centralized service registry for dependency injection
+- Provides `getService()`, `registerService()`, `hasService()` methods
+- Pre-registers core services on import (favorites, thumbnails, wallhaven, blueprints)
+- Enables loose coupling between components
+
+**BlueprintService.js**: Theme blueprint persistence
+- Saves/loads blueprints from `~/.config/aether/blueprints/`
+- CRUD operations for theme configurations
 
 **wallhaven-service.js**: HTTP client for wallhaven.cc API v1
 - Uses `Soup.Session` (libsoup3) for async HTTP requests
@@ -240,6 +272,29 @@ The "Find Wallpaper" tab contains a sub-navigation with 3 tabs:
 - Async thumbnail generation
 
 **color-harmony.js**: Generates color harmonies (complementary, triadic, etc.) - used by SettingsSidebar
+
+### Utilities
+
+**ui-builders.js**: Reusable UI component factory functions
+- `createActionRow()`, `createSliderRow()`, `createSwitchRow()`, `createColorButtonRow()`
+- `createExpanderRow()`, `createComboRow()`, `createButtonRow()`
+- Standardizes Adw widget creation across the codebase
+
+**ui-helpers.js**: Common UI helper functions
+- `showToast()` - Consolidated toast notification helper
+- `findAncestor()` - Widget tree traversal
+
+**error-utils.js**: Custom error classes and error handling utilities
+- `AetherError`, `FileNotFoundError`, `ImageMagickError`, `NetworkError`
+- `wrapAsync()` - Async function wrapper with error handling
+
+**file-utils.js**: GLib/Gio file operation wrappers
+- `ensureDirectoryExists()`, `readFile()`, `writeFile()`
+- `loadJsonConfig()`, `saveJsonConfig()`
+
+**DialogManager.js**: Centralized dialog management
+- Handles file choosers, message dialogs, confirmations
+- Prevents dialog stacking issues
 
 ### Template System
 
@@ -273,15 +328,18 @@ import Soup from 'gi://Soup?version=3.0';
 ## Signal Flow
 
 ```
-PaletteGenerator → 'palette-generated' → ColorSynthesizer.setPalette()
-PaletteGenerator → 'open-wallpaper-editor' → AetherWindow._showWallpaperEditor()
-WallpaperBrowser → 'wallpaper-selected' → PaletteGenerator._onWallpaperBrowserSelected()
-WallpaperEditor → 'wallpaper-applied' → AetherWindow._hideWallpaperEditor() → PaletteGenerator.loadWallpaper()
+ThemeState → 'colors-changed' → ColorSynthesizer, PaletteEditor (reactive updates)
+ThemeState → 'wallpaper-changed' → PaletteEditor._onWallpaperChanged()
+ThemeState → 'adjustments-changed' → PaletteEditor._applyAdjustments()
+PaletteEditor → 'palette-generated' → ColorSynthesizer.setPalette()
+PaletteEditor → 'open-wallpaper-editor' → AetherWindow._showWallpaperEditor()
+WallpaperBrowser → 'wallpaper-selected' → PaletteEditor._onWallpaperBrowserSelected()
+WallpaperEditor → 'wallpaper-applied' → AetherWindow._hideWallpaperEditor() → PaletteEditor.loadWallpaper()
 ColorSynthesizer → 'color-changed' → AetherWindow._updateAccessibility()
-BlueprintManager → 'blueprint-applied' → AetherWindow._loadBlueprint()
-SettingsSidebar → 'adjustments-changed' → PaletteGenerator._applyAdjustments()
-SettingsSidebar → 'preset-applied' → PaletteGenerator.applyPreset()
-SettingsSidebar → 'harmony-generated' → PaletteGenerator.applyHarmony()
+BlueprintsView → 'blueprint-applied' → AetherWindow._loadBlueprint()
+SettingsSidebar → 'adjustments-changed' → ThemeState.setAdjustments()
+SettingsSidebar → 'preset-applied' → PaletteEditor.applyPreset()
+SettingsSidebar → 'harmony-generated' → PaletteEditor.applyHarmony()
 "Apply Theme" button → ConfigWriter.applyTheme()
 ```
 
@@ -322,6 +380,7 @@ ShaderManager switch OFF → hyprshade off → emit 'shader-changed' 'off'
 - **Color extraction and wallpaper filter processing require ImageMagick (`magick` command) installed**
 - Theme application requires `omarchy-theme-set` command available
 - Default colors defined in `src/constants/colors.js` as fallback
+- UI constants defined in `src/constants/ui-constants.js` (spacing, sizes, dimensions)
 - All file operations use GLib/Gio APIs (file-utils.js wrappers)
 - Color utilities in color-utils.js handle hex/RGB/HSL conversions and adjustments
 - **Custom icons registered with GTK IconTheme** (`src/icons/` directory)
@@ -330,9 +389,9 @@ ShaderManager switch OFF → hyprshade off → emit 'shader-changed' 'off'
 
 - Each color swatch in the 16-color grid can be locked/unlocked
 - Locked colors are protected from adjustment slider changes (vibrance, contrast, etc.)
-- Lock state tracked in `ColorSwatchGrid._lockedColors` array (boolean flags)
+- Lock state tracked in ThemeState (`_lockedColors` array)
 - Visual indicator: accent border on locked swatches, hover-to-reveal lock button
-- NOT saved to blueprints (always reset to unlocked when loading)
+- Saved to and restored from blueprints
 
 ## Configuration Storage
 
@@ -955,65 +1014,44 @@ This section documents completed refactoring work and remaining analysis.
 - ✅ GLib/Gio/GTK-specific behaviors noted
 
 **Phase 2: DRY Principle Application (100% Complete)**
-- ✅ Toast notifications consolidated to `showToast()` helper (76 lines eliminated across 3 files)
-- ✅ Favorites management consolidated to `favoritesService` (58 lines eliminated)
-- ✅ Directory creation standardized using `ensureDirectoryExists()` (3 files updated)
-- ✅ Total: ~134 lines eliminated, single source of truth established
+- ✅ Toast notifications consolidated to `showToast()` helper
+- ✅ Favorites management consolidated to `favoritesService`
+- ✅ Directory creation standardized using `ensureDirectoryExists()`
+- ✅ UI builders created: `createActionRow()`, `createSliderRow()`, `createSwitchRow()`, etc.
+- ✅ Config loading consolidated to `loadJsonConfig()` / `saveJsonConfig()`
 
-**Phase 3: Large File Splitting (Major Progress)**
+**Phase 3: Large File Splitting (100% Complete)**
+- ✅ `src/main.js` split into `AetherApplication.js` + `AetherWindow.js`
+- ✅ `FilterControls.js` split into modular filter tabs in `filter-tabs/` directory
+- ✅ `WallpaperBrowser.js` toolbar extracted to `WallhavenToolbar.js`
+- ✅ `ConfigWriter.js` theme appliers extracted to `theme-appliers/` directory
+- ✅ `ResponsiveGridManager` extracted as reusable component
 
-1. ✅ **`src/components/WallpaperBrowser.js`** (1,246 → 1,077 lines)
-   - Extracted: `ResponsiveGridManager` (203 lines)
-   - Result: 153 lines eliminated, reusable responsive layout manager
+**Phase 4: State Management (100% Complete)**
+- ✅ Created centralized `ThemeState` manager in `src/state/`
+- ✅ Migrated all components to use ThemeState for reactive updates
+- ✅ Single source of truth for colors, adjustments, locked colors, wallpaper
 
-2. ✅ **`src/utils/ConfigWriter.js`** (941 → 776 lines)
-   - Extracted: `GtkThemeApplier` (214 lines)
-   - Extracted: `VscodeThemeApplier` (218 lines)
-   - Result: 165 lines eliminated, clearer separation of concerns
+**Phase 5: Service Architecture (100% Complete)**
+- ✅ Created `service-locator.js` for dependency injection
+- ✅ `BlueprintService` extracted from UI component
+- ✅ Services registered centrally, accessed via `getService()`
 
-**Git Commits:**
-- `5c22500` - Toast notification consolidation
-- `a795e7f` - Favorites management consolidation
-- `7592012` - Directory creation consolidation
-- `a377480` - ResponsiveGridManager extraction
-- `3d8b7a6` - GTK and VSCode theme appliers extraction
-
-**Total Impact:**
-- **~452 lines eliminated** through refactoring
-- **3 new reusable modules** created
-- **7 incremental commits** to `claude/improve-code-quality-011CUoN58hnc9oZAqJD1Q7Bk` branch
-
-### 📋 Analysis Completed - No Further Refactoring Recommended
-
-**`src/utils/imagemagick-color-extraction.js` (1,025 lines)**
-- **Analysis:** Contains many small (10-40 line), tightly coupled functions
-- **Recommendation:** File is large but well-structured with clear function boundaries
-- **Rationale:** Functions implement color analysis algorithms that depend on each other. Splitting would reduce readability and require extensive parameter passing. Current organization by concern (caching, extraction, classification, palette generation, normalization) is appropriate.
-
-**`src/components/SettingsSidebar.js` (1,007 lines)**
-- **Analysis:** UI construction class with multiple small section builders
-- **Recommendation:** Acceptable structure, no splitting needed
-- **Rationale:** Methods are tightly coupled to parent state and signal emission. Each section builder (50-150 lines) is cohesive. Extraction would add complexity without benefit. Settings persistence already uses centralized utilities.
+**Phase 6: Code Cleanup (100% Complete)**
+- ✅ Custom error classes in `error-utils.js`
+- ✅ Options objects pattern for functions with many parameters
+- ✅ Cleaned up service-manager.js and consolidated small utilities
 
 ### 🎯 Code Quality Standards Achieved
 
 - ✅ **Type Safety:** Comprehensive JSDoc with parameter types, return values, exceptions
 - ✅ **DRY Principle:** All major duplication patterns eliminated
-- ✅ **Separation of Concerns:** Specialized managers and appliers extracted
+- ✅ **Separation of Concerns:** UI, state, services clearly separated
 - ✅ **Modularity:** Clear ES Module structure with focused responsibilities
-- ✅ **Error Handling:** Strategic try-catch blocks with descriptive logging
+- ✅ **State Management:** Centralized reactive state with ThemeState
+- ✅ **Service Architecture:** Dependency injection via service-locator
+- ✅ **Error Handling:** Custom error classes and strategic try-catch blocks
 - ✅ **Readability:** Descriptive names, early returns, minimal nesting
-- ✅ **Maintainability:** Smaller focused files, reusable components, single source of truth
-
-### 📝 Minor Opportunities (Optional)
-
-**TODOs Identified:**
-- `src/components/wallpaper-editor/SelectiveColorControls.js` - 2 minor UI polish items (update sliders on load, reset functionality)
-
-**Long UI Construction Methods:**
-- `WallpaperBrowser._createToolbar()` (224 lines) - Could split into sub-methods, but low priority
-- `WallpaperBrowser._createWallpaperItem()` (107 lines) - Acceptable for UI construction
-
-**Recommendation:** These are low-priority polish items. Current structure is maintainable and meets professional standards.
+- ✅ **Maintainability:** Smaller focused files, reusable components
 
 ---
