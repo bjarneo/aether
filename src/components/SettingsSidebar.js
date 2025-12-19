@@ -17,6 +17,11 @@ import {
     showToast,
 } from '../utils/ui-helpers.js';
 import {
+    createSwitchRow,
+    createExpanderRow,
+    createColorPickerRow,
+} from '../utils/ui-builders.js';
+import {
     rgbaToHex,
     generatePaletteFromColor,
     generateGradient,
@@ -191,25 +196,18 @@ export const SettingsSidebar = GObject.registerClass(
                 title: 'Theme Mode',
             });
 
-            const lightModeRow = new Adw.ActionRow({
+            const {row, switch: lightModeSwitch} = createSwitchRow({
                 title: 'Light Mode',
                 subtitle: 'Generate light color scheme',
-            });
-
-            this._lightModeSwitch = new Gtk.Switch({
                 active: this._lightMode,
-                valign: Gtk.Align.CENTER,
+                onChanged: (active) => {
+                    this._lightMode = active;
+                    this.emit('light-mode-changed', this._lightMode);
+                },
             });
 
-            this._lightModeSwitch.connect('notify::active', sw => {
-                this._lightMode = sw.get_active();
-                this.emit('light-mode-changed', this._lightMode);
-            });
-
-            lightModeRow.add_suffix(this._lightModeSwitch);
-            lightModeRow.set_activatable_widget(this._lightModeSwitch);
-
-            group.add(lightModeRow);
+            this._lightModeSwitch = lightModeSwitch;
+            group.add(row);
 
             return group;
         }
@@ -657,90 +655,66 @@ export const SettingsSidebar = GObject.registerClass(
          * @private
          */
         _createTemplateSettings() {
-            const expanderRow = new Adw.ExpanderRow({
+            const expanderRow = createExpanderRow({
                 title: 'Template Settings',
                 subtitle: 'Configure template preferences',
             });
 
-            const neovimRow = new Adw.ActionRow({
+            // Helper to emit settings changed
+            const emitSettingsChanged = () => {
+                this.emit('settings-changed', this.getSettings());
+            };
+
+            // Neovim template
+            const {row: neovimRow, switch: neovimSwitch} = createSwitchRow({
                 title: 'Include Neovim Template',
                 subtitle: 'Copy neovim.lua to theme directory',
-            });
-
-            this._neovimSwitch = new Gtk.Switch({
                 active: this._includeNeovim,
-                valign: Gtk.Align.CENTER,
+                onChanged: (active) => {
+                    this._includeNeovim = active;
+                    emitSettingsChanged();
+                },
             });
-
-            this._neovimSwitch.connect('notify::active', sw => {
-                this._includeNeovim = sw.get_active();
-                this.emit('settings-changed', this.getSettings());
-            });
-
-            neovimRow.add_suffix(this._neovimSwitch);
-            neovimRow.set_activatable_widget(this._neovimSwitch);
-
+            this._neovimSwitch = neovimSwitch;
             expanderRow.add_row(neovimRow);
 
-            const vencordRow = new Adw.ActionRow({
+            // Vencord template
+            const {row: vencordRow, switch: vencordSwitch} = createSwitchRow({
                 title: 'Include Vencord Theme',
                 subtitle: 'Copy vencord.theme.css to theme directory',
-            });
-
-            this._vencordSwitch = new Gtk.Switch({
                 active: this._includeVencord,
-                valign: Gtk.Align.CENTER,
+                onChanged: (active) => {
+                    this._includeVencord = active;
+                    emitSettingsChanged();
+                },
             });
-
-            this._vencordSwitch.connect('notify::active', sw => {
-                this._includeVencord = sw.get_active();
-                this.emit('settings-changed', this.getSettings());
-            });
-
-            vencordRow.add_suffix(this._vencordSwitch);
-            vencordRow.set_activatable_widget(this._vencordSwitch);
-
+            this._vencordSwitch = vencordSwitch;
             expanderRow.add_row(vencordRow);
 
-            const zedRow = new Adw.ActionRow({
+            // Zed template
+            const {row: zedRow, switch: zedSwitch} = createSwitchRow({
                 title: 'Include Zed Theme',
                 subtitle: 'Copy aether.zed.json to ~/.config/zed/themes/',
-            });
-
-            this._zedSwitch = new Gtk.Switch({
                 active: this._includeZed,
-                valign: Gtk.Align.CENTER,
+                onChanged: (active) => {
+                    this._includeZed = active;
+                    emitSettingsChanged();
+                },
             });
-
-            this._zedSwitch.connect('notify::active', sw => {
-                this._includeZed = sw.get_active();
-                this.emit('settings-changed', this.getSettings());
-            });
-
-            zedRow.add_suffix(this._zedSwitch);
-            zedRow.set_activatable_widget(this._zedSwitch);
-
+            this._zedSwitch = zedSwitch;
             expanderRow.add_row(zedRow);
 
-            const vscodeRow = new Adw.ActionRow({
+            // VSCode template
+            const {row: vscodeRow, switch: vscodeSwitch} = createSwitchRow({
                 title: 'Include VSCode Theme',
-                subtitle:
-                    'Copy vscode.json to ~/.vscode/extensions/theme-aether/themes/',
-            });
-
-            this._vscodeSwitch = new Gtk.Switch({
+                subtitle: 'Copy vscode.json to ~/.vscode/extensions/theme-aether/themes/',
                 active: this._includeVscode,
-                valign: Gtk.Align.CENTER,
+                onChanged: (active) => {
+                    this._includeVscode = active;
+                    emitSettingsChanged();
+                },
             });
-
-            this._vscodeSwitch.connect('notify::active', sw => {
-                this._includeVscode = sw.get_active();
-                this.emit('settings-changed', this.getSettings());
-            });
-
-            vscodeRow.add_suffix(this._vscodeSwitch);
-            vscodeRow.set_activatable_widget(this._vscodeSwitch);
-
+            this._vscodeSwitch = vscodeSwitch;
             expanderRow.add_row(vscodeRow);
 
             return expanderRow;

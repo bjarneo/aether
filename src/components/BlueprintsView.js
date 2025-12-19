@@ -15,6 +15,13 @@ import {
 import {DialogManager} from '../utils/DialogManager.js';
 import {thumbnailService} from '../services/thumbnail-service.js';
 import {aetherApiService} from '../services/aether-api-service.js';
+import {
+    createButtonRow,
+    createInfoRow,
+    createLinkRow,
+    createToolbar,
+    createIconButton,
+} from '../utils/ui-builders.js';
 
 /**
  * BlueprintsView - Full-featured blueprints management tab
@@ -100,24 +107,15 @@ export const BlueprintsView = GObject.registerClass(
                     'Save your current color palette as a reusable blueprint',
             });
 
-            const saveRow = new Adw.ActionRow({
+            const {row} = createButtonRow({
                 title: 'Create New Blueprint',
                 subtitle: 'Save the current palette with a custom name',
-                activatable: true,
+                buttonLabel: 'Save',
+                buttonClasses: ['suggested-action'],
+                onClicked: () => this.emit('save-requested'),
             });
 
-            const saveButton = new Gtk.Button({
-                label: 'Save',
-                valign: Gtk.Align.CENTER,
-                css_classes: ['suggested-action'],
-            });
-            saveButton.connect('clicked', () => {
-                this.emit('save-requested');
-            });
-            saveRow.add_suffix(saveButton);
-            saveRow.set_activatable_widget(saveButton);
-
-            group.add(saveRow);
+            group.add(row);
 
             return group;
         }
@@ -128,13 +126,6 @@ export const BlueprintsView = GObject.registerClass(
                 description: 'Your saved color themes',
             });
 
-            // Header with actions
-            const headerBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-                margin_bottom: 12,
-            });
-
             // Search entry
             this._searchEntry = new Gtk.SearchEntry({
                 placeholder_text: 'Search blueprints...',
@@ -143,23 +134,25 @@ export const BlueprintsView = GObject.registerClass(
             this._searchEntry.connect('search-changed', () =>
                 this._filterBlueprints()
             );
-            headerBox.append(this._searchEntry);
 
             // Import button
-            const importButton = new Gtk.Button({
-                icon_name: 'document-open-symbolic',
-                tooltip_text: 'Import Blueprint',
+            const importButton = createIconButton({
+                iconName: 'document-open-symbolic',
+                tooltip: 'Import Blueprint',
+                onClicked: () => this._importBlueprint(),
             });
-            importButton.connect('clicked', () => this._importBlueprint());
-            headerBox.append(importButton);
 
             // Refresh button
-            const refreshButton = new Gtk.Button({
-                icon_name: 'view-refresh-symbolic',
-                tooltip_text: 'Refresh',
+            const refreshButton = createIconButton({
+                iconName: 'view-refresh-symbolic',
+                tooltip: 'Refresh',
+                onClicked: () => this.loadBlueprints(true),
             });
-            refreshButton.connect('clicked', () => this.loadBlueprints(true));
-            headerBox.append(refreshButton);
+
+            const headerBox = createToolbar({
+                startWidgets: [this._searchEntry],
+                endWidgets: [importButton, refreshButton],
+            });
 
             group.add(headerBox);
 
