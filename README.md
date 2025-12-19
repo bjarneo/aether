@@ -8,7 +8,7 @@ https://github.com/user-attachments/assets/3d92271f-d874-49a0-ac66-66749e330135
 
 A visual theming application for [Omarchy](https://omarchy.org). Extract colors from wallpapers and apply cohesive themes across your entire desktop.
 
-> **Not using Omarchy?** Aether works standalone on any Linux desktop with Hyprland. See the [Standalone Guide](docs/standalone.md) for setup.
+> **Not using Omarchy?** Aether works standalone on any Linux desktop. See the [Standalone Guide](docs/standalone.md) for setup.
 
 ## Features
 
