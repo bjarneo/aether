@@ -16,6 +16,7 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 - **Wallpaper Browser** — Search wallhaven.cc or browse local files
 - **Image Filters** — Edit wallpapers before extraction (blur, exposure, presets)
 - **Color Presets** — Dracula, Nord, Gruvbox, Catppuccin, and more
+- **Base16 Import** — Import 250+ community color schemes
 - **Blueprints** — Save and share themes as JSON
 - **Screen Shaders** — 80+ GLSL effects via hyprshade
 - **Multi-App Support** — Hyprland, Waybar, Kitty, Neovim, and 15+ more
@@ -70,6 +71,7 @@ See `aether --help` for all options.
 |-------|-------------|
 | [Installation](docs/installation.md) | Detailed setup instructions |
 | [Color Extraction](docs/color-extraction.md) | How the algorithm works |
+| [Base16 Schemes](docs/base16.md) | Import community color schemes |
 | [Wallpaper Editor](docs/wallpaper-editor.md) | Image filters & presets |
 | [Wallhaven](docs/wallhaven.md) | Browse online wallpapers |
 | [Blueprints](docs/blueprints.md) | Save & restore themes |

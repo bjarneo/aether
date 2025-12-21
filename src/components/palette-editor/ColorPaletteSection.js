@@ -1,3 +1,4 @@
+import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
@@ -8,6 +9,9 @@ import {WallpaperColorPicker} from '../palette/wallpaper-color-picker.js';
 import {AppColorOverrides} from '../palette/AppColorOverrides.js';
 import {SPACING} from '../../constants/ui-constants.js';
 import {themeState} from '../../state/ThemeState.js';
+import {readFileAsText} from '../../utils/file-utils.js';
+import {parseBase16Yaml} from '../../utils/base16-utils.js';
+import {showToast} from '../../utils/ui-helpers.js';
 
 /**
  * ColorPaletteSection - Manages the color palette display and editing
@@ -20,6 +24,7 @@ export const ColorPaletteSection = GObject.registerClass(
                 param_types: [GObject.TYPE_INT, GObject.TYPE_STRING],
             },
             'overrides-changed': {param_types: [GObject.TYPE_JSOBJECT]},
+            'palette-imported': {param_types: [GObject.TYPE_JSOBJECT]},
         },
     },
     class ColorPaletteSection extends Gtk.Box {
@@ -93,6 +98,10 @@ export const ColorPaletteSection = GObject.registerClass(
                 this._openWallpaperColorPicker()
             );
             headerBox.append(this._pickFromWallpaperBtn);
+
+            // Import button with dropdown
+            this._importMenuButton = this._createImportMenuButton();
+            headerBox.append(this._importMenuButton);
 
             this.append(headerBox);
 
@@ -262,6 +271,125 @@ export const ColorPaletteSection = GObject.registerClass(
         setNeovimThemeSelected(selected) {
             if (this._appOverridesWidget) {
                 this._appOverridesWidget.setNeovimThemeSelected(selected);
+            }
+        }
+
+        /**
+         * Creates the import menu button with dropdown
+         * @returns {Gtk.MenuButton} The menu button widget
+         * @private
+         */
+        _createImportMenuButton() {
+            // Create popover with import options
+            const popover = new Gtk.Popover();
+
+            const popoverBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: SPACING.SM,
+                margin_top: SPACING.SM,
+                margin_bottom: SPACING.SM,
+                margin_start: SPACING.SM,
+                margin_end: SPACING.SM,
+            });
+
+            // Base16 import option
+            const base16ButtonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: SPACING.SM,
+            });
+            base16ButtonBox.append(
+                new Gtk.Image({icon_name: 'document-open-symbolic'})
+            );
+            base16ButtonBox.append(new Gtk.Label({label: 'Base16 (.yaml)'}));
+
+            const base16Button = new Gtk.Button({
+                child: base16ButtonBox,
+                css_classes: ['flat'],
+            });
+            base16Button.connect('clicked', () => {
+                popover.popdown();
+                this._importBase16();
+            });
+            popoverBox.append(base16Button);
+
+            popover.set_child(popoverBox);
+
+            // Create menu button
+            const menuButton = new Gtk.MenuButton({
+                icon_name: 'document-open-symbolic',
+                popover: popover,
+                tooltip_text: 'Import color scheme',
+            });
+
+            return menuButton;
+        }
+
+        /**
+         * Opens file dialog to import Base16 color scheme
+         * @private
+         */
+        _importBase16() {
+            const dialog = new Gtk.FileDialog({
+                title: 'Import Base16 Color Scheme',
+            });
+
+            // Create filter for YAML files
+            const filter = new Gtk.FileFilter();
+            filter.set_name('Base16 YAML Files');
+            filter.add_pattern('*.yaml');
+            filter.add_pattern('*.yml');
+
+            const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
+            filterList.append(filter);
+            dialog.set_filters(filterList);
+
+            dialog.open(this.get_root(), null, (source, result) => {
+                try {
+                    const file = dialog.open_finish(result);
+                    if (file) {
+                        const filePath = file.get_path();
+                        this._processBase16File(filePath);
+                    }
+                } catch (e) {
+                    // User cancelled or error
+                    if (!e.message.includes('Dismissed')) {
+                        console.error('File picker error:', e.message);
+                    }
+                }
+            });
+        }
+
+        /**
+         * Processes and applies a Base16 YAML file
+         * @param {string} filePath - Path to the Base16 YAML file
+         * @private
+         */
+        _processBase16File(filePath) {
+            try {
+                const content = readFileAsText(filePath);
+                const result = parseBase16Yaml(content);
+
+                if (result.colors && result.colors.length === 16) {
+                    // Apply the imported colors
+                    this._palette = [...result.colors];
+                    this._swatchGrid.setPalette(result.colors);
+
+                    // Update centralized state
+                    themeState.setPalette(result.colors);
+
+                    // Emit signal for parent components
+                    this.emit('palette-imported', {
+                        colors: result.colors,
+                        scheme: result.scheme,
+                        author: result.author,
+                    });
+
+                    // Show success toast
+                    showToast(this, `Imported: ${result.scheme}`);
+                }
+            } catch (error) {
+                console.error('Failed to import Base16 scheme:', error.message);
+                showToast(this, `Import failed: ${error.message}`, 4);
             }
         }
 

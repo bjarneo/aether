@@ -175,6 +175,12 @@ export const PaletteEditor = GObject.registerClass(
             this._colorPalette.connect('overrides-changed', (_, overrides) => {
                 this.emit('overrides-changed', overrides);
             });
+            this._colorPalette.connect('palette-imported', (_, data) => {
+                // Update internal state with imported palette
+                this._palette = [...data.colors];
+                this._originalPalette = [...data.colors];
+                this.emit('palette-generated', this._palette);
+            });
             viewBox.append(this._colorPalette);
 
             this.append(viewBox);

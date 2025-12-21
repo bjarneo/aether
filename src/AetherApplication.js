@@ -25,6 +25,7 @@ import {
     ApplyBlueprintCommand,
     GenerateThemeCommand,
     ImportBlueprintCommand,
+    ImportBase16Command,
     CheckScheduleCommand,
 } from './cli/index.js';
 import {BlueprintWidget} from './components/BlueprintWidget.js';
@@ -157,6 +158,15 @@ export const AetherApplication = GObject.registerClass(
                 'Check and apply scheduled theme changes (used by scheduler daemon)',
                 null
             );
+
+            this.add_main_option(
+                'import-base16',
+                0,
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.STRING,
+                'Import a Base16 color scheme from YAML file',
+                'FILE'
+            );
         }
 
         /**
@@ -176,6 +186,7 @@ export const AetherApplication = GObject.registerClass(
             if (this._handleApplyBlueprint(options)) return 0;
             if (this._handleGenerate(options)) return 0;
             if (this._handleImportBlueprint(options)) return 0;
+            if (this._handleImportBase16(options)) return 0;
             if (this._handleCheckSchedule(options)) return 0;
             if (this._handleWidgetMode(options)) return 0;
 
@@ -286,6 +297,47 @@ export const AetherApplication = GObject.registerClass(
 
                 this.hold();
                 ImportBlueprintCommand.execute(source, autoApply)
+                    .then(success => {
+                        this.release();
+                        if (!success) {
+                            imports.system.exit(1);
+                        }
+                    })
+                    .catch(error => {
+                        printerr(`Error: ${error.message}`);
+                        this.release();
+                        imports.system.exit(1);
+                    });
+
+                return true;
+            }
+            return false;
+        }
+
+        /**
+         * Handle --import-base16 command
+         * @private
+         * @param {GLib.VariantDict} options - Command options
+         * @returns {boolean} True if handled
+         */
+        _handleImportBase16(options) {
+            if (options.contains('import-base16')) {
+                const filePath = options
+                    .lookup_value('import-base16', GLib.VariantType.new('s'))
+                    .get_string()[0];
+
+                // Check for optional wallpaper
+                let wallpaperPath = null;
+                if (options.contains('wallpaper')) {
+                    wallpaperPath = options
+                        .lookup_value('wallpaper', GLib.VariantType.new('s'))
+                        .get_string()[0];
+                }
+
+                const lightMode = options.contains('light-mode');
+
+                this.hold();
+                ImportBase16Command.execute(filePath, {wallpaperPath, lightMode})
                     .then(success => {
                         this.release();
                         if (!success) {

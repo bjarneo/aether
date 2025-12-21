@@ -14,6 +14,9 @@ aether --apply-blueprint "my-theme"
 # Generate theme from wallpaper
 aether --generate ~/Wallpapers/sunset.jpg
 
+# Import Base16 color scheme
+aether --import-base16 ~/themes/dracula.yaml
+
 # Open GUI with specific wallpaper
 aether --wallpaper ~/Wallpapers/sunset.jpg
 ```
@@ -100,6 +103,38 @@ aether -i "/path/to/theme.json"
 # Import and apply in one command
 aether --import-blueprint "https://aethr.no/api/blueprint/abc123" --auto-apply
 ```
+
+### Import Base16 Scheme
+
+Import a [Base16](https://github.com/chriskempson/base16) color scheme:
+
+```bash
+aether --import-base16 /path/to/scheme.yaml
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--wallpaper FILE` | Include wallpaper with the theme |
+| `--light-mode` | Generate light theme variant |
+
+**Examples:**
+
+```bash
+# Import Base16 scheme
+aether --import-base16 ~/themes/dracula.yaml
+
+# Import with wallpaper
+aether --import-base16 ~/themes/nord.yaml --wallpaper ~/wallpaper.jpg
+
+# Import as light theme
+aether --import-base16 ~/themes/solarized.yaml --light-mode
+```
+
+Base16 schemes are available from [tinted-theming/schemes](https://github.com/tinted-theming/schemes) (250+ schemes).
+
+See [Base16 documentation](base16.md) for format details and color mapping.
 
 ### Open with Wallpaper
 
