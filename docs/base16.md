@@ -105,7 +105,9 @@ Aether maps Base16 colors to ANSI terminal colors following the [base16-shell](h
 
 Popular repositories with Base16 schemes:
 
-- [base16-schemes](https://github.com/tinted-theming/schemes) — 250+ schemes
+- [tinted-theming/base16-schemes](https://github.com/tinted-theming/base16-schemes) — Official scheme collection
+- [base16-schemes-source](https://github.com/chriskempson/base16-schemes-source/blob/main/list.yaml) — Original scheme list
+- [tinted-theming/schemes](https://github.com/tinted-theming/schemes) — 250+ schemes
 - [base16-gallery](https://tinted-theming.github.io/tinted-gallery/) — Visual browser
 - [terminal.sexy](https://terminal.sexy/) — Export as Base16
 
