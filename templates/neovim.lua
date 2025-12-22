@@ -1,8 +1,7 @@
 return {
     {
-        -- "bjarneo/aether.nvim",
-        -- branch = "v2",
-        dir = "~/Code/aether.nvim/",
+        "bjarneo/aether.nvim",
+        branch = "v2",
         name = "aether",
         priority = 1000,
         opts = {
