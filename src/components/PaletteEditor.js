@@ -522,7 +522,6 @@ export const PaletteEditor = GObject.registerClass(
 
         setNeovimThemeSelected(selected) {
             this._colorPalette.setNeovimThemeSelected(selected);
-            themeState.setNeovimTheme(selected ? 'selected' : null);
         }
 
         reset() {
