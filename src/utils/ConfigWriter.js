@@ -179,6 +179,86 @@ export class ConfigWriter {
     }
 
     /**
+     * Generates theme files without applying them
+     * Does NOT create symlinks, does NOT activate theme, does NOT restart services
+     *
+     * @param {Object} options - Theme generation options
+     * @param {Object} options.colorRoles - Color role assignments
+     * @param {string} [options.wallpaperPath] - Path to wallpaper file
+     * @param {Object} [options.settings={}] - Theme settings
+     * @param {boolean} [options.lightMode=false] - Light mode flag
+     * @param {Object} [options.appOverrides={}] - Per-application template overrides
+     * @param {Array<string>} [options.additionalImages=[]] - Additional images to copy
+     * @param {string} [options.outputPath=null] - Custom output directory (defaults to ~/.config/aether/theme/)
+     * @returns {{success: boolean, themePath: string}} Result object
+     */
+    generateOnly({
+        colorRoles,
+        wallpaperPath,
+        settings = {},
+        lightMode = false,
+        appOverrides = {},
+        additionalImages = [],
+        outputPath = null,
+    }) {
+        // Use custom output path or default theme directory
+        const targetDir = outputPath || this.themeDir;
+
+        try {
+            // Create output directory
+            ensureDirectoryExists(targetDir);
+
+            // Create backgrounds subdirectory
+            const bgDir = GLib.build_filenamev([targetDir, 'backgrounds']);
+            ensureDirectoryExists(bgDir);
+            cleanDirectory(bgDir);
+
+            // Copy wallpaper
+            if (wallpaperPath) {
+                const fileName = GLib.path_get_basename(wallpaperPath);
+                const destPath = GLib.build_filenamev([bgDir, fileName]);
+                const success = copyFile(wallpaperPath, destPath);
+                if (success) {
+                    this.wallpaperPath = destPath;
+                    console.log(`Copied wallpaper to: ${destPath}`);
+                }
+            }
+
+            // Copy additional images
+            if (additionalImages && additionalImages.length > 0) {
+                additionalImages.forEach((sourcePath, index) => {
+                    const fileName = GLib.path_get_basename(sourcePath);
+                    const destPath = GLib.build_filenamev([bgDir, fileName]);
+                    const success = copyFile(sourcePath, destPath);
+                    if (success) {
+                        console.log(
+                            `Copied additional image ${index + 1}: ${fileName}`
+                        );
+                    }
+                });
+            }
+
+            // Build variables and process templates
+            const variables = this._buildVariables(colorRoles, lightMode);
+            this._processTemplatesToDirectory(
+                variables,
+                targetDir,
+                settings,
+                appOverrides
+            );
+
+            // Handle light mode marker
+            this._handleLightModeMarker(targetDir, lightMode);
+
+            console.log(`Theme files generated to: ${targetDir}`);
+            return {success: true, themePath: targetDir};
+        } catch (e) {
+            console.error('Error generating theme:', e.message);
+            return {success: false, themePath: targetDir};
+        }
+    }
+
+    /**
      * Creates theme directory, cleans backgrounds directory, and creates omarchy symlink
      * @private
      */

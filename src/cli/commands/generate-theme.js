@@ -1,3 +1,4 @@
+import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import {ConfigWriter} from '../../utils/ConfigWriter.js';
 import {ColorMapper} from '../utils/color-mapper.js';
@@ -14,17 +15,23 @@ export class GenerateThemeCommand {
      * @param {string} wallpaperPath - Path to wallpaper image
      * @param {string} [extractionMode='normal'] - Extraction mode: 'normal', 'monochromatic', 'analogous', 'pastel', 'material', 'colorful', 'muted', 'bright'
      * @param {boolean} [lightMode=false] - Generate light mode theme
+     * @param {Object} [options={}] - Additional options
+     * @param {boolean} [options.noApply=false] - Generate only, don't apply theme
+     * @param {string} [options.outputPath=null] - Custom output directory
      * @returns {Promise<boolean>} True if successful, false otherwise
      */
     static async execute(
         wallpaperPath,
         extractionMode = 'normal',
-        lightMode = false
+        lightMode = false,
+        options = {}
     ) {
+        const {noApply = false, outputPath = null} = options;
+
         if (!wallpaperPath) {
             print('Error: Wallpaper path is required');
             print(
-                'Usage: aether --generate <wallpaper_path> [--extract-mode <mode>] [--light-mode]'
+                'Usage: aether --generate <wallpaper_path> [--extract-mode <mode>] [--light-mode] [--no-apply] [--output <path>]'
             );
             return false;
         }
@@ -46,6 +53,19 @@ export class GenerateThemeCommand {
             return false;
         }
 
+        // Validate output path if provided
+        if (outputPath) {
+            // Expand ~ to home directory
+            let expandedPath = outputPath;
+            if (expandedPath.startsWith('~/')) {
+                expandedPath = GLib.build_filenamev([
+                    GLib.get_home_dir(),
+                    expandedPath.slice(2),
+                ]);
+            }
+            options.outputPath = expandedPath;
+        }
+
         try {
             // Validate wallpaper file exists
             const file = Gio.File.new_for_path(wallpaperPath);
@@ -56,14 +76,17 @@ export class GenerateThemeCommand {
 
             // Build extraction message
             let extractionMessage = `Extracting colors from: ${wallpaperPath}`;
-            if (extractionMode !== 'normal' || lightMode) {
-                const modeDetails = [];
-                if (extractionMode !== 'normal') {
-                    modeDetails.push(extractionMode);
-                }
-                if (lightMode) {
-                    modeDetails.push('light mode');
-                }
+            const modeDetails = [];
+            if (extractionMode !== 'normal') {
+                modeDetails.push(extractionMode);
+            }
+            if (lightMode) {
+                modeDetails.push('light mode');
+            }
+            if (noApply) {
+                modeDetails.push('generate only');
+            }
+            if (modeDetails.length > 0) {
                 extractionMessage += ` (${modeDetails.join(', ')})`;
             }
             print(extractionMessage);
@@ -97,19 +120,47 @@ export class GenerateThemeCommand {
             const appOverrides = {}; // No app-specific overrides
             const additionalImages = []; // No additional images
 
-            print('Applying theme...');
+            if (noApply) {
+                // Generate only mode - no symlinks, no theme activation
+                print('Generating theme files...');
 
-            configWriter.applyTheme({
-                colorRoles,
-                wallpaperPath,
-                settings,
-                lightMode,
-                appOverrides,
-                additionalImages,
-                sync: true,
-            });
+                const result = configWriter.generateOnly({
+                    colorRoles,
+                    wallpaperPath,
+                    settings,
+                    lightMode,
+                    appOverrides,
+                    additionalImages,
+                    outputPath: options.outputPath,
+                });
 
-            print('✓ Theme applied successfully');
+                if (result.success) {
+                    print(`✓ Theme files generated successfully`);
+                    print(`  Output directory: ${result.themePath}`);
+                    print('');
+                    print('Generated files can be found in the output directory.');
+                    print('No symlinks were created and no theme was activated.');
+                } else {
+                    print('✗ Failed to generate theme files');
+                    return false;
+                }
+            } else {
+                // Normal mode - full theme application
+                print('Applying theme...');
+
+                configWriter.applyTheme({
+                    colorRoles,
+                    wallpaperPath,
+                    settings,
+                    lightMode,
+                    appOverrides,
+                    additionalImages,
+                    sync: true,
+                });
+
+                print('✓ Theme applied successfully');
+            }
+
             return true;
         } catch (e) {
             print(`Error: Failed to generate theme: ${e.message}`);

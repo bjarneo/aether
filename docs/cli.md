@@ -60,6 +60,8 @@ aether -g /path/to/wallpaper.jpg
 |--------|-------------|
 | `--light-mode` | Generate light theme instead of dark |
 | `--extract-mode MODE` | Color extraction algorithm (see below) |
+| `--no-apply` | Generate templates only, don't activate theme |
+| `--output PATH`, `-o PATH` | Custom output directory (use with `--no-apply`) |
 
 **Extraction Modes:**
 
@@ -80,6 +82,12 @@ aether --generate ~/wallpaper.jpg --light-mode --extract-mode pastel
 
 # Vibrant colorful theme
 aether --generate ~/wallpaper.jpg --extract-mode colorful
+
+# Generate templates without applying (no symlinks, no theme activation)
+aether --generate ~/wallpaper.jpg --no-apply
+
+# Generate to custom directory for use with external scripts
+aether --generate ~/wallpaper.jpg --no-apply --output ~/my-themes/generated
 ```
 
 ### Import Blueprint

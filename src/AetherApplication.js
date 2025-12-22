@@ -167,6 +167,24 @@ export const AetherApplication = GObject.registerClass(
                 'Import a Base16 color scheme from YAML file',
                 'FILE'
             );
+
+            this.add_main_option(
+                'no-apply',
+                0,
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.NONE,
+                'Generate templates without applying theme (use with --generate)',
+                null
+            );
+
+            this.add_main_option(
+                'output',
+                'o'.charCodeAt(0),
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.STRING,
+                'Output directory for generated theme files (use with --generate --no-apply)',
+                'PATH'
+            );
         }
 
         /**
@@ -248,12 +266,22 @@ export const AetherApplication = GObject.registerClass(
                 }
 
                 const lightMode = options.contains('light-mode');
+                // GLib normalizes hyphens to underscores in option names
+                const noApply = options.contains('no-apply') || options.contains('no_apply');
+
+                let outputPath = null;
+                if (options.contains('output')) {
+                    outputPath = options
+                        .lookup_value('output', GLib.VariantType.new('s'))
+                        .get_string()[0];
+                }
 
                 this.hold();
                 GenerateThemeCommand.execute(
                     wallpaperPath,
                     extractionMode,
-                    lightMode
+                    lightMode,
+                    {noApply, outputPath}
                 )
                     .then(success => {
                         this.release();
