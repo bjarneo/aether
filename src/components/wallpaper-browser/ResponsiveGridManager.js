@@ -3,22 +3,20 @@ import GLib from 'gi://GLib';
 /**
  * ResponsiveGridManager - Manages responsive column layout for wallpaper grid
  *
- * Automatically adjusts grid columns (2-6) based on available width with
+ * Automatically adjusts grid columns (2-4) based on available width with
  * efficient resize detection using polling with change threshold.
  *
  * Features:
  * - Window-based width calculation for initial layout
  * - Efficient polling (1s interval) with change threshold (50px)
- * - Smooth responsive breakpoints (2-6 columns)
+ * - Smooth responsive breakpoints (2-4 columns)
  * - Automatic cleanup on widget destruction
  * - Cached column spacing for performance
  *
  * Responsive Breakpoints:
  * - < 600px: 2 columns
  * - 600-880px: 3 columns
- * - 880-1160px: 4 columns
- * - 1160-1440px: 5 columns
- * - >= 1440px: 6 columns
+ * - >= 880px: 4 columns (capped to ensure grid stays tall enough for scrolling)
  *
  * @example
  * const manager = new ResponsiveGridManager(gridFlow, scrolledWindow, widget);
@@ -157,9 +155,10 @@ export class ResponsiveGridManager {
 
     /**
      * Calculates optimal number of columns based on available width
-     * Applies responsive breakpoints (2-6 columns) based on width
+     * Applies responsive breakpoints (2-4 columns) based on width
+     * Capped at 4 columns to ensure grid remains tall enough for scrolling
      * @param {number} width - Available width in pixels
-     * @returns {number} Number of columns (2-6)
+     * @returns {number} Number of columns (2-4)
      * @private
      */
     _calculateColumns(width) {
@@ -170,13 +169,13 @@ export class ResponsiveGridManager {
         const calculated = Math.floor(availableWidth / itemSize);
 
         // Apply responsive breakpoints with boundaries
+        // Cap at 4 columns max to ensure grid stays tall enough for scrolling
+        // This prevents GTK from hiding scrollbar when grid becomes too short
         // 2 columns: < 600px
         // 3 columns: 600-880px
-        // 4 columns: 880-1160px
-        // 5 columns: 1160-1440px
-        // 6 columns: >= 1440px
+        // 4 columns: >= 880px
         if (calculated < 2) return 2;
-        if (calculated > 6) return 6;
+        if (calculated > 4) return 4;
         return calculated;
     }
 

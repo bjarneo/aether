@@ -159,6 +159,7 @@ export const WallpaperBrowser = GObject.registerClass(
             // Wallpaper grid - start with default 3 columns, will be updated based on screen size
             this._gridFlow = new Gtk.FlowBox({
                 valign: Gtk.Align.START,
+                vexpand: true, // Ensure proper height negotiation with ScrolledWindow
                 max_children_per_line: GRID.MAX_COLUMNS,
                 min_children_per_line: GRID.MIN_COLUMNS,
                 selection_mode: Gtk.SelectionMode.NONE,
