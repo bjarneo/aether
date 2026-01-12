@@ -130,6 +130,8 @@ export const ColorPaletteSection = GObject.registerClass(
                 'overrides-changed',
                 (_, overrides) => {
                     this._appOverrides = overrides;
+                    // Sync to centralized state so ConfigWriter receives overrides
+                    themeState.setAppOverrides(overrides);
                     this.emit('overrides-changed', overrides);
                 }
             );

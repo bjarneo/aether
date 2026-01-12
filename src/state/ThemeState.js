@@ -402,6 +402,15 @@ export const ThemeState = GObject.registerClass(
             this.emit('app-overrides-changed', this._appOverrides);
         }
 
+        /**
+         * Set all app overrides at once
+         * @param {AppOverrides} overrides - Complete app overrides object
+         */
+        setAppOverrides(overrides) {
+            this._appOverrides = {...overrides};
+            this.emit('app-overrides-changed', this._appOverrides);
+        }
+
         // ==================== Neovim Theme ====================
 
         /**
