@@ -342,35 +342,21 @@ export class ConfigWriter {
     }
 
     _buildVariables(colorRoles, lightMode = false) {
-        const variables = {};
+        // Merge default colors with provided colorRoles
+        const variables = {...DEFAULT_COLORS, ...colorRoles};
 
-        // Use default colors as fallback (now uses semantic names)
-        Object.keys(DEFAULT_COLORS).forEach(key => {
-            variables[key] = colorRoles[key] || DEFAULT_COLORS[key];
-        });
+        // Semantic name to index mapping for color0-15 aliases
+        const semanticOrder = [
+            'black', 'red', 'green', 'yellow',
+            'blue', 'magenta', 'cyan', 'white',
+            'bright_black', 'bright_red', 'bright_green', 'bright_yellow',
+            'bright_blue', 'bright_magenta', 'bright_cyan', 'bright_white',
+        ];
 
         // Add color0-15 aliases for backwards compatibility with existing templates
-        const indexAliases = {
-            color0: variables.black,
-            color1: variables.red,
-            color2: variables.green,
-            color3: variables.yellow,
-            color4: variables.blue,
-            color5: variables.magenta,
-            color6: variables.cyan,
-            color7: variables.white,
-            color8: variables.bright_black,
-            color9: variables.bright_red,
-            color10: variables.bright_green,
-            color11: variables.bright_yellow,
-            color12: variables.bright_blue,
-            color13: variables.bright_magenta,
-            color14: variables.bright_cyan,
-            color15: variables.bright_white,
-        };
-
-        // Add index aliases to variables
-        Object.assign(variables, indexAliases);
+        semanticOrder.forEach((name, i) => {
+            variables[`color${i}`] = variables[name];
+        });
 
         // Add theme type for VSCode and other templates
         variables.theme_type = lightMode ? 'light' : 'dark';

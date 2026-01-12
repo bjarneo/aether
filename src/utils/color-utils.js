@@ -548,96 +548,45 @@ export function generateGradient(startColor, endColor) {
 export function generatePaletteFromColor(baseColor) {
     const rgb = hexToRgb(baseColor);
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    const {s: baseSaturation, l: baseLightness, h: baseHue} = hsl;
 
-    // Extract base saturation and lightness - these will be preserved across all colors
-    const baseSaturation = hsl.s;
-    const baseLightness = hsl.l;
-    const baseHue = hsl.h;
-
-    // Determine which ANSI color slot (1-6) this base color belongs to based on hue
-    // Red: 345-45°, Yellow: 45-75°, Green: 75-165°, Cyan: 165-195°, Blue: 195-285°, Magenta: 285-345°
-    let baseSlot = 1; // Default to red
-    if (baseHue >= 345 || baseHue < 45) {
-        baseSlot = 1; // Red
-    } else if (baseHue >= 45 && baseHue < 75) {
-        baseSlot = 3; // Yellow
-    } else if (baseHue >= 75 && baseHue < 165) {
-        baseSlot = 2; // Green
-    } else if (baseHue >= 165 && baseHue < 195) {
-        baseSlot = 6; // Cyan
-    } else if (baseHue >= 195 && baseHue < 285) {
-        baseSlot = 4; // Blue
-    } else if (baseHue >= 285 && baseHue < 345) {
-        baseSlot = 5; // Magenta
-    }
-
-    // Define standard ANSI color hues (in degrees)
-    const ansiHues = [
-        0, // color1: Red
-        120, // color2: Green
-        60, // color3: Yellow
-        240, // color4: Blue
-        300, // color5: Magenta
-        180, // color6: Cyan
+    // Hue ranges mapping to ANSI slot (1-6): Red, Green, Yellow, Blue, Magenta, Cyan
+    const hueRanges = [
+        {min: 345, max: 360, slot: 1}, {min: 0, max: 45, slot: 1},   // Red
+        {min: 45, max: 75, slot: 3},                                  // Yellow
+        {min: 75, max: 165, slot: 2},                                 // Green
+        {min: 165, max: 195, slot: 6},                                // Cyan
+        {min: 195, max: 285, slot: 4},                                // Blue
+        {min: 285, max: 345, slot: 5},                                // Magenta
     ];
 
-    // Generate colors 1-6 using the base color's saturation and lightness
-    const colors1to6 = ansiHues.map((hue, index) => {
-        if (index + 1 === baseSlot) {
-            // Use the exact base color for its slot
-            return baseColor;
-        }
-        // Generate other colors with same saturation and lightness
-        return hslToHex(hue, baseSaturation, baseLightness);
-    });
+    const baseSlot = hueRanges.find(r => 
+        baseHue >= r.min && baseHue < r.max
+    )?.slot ?? 1;
 
-    // Generate bright versions (8-14) - slightly brighter and more saturated
+    // Standard ANSI color hues: Red, Green, Yellow, Blue, Magenta, Cyan
+    const ansiHues = [0, 120, 60, 240, 300, 180];
+
+    // Generate standard colors (1-6) with base saturation and lightness
+    const colors1to6 = ansiHues.map((hue, i) => 
+        i + 1 === baseSlot ? baseColor : hslToHex(hue, baseSaturation, baseLightness)
+    );
+
+    // Generate bright versions (9-14) with increased brightness and saturation
     const brightLightness = Math.min(100, baseLightness + 10);
     const brightSaturation = Math.min(100, baseSaturation * 1.1);
-    const colors8to14 = ansiHues.map((hue, index) => {
-        if (index + 1 === baseSlot) {
-            // Bright version of base color
-            return hslToHex(baseHue, brightSaturation, brightLightness);
-        }
-        return hslToHex(hue, brightSaturation, brightLightness);
-    });
-
-    // Generate background (color 0) - always very dark
-    const backgroundColor = hslToHex(
-        baseHue,
-        baseSaturation * 0.4,
-        Math.max(3, baseLightness * 0.15)
+    const colors9to14 = ansiHues.map((hue, i) => 
+        i + 1 === baseSlot
+            ? hslToHex(baseHue, brightSaturation, brightLightness)
+            : hslToHex(hue, brightSaturation, brightLightness)
     );
-
-    // Generate color 7 (white/light gray) - always light
-    const color7 = hslToHex(baseHue, baseSaturation * 0.15, 92);
-
-    // Generate color 8 (bright black) - darker gray between background and colors
-    const color8 = hslToHex(
-        baseHue,
-        baseSaturation * 0.35,
-        Math.min(40, baseLightness * 1.0)
-    );
-
-    // Generate color 15 (bright white) - always very bright
-    const color15 = hslToHex(baseHue, baseSaturation * 0.1, 98);
 
     return [
-        backgroundColor, // background
-        colors1to6[0], // color1 (red)
-        colors1to6[1], // color2 (green)
-        colors1to6[2], // color3 (yellow)
-        colors1to6[3], // color4 (blue)
-        colors1to6[4], // color5 (magenta)
-        colors1to6[5], // color6 (cyan)
-        color7, // color7 (white)
-        color8, // color8 (bright black)
-        colors8to14[0], // color9 (bright red)
-        colors8to14[1], // color10 (bright green)
-        colors8to14[2], // color11 (bright yellow)
-        colors8to14[3], // color12 (bright blue)
-        colors8to14[4], // color13 (bright magenta)
-        colors8to14[5], // color14 (bright cyan)
-        color15, // color15 (bright white)
+        hslToHex(baseHue, baseSaturation * 0.4, Math.max(3, baseLightness * 0.15)), // 0: background
+        ...colors1to6,                                                               // 1-6: standard colors
+        hslToHex(baseHue, baseSaturation * 0.15, 92),                                // 7: white
+        hslToHex(baseHue, baseSaturation * 0.35, Math.min(40, baseLightness)),       // 8: bright black
+        ...colors9to14,                                                              // 9-14: bright colors
+        hslToHex(baseHue, baseSaturation * 0.1, 98),                                 // 15: bright white
     ];
 }

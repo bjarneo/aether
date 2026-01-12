@@ -182,26 +182,23 @@ export const ColorSynthesizer = GObject.registerClass(
         }
 
         _createColorAssignments() {
-            return {
+            const semanticNames = [
+                'black', 'red', 'green', 'yellow',
+                'blue', 'magenta', 'cyan', 'white',
+                'bright_black', 'bright_red', 'bright_green', 'bright_yellow',
+                'bright_blue', 'bright_magenta', 'bright_cyan', 'bright_white',
+            ];
+
+            const assignments = {
                 background: this._palette[0],
                 foreground: this._palette[15],
-                black: this._palette[0],
-                red: this._palette[1],
-                green: this._palette[2],
-                yellow: this._palette[3],
-                blue: this._palette[4],
-                magenta: this._palette[5],
-                cyan: this._palette[6],
-                white: this._palette[7],
-                bright_black: this._palette[8],
-                bright_red: this._palette[9],
-                bright_green: this._palette[10],
-                bright_yellow: this._palette[11],
-                bright_blue: this._palette[12],
-                bright_magenta: this._palette[13],
-                bright_cyan: this._palette[14],
-                bright_white: this._palette[15],
             };
+
+            semanticNames.forEach((name, i) => {
+                assignments[name] = this._palette[i];
+            });
+
+            return assignments;
         }
 
         loadColors(colorRoles) {
