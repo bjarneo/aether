@@ -1,6 +1,7 @@
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
+import {applyCssToWidget} from '../utils/ui-helpers.js';
 import {SPACING} from '../constants/ui-constants.js';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -143,7 +144,16 @@ export const ScheduleDialog = GObject.registerClass(
             });
 
             const createQuickBtn = (label, onClick) => {
-                const btn = new Gtk.Button({label, css_classes: ['pill']});
+                const btn = new Gtk.Button({label, css_classes: ['flat']});
+                applyCssToWidget(
+                    btn,
+                    `
+                    button {
+                        border-radius: 0;
+                        padding: 6px 12px;
+                    }
+                `
+                );
                 btn.connect('clicked', onClick);
                 quickBox.append(btn);
             };
@@ -179,8 +189,17 @@ export const ScheduleDialog = GObject.registerClass(
                     label: name,
                     active:
                         existingDays.length === 0 || existingDays.includes(i),
-                    css_classes: ['circular'],
                 });
+                applyCssToWidget(
+                    toggle,
+                    `
+                    button {
+                        border-radius: 0;
+                        min-width: 40px;
+                        padding: 6px 8px;
+                    }
+                `
+                );
                 this._dayToggles.push(toggle);
                 daysBox.append(toggle);
             });

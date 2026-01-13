@@ -5,7 +5,7 @@ import GLib from 'gi://GLib';
 import Gdk from 'gi://Gdk?version=4.0';
 import Gtk4LayerShell from 'gi://Gtk4LayerShell?version=1.0';
 import {blueprintService} from '../services/BlueprintService.js';
-import {createColorSwatchRow} from '../utils/ui-helpers.js';
+import {createColorSwatchRow, applyCssToWidget} from '../utils/ui-helpers.js';
 import {SPACING} from '../constants/ui-constants.js';
 
 /**
@@ -94,6 +94,34 @@ export const BlueprintWidget = GObject.registerClass(
                 spacing: 0,
             });
 
+            // Section header
+            const headerBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 2,
+                margin_start: 12,
+                margin_end: 12,
+                margin_top: 8,
+                margin_bottom: 4,
+            });
+
+            const headerLabel = new Gtk.Label({
+                label: 'BLUEPRINTS',
+                xalign: 0,
+            });
+            applyCssToWidget(
+                headerLabel,
+                `
+                label {
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                    opacity: 0.7;
+                }
+            `
+            );
+            headerBox.append(headerLabel);
+            contentBox.append(headerBox);
+
             // Search entry - always visible for filtering
             const searchBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
@@ -105,9 +133,17 @@ export const BlueprintWidget = GObject.registerClass(
             });
 
             this._searchEntry = new Gtk.SearchEntry({
-                placeholder_text: 'Search blueprints...',
+                placeholder_text: 'Search...',
                 hexpand: true,
             });
+            applyCssToWidget(
+                this._searchEntry,
+                `
+                entry {
+                    border-radius: 0;
+                }
+            `
+            );
             this._searchEntry.connect('search-changed', () =>
                 this._filterBlueprints()
             );
@@ -130,6 +166,17 @@ export const BlueprintWidget = GObject.registerClass(
                 margin_start: 6,
                 margin_end: 6,
             });
+            applyCssToWidget(
+                this.listBox,
+                `
+                listbox {
+                    background: transparent;
+                }
+                listbox row {
+                    border-radius: 0;
+                }
+            `
+            );
 
             // Filter function for search
             this.listBox.set_filter_func(row => {
