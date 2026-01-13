@@ -168,6 +168,49 @@ export const SettingsSidebar = GObject.registerClass(
          * @private
          */
         _initializeUI() {
+            // Settings header
+            const headerBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 4,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.SM,
+            });
+
+            const headerLabel = new Gtk.Label({
+                label: 'SETTINGS',
+                xalign: 0,
+            });
+            applyCssToWidget(
+                headerLabel,
+                `
+                label {
+                    font-size: 13px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                    opacity: 0.7;
+                }
+            `
+            );
+            headerBox.append(headerLabel);
+
+            const headerSubtitle = new Gtk.Label({
+                label: 'Customize your theme',
+                xalign: 0,
+            });
+            applyCssToWidget(
+                headerSubtitle,
+                `
+                label {
+                    font-size: 11px;
+                    opacity: 0.5;
+                }
+            `
+            );
+            headerBox.append(headerSubtitle);
+            this.append(headerBox);
+
             const scrolled = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
                 vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
@@ -177,7 +220,7 @@ export const SettingsSidebar = GObject.registerClass(
             const contentBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: SPACING.MD,
-                margin_top: SPACING.MD,
+                margin_top: SPACING.SM,
                 margin_bottom: SPACING.MD,
                 margin_start: SPACING.MD,
                 margin_end: SPACING.MD,
@@ -386,8 +429,16 @@ export const SettingsSidebar = GObject.registerClass(
                 spacing: 0,
                 margin_top: SPACING.MD,
                 height_request: 40,
-                css_classes: ['card'],
             });
+            applyCssToWidget(
+                this._gradientPreviewBox,
+                `
+                box {
+                    border: 1px solid alpha(@borders, 0.2);
+                    border-radius: 0;
+                }
+            `
+            );
             controlsBox.append(this._gradientPreviewBox);
 
             // Generate button
@@ -397,6 +448,15 @@ export const SettingsSidebar = GObject.registerClass(
                 margin_top: SPACING.SM,
                 css_classes: ['suggested-action'],
             });
+            applyCssToWidget(
+                generateButton,
+                `
+                button {
+                    border-radius: 0;
+                    padding: 8px 16px;
+                }
+            `
+            );
             generateButton.connect('clicked', () => this._generateGradient());
 
             controlsBox.append(generateButton);
@@ -528,20 +588,29 @@ export const SettingsSidebar = GObject.registerClass(
             controlsBox.append(colorRow);
 
             // Generate button
-            const generateButton = new Gtk.Button({
+            const generatePaletteButton = new Gtk.Button({
                 label: 'Generate Palette',
                 halign: Gtk.Align.CENTER,
-                margin_top: 6,
+                margin_top: SPACING.SM,
                 css_classes: ['suggested-action'],
             });
-            generateButton.connect('clicked', () => {
+            applyCssToWidget(
+                generatePaletteButton,
+                `
+                button {
+                    border-radius: 0;
+                    padding: 8px 16px;
+                }
+            `
+            );
+            generatePaletteButton.connect('clicked', () => {
                 const generatedColors = generatePaletteFromColor(
                     this._baseColor
                 );
                 this.emit('palette-from-color-generated', generatedColors);
             });
 
-            controlsBox.append(generateButton);
+            controlsBox.append(generatePaletteButton);
 
             expanderRow.add_row(
                 createWrapperRow({child: controlsBox, addMargins: false})

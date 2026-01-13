@@ -1,6 +1,18 @@
 import Gtk from 'gi://Gtk?version=4.0';
-import {favoritesService} from '../services/favorites-service.js';
+import Gdk from 'gi://Gdk?version=4.0';
 
+import {favoritesService} from '../services/favorites-service.js';
+import {applyCssToWidget} from '../utils/ui-helpers.js';
+import {SPACING} from '../constants/ui-constants.js';
+
+/**
+ * Creates a modern wallpaper card with sharp design
+ * @param {Object} wallpaper - Wallpaper data object
+ * @param {Function} onSelect - Callback when card is selected
+ * @param {Function} [onFavoriteToggle] - Callback when favorite is toggled
+ * @param {Function} [onAddToAdditional] - Callback to add to additional images
+ * @returns {Object} Card components {mainBox, picture, favButton, addButton}
+ */
 export function createWallpaperCard(
     wallpaper,
     onSelect,
@@ -9,27 +21,26 @@ export function createWallpaperCard(
 ) {
     const mainBox = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,
-        spacing: 8,
+        spacing: SPACING.SM,
     });
 
-    // Image button with card styling
-    const imageButton = new Gtk.Button({
-        css_classes: ['card'],
+    // Image container with sharp styling
+    const imageContainer = new Gtk.Box({
+        orientation: Gtk.Orientation.VERTICAL,
     });
-
-    // Custom CSS for transparent button background
-    const buttonCss = `
-        .card button {
-            background: none;
-            border: none;
-            box-shadow: none;
+    applyCssToWidget(
+        imageContainer,
+        `
+        box {
+            background-color: alpha(@view_bg_color, 0.3);
+            border: 1px solid alpha(@borders, 0.15);
+            border-radius: 0;
         }
-    `;
-    const buttonProvider = new Gtk.CssProvider();
-    buttonProvider.load_from_data(buttonCss, -1);
-    imageButton
-        .get_style_context()
-        .add_provider(buttonProvider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+    `
+    );
+
+    // Overlay for image + action buttons
+    const overlay = new Gtk.Overlay();
 
     // Thumbnail image
     const picture = new Gtk.Picture({
@@ -38,34 +49,47 @@ export function createWallpaperCard(
         hexpand: true,
         content_fit: Gtk.ContentFit.COVER,
     });
+    applyCssToWidget(
+        picture,
+        `
+        picture {
+            border-radius: 0;
+        }
+    `
+    );
 
-    imageButton.set_child(picture);
-    imageButton.connect('clicked', () => onSelect(wallpaper));
+    overlay.set_child(picture);
 
-    mainBox.append(imageButton);
-
-    // Info row with details and favorite button
-    const infoRow = new Gtk.Box({
+    // Hover actions overlay (top-right)
+    const actionsBox = new Gtk.Box({
         orientation: Gtk.Orientation.HORIZONTAL,
-        spacing: 8,
-    });
-
-    // Info label
-    const infoLabel = new Gtk.Label({
-        label: wallpaper.info || wallpaper.name || '',
-        css_classes: ['caption', 'dim-label'],
-        xalign: 0,
-        hexpand: true,
-        ellipsize: 3, // PANGO_ELLIPSIZE_END
+        spacing: 2,
+        halign: Gtk.Align.END,
+        valign: Gtk.Align.START,
+        margin_top: 6,
+        margin_end: 6,
     });
 
     // Add to additional images button
     const addButton = new Gtk.Button({
         icon_name: 'list-add-symbolic',
-        css_classes: ['flat'],
-        halign: Gtk.Align.END,
         tooltip_text: 'Add to additional images',
     });
+    applyCssToWidget(
+        addButton,
+        `
+        button {
+            background-color: alpha(@window_bg_color, 0.9);
+            border-radius: 0;
+            min-width: 28px;
+            min-height: 28px;
+            padding: 4px;
+        }
+        button:hover {
+            background-color: @window_bg_color;
+        }
+    `
+    );
 
     if (onAddToAdditional) {
         addButton.connect('clicked', () => {
@@ -73,34 +97,38 @@ export function createWallpaperCard(
         });
     } else {
         addButton.set_sensitive(false);
+        addButton.set_visible(false);
     }
 
     // Favorite button
+    const isFavorite = favoritesService.isFavorite(wallpaper.path);
     const favButton = new Gtk.Button({
         icon_name: 'emblem-favorite-symbolic',
-        css_classes: favoritesService.isFavorite(wallpaper.path)
-            ? ['flat', 'favorite-active']
-            : ['flat', 'favorite-inactive'],
-        halign: Gtk.Align.END,
+        tooltip_text: isFavorite ? 'Remove from favorites' : 'Add to favorites',
     });
 
-    // Add custom CSS for favorite button
-    const css = `
-        .favorite-active {
-            color: @accent_bg_color;
-        }
-        .favorite-inactive {
-            color: alpha(@window_fg_color, 0.5);
-        }
-        .favorite-inactive:hover {
-            color: @window_fg_color;
-        }
-    `;
-    const provider = new Gtk.CssProvider();
-    provider.load_from_data(css, -1);
-    favButton
-        .get_style_context()
-        .add_provider(provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+    const updateFavButtonStyle = (active) => {
+        const color = active ? '@accent_bg_color' : 'alpha(@window_fg_color, 0.7)';
+        applyCssToWidget(
+            favButton,
+            `
+            button {
+                background-color: alpha(@window_bg_color, 0.9);
+                border-radius: 0;
+                min-width: 28px;
+                min-height: 28px;
+                padding: 4px;
+                color: ${color};
+            }
+            button:hover {
+                background-color: @window_bg_color;
+                color: @accent_bg_color;
+            }
+        `
+        );
+    };
+
+    updateFavButtonStyle(isFavorite);
 
     favButton.connect('clicked', () => {
         const isFav = favoritesService.toggleFavorite(
@@ -108,18 +136,58 @@ export function createWallpaperCard(
             wallpaper.type,
             wallpaper.data
         );
-        favButton.set_css_classes(
-            isFav ? ['flat', 'favorite-active'] : ['flat', 'favorite-inactive']
+        updateFavButtonStyle(isFav);
+        favButton.set_tooltip_text(
+            isFav ? 'Remove from favorites' : 'Add to favorites'
         );
         if (onFavoriteToggle) {
             onFavoriteToggle(wallpaper, isFav);
         }
     });
 
-    infoRow.append(infoLabel);
-    infoRow.append(addButton);
-    infoRow.append(favButton);
-    mainBox.append(infoRow);
+    actionsBox.append(addButton);
+    actionsBox.append(favButton);
+    overlay.add_overlay(actionsBox);
+
+    imageContainer.append(overlay);
+
+    // Click gesture on picture only (not the overlay buttons)
+    const clickGesture = new Gtk.GestureClick();
+    clickGesture.connect('pressed', () => {
+        onSelect(wallpaper);
+    });
+    picture.add_controller(clickGesture);
+    picture.set_cursor(Gdk.Cursor.new_from_name('pointer', null));
+
+    mainBox.append(imageContainer);
+
+    // Info row
+    const infoRow = new Gtk.Box({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        spacing: SPACING.SM,
+    });
+
+    // Info label
+    const infoText = wallpaper.info || wallpaper.name || '';
+    if (infoText) {
+        const infoLabel = new Gtk.Label({
+            label: infoText,
+            xalign: 0,
+            hexpand: true,
+            ellipsize: 3, // PANGO_ELLIPSIZE_END
+        });
+        applyCssToWidget(
+            infoLabel,
+            `
+            label {
+                font-size: 11px;
+                opacity: 0.5;
+            }
+        `
+        );
+        infoRow.append(infoLabel);
+        mainBox.append(infoRow);
+    }
 
     return {mainBox, picture, favButton, addButton};
 }

@@ -12,6 +12,7 @@ import {
     saveJsonFile,
     deleteFile,
 } from '../utils/file-utils.js';
+import {applyCssToWidget} from '../utils/ui-helpers.js';
 import {DialogManager} from '../utils/DialogManager.js';
 import {thumbnailService} from '../services/thumbnail-service.js';
 import {aetherApiService} from '../services/aether-api-service.js';
@@ -304,9 +305,20 @@ export const BlueprintsView = GObject.registerClass(
             const card = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 0,
-                css_classes: ['card'],
                 width_request: 200,
             });
+
+            // Sharp card styling
+            applyCssToWidget(
+                card,
+                `
+                box {
+                    background-color: alpha(@view_bg_color, 0.5);
+                    border: 1px solid alpha(@borders, 0.15);
+                    border-radius: 0;
+                }
+            `
+            );
 
             card._blueprint = blueprint;
 
@@ -480,12 +492,14 @@ export const BlueprintsView = GObject.registerClass(
         }
 
         _setBoxColor(box, color) {
-            const css = `* { background-color: ${color}; }`;
-            const provider = new Gtk.CssProvider();
-            provider.load_from_data(css, -1);
-            box.get_style_context().add_provider(
-                provider,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            applyCssToWidget(
+                box,
+                `
+                box {
+                    background-color: ${color};
+                    border-radius: 0;
+                }
+            `
             );
         }
 
@@ -505,6 +519,15 @@ export const BlueprintsView = GObject.registerClass(
                 hexpand: true,
                 css_classes: ['suggested-action'],
             });
+            applyCssToWidget(
+                applyButton,
+                `
+                button {
+                    border-radius: 0;
+                    padding: 6px 12px;
+                }
+            `
+            );
             applyButton.connect('clicked', () => {
                 // Load blueprint into centralized state
                 themeState.fromBlueprint(blueprint);
@@ -517,6 +540,14 @@ export const BlueprintsView = GObject.registerClass(
                 icon_name: 'view-more-symbolic',
                 css_classes: ['flat'],
             });
+            applyCssToWidget(
+                menuButton,
+                `
+                menubutton button {
+                    border-radius: 0;
+                }
+            `
+            );
 
             const menu = Gio.Menu.new();
             menu.append('Export to File', 'blueprint.export');

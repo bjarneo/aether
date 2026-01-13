@@ -10,6 +10,10 @@ import {thumbnailService} from '../services/thumbnail-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {wallhavenService} from '../services/wallhaven-service.js';
+import {
+    createSectionHeader,
+    createEmptyState,
+} from './ui/BrowserHeader.js';
 import {SPACING, GRID} from '../constants/ui-constants.js';
 
 export const FavoritesView = GObject.registerClass(
@@ -43,6 +47,13 @@ export const FavoritesView = GObject.registerClass(
         }
 
         _initializeUI() {
+            // Section header
+            const header = createSectionHeader(
+                'Favorites',
+                'Your saved wallpapers'
+            );
+            this.append(header);
+
             // Main content
             this._contentStack = new Gtk.Stack({
                 vexpand: true,
@@ -50,29 +61,13 @@ export const FavoritesView = GObject.registerClass(
             });
 
             // Empty state
-            const emptyBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                valign: Gtk.Align.CENTER,
-                halign: Gtk.Align.CENTER,
-                spacing: SPACING.MD,
+            const emptyState = createEmptyState({
+                icon: 'emblem-favorite-symbolic',
+                title: 'No Favorites Yet',
+                description:
+                    'Click the heart icon on wallpapers to add them here',
             });
-            const emptyIcon = new Gtk.Image({
-                icon_name: 'emblem-favorite-symbolic',
-                pixel_size: 64,
-                css_classes: ['dim-label'],
-            });
-            const emptyLabel = new Gtk.Label({
-                label: 'No favorites yet',
-                css_classes: ['dim-label', 'title-3'],
-            });
-            const emptyHint = new Gtk.Label({
-                label: 'Click the heart icon on wallpapers to add them here',
-                css_classes: ['dim-label', 'caption'],
-            });
-            emptyBox.append(emptyIcon);
-            emptyBox.append(emptyLabel);
-            emptyBox.append(emptyHint);
-            this._contentStack.add_named(emptyBox, 'empty');
+            this._contentStack.add_named(emptyState, 'empty');
 
             // Scrolled window for favorites grid
             this._scrolledWindow = new Gtk.ScrolledWindow({
@@ -89,7 +84,7 @@ export const FavoritesView = GObject.registerClass(
                 selection_mode: Gtk.SelectionMode.NONE,
                 column_spacing: GRID.COLUMN_SPACING,
                 row_spacing: GRID.ROW_SPACING,
-                margin_top: SPACING.MD,
+                margin_top: SPACING.SM,
                 margin_bottom: SPACING.MD,
                 margin_start: SPACING.MD,
                 margin_end: SPACING.MD,

@@ -2,7 +2,6 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
-import Adw from 'gi://Adw?version=1';
 import GdkPixbuf from 'gi://GdkPixbuf';
 import Gdk from 'gi://Gdk?version=4.0';
 
@@ -11,6 +10,12 @@ import {thumbnailService} from '../services/thumbnail-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {uploadWallpaper} from '../utils/wallpaper-utils.js';
+import {applyCssToWidget} from '../utils/ui-helpers.js';
+import {
+    createSectionHeader,
+    createEmptyState,
+    styleButton,
+} from './ui/BrowserHeader.js';
 import {SPACING, GRID} from '../constants/ui-constants.js';
 
 /**
@@ -113,6 +118,13 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         }
 
         _initializeUI() {
+            // Section header
+            const header = createSectionHeader(
+                'Local Wallpapers',
+                '~/Wallpapers'
+            );
+            this.append(header);
+
             // Toolbar
             const toolbar = this._createToolbar();
             this.append(toolbar);
@@ -129,44 +141,37 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 valign: Gtk.Align.CENTER,
                 halign: Gtk.Align.CENTER,
                 spacing: SPACING.MD,
+                margin_top: 48,
             });
             const spinner = new Gtk.Spinner({
-                width_request: 48,
-                height_request: 48,
+                width_request: 32,
+                height_request: 32,
             });
             spinner.start();
             const loadingLabel = new Gtk.Label({
-                label: 'Loading wallpapers...',
-                css_classes: ['dim-label'],
+                label: 'Scanning wallpapers...',
             });
+            applyCssToWidget(
+                loadingLabel,
+                `
+                label {
+                    font-size: 13px;
+                    opacity: 0.6;
+                }
+            `
+            );
             loadingBox.append(spinner);
             loadingBox.append(loadingLabel);
             this._contentStack.add_named(loadingBox, 'loading');
 
             // Empty state
-            const emptyBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                valign: Gtk.Align.CENTER,
-                halign: Gtk.Align.CENTER,
-                spacing: SPACING.MD,
+            const emptyState = createEmptyState({
+                icon: 'folder-pictures-symbolic',
+                title: 'No Wallpapers Found',
+                description:
+                    'Add images to ~/Wallpapers to browse them here',
             });
-            const emptyIcon = new Gtk.Image({
-                icon_name: 'folder-symbolic',
-                pixel_size: 64,
-                css_classes: ['dim-label'],
-            });
-            const emptyLabel = new Gtk.Label({
-                label: `No wallpapers found in ~/Wallpapers`,
-                css_classes: ['dim-label', 'title-3'],
-            });
-            const emptyHint = new Gtk.Label({
-                label: 'Add images to ~/Wallpapers to browse them here',
-                css_classes: ['dim-label', 'caption'],
-            });
-            emptyBox.append(emptyIcon);
-            emptyBox.append(emptyLabel);
-            emptyBox.append(emptyHint);
-            this._contentStack.add_named(emptyBox, 'empty');
+            this._contentStack.add_named(emptyState, 'empty');
 
             // Scrolled window for wallpaper grid
             this._scrolledWindow = new Gtk.ScrolledWindow({
@@ -183,7 +188,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 selection_mode: Gtk.SelectionMode.NONE,
                 column_spacing: GRID.COLUMN_SPACING,
                 row_spacing: GRID.ROW_SPACING,
-                margin_top: SPACING.MD,
+                margin_top: SPACING.SM,
                 margin_bottom: SPACING.MD,
                 margin_start: SPACING.MD,
                 margin_end: SPACING.MD,
@@ -201,44 +206,58 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             const toolbarBox = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: SPACING.SM,
-                margin_top: SPACING.SM,
                 margin_bottom: SPACING.SM,
-                margin_start: SPACING.MD,
-                margin_end: SPACING.MD,
             });
 
-            // Path label
-            const pathLabel = new Gtk.Label({
-                label: '~/Wallpapers',
-                css_classes: ['dim-label'],
-                hexpand: true,
-                xalign: 0,
+            // Spacer
+            const spacer = new Gtk.Box({hexpand: true});
+            toolbarBox.append(spacer);
+
+            // Action buttons group
+            const actionsBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 2,
             });
-            toolbarBox.append(pathLabel);
+            applyCssToWidget(
+                actionsBox,
+                `
+                box {
+                    background-color: alpha(@view_bg_color, 0.5);
+                    border: 1px solid alpha(@borders, 0.15);
+                    border-radius: 0;
+                    padding: 2px;
+                }
+            `
+            );
 
             // Refresh button
             const refreshButton = new Gtk.Button({
                 icon_name: 'view-refresh-symbolic',
                 tooltip_text: 'Refresh',
             });
+            styleButton(refreshButton, {flat: true});
             refreshButton.connect('clicked', () => this._loadWallpapersAsync());
-            toolbarBox.append(refreshButton);
+            actionsBox.append(refreshButton);
 
             // Open folder button
             const openFolderButton = new Gtk.Button({
                 icon_name: 'folder-open-symbolic',
                 tooltip_text: 'Open folder',
             });
+            styleButton(openFolderButton, {flat: true});
             openFolderButton.connect('clicked', () => this._openFolder());
-            toolbarBox.append(openFolderButton);
+            actionsBox.append(openFolderButton);
 
             // Upload/Select wallpaper button
             const uploadButton = new Gtk.Button({
-                icon_name: 'upload-symbolic',
-                tooltip_text: 'Upload wallpaper',
+                icon_name: 'document-open-symbolic',
+                tooltip_text: 'Select wallpaper',
             });
+            styleButton(uploadButton, {flat: true});
             uploadButton.connect('clicked', () => this._selectWallpaper());
-            toolbarBox.append(uploadButton);
+            actionsBox.append(uploadButton);
+
+            toolbarBox.append(actionsBox);
 
             return toolbarBox;
         }

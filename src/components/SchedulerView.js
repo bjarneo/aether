@@ -4,6 +4,7 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 import {schedulerService} from '../services/SchedulerService.js';
 import {ScheduleDialog} from './ScheduleDialog.js';
+import {applyCssToWidget} from '../utils/ui-helpers.js';
 import {SPACING} from '../constants/ui-constants.js';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -65,43 +66,42 @@ export const SchedulerView = GObject.registerClass(
         _createHeaderSection(parent) {
             const headerBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 8,
-            });
-
-            const titleBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: SPACING.MD,
-            });
-
-            const icon = new Gtk.Image({
-                icon_name: 'alarm-symbolic',
-                pixel_size: 48,
-                css_classes: ['accent'],
-            });
-            titleBox.append(icon);
-
-            const textBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
                 spacing: 4,
-                valign: Gtk.Align.CENTER,
+                margin_bottom: SPACING.MD,
             });
 
             const title = new Gtk.Label({
-                label: 'Theme Scheduler',
-                css_classes: ['title-1'],
+                label: 'SCHEDULER',
                 xalign: 0,
             });
-            textBox.append(title);
+            applyCssToWidget(
+                title,
+                `
+                label {
+                    font-size: 13px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                    opacity: 0.7;
+                }
+            `
+            );
+            headerBox.append(title);
 
             const subtitle = new Gtk.Label({
                 label: 'Automatically switch themes at scheduled times',
-                css_classes: ['dim-label'],
                 xalign: 0,
             });
-            textBox.append(subtitle);
+            applyCssToWidget(
+                subtitle,
+                `
+                label {
+                    font-size: 11px;
+                    opacity: 0.5;
+                }
+            `
+            );
+            headerBox.append(subtitle);
 
-            titleBox.append(textBox);
-            headerBox.append(titleBox);
             parent.append(headerBox);
         }
 
@@ -161,14 +161,25 @@ export const SchedulerView = GObject.registerClass(
 
             const addButton = new Gtk.Button({
                 label: 'Add Schedule',
-                css_classes: ['suggested-action', 'pill'],
+                css_classes: ['suggested-action'],
             });
-            addButton.set_child(
-                new Adw.ButtonContent({
-                    icon_name: 'list-add-symbolic',
-                    label: 'Add Schedule',
-                })
+
+            const buttonContent = new Adw.ButtonContent({
+                icon_name: 'list-add-symbolic',
+                label: 'Add Schedule',
+            });
+            addButton.set_child(buttonContent);
+
+            applyCssToWidget(
+                addButton,
+                `
+                button {
+                    border-radius: 0;
+                    padding: 8px 16px;
+                }
+            `
             );
+
             addButton.connect('clicked', () => this._showAddScheduleDialog());
 
             buttonBox.append(addButton);

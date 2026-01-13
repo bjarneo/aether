@@ -10,13 +10,14 @@ import {favoritesService} from '../services/favorites-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {WallpaperFiltersPanel} from './wallpaper-browser/WallpaperFiltersPanel.js';
-import {removeAllChildren, showToast} from '../utils/ui-helpers.js';
+import {removeAllChildren, showToast, applyCssToWidget} from '../utils/ui-helpers.js';
 import {
     ensureDirectoryExists,
     loadJsonFile,
     saveJsonFile,
 } from '../utils/file-utils.js';
 import {SPACING, GRID} from '../constants/ui-constants.js';
+import {createSectionHeader, createEmptyState} from './ui/BrowserHeader.js';
 
 /**
  * WallpaperBrowser - GTK widget for browsing and downloading wallpapers from wallhaven.cc
@@ -116,36 +117,50 @@ export const WallpaperBrowser = GObject.registerClass(
                 valign: Gtk.Align.CENTER,
                 halign: Gtk.Align.CENTER,
                 spacing: SPACING.MD,
+                margin_top: 48,
+                margin_bottom: 48,
             });
             const spinner = new Gtk.Spinner({
-                width_request: 48,
-                height_request: 48,
+                width_request: 32,
+                height_request: 32,
             });
             spinner.start();
             const loadingLabel = new Gtk.Label({
-                label: 'Loading wallpapers...',
-                css_classes: ['dim-label'],
+                label: 'Loading...',
             });
+            applyCssToWidget(
+                loadingLabel,
+                `
+                label {
+                    font-size: 13px;
+                    opacity: 0.5;
+                }
+            `
+            );
             loadingBox.append(spinner);
             loadingBox.append(loadingLabel);
             this._contentStack.add_named(loadingBox, 'loading');
 
             // Error state
-            const errorBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                valign: Gtk.Align.CENTER,
-                halign: Gtk.Align.CENTER,
-                spacing: SPACING.MD,
-            });
-            this._errorLabel = new Gtk.Label({
-                label: 'Failed to load wallpapers',
-                css_classes: ['error'],
+            const errorBox = createEmptyState({
+                icon: 'dialog-error-symbolic',
+                title: 'Failed to load wallpapers',
+                description: 'Check your internet connection',
             });
             const retryButton = new Gtk.Button({
                 label: 'Retry',
+                halign: Gtk.Align.CENTER,
             });
+            applyCssToWidget(
+                retryButton,
+                `
+                button {
+                    border-radius: 0;
+                    padding: 8px 24px;
+                }
+            `
+            );
             retryButton.connect('clicked', () => this._performSearch());
-            errorBox.append(this._errorLabel);
             errorBox.append(retryButton);
             this._contentStack.add_named(errorBox, 'error');
 
@@ -192,13 +207,20 @@ export const WallpaperBrowser = GObject.registerClass(
             const toolbarBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 0,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
+                margin_top: SPACING.MD,
             });
+
+            // Section header
+            const header = createSectionHeader(
+                'Wallhaven',
+                'Browse and download wallpapers'
+            );
+            toolbarBox.append(header);
 
             toolbarBox.append(this._createSearchActionBar());
             toolbarBox.append(this._createFiltersSection());
-            toolbarBox.append(
-                new Gtk.Separator({orientation: Gtk.Orientation.HORIZONTAL})
-            );
 
             return toolbarBox;
         }
@@ -212,10 +234,7 @@ export const WallpaperBrowser = GObject.registerClass(
             const actionBar = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: SPACING.SM,
-                margin_top: SPACING.SM,
                 margin_bottom: SPACING.SM,
-                margin_start: SPACING.MD,
-                margin_end: SPACING.MD,
             });
 
             // Search entry
@@ -223,6 +242,14 @@ export const WallpaperBrowser = GObject.registerClass(
                 placeholder_text: 'Search by tags, colors...',
                 hexpand: true,
             });
+            applyCssToWidget(
+                this._searchEntry,
+                `
+                entry {
+                    border-radius: 0;
+                }
+            `
+            );
 
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._updateUIFromConfig();
@@ -242,6 +269,14 @@ export const WallpaperBrowser = GObject.registerClass(
                 icon_name: 'system-search-symbolic',
                 tooltip_text: 'Search',
             });
+            applyCssToWidget(
+                searchButton,
+                `
+                button {
+                    border-radius: 0;
+                }
+            `
+            );
             searchButton.connect('clicked', () => {
                 this._searchParams.q = this._searchEntry.get_text();
                 this._currentPage = 1;
@@ -254,6 +289,14 @@ export const WallpaperBrowser = GObject.registerClass(
                 icon_name: 'preferences-other-symbolic',
                 tooltip_text: 'Show Filters',
             });
+            applyCssToWidget(
+                this._filtersButton,
+                `
+                button {
+                    border-radius: 0;
+                }
+            `
+            );
 
             this._filtersButton.connect('toggled', () => {
                 this._filtersRevealer.set_reveal_child(
@@ -266,15 +309,20 @@ export const WallpaperBrowser = GObject.registerClass(
                 icon_name: 'emblem-system-symbolic',
                 tooltip_text: 'Settings',
             });
+            applyCssToWidget(
+                settingsButton,
+                `
+                button {
+                    border-radius: 0;
+                }
+            `
+            );
             settingsButton.connect('clicked', () => {
                 this._showSettingsDialog();
             });
 
             actionBar.append(this._searchEntry);
             actionBar.append(searchButton);
-            actionBar.append(
-                new Gtk.Separator({orientation: Gtk.Orientation.VERTICAL})
-            );
             actionBar.append(this._filtersButton);
             actionBar.append(settingsButton);
 

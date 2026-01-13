@@ -3,6 +3,7 @@ import Gtk from 'gi://Gtk?version=4.0';
 
 import {FilterControls} from './wallpaper-editor/FilterControls.js';
 import {PreviewArea} from './wallpaper-editor/PreviewArea.js';
+import {applyCssToWidget} from '../utils/ui-helpers.js';
 import {
     DEFAULT_FILTERS,
     hasActiveFilters,
@@ -135,13 +136,46 @@ export const WallpaperEditor = GObject.registerClass(
                 margin_end: 18,
             });
 
-            const titleLabel = new Gtk.Label({
-                label: 'Wallpaper Editor',
-                css_classes: ['title-3'],
-                xalign: 0,
+            // Title section
+            const titleSection = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 4,
                 hexpand: true,
             });
-            headerBox.append(titleLabel);
+
+            const titleLabel = new Gtk.Label({
+                label: 'WALLPAPER EDITOR',
+                xalign: 0,
+            });
+            applyCssToWidget(
+                titleLabel,
+                `
+                label {
+                    font-size: 13px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                    opacity: 0.7;
+                }
+            `
+            );
+            titleSection.append(titleLabel);
+
+            const subtitleLabel = new Gtk.Label({
+                label: 'Apply filters before color extraction',
+                xalign: 0,
+            });
+            applyCssToWidget(
+                subtitleLabel,
+                `
+                label {
+                    font-size: 11px;
+                    opacity: 0.5;
+                }
+            `
+            );
+            titleSection.append(subtitleLabel);
+
+            headerBox.append(titleSection);
 
             // Reset button on the left side of Apply
             const resetButton = new Gtk.Button({
@@ -149,6 +183,14 @@ export const WallpaperEditor = GObject.registerClass(
                 tooltip_text: 'Reset all filters to default',
                 valign: Gtk.Align.CENTER,
             });
+            applyCssToWidget(
+                resetButton,
+                `
+                button {
+                    border-radius: 0;
+                }
+            `
+            );
             resetButton.connect('clicked', () => this._onResetClicked());
             headerBox.append(resetButton);
 
@@ -169,12 +211,30 @@ export const WallpaperEditor = GObject.registerClass(
                 tooltip_text: 'Apply filters and return to palette editor',
                 css_classes: ['suggested-action'],
             });
+            applyCssToWidget(
+                this._applyButton,
+                `
+                button {
+                    border-radius: 0;
+                    padding: 6px 16px;
+                }
+            `
+            );
             this._applyButton.connect('clicked', () => this._onApplyClicked());
 
             const cancelButton = new Gtk.Button({
                 label: 'Cancel',
                 tooltip_text: 'Cancel and return without applying filters',
             });
+            applyCssToWidget(
+                cancelButton,
+                `
+                button {
+                    border-radius: 0;
+                    padding: 6px 16px;
+                }
+            `
+            );
             cancelButton.connect('clicked', () => this._onCancelClicked());
 
             actionBox.append(this._applySpinner);

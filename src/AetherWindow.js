@@ -24,11 +24,12 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
-import {PaletteEditor} from './components/PaletteEditor.js';
+import {applyCssToWidget} from './utils/ui-helpers.js';
+import {ThemeEditor} from './components/ThemeEditor.js';
 import {ColorSynthesizer} from './components/ColorSynthesizer.js';
 import {BlueprintsView} from './components/BlueprintsView.js';
 import {SettingsSidebar} from './components/SettingsSidebar.js';
-import {ActionBar} from './components/ActionBar.js';
+import {ThemeActionBar} from './components/ThemeActionBar.js';
 import {WallpaperEditor} from './components/WallpaperEditor.js';
 import {WallpaperBrowser} from './components/WallpaperBrowser.js';
 import {LocalWallpaperBrowser} from './components/LocalWallpaperBrowser.js';
@@ -102,22 +103,15 @@ export const AetherWindow = GObject.registerClass(
             // Wrap content in ToolbarView with header bar
             const toolbarView = new Adw.ToolbarView();
 
-            // Add subtle bottom border to header bar
-            const headerCss = new Gtk.CssProvider();
-            headerCss.load_from_data(
+            // Add subtle bottom border to header bar with sharp styling
+            applyCssToWidget(
+                this.headerBar,
                 `
                 headerbar {
                     border-bottom: 1px solid alpha(@borders, 0.5);
                 }
-            `,
-                -1
+            `
             );
-            this.headerBar
-                .get_style_context()
-                .add_provider(
-                    headerCss,
-                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-                );
 
             toolbarView.add_top_bar(this.headerBar);
             toolbarView.set_content(mainContent);
@@ -157,6 +151,17 @@ export const AetherWindow = GObject.registerClass(
                 policy: Adw.ViewSwitcherPolicy.WIDE,
                 css_classes: ['linked'],
             });
+
+            // Sharp corners on view switcher buttons
+            applyCssToWidget(
+                this._viewSwitcher,
+                `
+                viewswitcher button {
+                    border-radius: 0;
+                }
+            `
+            );
+
             this.headerBar.pack_start(this._viewSwitcher);
 
             // Menu button on the right
@@ -164,6 +169,17 @@ export const AetherWindow = GObject.registerClass(
                 icon_name: 'open-menu-symbolic',
                 tooltip_text: 'Main Menu',
             });
+
+            // Sharp menu button
+            applyCssToWidget(
+                menuButton,
+                `
+                menubutton button {
+                    border-radius: 0;
+                }
+            `
+            );
+
             menuButton.set_menu_model(this._createMenuModel());
             this.headerBar.pack_end(menuButton);
         }
@@ -350,25 +366,13 @@ export const AetherWindow = GObject.registerClass(
             // Create main content with action bar
             const mainContent = new Adw.NavigationPage({title: 'Content'});
 
-            const scrolledWindow = new Gtk.ScrolledWindow({
-                hscrollbar_policy: Gtk.PolicyType.NEVER,
-                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-                vexpand: true,
-            });
-
-            const clamp = new Adw.Clamp({
-                maximum_size: 800,
-                tightening_threshold: 600,
-            });
-
+            // Main box contains the theme editor (with its own scrolling) and action bar
             const mainBox = this._createMainContentBox();
-            clamp.set_child(mainBox);
-            scrolledWindow.set_child(clamp);
 
             const contentBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
             });
-            contentBox.append(scrolledWindow);
+            contentBox.append(mainBox);
             contentBox.append(this._createActionBar());
 
             mainContent.set_child(contentBox);
@@ -395,30 +399,23 @@ export const AetherWindow = GObject.registerClass(
         }
 
         /**
-         * Create main content box with palette editor
+         * Create main content box with theme editor
          * @private
          * @returns {Gtk.Box} Main content box
          */
         _createMainContentBox() {
             const mainBox = new Gtk.Box({
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 12,
-                margin_top: 12,
-                margin_bottom: 12,
-                margin_start: 12,
-                margin_end: 12,
+                spacing: 0,
             });
 
-            const paletteGroup = new Adw.PreferencesGroup({
-                margin_bottom: 6,
-            });
-
-            this.paletteGenerator = new PaletteEditor();
-            paletteGroup.add(this.paletteGenerator);
+            // Use the redesigned ThemeEditor
+            this.paletteGenerator = new ThemeEditor();
+            this.paletteGenerator.set_vexpand(true);
 
             this.colorSynthesizer = new ColorSynthesizer();
 
-            mainBox.append(paletteGroup);
+            mainBox.append(this.paletteGenerator);
 
             return mainBox;
         }
@@ -426,10 +423,10 @@ export const AetherWindow = GObject.registerClass(
         /**
          * Create action bar with buttons
          * @private
-         * @returns {ActionBar} Action bar widget
+         * @returns {ThemeActionBar} Action bar widget
          */
         _createActionBar() {
-            this.actionBar = new ActionBar();
+            this.actionBar = new ThemeActionBar();
 
             this.actionBar.connect('toggle-settings', (_, visible) => {
                 this.settingsSplitView.collapsed = !visible;
@@ -437,6 +434,10 @@ export const AetherWindow = GObject.registerClass(
 
             this.actionBar.connect('export-theme', () => {
                 this._exportTheme();
+            });
+
+            this.actionBar.connect('save-blueprint', () => {
+                this._saveBlueprint();
             });
 
             this.actionBar.connect('reset', () => {
