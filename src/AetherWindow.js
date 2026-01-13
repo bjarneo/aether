@@ -551,15 +551,13 @@ export const AetherWindow = GObject.registerClass(
          * Load a blueprint into the editor
          * Blueprint is already loaded into themeState by BlueprintsView.
          * This handles additional UI coordination.
+         * Adjustments and app overrides are restored via themeState signals.
          * @param {Object} blueprint - Blueprint data
          * @private
          */
         _loadBlueprint(blueprint) {
             try {
                 console.log('Loading blueprint:', blueprint.name);
-
-                // Reset adjustment sliders when loading a blueprint
-                this.settingsSidebar.resetAdjustments();
 
                 // Switch to custom tab for blueprint editing
                 this.paletteGenerator.switchToCustomTab();

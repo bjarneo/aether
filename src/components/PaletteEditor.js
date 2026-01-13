@@ -85,14 +85,20 @@ export const PaletteEditor = GObject.registerClass(
          * @private
          */
         _connectThemeState() {
-            // Listen for external palette changes
+            // Listen for external palette changes (e.g., from blueprint loading)
             themeState.connect('palette-changed', (_, palette) => {
                 // Only update if different (avoid loops)
                 if (JSON.stringify(palette) !== JSON.stringify(this._palette)) {
                     this._palette = [...palette];
+                    // Also update original palette as base for future adjustments
+                    this._originalPalette = [...palette];
                     this._colorPalette.setPalette(palette);
                 }
             });
+
+            // Note: adjustments-changed from themeState is used to sync UI sliders only.
+            // When loading blueprints, colors are already adjusted - no re-application needed.
+            // When user moves sliders, adjustments are applied via applyAdjustments() call.
 
             // Listen for light mode changes
             themeState.connect('light-mode-changed', (_, lightMode) => {

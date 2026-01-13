@@ -665,13 +665,25 @@ export const AppColorOverrides = GObject.registerClass(
             return this._overrides;
         }
 
+        /**
+         * Set overrides and emit change signal
+         * @param {Object} overrides - App override mappings
+         */
         setOverrides(overrides) {
             this._overrides = overrides || {};
             this.emit('overrides-changed', this._overrides);
         }
 
+        /**
+         * Load overrides from blueprint without emitting signal
+         * Used when restoring state from ThemeState to avoid signal loops
+         * @param {Object} overrides - App override mappings
+         */
         loadFromBlueprint(overrides) {
-            this.setOverrides(overrides);
+            this._overrides = overrides || {};
+            this._countLabels.forEach((countLabel, appName) => {
+                this._updateCountLabel(countLabel, appName);
+            });
         }
 
         setPaletteColors(colors) {

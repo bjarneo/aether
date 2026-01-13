@@ -12,6 +12,7 @@ export class ColorAdjustmentControls {
         this.onAdjustmentChange = onAdjustmentChange;
         this.onReset = onReset;
         this._debounceTimeout = null;
+        this._isSettingValues = false; // Guard to prevent signal loops
 
         this.widget = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
@@ -266,6 +267,9 @@ export class ColorAdjustmentControls {
     }
 
     _emitChange() {
+        // Skip if we're programmatically setting values (prevent signal loops)
+        if (this._isSettingValues) return;
+
         // Debounce: wait 150ms after user stops dragging before applying changes
         if (this._debounceTimeout) {
             GLib.source_remove(this._debounceTimeout);
@@ -302,5 +306,33 @@ export class ColorAdjustmentControls {
         this.hueScale.set_value(ADJUSTMENT_LIMITS.hue.default);
         this.temperatureScale.set_value(ADJUSTMENT_LIMITS.temperature.default);
         this.gammaScale.set_value(ADJUSTMENT_LIMITS.gamma.default);
+    }
+
+    /**
+     * Set adjustment values from an object (used when loading blueprints)
+     * @param {Object} values - Adjustment values
+     */
+    setValues(values) {
+        if (!values) return;
+
+        // Set guard to prevent signal loops
+        this._isSettingValues = true;
+
+        const scaleMap = {
+            vibrance: this.vibranceScale,
+            contrast: this.contrastScale,
+            brightness: this.brightnessScale,
+            hueShift: this.hueScale,
+            temperature: this.temperatureScale,
+            gamma: this.gammaScale,
+        };
+
+        Object.entries(scaleMap).forEach(([key, scale]) => {
+            if (values[key] !== undefined) {
+                scale.set_value(values[key]);
+            }
+        });
+
+        this._isSettingValues = false;
     }
 }

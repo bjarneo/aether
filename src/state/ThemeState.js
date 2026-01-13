@@ -487,6 +487,8 @@ export const ThemeState = GObject.registerClass(
                     lightMode: this._lightMode,
                     lockedColors: [...this._lockedColors],
                 },
+                adjustments: {...this._adjustments},
+                appOverrides: {...this._appOverrides},
                 settings: {
                     selectedNeovimConfig: this._neovimTheme,
                 },
@@ -521,6 +523,16 @@ export const ThemeState = GObject.registerClass(
                 // Note: lockedColors not restored per CLAUDE.md
             }
 
+            // Restore adjustments (or reset to defaults if not present)
+            this._adjustments = blueprint.adjustments
+                ? {...blueprint.adjustments}
+                : {...DEFAULT_ADJUSTMENTS};
+
+            // Restore app overrides (or reset if not present)
+            this._appOverrides = blueprint.appOverrides
+                ? {...blueprint.appOverrides}
+                : {};
+
             if (blueprint.settings?.selectedNeovimConfig) {
                 this._neovimTheme = blueprint.settings.selectedNeovimConfig;
             }
@@ -530,6 +542,8 @@ export const ThemeState = GObject.registerClass(
             this.emit('wallpaper-changed', this._wallpaper || '');
             this.emit('light-mode-changed', this._lightMode);
             this.emit('color-roles-changed', this._colorRoles);
+            this.emit('adjustments-changed', this._adjustments);
+            this.emit('app-overrides-changed', this._appOverrides);
             this.emit('neovim-theme-changed', this._neovimTheme || '');
         }
 
