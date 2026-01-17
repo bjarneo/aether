@@ -176,8 +176,6 @@ export const TIMING = {
     TOAST_TIMEOUT_LONG: 3,
     /** Confirmation dialog timeout (seconds) */
     CONFIRMATION_TIMEOUT: 60,
-    /** Shader confirmation countdown (seconds) */
-    SHADER_CONFIRMATION: 60,
 };
 
 // ============================================================================

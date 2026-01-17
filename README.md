@@ -18,7 +18,6 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 - **Color Presets** — Dracula, Nord, Gruvbox, Catppuccin, and more
 - **Base16 Import** — Import 250+ community color schemes
 - **Blueprints** — Save and share themes as JSON
-- **Screen Shaders** — 80+ GLSL effects via hyprshade
 - **Multi-App Support** — Hyprland, Waybar, Kitty, Neovim, and 15+ more
 - **Theme Scheduler** — Auto-switch themes at scheduled times
 
@@ -76,7 +75,6 @@ See `aether --help` for all options.
 | [Wallhaven](docs/wallhaven.md) | Browse online wallpapers |
 | [Blueprints](docs/blueprints.md) | Save & restore themes |
 | [Custom Templates](docs/custom-templates.md) | Add support for your apps |
-| [Shaders](docs/shaders.md) | Screen effects and filters |
 | [Scheduler](docs/scheduler.md) | Automatic theme switching |
 | [Sharing](docs/sharing.md) | Community sharing & protocol links |
 | [CLI Reference](docs/cli.md) | Command-line options |

@@ -7,7 +7,6 @@ import Gdk from 'gi://Gdk?version=4.0';
 
 import {ColorAdjustmentControls} from './palette/color-adjustment-controls.js';
 import {AccessibilityPanel} from './AccessibilityPanel.js';
-import {ShaderManager} from './ShaderManager.js';
 import {FontSelector} from './FontSelector.js';
 import {COLOR_PRESETS} from '../constants/presets.js';
 import {NEOVIM_PRESETS} from '../constants/neovim-presets.js';
@@ -46,7 +45,7 @@ import {themeState} from '../state/ThemeState.js';
  * - Preset library (10 popular themes: Dracula, Nord, Gruvbox, etc.)
  * - Neovim theme selector (37 LazyVim-compatible themes)
  * - Template settings (enable/disable optional templates)
- * - Experimental features (per-app color overrides, shader effects)
+ * - Experimental features (per-app color overrides)
  * - Accessibility checker integration
  *
  * Signals:
@@ -249,10 +248,6 @@ export const SettingsSidebar = GObject.registerClass(
             // Neovim Themes Section
             const neovimSection = this._createNeovimPresetsSection();
             contentBox.append(neovimSection);
-
-            // Shader Manager Section
-            this._shaderManager = new ShaderManager();
-            contentBox.append(this._shaderManager);
 
             // Font Selector Section
             const fontSection = this._createFontSection();

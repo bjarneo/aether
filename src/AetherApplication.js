@@ -6,7 +6,6 @@
  * - Command-line argument processing
  * - CLI commands (list-blueprints, apply-blueprint, generate, import)
  * - Theme manager initialization
- * - Shader installation
  * - Protocol handler registration
  *
  * @module AetherApplication
@@ -544,9 +543,6 @@ export const AetherApplication = GObject.registerClass(
             // Install protocol handler on first run
             ProtocolHandlerInstaller.ensureInstalled();
 
-            // Install shaders only when GUI is activated
-            this._installShaders();
-
             let window = this.active_window;
             if (!window) {
                 window = new AetherWindow(this);
@@ -564,75 +560,6 @@ export const AetherApplication = GObject.registerClass(
                 }
             }
             window.present();
-        }
-
-        /**
-         * Install Aether shaders to hyprshade directory
-         * @private
-         */
-        _installShaders() {
-            try {
-                // Get shader source directory (in Aether repo)
-                const appDir = GLib.path_get_dirname(
-                    GLib.path_get_dirname(
-                        Gio.File.new_for_path(
-                            import.meta.url.replace('file://', '')
-                        ).get_path()
-                    )
-                );
-                const shaderSource = GLib.build_filenamev([appDir, 'shaders']);
-
-                // Get shader target directory (hyprshade location)
-                const shaderTarget = GLib.build_filenamev([
-                    GLib.get_user_config_dir(),
-                    'hypr',
-                    'shaders',
-                ]);
-
-                ensureDirectoryExists(shaderTarget);
-
-                const sourceDir = Gio.File.new_for_path(shaderSource);
-                if (!sourceDir.query_exists(null)) {
-                    console.log(
-                        'Shader source directory not found, skipping installation'
-                    );
-                    return;
-                }
-
-                const enumerator = sourceDir.enumerate_children(
-                    'standard::name,standard::type',
-                    Gio.FileQueryInfoFlags.NONE,
-                    null
-                );
-
-                let info;
-                let installedCount = 0;
-                while ((info = enumerator.next_file(null)) !== null) {
-                    const name = info.get_name();
-                    if (name.endsWith('.glsl')) {
-                        const sourcePath = GLib.build_filenamev([
-                            shaderSource,
-                            name,
-                        ]);
-                        const targetPath = GLib.build_filenamev([
-                            shaderTarget,
-                            name,
-                        ]);
-
-                        const targetFile = Gio.File.new_for_path(targetPath);
-                        if (!targetFile.query_exists(null)) {
-                            targetFile.make_symbolic_link(sourcePath, null);
-                            installedCount++;
-                        }
-                    }
-                }
-
-                console.log(
-                    `Installed ${installedCount} Aether shaders to ${shaderTarget}`
-                );
-            } catch (error) {
-                console.error('Error installing shaders:', error);
-            }
         }
 
         /**

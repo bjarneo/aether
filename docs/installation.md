@@ -6,7 +6,6 @@
 - GTK 4 + Libadwaita 1
 - libsoup3 (HTTP client)
 - ImageMagick (color extraction)
-- hyprshade (optional, for shaders)
 
 ## Arch Linux (AUR)
 
