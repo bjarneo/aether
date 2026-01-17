@@ -1,6 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import System from 'system';
+import GdkPixbuf from 'gi://GdkPixbuf';
 import {hexToRgb, rgbToHsl, hslToHex, rgbToHex} from './color-utils.js';
 import {
     readFileAsText,
@@ -10,8 +10,9 @@ import {
 } from './file-utils.js';
 
 /**
- * ImageMagick-based color extraction utility
- * Extracts dominant colors and generates ANSI palette with proper color mapping
+ * Native GdkPixbuf-based color extraction utility
+ * Extracts dominant colors using median-cut algorithm and generates ANSI palette
+ * No external dependencies required (uses GTK's built-in image loading)
  * Includes caching for improved performance
  */
 
@@ -128,18 +129,15 @@ const ANSI_HUE_ARRAY = [
     ANSI_COLOR_HUES.CYAN, // color6
 ];
 
-// ImageMagick performance settings
-/** Maximum image dimensions for fast processing */
-const IMAGE_SCALE_SIZE = '800x600>';
+// Native extraction settings
+/** Maximum image dimension for fast processing (pixels) */
+const IMAGE_SCALE_SIZE = 200;
 
-/** Image quality for faster processing (0-100) */
-const IMAGE_PROCESSING_QUALITY = 85;
+/** Minimum pixels to sample for reliable color extraction */
+const MIN_PIXELS_TO_SAMPLE = 1000;
 
-/** Image bit depth */
-const IMAGE_BIT_DEPTH = 8;
-
-/** Timeout for ImageMagick subprocess in milliseconds */
-const IMAGEMAGICK_TIMEOUT_MS = 30000;
+/** Maximum pixels to sample (for very large images) */
+const MAX_PIXELS_TO_SAMPLE = 40000;
 
 // ============================================================================
 // CACHE MANAGEMENT
@@ -242,127 +240,268 @@ function savePaletteToCache(cacheKey, palette) {
 }
 
 // ============================================================================
-// IMAGE MAGICK COLOR EXTRACTION
+// NATIVE GDKPIXBUF COLOR EXTRACTION
 // ============================================================================
 
 /**
- * Extracts the N most dominant colors from an image using ImageMagick
- * Optimized for speed with resize and quality settings
- * Includes timeout to prevent hanging on corrupted images
+ * Loads an image and extracts pixel data using GdkPixbuf
+ * @param {string} imagePath - Path to the image file
+ * @returns {{pixels: Uint8Array, width: number, height: number, channels: number, rowstride: number}}
+ */
+function loadImagePixels(imagePath) {
+    // Load and scale image for faster processing
+    const pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+        imagePath,
+        IMAGE_SCALE_SIZE,
+        IMAGE_SCALE_SIZE,
+        true // preserve aspect ratio
+    );
+
+    const width = pixbuf.get_width();
+    const height = pixbuf.get_height();
+    const channels = pixbuf.get_n_channels();
+    const rowstride = pixbuf.get_rowstride();
+    const pixels = pixbuf.get_pixels();
+
+    return {pixels, width, height, channels, rowstride};
+}
+
+/**
+ * Samples pixels from image data and returns RGB color array
+ * @param {Object} imageData - Image data from loadImagePixels
+ * @returns {Array<{r: number, g: number, b: number}>} Array of RGB colors
+ */
+function samplePixels(imageData) {
+    const {pixels, width, height, channels, rowstride} = imageData;
+    const colors = [];
+
+    // Calculate sampling rate to stay within bounds
+    const totalPixels = width * height;
+    const sampleRate = Math.max(
+        1,
+        Math.floor(totalPixels / MAX_PIXELS_TO_SAMPLE)
+    );
+
+    for (let y = 0; y < height; y += sampleRate) {
+        for (let x = 0; x < width; x += sampleRate) {
+            const offset = y * rowstride + x * channels;
+            const r = pixels[offset];
+            const g = pixels[offset + 1];
+            const b = pixels[offset + 2];
+
+            // Skip fully transparent pixels if alpha channel exists
+            if (channels === 4 && pixels[offset + 3] < 128) {
+                continue;
+            }
+
+            colors.push({r, g, b});
+        }
+    }
+
+    return colors;
+}
+
+/**
+ * Represents a color bucket for median-cut algorithm
+ */
+class ColorBucket {
+    constructor(colors) {
+        this.colors = colors;
+        this._updateStats();
+    }
+
+    _updateStats() {
+        if (this.colors.length === 0) {
+            this.rMin = this.rMax = 0;
+            this.gMin = this.gMax = 0;
+            this.bMin = this.bMax = 0;
+            return;
+        }
+
+        this.rMin = this.rMax = this.colors[0].r;
+        this.gMin = this.gMax = this.colors[0].g;
+        this.bMin = this.bMax = this.colors[0].b;
+
+        for (const color of this.colors) {
+            this.rMin = Math.min(this.rMin, color.r);
+            this.rMax = Math.max(this.rMax, color.r);
+            this.gMin = Math.min(this.gMin, color.g);
+            this.gMax = Math.max(this.gMax, color.g);
+            this.bMin = Math.min(this.bMin, color.b);
+            this.bMax = Math.max(this.bMax, color.b);
+        }
+    }
+
+    /**
+     * Returns the channel with the widest range
+     * @returns {'r'|'g'|'b'}
+     */
+    getLongestChannel() {
+        const rRange = this.rMax - this.rMin;
+        const gRange = this.gMax - this.gMin;
+        const bRange = this.bMax - this.bMin;
+
+        if (rRange >= gRange && rRange >= bRange) return 'r';
+        if (gRange >= rRange && gRange >= bRange) return 'g';
+        return 'b';
+    }
+
+    /**
+     * Splits bucket along the longest channel
+     * @returns {[ColorBucket, ColorBucket]}
+     */
+    split() {
+        const channel = this.getLongestChannel();
+
+        // Sort by the longest channel
+        this.colors.sort((a, b) => a[channel] - b[channel]);
+
+        const midpoint = Math.floor(this.colors.length / 2);
+        const left = this.colors.slice(0, midpoint);
+        const right = this.colors.slice(midpoint);
+
+        return [new ColorBucket(left), new ColorBucket(right)];
+    }
+
+    /**
+     * Returns the average color of this bucket
+     * @returns {{r: number, g: number, b: number, count: number}}
+     */
+    getAverageColor() {
+        if (this.colors.length === 0) {
+            return {r: 0, g: 0, b: 0, count: 0};
+        }
+
+        let rSum = 0,
+            gSum = 0,
+            bSum = 0;
+        for (const color of this.colors) {
+            rSum += color.r;
+            gSum += color.g;
+            bSum += color.b;
+        }
+
+        const count = this.colors.length;
+        return {
+            r: Math.round(rSum / count),
+            g: Math.round(gSum / count),
+            b: Math.round(bSum / count),
+            count: count,
+        };
+    }
+
+    /**
+     * Returns the volume of this bucket (for priority queue)
+     * @returns {number}
+     */
+    getVolume() {
+        return (
+            (this.rMax - this.rMin) *
+            (this.gMax - this.gMin) *
+            (this.bMax - this.bMin) *
+            this.colors.length
+        );
+    }
+}
+
+/**
+ * Implements median-cut color quantization algorithm
+ * @param {Array<{r: number, g: number, b: number}>} colors - Array of RGB colors
+ * @param {number} numColors - Target number of colors
+ * @returns {Array<{r: number, g: number, b: number, count: number}>} Quantized colors
+ */
+function medianCut(colors, numColors) {
+    if (colors.length === 0) {
+        return [];
+    }
+
+    if (colors.length <= numColors) {
+        // Not enough colors to quantize, return unique colors
+        const seen = new Set();
+        const unique = [];
+        for (const c of colors) {
+            const key = `${c.r},${c.g},${c.b}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                unique.push({...c, count: 1});
+            }
+        }
+        return unique;
+    }
+
+    // Start with one bucket containing all colors
+    let buckets = [new ColorBucket(colors)];
+
+    // Split until we have enough buckets
+    while (buckets.length < numColors) {
+        // Find the bucket with the largest volume to split
+        let maxVolume = -1;
+        let maxIndex = 0;
+
+        for (let i = 0; i < buckets.length; i++) {
+            const volume = buckets[i].getVolume();
+            if (volume > maxVolume && buckets[i].colors.length > 1) {
+                maxVolume = volume;
+                maxIndex = i;
+            }
+        }
+
+        // If no bucket can be split, stop
+        if (maxVolume <= 0) break;
+
+        // Split the largest bucket
+        const [left, right] = buckets[maxIndex].split();
+        buckets.splice(maxIndex, 1, left, right);
+    }
+
+    // Get average color from each bucket
+    return buckets
+        .map(bucket => bucket.getAverageColor())
+        .filter(c => c.count > 0);
+}
+
+/**
+ * Extracts the N most dominant colors from an image using GdkPixbuf
+ * Uses median-cut algorithm for color quantization
  * @param {string} imagePath - Path to the image file
  * @param {number} numColors - Number of colors to extract
  * @returns {Promise<string[]>} Array of hex colors sorted by dominance
  */
 function extractDominantColors(imagePath, numColors) {
     return new Promise((resolve, reject) => {
-        let timeoutId = null;
-        let cancellable = null;
-        let proc = null;
-        let completed = false;
-
-        const cleanup = () => {
-            if (timeoutId) {
-                GLib.source_remove(timeoutId);
-                timeoutId = null;
-            }
-        };
-
-        const handleCompletion = (error, colors) => {
-            if (completed) return;
-            completed = true;
-            cleanup();
-            if (error) {
-                reject(error);
-            } else {
-                resolve(colors);
-            }
-        };
-
         try {
-            const argv = [
-                'magick',
-                imagePath,
-                '-scale',
-                IMAGE_SCALE_SIZE,
-                '-colors',
-                numColors.toString(),
-                '-depth',
-                IMAGE_BIT_DEPTH.toString(),
-                '-quality',
-                IMAGE_PROCESSING_QUALITY.toString(),
-                '-format',
-                '%c',
-                'histogram:info:-',
-            ];
+            // Load image and get pixel data
+            const imageData = loadImagePixels(imagePath);
 
-            cancellable = new Gio.Cancellable();
+            // Sample pixels from the image
+            const pixels = samplePixels(imageData);
 
-            proc = Gio.Subprocess.new(
-                argv,
-                Gio.SubprocessFlags.STDOUT_PIPE |
-                    Gio.SubprocessFlags.STDERR_PIPE
-            );
+            if (pixels.length < MIN_PIXELS_TO_SAMPLE / 10) {
+                reject(new Error('Not enough pixels to extract colors'));
+                return;
+            }
 
-            // Set up timeout
-            timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, IMAGEMAGICK_TIMEOUT_MS, () => {
-                timeoutId = null;
-                if (!completed) {
-                    console.error('ImageMagick timeout - killing subprocess');
-                    cancellable.cancel();
-                    proc.force_exit();
-                    handleCompletion(new Error('ImageMagick timeout: color extraction took too long'));
-                }
-                return GLib.SOURCE_REMOVE;
+            // Run median-cut quantization
+            const quantizedColors = medianCut(pixels, numColors);
+
+            if (quantizedColors.length === 0) {
+                reject(new Error('No colors extracted from image'));
+                return;
+            }
+
+            // Sort by count (dominance) and convert to hex
+            quantizedColors.sort((a, b) => b.count - a.count);
+
+            const hexColors = quantizedColors.map(c => {
+                const hex = rgbToHex(c.r, c.g, c.b);
+                return hex.toUpperCase();
             });
 
-            proc.communicate_utf8_async(null, cancellable, (source, result) => {
-                try {
-                    const [, stdout, stderr] =
-                        source.communicate_utf8_finish(result);
-                    const exitCode = source.get_exit_status();
-
-                    if (exitCode !== 0) {
-                        handleCompletion(new Error(`ImageMagick error: ${stderr}`));
-                        return;
-                    }
-
-                    const colors = parseHistogramOutput(stdout);
-                    if (colors.length === 0) {
-                        handleCompletion(new Error('No colors extracted from image'));
-                        return;
-                    }
-
-                    handleCompletion(null, colors);
-                } catch (e) {
-                    handleCompletion(e);
-                }
-            });
+            resolve(hexColors);
         } catch (e) {
-            handleCompletion(e);
+            reject(new Error(`Color extraction failed: ${e.message}`));
         }
     });
-}
-
-/**
- * Parses ImageMagick histogram output to extract hex colors
- * @param {string} output - Raw histogram output
- * @returns {string[]} Array of hex colors sorted by frequency (most dominant first)
- */
-function parseHistogramOutput(output) {
-    const lines = output.split('\n');
-    const colorData = [];
-
-    for (const line of lines) {
-        const match = line.match(/^\s*(\d+):\s*\([^)]+\)\s*(#[0-9A-Fa-f]{6})/);
-        if (match) {
-            const count = parseInt(match[1], 10);
-            const hex = match[2].toUpperCase();
-            colorData.push({hex, count});
-        }
-    }
-
-    colorData.sort((a, b) => b.count - a.count);
-    return colorData.map(c => c.hex);
 }
 
 // ============================================================================
@@ -1327,8 +1466,9 @@ function normalizeBrightness(palette) {
 // ============================================================================
 
 /**
- * Extracts colors from wallpaper using ImageMagick and generates ANSI palette
- * Uses caching to avoid re-processing the same image
+ * Extracts colors from wallpaper using native GdkPixbuf and generates ANSI palette
+ * Uses median-cut algorithm for color quantization - no external dependencies required
+ * Includes caching to avoid re-processing the same image
  * @param {string} imagePath - Path to wallpaper image
  * @param {boolean} lightMode - Whether to generate light mode palette
  * @param {string} [extractionMode='normal'] - Extraction mode: 'normal' (auto-detect), 'monochromatic', 'analogous', 'pastel', 'material'
@@ -1448,12 +1588,9 @@ export async function extractColorsWithImageMagick(
             savePaletteToCache(cacheKey, palette);
         }
 
-        // Hint garbage collector after heavy processing to release subprocess memory
-        System.gc();
-
         return palette;
     } catch (e) {
-        throw new Error(`ImageMagick color extraction failed: ${e.message}`);
+        throw new Error(`Color extraction failed: ${e.message}`);
     }
 }
 
