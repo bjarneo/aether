@@ -215,7 +215,12 @@ export const BatchProcessingState = GObject.registerClass(
          * @param {Phase} phase - New phase
          */
         setPhase(phase) {
-            const validPhases = ['idle', 'selection', 'processing', 'comparison'];
+            const validPhases = [
+                'idle',
+                'selection',
+                'processing',
+                'comparison',
+            ];
             if (!validPhases.includes(phase)) {
                 console.error(`Invalid phase: ${phase}`);
                 return;

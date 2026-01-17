@@ -351,7 +351,9 @@ export const WallpaperBrowser = GObject.registerClass(
             `
             );
             this._selectionModeButton.connect('toggled', () => {
-                this._toggleSelectionMode(this._selectionModeButton.get_active());
+                this._toggleSelectionMode(
+                    this._selectionModeButton.get_active()
+                );
             });
 
             actionBar.append(this._searchEntry);
@@ -1290,13 +1292,16 @@ export const WallpaperBrowser = GObject.registerClass(
                 this._updateSelectionUI(count);
             });
 
-            batchProcessingState.connect('selection-mode-changed', (_, enabled) => {
-                if (this._selectionMode !== enabled) {
-                    this._selectionMode = enabled;
-                    this._selectionModeButton.set_active(enabled);
-                    this._refreshDisplayedWallpapers();
+            batchProcessingState.connect(
+                'selection-mode-changed',
+                (_, enabled) => {
+                    if (this._selectionMode !== enabled) {
+                        this._selectionMode = enabled;
+                        this._selectionModeButton.set_active(enabled);
+                        this._refreshDisplayedWallpapers();
+                    }
                 }
-            });
+            );
         }
 
         /**
@@ -1385,18 +1390,28 @@ export const WallpaperBrowser = GObject.registerClass(
 
             showToast(this, `Preparing ${selections.length} wallpapers...`);
 
-            const wallpapersDir = GLib.build_filenamev([GLib.get_user_data_dir(), 'aether', 'wallpapers']);
+            const wallpapersDir = GLib.build_filenamev([
+                GLib.get_user_data_dir(),
+                'aether',
+                'wallpapers',
+            ]);
             ensureDirectoryExists(wallpapersDir);
 
             const downloadedWallpapers = [];
             for (const selection of selections) {
                 const filename = selection.path.split('/').pop();
-                const localPath = GLib.build_filenamev([wallpapersDir, filename]);
+                const localPath = GLib.build_filenamev([
+                    wallpapersDir,
+                    filename,
+                ]);
 
                 try {
                     const file = Gio.File.new_for_path(localPath);
                     if (!file.query_exists(null)) {
-                        await wallhavenService.downloadWallpaper(selection.path, localPath);
+                        await wallhavenService.downloadWallpaper(
+                            selection.path,
+                            localPath
+                        );
                     }
 
                     downloadedWallpapers.push({
@@ -1405,7 +1420,10 @@ export const WallpaperBrowser = GObject.registerClass(
                         originalPath: selection.path,
                     });
                 } catch (e) {
-                    console.error(`Failed to download ${selection.path}:`, e.message);
+                    console.error(
+                        `Failed to download ${selection.path}:`,
+                        e.message
+                    );
                 }
             }
 

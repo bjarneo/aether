@@ -389,12 +389,9 @@ export const AetherWindow = GObject.registerClass(
 
             // Batch Processing page (hidden from tab bar)
             this._batchProcessingView = new BatchProcessingView();
-            this._batchProcessingView.connect(
-                'theme-selected',
-                (_, result) => {
-                    this._applyBatchResult(result);
-                }
-            );
+            this._batchProcessingView.connect('theme-selected', (_, result) => {
+                this._applyBatchResult(result);
+            });
             this._batchProcessingView.connect('cancelled', () => {
                 this._onBatchProcessingCancelled();
             });

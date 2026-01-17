@@ -60,12 +60,18 @@ export const BatchProcessingView = GObject.registerClass(
             });
 
             this._progressPanel = new BatchProgressPanel();
-            this._progressPanel.connect('cancel-requested', () => this._onCancelRequested());
+            this._progressPanel.connect('cancel-requested', () =>
+                this._onCancelRequested()
+            );
             this._contentStack.add_named(this._progressPanel, 'processing');
 
             this._resultsGrid = new BatchResultsGrid();
-            this._resultsGrid.connect('theme-selected', (_, result) => this._onThemeSelected(result));
-            this._resultsGrid.connect('preview-requested', (_, result) => this._onPreviewRequested(result));
+            this._resultsGrid.connect('theme-selected', (_, result) =>
+                this._onThemeSelected(result)
+            );
+            this._resultsGrid.connect('preview-requested', (_, result) =>
+                this._onPreviewRequested(result)
+            );
             this._contentStack.add_named(this._resultsGrid, 'comparison');
 
             this.append(this._contentStack);
@@ -76,29 +82,53 @@ export const BatchProcessingView = GObject.registerClass(
          * @private
          */
         _connectSignals() {
-            this._signals.track(batchProcessingService, 'item-started', (_, index) => {
-                this._progressPanel.markItemStarted(index);
-            });
+            this._signals.track(
+                batchProcessingService,
+                'item-started',
+                (_, index) => {
+                    this._progressPanel.markItemStarted(index);
+                }
+            );
 
-            this._signals.track(batchProcessingService, 'item-completed', (_, index) => {
-                this._progressPanel.markItemCompleted(index);
-            });
+            this._signals.track(
+                batchProcessingService,
+                'item-completed',
+                (_, index) => {
+                    this._progressPanel.markItemCompleted(index);
+                }
+            );
 
-            this._signals.track(batchProcessingService, 'item-failed', (_, index, error) => {
-                this._progressPanel.markItemFailed(index, error);
-            });
+            this._signals.track(
+                batchProcessingService,
+                'item-failed',
+                (_, index, error) => {
+                    this._progressPanel.markItemFailed(index, error);
+                }
+            );
 
-            this._signals.track(batchProcessingService, 'processing-completed', (_, results) => {
-                this._onProcessingCompleted(results);
-            });
+            this._signals.track(
+                batchProcessingService,
+                'processing-completed',
+                (_, results) => {
+                    this._onProcessingCompleted(results);
+                }
+            );
 
-            this._signals.track(batchProcessingService, 'processing-cancelled', () => {
-                this._onProcessingCancelled();
-            });
+            this._signals.track(
+                batchProcessingService,
+                'processing-cancelled',
+                () => {
+                    this._onProcessingCancelled();
+                }
+            );
 
-            this._signals.track(batchProcessingState, 'phase-changed', (_, phase) => {
-                this._onPhaseChanged(phase);
-            });
+            this._signals.track(
+                batchProcessingState,
+                'phase-changed',
+                (_, phase) => {
+                    this._onPhaseChanged(phase);
+                }
+            );
         }
 
         /**
@@ -111,7 +141,9 @@ export const BatchProcessingView = GObject.registerClass(
                 return;
             }
 
-            log.info(`Starting batch processing of ${wallpapers.length} wallpapers`);
+            log.info(
+                `Starting batch processing of ${wallpapers.length} wallpapers`
+            );
 
             // Clear previous state
             batchProcessingService.reset();
@@ -144,7 +176,9 @@ export const BatchProcessingView = GObject.registerClass(
             const successful = results.filter(r => r.success);
             const failed = results.filter(r => !r.success);
 
-            log.info(`Processing completed: ${successful.length} success, ${failed.length} failed`);
+            log.info(
+                `Processing completed: ${successful.length} success, ${failed.length} failed`
+            );
 
             this._progressPanel.showComplete(successful.length, failed.length);
             this._progressPanel.setCancelLabel('View Results');
@@ -208,7 +242,10 @@ export const BatchProcessingView = GObject.registerClass(
          * @param {string} phase - New phase
          */
         _onPhaseChanged(phase) {
-            const pageMap = {processing: 'processing', comparison: 'comparison'};
+            const pageMap = {
+                processing: 'processing',
+                comparison: 'comparison',
+            };
             const pageName = pageMap[phase];
             if (pageName) {
                 this._contentStack.set_visible_child_name(pageName);

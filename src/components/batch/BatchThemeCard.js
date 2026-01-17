@@ -306,8 +306,12 @@ export const BatchThemeCard = GObject.registerClass(
          */
         _applySelectionStyle(selected) {
             const borderColor = selected ? '@accent_bg_color' : 'transparent';
-            const hoverColor = selected ? '@accent_bg_color' : 'alpha(@accent_bg_color, 0.5)';
-            applyCssToWidget(this, `
+            const hoverColor = selected
+                ? '@accent_bg_color'
+                : 'alpha(@accent_bg_color, 0.5)';
+            applyCssToWidget(
+                this,
+                `
                 box {
                     background-color: @view_bg_color;
                     border: 2px solid ${borderColor};
@@ -315,7 +319,8 @@ export const BatchThemeCard = GObject.registerClass(
                     padding: ${SPACING.SM}px;
                 }
                 box:hover { border-color: ${hoverColor}; }
-            `);
+            `
+            );
         }
 
         /**

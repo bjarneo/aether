@@ -97,7 +97,9 @@ export const BatchProcessingService = GObject.registerClass(
             this._queue.push(...itemsToAdd);
             this.emit('queue-changed', this._queue.length);
 
-            log.info(`Added ${itemsToAdd.length} items to queue (total: ${this._queue.length})`);
+            log.info(
+                `Added ${itemsToAdd.length} items to queue (total: ${this._queue.length})`
+            );
             return true;
         }
 
@@ -139,7 +141,9 @@ export const BatchProcessingService = GObject.registerClass(
             this._results = [];
 
             this.emit('processing-started');
-            log.info(`Starting batch processing of ${this._queue.length} wallpapers`);
+            log.info(
+                `Starting batch processing of ${this._queue.length} wallpapers`
+            );
 
             for (let i = 0; i < this._queue.length; i++) {
                 if (this._cancelled) {
@@ -169,7 +173,9 @@ export const BatchProcessingService = GObject.registerClass(
 
                     this._results.push(result);
                     this.emit('item-completed', i, result);
-                    log.info(`Completed item ${i + 1}/${this._queue.length}: ${wallpaper.path}`);
+                    log.info(
+                        `Completed item ${i + 1}/${this._queue.length}: ${wallpaper.path}`
+                    );
                 } catch (error) {
                     const errorMessage = error.message || 'Unknown error';
                     const result = {
@@ -182,7 +188,9 @@ export const BatchProcessingService = GObject.registerClass(
 
                     this._results.push(result);
                     this.emit('item-failed', i, errorMessage);
-                    log.error(`Failed item ${i + 1}/${this._queue.length}: ${errorMessage}`);
+                    log.error(
+                        `Failed item ${i + 1}/${this._queue.length}: ${errorMessage}`
+                    );
                 }
             }
 
@@ -190,7 +198,9 @@ export const BatchProcessingService = GObject.registerClass(
             this._currentIndex = this._queue.length;
 
             this.emit('processing-completed', this._results);
-            log.info(`Batch processing completed: ${this._results.filter(r => r.success).length}/${this._results.length} successful`);
+            log.info(
+                `Batch processing completed: ${this._results.filter(r => r.success).length}/${this._results.length} successful`
+            );
 
             return this._results;
         }

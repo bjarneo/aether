@@ -228,7 +228,11 @@ export const BatchProgressPanel = GObject.registerClass(
          * @returns {string} Display name
          */
         _getWallpaperName(wallpaper) {
-            return wallpaper?.name || wallpaper?.path?.split('/').pop() || 'Unknown';
+            return (
+                wallpaper?.name ||
+                wallpaper?.path?.split('/').pop() ||
+                'Unknown'
+            );
         }
 
         /**

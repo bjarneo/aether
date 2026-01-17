@@ -430,7 +430,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 tooltip_text: 'Process selected wallpapers',
                 css_classes: ['suggested-action'],
             });
-            this._processSelectedButton.connect('clicked', () => this._processSelected());
+            this._processSelectedButton.connect('clicked', () =>
+                this._processSelected()
+            );
             bar.append(this._processSelectedButton);
 
             return bar;

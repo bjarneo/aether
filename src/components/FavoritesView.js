@@ -10,7 +10,11 @@ import {thumbnailService} from '../services/thumbnail-service.js';
 import {wallhavenService} from '../services/wallhaven-service.js';
 import {batchProcessingState} from '../state/BatchProcessingState.js';
 import {createWallpaperCard} from './WallpaperCard.js';
-import {styleButton, createSectionHeader, createEmptyState} from './ui/BrowserHeader.js';
+import {
+    styleButton,
+    createSectionHeader,
+    createEmptyState,
+} from './ui/BrowserHeader.js';
 import {applyCssToWidget, removeAllChildren} from '../utils/ui-helpers.js';
 import {ensureDirectoryExists} from '../utils/file-utils.js';
 import {DialogManager} from '../utils/DialogManager.js';
@@ -391,7 +395,9 @@ export const FavoritesView = GObject.registerClass(
                 tooltip_text: 'Process selected wallpapers',
                 css_classes: ['suggested-action'],
             });
-            this._processSelectedButton.connect('clicked', () => this._processSelected());
+            this._processSelectedButton.connect('clicked', () =>
+                this._processSelected()
+            );
             bar.append(this._processSelectedButton);
 
             return bar;
@@ -403,7 +409,9 @@ export const FavoritesView = GObject.registerClass(
          */
         _updateMultiSelectUI() {
             const count = this._selectedWallpapers.size;
-            this._batchActionsBar.set_visible(this._multiSelectMode && count > 0);
+            this._batchActionsBar.set_visible(
+                this._multiSelectMode && count > 0
+            );
             this._selectionCountLabel.set_label(`${count} selected`);
         }
 
@@ -441,7 +449,9 @@ export const FavoritesView = GObject.registerClass(
             this.loadFavorites();
 
             const plural = removed !== 1 ? 's' : '';
-            DialogManager.showToast(this, {title: `${removed} wallpaper${plural} removed`});
+            DialogManager.showToast(this, {
+                title: `${removed} wallpaper${plural} removed`,
+            });
         }
 
         /**
@@ -452,27 +462,42 @@ export const FavoritesView = GObject.registerClass(
             if (this._selectedWallpapers.size === 0) return;
 
             const favorites = favoritesService.getFavorites();
-            const selectedFavorites = favorites.filter(f => this._selectedWallpapers.has(f.path));
+            const selectedFavorites = favorites.filter(f =>
+                this._selectedWallpapers.has(f.path)
+            );
 
             const wallpapers = [];
-            const wallpapersDir = GLib.build_filenamev([GLib.get_user_data_dir(), 'aether', 'wallpapers']);
+            const wallpapersDir = GLib.build_filenamev([
+                GLib.get_user_data_dir(),
+                'aether',
+                'wallpapers',
+            ]);
             ensureDirectoryExists(wallpapersDir);
 
             for (const fav of selectedFavorites) {
-                const localPath = await this._resolveWallpaperPath(fav, wallpapersDir);
+                const localPath = await this._resolveWallpaperPath(
+                    fav,
+                    wallpapersDir
+                );
                 if (localPath) {
                     wallpapers.push({
                         path: localPath,
                         type: fav.type,
-                        name: fav.data?.name || fav.data?.id || GLib.path_get_basename(localPath),
+                        name:
+                            fav.data?.name ||
+                            fav.data?.id ||
+                            GLib.path_get_basename(localPath),
                         data: fav.data,
-                        originalPath: fav.type === 'wallhaven' ? fav.path : undefined,
+                        originalPath:
+                            fav.type === 'wallhaven' ? fav.path : undefined,
                     });
                 }
             }
 
             if (wallpapers.length === 0) {
-                DialogManager.showToast(this, {title: 'No valid wallpapers to process'});
+                DialogManager.showToast(this, {
+                    title: 'No valid wallpapers to process',
+                });
                 return;
             }
 
@@ -500,14 +525,23 @@ export const FavoritesView = GObject.registerClass(
 
             if (favorite.type === 'wallhaven') {
                 const filename = favorite.path.split('/').pop();
-                const localPath = GLib.build_filenamev([wallpapersDir, filename]);
+                const localPath = GLib.build_filenamev([
+                    wallpapersDir,
+                    filename,
+                ]);
                 const file = Gio.File.new_for_path(localPath);
 
                 if (!file.query_exists(null)) {
                     try {
-                        await wallhavenService.downloadWallpaper(favorite.path, localPath);
+                        await wallhavenService.downloadWallpaper(
+                            favorite.path,
+                            localPath
+                        );
                     } catch (e) {
-                        console.error(`Failed to download ${favorite.path}:`, e.message);
+                        console.error(
+                            `Failed to download ${favorite.path}:`,
+                            e.message
+                        );
                         return null;
                     }
                 }

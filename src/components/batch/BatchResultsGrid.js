@@ -285,7 +285,9 @@ export const BatchResultsGrid = GObject.registerClass(
          * @returns {Object|null} Selected result or null
          */
         getSelectedResult() {
-            return this._selectedIndex >= 0 ? this._results[this._selectedIndex] : null;
+            return this._selectedIndex >= 0
+                ? this._results[this._selectedIndex]
+                : null;
         }
     }
 );
