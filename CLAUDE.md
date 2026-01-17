@@ -1,320 +1,96 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working with this repository.
 
 ## Project Overview
 
-Aether is a GTK/Libadwaita theming application for Omarchy. It provides a visual interface for creating and applying desktop themes through intelligent ImageMagick-based color extraction, wallhaven.cc wallpaper browsing, and template-based configuration generation.
+Aether is a GTK4/Libadwaita theming application for Omarchy. It extracts colors from wallpapers using ImageMagick and applies cohesive themes across the desktop via template-based configuration generation.
 
 **Core workflow:**
-1. User selects wallpaper (local file/drag-drop OR wallhaven.cc/local browser)
-2. **(Optional)** Edit wallpaper with filters (blur, brightness, sepia, etc.) before extraction
-3. ImageMagick intelligently extracts 16 ANSI colors from wallpaper (or filtered version)
-   - Automatically classifies image type (monochrome, low-diversity, chromatic)
-   - Adapts palette generation strategy for optimal results
-   - Ensures readability through brightness normalization
-   - Caches results for instant re-extraction
-4. Colors auto-assign to UI roles (background, foreground, color0-15)
-5. User customizes colors/settings in GUI
-6. "Apply Theme" processes templates → writes to `~/.config/aether/theme/` → symlinks to `~/.config/omarchy/themes/aether/` → runs `omarchy-theme-set aether`
+1. User selects wallpaper (local/drag-drop/wallhaven.cc browser)
+2. (Optional) Edit wallpaper with filters before extraction
+3. ImageMagick extracts 16 ANSI colors, auto-classifies image type
+4. User customizes colors/settings in GUI
+5. "Apply Theme" processes templates → writes to `~/.config/aether/theme/` → runs `omarchy-theme-set aether`
 
 ## Running the Application
 
 ```bash
-# Development (from project root)
-./aether
-# or
-gjs -m src/main.js
-
-# Alternative methods
-npm start
-npm run dev
+./aether              # Development
+gjs -m src/main.js    # Alternative
+npm start             # Via npm
 ```
 
 ## Architecture
 
-### Entry Point & Window Management
-- **src/main.js**: Application entry point (minimal bootstrapping)
-- **src/AetherApplication.js**: GTK Application class, handles activation and CLI
-- **src/AetherWindow.js**: Main window with Adw.NavigationSplitView layout
-  - Sidebar: BlueprintsView (saved themes list)
-  - Content: PaletteEditor + ColorSynthesizer + ActionBar + SettingsSidebar
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/main.js` | Entry point (bootstrapping) |
+| `src/AetherApplication.js` | GTK Application class, CLI handling |
+| `src/AetherWindow.js` | Main window layout, component coordination |
+| `src/state/ThemeState.js` | Centralized reactive state (colors, wallpaper, adjustments) |
+| `src/utils/ConfigWriter.js` | Template processing and theme application |
+| `src/utils/imagemagick-color-extraction.js` | Color extraction algorithm |
+| `src/services/service-locator.js` | Dependency injection registry |
+
+### Directory Structure
+
+```
+src/
+├── components/          # UI components (PaletteEditor, WallpaperEditor, etc.)
+├── state/               # ThemeState reactive state manager
+├── services/            # Business logic (blueprints, wallhaven, favorites)
+├── utils/               # Utilities (file ops, color conversion, UI builders)
+└── constants/           # Colors, presets, UI constants
+templates/               # Config templates for applications
+```
+
+### Component Responsibilities
+
+- **PaletteEditor**: Wallpaper selection, color swatch grid, palette generation
+- **WallpaperEditor**: Image filter editor (blur, brightness, etc.) before extraction
+- **ColorSynthesizer**: Color role assignments (background, foreground, color0-15)
+- **SettingsSidebar**: Adjustments, presets, harmony generator, neovim themes
+- **BlueprintsView**: Saved theme management
 
 ### State Management
-- **src/state/ThemeState.js**: Centralized reactive state manager
-  - Manages: wallpaper path, colors (16 ANSI + adjusted), light mode, adjustments, locked colors
-  - Event-driven: components subscribe to state changes via `on()` / `off()`
-  - Single source of truth for theme data across all components
 
-### Core Components
-
-**PaletteEditor** (`src/components/PaletteEditor.js`)
-- Two-tab interface: "Palette Editor", "Find Wallpaper"
-- Tab 1 (Palette Editor): Unified interface for wallpaper + custom palette creation
-  - Uses sub-components from `src/components/palette-editor/`:
-    - `WallpaperSection.js` - File picker/drag-drop, edit button, extract button
-    - `ColorSwatchGrid.js` - 16-color swatch grid with click-to-edit and lock feature
-  - Loads default Catppuccin-inspired colors on startup
-- Tab 2 (Find Wallpaper): Three sub-tabs (Wallhaven, Local, Favorites)
-  - WallpaperBrowser - wallhaven.cc API integration
-  - LocalWallpaperBrowser - ~/Wallpapers directory browser
-  - FavoritesView - Favorited wallpapers from any source
-- Integrates with ThemeState for reactive color updates
-- Light mode flag controlled by SettingsSidebar, saved to blueprints
-- Emits: `palette-generated`, `open-wallpaper-editor` signals
-
-**WallpaperEditor** (`src/components/WallpaperEditor.js`)
-- Professional filter editor for wallpapers before color extraction
-- Full-screen editor view (replaces main content when active)
-- **Debounced preview system**: ImageMagick preview updates 75ms after user stops adjusting sliders
-- **Optimized performance**: Uses scaled preview base (max 800px) for 3-5x faster processing
-
-**Architecture:**
-- **PreviewArea** (left): Large wallpaper preview with debounced ImageMagick rendering
-  - Click-and-hold to temporarily view original wallpaper
-  - Preview base created on load (800px max width)
-  - Debounced ImageMagick preview (75ms delay)
-  - JPEG preview images (quality 95) for faster I/O
-- **FilterControls** (right sidebar): Scrollable filter controls organized in groups
-- **Header**: Title + Reset button + Apply/Cancel actions
-
-**Filter Categories:**
-
-*Basic Adjustments:*
-- Blur (0-5px, step 0.1)
-- Brightness (50-150%)
-- Contrast (50-150%)
-- Saturation (0-150%)
-- Hue Shift (0-360°)
-
-*Effects:*
-- Sepia (0-100%)
-- Invert (0-100%)
-
-*Advanced (Professional):*
-- Exposure (-100 to 100) - Camera exposure simulation
-- Sharpen (0-100) - Edge enhancement
-- Vignette (0-100%) - Darken edges for focus
-- Grain (0-10, step 0.1) - Monochrome film grain overlay
-- Shadows (-100 to 100) - Lift or crush shadow detail
-- Highlights (-100 to 100) - Recover or blow out highlights
-
-*Color Tone:*
-- 8 preset tone colors (Blue, Cyan, Green, Yellow, Orange, Red, Pink, Purple)
-- Custom color picker with HSL preservation
-- Tone intensity slider (0-100%)
-
-**Quick Presets** (12 total, 3 rows of 4):
-- Row 1: Muted, Dramatic, Soft, Vintage
-- Row 2: Vibrant, Faded, Cool, Warm
-- Row 3: Cinematic, Film, Crisp, Portrait (NEW)
-- Presets auto-reset all filters before applying
-- Each preset showcases different filter combinations
-
-**Output Format:**
-- JPEG format (quality 95) for both preview and final output
-- Unique timestamped filename: `processed-wallpaper-{timestamp}.jpg`
-- Saves to `~/.cache/aether/`
-- Bypasses color extraction cache (forces fresh extraction)
-
-**Sub-components:**
-- `src/components/wallpaper-editor/FilterControls.js` - Filter UI controls organized into tabs
-- `src/components/wallpaper-editor/PreviewArea.js` - Preview with debounced IM rendering
-- `src/components/wallpaper-editor/filter-tabs/` - Modular filter tab components:
-  - `BasicFiltersTab.js` - Blur, brightness, contrast, saturation, hue
-  - `EffectsTab.js` - Sepia, invert effects
-  - `ProFiltersTab.js` - Exposure, sharpen, vignette, grain, shadows, highlights
-  - `ColorToneTab.js` - Preset tones and custom color picker
-  - `PresetsTab.js` - Quick preset buttons (12 presets)
-  - `SelectiveColorTab.js` - HSL adjustments for specific color ranges
-
-**Utilities:**
-- `src/utils/image-filter-utils.js` - ImageMagick command building, filter logic, cache management
-- `src/utils/color-utils.js` - Color conversions (HSL/RGB/Hex) for tone picker
-
-**Signals:**
-- Emits: `wallpaper-applied` with processed path (or original if cancelled/no filters)
-
-**WallpaperBrowser** (`src/components/WallpaperBrowser.js`)
-- Integrated wallhaven.cc API client for browsing/searching wallpapers
-- Search interface: query input, category filters (General/Anime/People), sorting options
-- Grid view with thumbnails (FlowBox, responsive columns)
-- Pagination controls (prev/next, page indicator)
-- Click wallpaper → downloads to `~/.local/share/aether/wallpapers/` → emits `wallpaper-selected` signal
-- Settings dialog (gear icon) for API key configuration
-- Sub-components in `src/components/wallpaper-browser/`:
-  - `WallhavenToolbar.js` - Search, filters, sorting, pagination controls
-  - `ResponsiveGridManager.js` - Reusable responsive FlowBox layout manager
-
-**LocalWallpaperBrowser** (`src/components/LocalWallpaperBrowser.js`)
-- Browses local wallpapers from `~/Wallpapers` directory
-- Features:
-  - Automatic wallpaper discovery (scans for image files: jpg, jpeg, png, webp)
-  - Grid view with thumbnail previews (FlowBox, 2-3 columns)
-  - Thumbnail generation and caching via `thumbnailService`
-  - Favorites integration - star icon on cards to add/remove favorites
-  - Refresh button to rescan directory
-  - Empty state with helpful message if no wallpapers found
-- Click wallpaper → emits `wallpaper-selected` signal → switches to "Palette Editor" tab
-- Async loading with loading spinner
-- Emits: `wallpaper-selected`, `favorites-changed` signals
-
-**FavoritesView** (`src/components/FavoritesView.js`)
-- Displays favorited wallpapers from both local and wallhaven sources
-- Features:
-  - Grid view with thumbnail previews
-  - Remove from favorites button on each card
-  - Support for both local files and wallhaven URLs
-  - Auto-download for wallhaven favorites (if not already cached)
-  - Empty state with "No favorites yet" message
-- Click wallpaper → emits `wallpaper-selected` signal → switches to "Palette Editor" tab
-- Loads favorites from `~/.config/aether/favorites.json`
-- Emits: `wallpaper-selected` signal
-
-**Tab Navigation in "Find Wallpaper"**
-The "Find Wallpaper" tab contains a sub-navigation with 3 tabs:
-1. **Wallhaven** - Browse online wallpapers from wallhaven.cc
-2. **Local** - Browse wallpapers from ~/Wallpapers directory
-3. **Favorites** - Quick access to favorited wallpapers from any source
-
-**ColorSynthesizer** (`src/components/ColorSynthesizer.js`)
-- Displays color role assignments (background, foreground, color0-15) using Adw.ActionRow
-- Auto-assigns palette colors to roles: background=color0, foreground=color15, etc.
-- Each role has a Gtk.ColorDialogButton for manual adjustment
-- Emits: `color-changed` signal on role modifications
-
-**SettingsSidebar** (`src/components/SettingsSidebar.js`)
-- Collapsible right sidebar with Adw.NavigationSplitView
-- Contains multiple sections:
-  - Light Mode toggle (for light/dark color scheme extraction)
-  - Color adjustments (vibrance, contrast, brightness, hue shift, temperature, gamma)
-  - Color harmony generator (complementary, analogous, triadic, split-complementary, tetradic, monochromatic)
-  - Gradient generator (smooth transitions between two colors)
-  - Preset library (10 popular themes: Dracula, Nord, Gruvbox, etc.)
-  - Neovim theme selector (37 LazyVim-compatible themes)
-  - Template settings (enable/disable optional templates)
-  - Accessibility checker
-- Emits: `adjustments-changed`, `adjustments-reset`, `preset-applied`, `harmony-generated`, `gradient-generated`
-
-**ShaderManager** (`src/components/ShaderManager.js`)
-- Component for managing hyprshade screen shaders (visual effects via Hyprland compositor)
-- Features:
-  - Auto-discovers shaders from hyprshade (`hyprshade ls`)
-  - Toggle switches for each shader (only one active at a time)
-  - Scrollable list with up to 600px height
-  - Formatted shader names (e.g., "blue-light-filter" → "Blue Light Filter")
-  - **Safety confirmation with 60-second countdown when enabling shaders**
-    - Shader applies immediately so user can see the effect
-    - Confirmation dialog appears with live countdown timer
-    - Auto-reverts to previous state if not confirmed within timeout
-    - Prevents getting stuck with unusable shaders (CRT warping, extreme effects, etc.)
-    - Similar to display resolution confirmation in most operating systems
-    - Keyboard shortcuts: Enter = Keep, Escape = Revert
-- hyprshade Integration:
-  - Uses `hyprshade ls` to list available shaders
-  - Uses `hyprshade current` to get active shader
-  - Uses `hyprshade on <shader>` to enable a shader
-  - Uses `hyprshade off` to disable shaders
-  - Shaders installed to ~/.config/hypr/shaders/
-- Emits: `shader-changed` signal with shader name or 'off'
-
-**BlueprintsView** (`src/components/BlueprintsView.js`)
-- Sidebar component displaying saved theme blueprints
-- Uses BlueprintService for persistence
-- Emits: `blueprint-applied` signal
-
-**BlueprintService** (`src/services/BlueprintService.js`)
-- Saves/loads theme blueprints as JSON in `~/.config/aether/blueprints/`
-- Blueprint format: `{ name, timestamp, palette: { wallpaper, wallpaperUrl, wallpaperSource, colors, lightMode } }`
-- Stores wallhaven URL for wallpaper restoration
-- Light mode setting preserved in blueprints
-
-**ConfigWriter** (`src/utils/ConfigWriter.js`)
-- Processes templates from `templates/` directory
-- Replaces variables: `{background}`, `{color0}`, `{color5.strip}` (no #), `{color5.rgb}` (decimal RGB)
-- Writes processed configs to `~/.config/aether/theme/`
-- Symlinks `~/.config/omarchy/themes/aether/` → `~/.config/aether/theme/`
-- Copies wallpaper to `~/.config/aether/theme/backgrounds/`
-- Executes `omarchy-theme-set aether` via `GLib.spawn_command_line_async()`
-
-**Theme Appliers** (`src/utils/theme-appliers/`)
-- `GtkThemeApplier.js` - Handles GTK theme application
-- `VscodeThemeApplier.js` - Handles VS Code theme generation
+`ThemeState.js` is the single source of truth. Components subscribe via GObject signals:
+```javascript
+themeState.on('colors-changed', (colors) => { /* update UI */ });
+```
 
 ### Services
 
-**service-locator.js**: Centralized service registry for dependency injection
-- Provides `getService()`, `registerService()`, `hasService()` methods
-- Pre-registers core services on import (favorites, thumbnails, wallhaven, blueprints)
-- Enables loose coupling between components
+Access via `getService('serviceName')` from `service-locator.js`:
+- `blueprintService` - Theme persistence
+- `favoritesService` - Favorite wallpapers
+- `wallhavenService` - Wallhaven.cc API
+- `thumbnailService` - Image thumbnail caching
 
-**BlueprintService.js**: Theme blueprint persistence
-- Saves/loads blueprints from `~/.config/aether/blueprints/`
-- CRUD operations for theme configurations
+## Template System
 
-**wallhaven-service.js**: HTTP client for wallhaven.cc API v1
-- Uses `Soup.Session` (libsoup3) for async HTTP requests
-- Methods: `search(params)`, `getWallpaper(id)`, `downloadWallpaper(url, destPath)`
-- Supports API key authentication via `setApiKey()`
-- Rate limiting: 45 requests/minute without API key
-- Returns JSON responses with wallpaper metadata (resolution, file size, tags, colors, URLs)
+Templates in `templates/` use variable substitution:
 
-**favorites-service.js**: Manages favorited wallpapers
-- Stores favorites in `~/.config/aether/favorites.json`
-- Supports both local file paths and wallhaven URLs
-- Methods: `addFavorite(wallpaper)`, `removeFavorite(path)`, `getFavorites()`, `isFavorite(path)`
-- Auto-saves on changes
+| Variable | Output |
+|----------|--------|
+| `{color5}` | `#ff00ff` |
+| `{color5.strip}` | `ff00ff` |
+| `{color5.rgb}` | `255,0,255` |
+| `{background}`, `{foreground}` | Hex colors |
 
-**thumbnail-service.js**: Generates and caches thumbnails for local wallpapers
-- Creates thumbnails for large images to improve UI performance
-- Caches generated thumbnails to avoid regeneration
-- Uses GdkPixbuf for image scaling
-- Async thumbnail generation
+ConfigWriter processes all templates and writes to `~/.config/aether/theme/`.
 
-**color-harmony.js**: Generates color harmonies (complementary, triadic, etc.) - used by SettingsSidebar
+## Dependencies
 
-### Utilities
-
-**ui-builders.js**: Reusable UI component factory functions
-- `createActionRow()`, `createSliderRow()`, `createSwitchRow()`, `createColorButtonRow()`
-- `createExpanderRow()`, `createComboRow()`, `createButtonRow()`
-- Standardizes Adw widget creation across the codebase
-
-**ui-helpers.js**: Common UI helper functions
-- `showToast()` - Consolidated toast notification helper
-- `findAncestor()` - Widget tree traversal
-
-**error-utils.js**: Custom error classes and error handling utilities
-- `AetherError`, `FileNotFoundError`, `ImageMagickError`, `NetworkError`
-- `wrapAsync()` - Async function wrapper with error handling
-
-**file-utils.js**: GLib/Gio file operation wrappers
-- `ensureDirectoryExists()`, `readFile()`, `writeFile()`
-- `loadJsonConfig()`, `saveJsonConfig()`
-
-**DialogManager.js**: Centralized dialog management
-- Handles file choosers, message dialogs, confirmations
-- Prevents dialog stacking issues
-
-### Template System
-
-Templates live in `templates/` directory (hyprland.conf, kitty.conf, waybar.css, etc.)
-
-**Variable formats:**
-- `{background}`, `{foreground}`, `{color0}` through `{color15}`: Direct hex color
-- `{color5.strip}`: Removes `#` prefix (e.g., `#ff00ff` → `ff00ff`)
-- `{color5.rgb}`: Decimal RGB format (e.g., `#ff00ff` → `255,0,255`)
-
-ConfigWriter iterates all template files, performs string substitution, and writes to theme directory.
-
-## Key Dependencies
-
-**Runtime:**
+**Required:**
 - GJS (GNOME JavaScript bindings)
 - GTK 4 + Libadwaita 1
-- libsoup3 (HTTP client for wallhaven API)
-- ImageMagick (`magick` command) - required for color extraction and wallpaper filter processing
-- omarchy theme manager (provides `omarchy-theme-set` command)
+- libsoup3
+- ImageMagick (`magick` command)
+- omarchy (`omarchy-theme-set` command)
 
 **Import pattern:**
 ```javascript
@@ -322,736 +98,92 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
-import Soup from 'gi://Soup?version=3.0';
 ```
-
-## Signal Flow
-
-```
-ThemeState → 'colors-changed' → ColorSynthesizer, PaletteEditor (reactive updates)
-ThemeState → 'wallpaper-changed' → PaletteEditor._onWallpaperChanged()
-ThemeState → 'adjustments-changed' → PaletteEditor._applyAdjustments()
-PaletteEditor → 'palette-generated' → ColorSynthesizer.setPalette()
-PaletteEditor → 'open-wallpaper-editor' → AetherWindow._showWallpaperEditor()
-WallpaperBrowser → 'wallpaper-selected' → PaletteEditor._onWallpaperBrowserSelected()
-WallpaperEditor → 'wallpaper-applied' → AetherWindow._hideWallpaperEditor() → PaletteEditor.loadWallpaper()
-ColorSynthesizer → 'color-changed' → AetherWindow._updateAccessibility()
-BlueprintsView → 'blueprint-applied' → AetherWindow._loadBlueprint()
-SettingsSidebar → 'adjustments-changed' → ThemeState.setAdjustments()
-SettingsSidebar → 'preset-applied' → PaletteEditor.applyPreset()
-SettingsSidebar → 'harmony-generated' → PaletteEditor.applyHarmony()
-"Apply Theme" button → ConfigWriter.applyTheme()
-```
-
-## Wallpaper Editor Signal Flow
-
-```
-FilterControls → 'filter-changed' → WallpaperEditor → PreviewArea.updateFilters()
-FilterControls → 'preset-applied' → WallpaperEditor → PreviewArea.updateFilters()
-FilterControls → 'reset-filters' → WallpaperEditor → PreviewArea.clearFilters()
-PreviewArea (click gesture) → temporarily disables filters → shows original
-```
-
-## Shader Manager Signal Flow
-
-```
-ShaderManager switch ON → Apply shader immediately → Show FilterConfirmationDialog
-FilterConfirmationDialog 'keep' → Shader stays enabled → emit 'shader-changed'
-FilterConfirmationDialog 'revert' (or timeout) → hyprshade off → Reset switch → emit 'shader-changed' 'off'
-ShaderManager switch OFF → hyprshade off → emit 'shader-changed' 'off'
-```
-
-## AUR Packaging
-
-**Files:**
-- PKGBUILD: Installs to `/usr/share/aether/`, creates launcher in `/usr/bin/aether`
-- .SRCINFO: Generated via `makepkg --printsrcinfo > .SRCINFO`
-
-**Release workflow:**
-1. Tag release: `git tag -a v1.0.0 -m "Release v1.0.0"`
-2. Push tag: `git push origin v1.0.0`
-3. GitHub Actions (`.github/workflows/release.yml`) creates release automatically
-4. Get sha256: `wget https://github.com/bjarneo/aether/archive/v1.0.0.tar.gz && sha256sum v1.0.0.tar.gz`
-5. Update PKGBUILD sha256sums, regenerate .SRCINFO, push to AUR repo
-
-## Important Notes
-
-- Application ID is `com.aether.DesktopSynthesizer` (in main.js) but desktop file is `li.oever.aether.desktop`
-- **Color extraction and wallpaper filter processing require ImageMagick (`magick` command) installed**
-- Theme application requires `omarchy-theme-set` command available
-- Default colors defined in `src/constants/colors.js` as fallback
-- UI constants defined in `src/constants/ui-constants.js` (spacing, sizes, dimensions)
-- All file operations use GLib/Gio APIs (file-utils.js wrappers)
-- Color utilities in color-utils.js handle hex/RGB/HSL conversions and adjustments
-- **Custom icons registered with GTK IconTheme** (`src/icons/` directory)
-
-## Color Lock System
-
-- Each color swatch in the 16-color grid can be locked/unlocked
-- Locked colors are protected from adjustment slider changes (vibrance, contrast, etc.)
-- Lock state tracked in ThemeState (`_lockedColors` array)
-- Visual indicator: accent border on locked swatches, hover-to-reveal lock button
-- Saved to and restored from blueprints
 
 ## Configuration Storage
 
-**User config locations:**
-- Blueprints: `~/.config/aether/blueprints/*.json`
-- Wallhaven API key: `~/.config/aether/wallhaven.json`
-- **Favorites:** `~/.config/aether/favorites.json`
-- Settings: `~/.config/aether/settings.json`
+| Type | Location |
+|------|----------|
+| Blueprints | `~/.config/aether/blueprints/*.json` |
+| Favorites | `~/.config/aether/favorites.json` |
+| Generated theme | `~/.config/aether/theme/` |
+| Downloaded wallpapers | `~/.local/share/aether/wallpapers/` |
+| Thumbnails/cache | `~/.cache/aether/` |
 
-**Permanent data locations:**
-- Downloaded wallpapers: `~/.local/share/aether/wallpapers/` (permanent storage, not cache)
+## Theming Guidelines
 
-**Cache locations:**
-- Wallhaven thumbnails: `~/.cache/aether/wallhaven-thumbs/`
-- **Processed wallpapers:** `~/.cache/aether/processed-wallpaper-{timestamp}.png` (not auto-cleaned)
-- **Local wallpaper thumbnails:** `~/.cache/aether/thumbnails/` (generated by thumbnailService)
-- Pywal colors: `~/.cache/wal/colors`
-
-**Theme output:**
-- Generated configs: `~/.config/aether/theme/`
-- Wallpaper copy: `~/.config/aether/theme/backgrounds/`
-- Omarchy symlink: `~/.config/omarchy/themes/aether/` → `~/.config/aether/theme/`
-
-## Theming System
-
-**IMPORTANT:** Aether uses standard GTK/Adwaita theming with `@define-color` variables.
-
-### Theme Manager (`src/services/theme-manager.js`)
-
-The theme system manages CSS file monitoring and live reload. Theming is done through standard GTK named colors using `@define-color` statements.
-
-### How Theming Works
-
-1. **Base theme**: `~/.config/aether/theme.css` (auto-generated, imports override)
-2. **User overrides**: `~/.config/aether/theme.override.css` (user editable or symlinked)
-3. **Template system**: `templates/aether.override.css` and `templates/gtk.css` define color mappings
-4. **Live reload**: File monitors detect changes and reload CSS automatically
-
-When you apply a theme in Aether:
-- `templates/aether.override.css` → processed → `~/.config/aether/theme/aether.override.css`
-- Symlink created: `~/.config/aether/theme.override.css` → omarchy theme file
-- Aether's UI updates automatically with the new colors
-
-### GTK Named Colors (Standard)
-
-Aether uses standard GTK/Adwaita color names. Key colors used in templates:
-
-**Accent/Interactive:**
-- `@define-color accent_bg_color` - Suggested buttons, checkboxes, switches, links
-- `@define-color accent_fg_color` - Accent foreground text
-- `@define-color accent_color` - Accent color variant
-
-**Windows/Views:**
-- `@define-color window_bg_color` - Main window background
-- `@define-color window_fg_color` - Main window text
-- `@define-color view_bg_color` - Content area background
-- `@define-color view_fg_color` - Content area text
-
-**UI Elements:**
-- `@define-color headerbar_bg_color` - Header bar background
-- `@define-color card_bg_color` - Card/panel background
-- `@define-color borders` - Border colors
-
-**Actions:**
-- `@define-color destructive_bg_color` - Delete/remove buttons
-- `@define-color success_bg_color` - Success states
-- `@define-color warning_bg_color` - Warning states
-- `@define-color error_bg_color` - Error states
-
-See `templates/aether.override.css` for the complete list of color mappings from palette colors to GTK variables.
-
-### When Adding New UI Elements
-
-**1. For buttons:**
+**Use GTK CSS classes instead of hardcoded colors:**
 ```javascript
-// Use css_classes for proper GTK theming
-const myButton = new Gtk.Button({
-    label: 'My Action',
-    css_classes: ['suggested-action'], // or ['destructive-action']
-});
-// GTK automatically applies accent_bg_color to .suggested-action
-// GTK automatically applies destructive_bg_color to .destructive-action
+// Good
+const button = new Gtk.Button({ css_classes: ['suggested-action'] });
+const card = new Gtk.Box({ css_classes: ['card'] });
+
+// Bad - don't hardcode colors
+const button = new Gtk.Button({ css_name: 'my-button' }); // with custom CSS
 ```
 
-**2. For custom styling needs:**
+GTK named colors are defined in `templates/aether.override.css`. Key colors:
+- `accent_bg_color`, `window_bg_color`, `view_bg_color`
+- `destructive_bg_color`, `success_bg_color`, `warning_bg_color`
+
+Sharp corners (`border-radius: 0`) are applied globally via theme-manager.js.
+
+## Code Standards
+
+### Conventions
+- ES Modules with named exports (default for main class)
+- JSDoc on all exported functions
+- `async`/`await` for async operations
+- Private methods prefixed with `_`
+- Use `ui-builders.js` for widget creation
+- Use `file-utils.js` for file operations
+
+### Patterns
+
+**Early returns over nested if:**
 ```javascript
-// GTK widgets inherit theme colors automatically
-// No custom CSS needed in most cases
-const card = new Gtk.Box({
-    css_classes: ['card'], // Uses card_bg_color from theme
-});
-```
-
-**3. For interactive elements:**
-- DO NOT hardcode colors (#89b4fa, etc.)
-- Use GTK's built-in CSS classes: `suggested-action`, `destructive-action`, `card`, `toolbar`, etc.
-- GTK automatically applies appropriate named colors to standard widgets
-- Checkboxes, switches, and links use `accent_bg_color` by default
-
-**4. Sharp corners:**
-All UI elements automatically get `border-radius: 0px` via theme-manager.js's global CSS
-No need to set this per-widget
-
-### Design Principles
-
-1. **Sharp Corners:** All UI elements get `border-radius: 0px` globally (Hyprland aesthetic)
-2. **GTK Native Theming:** Use GTK's built-in CSS classes instead of custom styling
-3. **Live Reload:** Theme file changes apply instantly via file monitors
-4. **No Hardcoded Colors:** Let GTK's named colors handle all theming
-5. **Template-based:** Color mappings defined in `templates/aether.override.css`
-
-### Testing New Components
-
-After adding new UI elements:
-1. Verify widgets use GTK CSS classes (`.suggested-action`, `.card`, etc.)
-2. Check that no colors are hardcoded in component code
-3. Test that sharp corners are applied (should be automatic)
-4. Apply a theme in Aether and verify the new widget updates correctly
-5. Edit `~/.config/aether/theme.override.css` manually to test live reload
-
-### Theme Files Location
-
-- **Base theme:** `~/.config/aether/theme.css` (auto-generated, imports override)
-- **User overrides:** `~/.config/aether/theme.override.css` (editable or symlinked to omarchy theme)
-- **Template (source):** `templates/aether.override.css` (defines color → GTK variable mapping)
-- **Template (GTK apps):** `templates/gtk.css` (for system-wide GTK theming when enabled)
-- **Generated override:** `~/.config/aether/theme/aether.override.css` (processed template)
-
-### Common Mistakes to Avoid
-
-❌ Hardcoding colors in component code (#89b4fa, etc.)
-❌ Creating custom CSS variables (use GTK's `@define-color` instead)
-❌ Setting border-radius per-widget (already global)
-❌ Using inline styles instead of CSS classes
-❌ Not using GTK's built-in CSS classes
-
-✅ Use GTK CSS classes: `.suggested-action`, `.destructive-action`, `.card`
-✅ Let GTK handle theming automatically
-✅ Rely on named colors from templates
-✅ Trust the global sharp corners CSS
-✅ Test with "Apply Theme" to verify color mappings
-
-## Quick Reference: Adding New UI Elements
-
-**Checklist when adding any new UI component:**
-
-- [ ] Use GTK CSS classes instead of custom styling
-- [ ] Avoid hardcoded colors (let GTK's `@define-color` handle it)
-- [ ] For buttons, use `css_classes: ['suggested-action']` or `['destructive-action']`
-- [ ] For containers, use `css_classes: ['card']`, `['toolbar']`, etc.
-- [ ] Don't set `border-radius` (already global)
-- [ ] Test by applying a theme in Aether
-
-**GTK Named Colors Quick Reference:**
-```
-Accent: accent_bg_color, accent_fg_color
-Windows: window_bg_color, window_fg_color, view_bg_color, view_fg_color
-UI: headerbar_bg_color, card_bg_color, borders
-Actions: destructive_bg_color, success_bg_color, warning_bg_color, error_bg_color
-```
-
-See `templates/aether.override.css` for complete color → GTK variable mappings.
-
----
-
-## Code Quality Standards & Refactoring Principles
-
-This section defines the coding standards and best practices for maintaining Aether's codebase. All contributions should follow these principles.
-
-### Type Safety & Documentation (JSDoc)
-
-**Requirements:**
-- Add comprehensive JSDoc to all exported functions and classes
-- Document parameters with types, return values, and potential exceptions
-- Describe complex data structures with inline type definitions
-- Document GLib/Gio/GTK-specific behavior and requirements
-
-**Example:**
-```javascript
-/**
- * Extracts colors from a wallpaper using ImageMagick
- * @param {string} wallpaperPath - Absolute path to wallpaper image
- * @param {boolean} lightMode - Whether to extract for light theme
- * @param {Object} options - Extraction options
- * @param {number} [options.vibrance=0] - Vibrance adjustment (-100 to 100)
- * @param {number} [options.contrast=0] - Contrast adjustment (-100 to 100)
- * @returns {Promise<string[]>} Array of 16 hex color strings
- * @throws {Error} If ImageMagick is not installed or wallpaper doesn't exist
- */
-async function extractColorsFromWallpaperIM(wallpaperPath, lightMode, options = {}) {
-    // Implementation
+async function loadFile(path) {
+    if (!path) return null;
+    const file = Gio.File.new_for_path(path);
+    if (!file.query_exists(null)) return null;
+    // ... proceed
 }
 ```
 
-### Modern Immutability & Functional Purity
-
-**Rules:**
-- Use `const` and `let` exclusively. Never use `var`
-- Minimize direct mutation of objects or arrays
-- Favor non-mutating array methods: `map()`, `filter()`, `reduce()`, `slice()`, `concat()`
-- Use spread operator (`...`) for cloning/updating state
-- Keep helper functions pure (no side effects) when possible
-
-**Good:**
+**Use services for I/O:**
 ```javascript
-// Immutable array operations
-const newColors = [...existingColors, newColor];
-const filtered = colors.filter(c => c !== targetColor);
-const updated = colors.map(c => c === oldColor ? newColor : c);
+// Good - delegate to service
+const path = await getService('wallhavenService').downloadWallpaper(url);
 
-// Object immutability
+// Bad - I/O in component
+const response = await fetch(url);
+```
+
+**Immutable state updates:**
+```javascript
+const newColors = [...existingColors, newColor];
 const newState = { ...oldState, isLoading: false };
 ```
 
-**Bad:**
-```javascript
-// Direct mutation
-existingColors.push(newColor);
-colors[5] = newColor;
-oldState.isLoading = false;
+### File Size Limits
+- Components: 400-500 lines max
+- Services/Utils: 300-400 lines max
+- Split larger files into focused modules
+
+## Key Signals
+
+```
+ThemeState → 'colors-changed' → Components update
+PaletteEditor → 'palette-generated' → ColorSynthesizer.setPalette()
+WallpaperEditor → 'wallpaper-applied' → PaletteEditor.loadWallpaper()
+SettingsSidebar → 'adjustments-changed' → ThemeState.setAdjustments()
+"Apply Theme" → ConfigWriter.applyTheme()
 ```
 
-### Asynchronous Code Flow
+## CLI Commands
 
-**Requirements:**
-- Use `async`/`await` for all asynchronous operations
-- Avoid callback patterns and `.then()` chains
-- Use `Promise.all()` for parallel operations
-- Handle errors with `try...catch` blocks
-
-**Good:**
-```javascript
-async function loadMultipleImages(paths) {
-    try {
-        const images = await Promise.all(
-            paths.map(path => loadImage(path))
-        );
-        return images;
-    } catch (error) {
-        console.error('Failed to load images:', error);
-        throw error;
-    }
-}
+```bash
+aether --list-blueprints           # List saved themes
+aether --apply-blueprint "name"    # Apply theme by name
+aether --generate ~/wallpaper.jpg  # Extract and apply from wallpaper
 ```
-
-**Bad:**
-```javascript
-function loadMultipleImages(paths, callback) {
-    let loaded = 0;
-    const images = [];
-    paths.forEach(path => {
-        loadImage(path).then(img => {
-            images.push(img);
-            loaded++;
-            if (loaded === paths.length) {
-                callback(images);
-            }
-        }).catch(err => {
-            console.error(err);
-        });
-    });
-}
-```
-
-### Modularity (ES Modules)
-
-**Requirements:**
-- Structure code using clear ES Module syntax (`import`/`export`)
-- Group related functionality into small, single-purpose modules
-- Avoid circular dependencies
-- Use named exports for utilities, default export for main class/component
-
-**File organization:**
-```javascript
-// utils/color-operations.js - Single responsibility
-export function hexToRgb(hex) { /* ... */ }
-export function rgbToHsl(r, g, b) { /* ... */ }
-export function hslToRgb(h, s, l) { /* ... */ }
-
-// components/ColorPicker.js - Default export for main component
-import { hexToRgb, rgbToHsl } from '../utils/color-operations.js';
-
-export default class ColorPicker extends Gtk.Widget {
-    // Implementation
-}
-```
-
-### Robust Error Handling
-
-**Requirements:**
-- Implement strategic `try...catch` blocks around I/O, network requests, and error-prone operations
-- Errors must be logged clearly with context
-- Re-throw errors or handle gracefully with sensible defaults
-- Use custom error classes for specific error types
-
-**Pattern:**
-```javascript
-class WallpaperNotFoundError extends Error {
-    constructor(path) {
-        super(`Wallpaper not found: ${path}`);
-        this.name = 'WallpaperNotFoundError';
-        this.path = path;
-    }
-}
-
-async function loadWallpaper(path) {
-    try {
-        const file = Gio.File.new_for_path(path);
-
-        if (!file.query_exists(null)) {
-            throw new WallpaperNotFoundError(path);
-        }
-
-        const [success, contents] = file.load_contents(null);
-        if (!success) {
-            throw new Error(`Failed to load wallpaper: ${path}`);
-        }
-
-        return contents;
-    } catch (error) {
-        console.error(`Error loading wallpaper from ${path}:`, error);
-
-        if (error instanceof WallpaperNotFoundError) {
-            // Handle missing file gracefully
-            return getDefaultWallpaper();
-        }
-
-        throw error; // Re-throw unexpected errors
-    }
-}
-```
-
-### Readability & Conciseness
-
-**Naming conventions:**
-- Use descriptive camelCase names for variables, functions, and parameters
-- Use PascalCase for classes and components
-- Prefix private methods with underscore: `_privateMethod()`
-- Use SCREAMING_SNAKE_CASE for constants
-
-**Good practices:**
-- Use object and array destructuring for clarity
-- Use optional chaining (`?.`) and nullish coalescing (`??`) appropriately
-- Prefer ternary operators only when they improve readability
-- Keep functions small and focused (ideally < 50 lines)
-
-**Examples:**
-```javascript
-// Destructuring
-const { wallpaper, colors, lightMode } = blueprint.palette;
-const [red, green, blue] = hexToRgb(color);
-
-// Optional chaining
-const apiKey = config?.wallhaven?.apiKey ?? null;
-
-// Clear ternary
-const brightness = lightMode ? 0.9 : 0.1;
-```
-
-### Separation of Concerns (SoC)
-
-**Principle:** Each module, class, or function should have a single, well-defined responsibility.
-
-**Component responsibilities:**
-- **UI Components**: Rendering, user interaction, signal emission only
-- **Services**: Business logic, API communication, data persistence
-- **Utils**: Pure functions, data transformations, calculations
-- **Managers**: Orchestration, lifecycle management, state coordination
-
-**Red flags (violations):**
-- UI components performing file I/O directly
-- Utility functions with side effects (logging, network calls)
-- Components managing their own persistence
-- Mixed rendering and business logic in same method
-
-**Refactoring strategy:**
-```javascript
-// BAD: Mixed concerns
-class WallpaperBrowser extends Gtk.Widget {
-    async _onWallpaperClick(wallpaper) {
-        // Concern 1: Network I/O
-        const response = await fetch(wallpaper.url);
-        const blob = await response.blob();
-
-        // Concern 2: File system I/O
-        const cachePath = GLib.build_filenamev([GLib.get_user_cache_dir(), 'aether']);
-        GLib.mkdir_with_parents(cachePath, 0o755);
-        const file = Gio.File.new_for_path(`${cachePath}/${wallpaper.id}.jpg`);
-        file.replace_contents(blob, null, false, Gio.FileCreateFlags.NONE, null);
-
-        // Concern 3: State update
-        this._currentWallpaper = wallpaper;
-
-        // Concern 4: Signal emission
-        this.emit('wallpaper-selected', file.get_path());
-    }
-}
-
-// GOOD: Separated concerns
-class WallpaperBrowser extends Gtk.Widget {
-    async _onWallpaperClick(wallpaper) {
-        try {
-            // Delegate to service
-            const localPath = await this._downloadService.downloadWallpaper(wallpaper);
-
-            // Update state
-            this._currentWallpaper = wallpaper;
-
-            // Emit signal
-            this.emit('wallpaper-selected', localPath);
-        } catch (error) {
-            this._showError(`Failed to download wallpaper: ${error.message}`);
-        }
-    }
-}
-
-// Separate service handles download logic
-class WallpaperDownloadService {
-    async downloadWallpaper(wallpaper) {
-        const response = await this._fetchWallpaper(wallpaper.url);
-        const cachePath = this._ensureCacheDirectory();
-        return await this._saveToCache(response, cachePath, wallpaper.id);
-    }
-}
-```
-
-### DRY (Don't Repeat Yourself)
-
-**Principle:** Avoid code duplication. Extract common patterns into reusable functions.
-
-**Common violations in Aether:**
-1. File I/O patterns (loading JSON, saving configs)
-2. Toast notifications
-3. Signal handler blocking/unblocking
-4. Directory creation
-5. Color conversions
-
-**Solutions:**
-```javascript
-// utils/file-helpers.js - Consolidated file operations
-export async function loadJsonFile(path, defaultValue = null) {
-    try {
-        const file = Gio.File.new_for_path(path);
-        if (!file.query_exists(null)) return defaultValue;
-
-        const [success, contents] = file.load_contents(null);
-        if (!success) return defaultValue;
-
-        const text = new TextDecoder('utf-8').decode(contents);
-        return JSON.parse(text);
-    } catch (error) {
-        console.error(`Failed to load JSON from ${path}:`, error);
-        return defaultValue;
-    }
-}
-
-// utils/ui-helpers.js - Toast notification helper
-export function showToast(widget, message, timeout = 2) {
-    const toast = new Adw.Toast({ title: message, timeout });
-    const toastOverlay = findAncestor(widget, Adw.ToastOverlay);
-
-    if (toastOverlay) {
-        toastOverlay.add_toast(toast);
-    }
-}
-
-// utils/signal-helpers.js - Signal management
-export function updateWithoutSignal(widget, signalId, updateFn) {
-    GObject.signal_handler_block(widget, signalId);
-    updateFn();
-    GObject.signal_handler_unblock(widget, signalId);
-}
-```
-
-### Avoid Nested If Statements
-
-**Principle:** Reduce cognitive complexity by avoiding deep nesting (3+ levels).
-
-**Techniques:**
-1. **Early returns (guard clauses)**
-2. **Extract to separate functions**
-3. **Use logical operators**
-4. **Invert conditions**
-
-**Bad (3-level nesting):**
-```javascript
-async function processWallpaper(path) {
-    if (path) {
-        const file = Gio.File.new_for_path(path);
-        if (file.query_exists(null)) {
-            const [success, contents] = file.load_contents(null);
-            if (success) {
-                return processImage(contents);
-            } else {
-                console.error('Failed to load file');
-            }
-        } else {
-            console.error('File does not exist');
-        }
-    } else {
-        console.error('No path provided');
-    }
-}
-```
-
-**Good (early returns):**
-```javascript
-async function processWallpaper(path) {
-    if (!path) {
-        console.error('No path provided');
-        return null;
-    }
-
-    const file = Gio.File.new_for_path(path);
-    if (!file.query_exists(null)) {
-        console.error('File does not exist');
-        return null;
-    }
-
-    const [success, contents] = file.load_contents(null);
-    if (!success) {
-        console.error('Failed to load file');
-        return null;
-    }
-
-    return processImage(contents);
-}
-```
-
-**Good (extracted functions):**
-```javascript
-function validateWallpaperPath(path) {
-    if (!path) throw new Error('No path provided');
-
-    const file = Gio.File.new_for_path(path);
-    if (!file.query_exists(null)) throw new Error('File does not exist');
-
-    return file;
-}
-
-function loadFileContents(file) {
-    const [success, contents] = file.load_contents(null);
-    if (!success) throw new Error('Failed to load file');
-    return contents;
-}
-
-async function processWallpaper(path) {
-    try {
-        const file = validateWallpaperPath(path);
-        const contents = loadFileContents(file);
-        return processImage(contents);
-    } catch (error) {
-        console.error(`Failed to process wallpaper: ${error.message}`);
-        return null;
-    }
-}
-```
-
-### Performance Considerations
-
-**GJS-specific optimizations:**
-- Minimize GObject property lookups in loops
-- Cache widget references instead of repeated lookups
-- Use `GLib.idle_add()` for deferred UI updates
-- Batch DOM-like operations when possible
-- Disconnect signal handlers when widgets are destroyed
-
-**Example:**
-```javascript
-// Bad: Repeated property access
-for (let i = 0; i < 1000; i++) {
-    this.get_parent().get_parent().do_something(i);
-}
-
-// Good: Cache reference
-const target = this.get_parent().get_parent();
-for (let i = 0; i < 1000; i++) {
-    target.do_something(i);
-}
-```
-
-### File Size Guidelines
-
-**Target maximum file sizes:**
-- **Components**: 400-500 lines (split if larger)
-- **Services**: 300-400 lines
-- **Utils**: 300-400 lines
-- **Data files** (presets, constants): No limit
-
-**If a file exceeds guidelines:**
-1. Identify separate concerns
-2. Extract to separate modules
-3. Use composition over inheritance
-4. Create manager classes for orchestration
-
-### Testing & Validation
-
-**Before committing code:**
-- [ ] All functions have JSDoc documentation
-- [ ] No nested if statements (3+ levels)
-- [ ] No code duplication (DRY violations)
-- [ ] Single responsibility per module (SoC)
-- [ ] Used `async`/`await` instead of callbacks
-- [ ] Proper error handling with `try...catch`
-- [ ] Descriptive variable and function names
-- [ ] File size under recommended limits
-
----
-
-## Refactoring Status & Recommendations
-
-This section documents completed refactoring work and remaining analysis.
-
-### ✅ Completed Refactoring (December 2024)
-
-**Phase 1: Comprehensive JSDoc Documentation (100% Complete)**
-- ✅ Documented 19 major files with professional JSDoc annotations (~10,138 lines)
-- ✅ All components, services, and utilities now have complete type information
-- ✅ Parameter types, return values, exceptions documented
-- ✅ GLib/Gio/GTK-specific behaviors noted
-
-**Phase 2: DRY Principle Application (100% Complete)**
-- ✅ Toast notifications consolidated to `showToast()` helper
-- ✅ Favorites management consolidated to `favoritesService`
-- ✅ Directory creation standardized using `ensureDirectoryExists()`
-- ✅ UI builders created: `createActionRow()`, `createSliderRow()`, `createSwitchRow()`, etc.
-- ✅ Config loading consolidated to `loadJsonConfig()` / `saveJsonConfig()`
-
-**Phase 3: Large File Splitting (100% Complete)**
-- ✅ `src/main.js` split into `AetherApplication.js` + `AetherWindow.js`
-- ✅ `FilterControls.js` split into modular filter tabs in `filter-tabs/` directory
-- ✅ `WallpaperBrowser.js` toolbar extracted to `WallhavenToolbar.js`
-- ✅ `ConfigWriter.js` theme appliers extracted to `theme-appliers/` directory
-- ✅ `ResponsiveGridManager` extracted as reusable component
-
-**Phase 4: State Management (100% Complete)**
-- ✅ Created centralized `ThemeState` manager in `src/state/`
-- ✅ Migrated all components to use ThemeState for reactive updates
-- ✅ Single source of truth for colors, adjustments, locked colors, wallpaper
-
-**Phase 5: Service Architecture (100% Complete)**
-- ✅ Created `service-locator.js` for dependency injection
-- ✅ `BlueprintService` extracted from UI component
-- ✅ Services registered centrally, accessed via `getService()`
-
-**Phase 6: Code Cleanup (100% Complete)**
-- ✅ Custom error classes in `error-utils.js`
-- ✅ Options objects pattern for functions with many parameters
-- ✅ Cleaned up service-manager.js and consolidated small utilities
-
-### 🎯 Code Quality Standards Achieved
-
-- ✅ **Type Safety:** Comprehensive JSDoc with parameter types, return values, exceptions
-- ✅ **DRY Principle:** All major duplication patterns eliminated
-- ✅ **Separation of Concerns:** UI, state, services clearly separated
-- ✅ **Modularity:** Clear ES Module structure with focused responsibilities
-- ✅ **State Management:** Centralized reactive state with ThemeState
-- ✅ **Service Architecture:** Dependency injection via service-locator
-- ✅ **Error Handling:** Custom error classes and strategic try-catch blocks
-- ✅ **Readability:** Descriptive names, early returns, minimal nesting
-- ✅ **Maintainability:** Smaller focused files, reusable components
-
----
