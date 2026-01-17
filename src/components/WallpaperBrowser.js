@@ -7,6 +7,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 
 import {wallhavenService} from '../services/wallhaven-service.js';
 import {favoritesService} from '../services/favorites-service.js';
+import {batchProcessingState} from '../state/BatchProcessingState.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {WallpaperFiltersPanel} from './wallpaper-browser/WallpaperFiltersPanel.js';
@@ -56,6 +57,7 @@ export const WallpaperBrowser = GObject.registerClass(
             },
             'favorites-changed': {},
             'add-to-additional-images': {param_types: [GObject.TYPE_JSOBJECT]},
+            'process-batch-requested': {param_types: [GObject.TYPE_JSOBJECT]},
         },
     },
     class WallpaperBrowser extends Gtk.Box {
@@ -85,8 +87,13 @@ export const WallpaperBrowser = GObject.registerClass(
                 resolutions: '', // Resolution filter
             };
 
+            // Selection mode state
+            this._selectionMode = false;
+            this._downloadedWallpapers = new Map(); // path -> wallpaper data for batch
+
             this._loadConfig();
             this._initializeUI();
+            this._connectBatchStateSignals();
 
             // Initialize responsive grid manager
             this._gridManager = new ResponsiveGridManager(
@@ -108,6 +115,11 @@ export const WallpaperBrowser = GObject.registerClass(
             // Toolbar/Header section
             const toolbar = this._createToolbar();
             this.append(toolbar);
+
+            // Batch actions bar (hidden by default)
+            this._batchActionsBar = this._createBatchActionsBar();
+            this._batchActionsBar.set_visible(false);
+            this.append(this._batchActionsBar);
 
             // Main content box with loading state
             this._contentStack = new Gtk.Stack({
@@ -325,10 +337,28 @@ export const WallpaperBrowser = GObject.registerClass(
                 this._showSettingsDialog();
             });
 
+            // Selection mode toggle button
+            this._selectionModeButton = new Gtk.ToggleButton({
+                icon_name: 'selection-mode-symbolic',
+                tooltip_text: 'Selection Mode',
+            });
+            applyCssToWidget(
+                this._selectionModeButton,
+                `
+                button {
+                    border-radius: 0;
+                }
+            `
+            );
+            this._selectionModeButton.connect('toggled', () => {
+                this._toggleSelectionMode(this._selectionModeButton.get_active());
+            });
+
             actionBar.append(this._searchEntry);
             actionBar.append(searchButton);
             actionBar.append(this._filtersButton);
             actionBar.append(settingsButton);
+            actionBar.append(this._selectionModeButton);
 
             return actionBar;
         }
@@ -530,12 +560,26 @@ export const WallpaperBrowser = GObject.registerClass(
                 },
             };
 
+            // Options for selection mode
+            const cardOptions = {
+                showCheckbox: this._selectionMode,
+                isSelected: batchProcessingState.isSelected(wallpaper.path),
+                onCheckboxToggle: (wp, isChecked) => {
+                    this._onWallpaperCheckboxToggle(wallpaper, isChecked);
+                },
+            };
+
             const {mainBox, picture} = createWallpaperCard(
                 wallpaperData,
                 wp => this._downloadAndUseWallpaper(wallpaper),
                 () => this.emit('favorites-changed'),
-                wp => this.emit('add-to-additional-images', wallpaperData)
+                wp => this.emit('add-to-additional-images', wallpaperData),
+                cardOptions
             );
+
+            // Store wallpaper data for later reference
+            mainBox._wallpaperPath = wallpaper.path;
+            mainBox._wallpaperData = wallpaper;
 
             // Load thumbnail asynchronously
             this._loadThumbnail(wallpaper.thumbs.small, picture);
@@ -1159,6 +1203,219 @@ export const WallpaperBrowser = GObject.registerClass(
             dialog.set_child(toolbarView);
 
             dialog.present(this.get_root());
+        }
+
+        // ==================== Batch Selection Mode ====================
+
+        /**
+         * Creates the batch actions bar with selection count and process button
+         * @returns {Gtk.Box} The batch actions bar widget
+         * @private
+         */
+        _createBatchActionsBar() {
+            const bar = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: SPACING.SM,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
+                margin_bottom: SPACING.SM,
+            });
+
+            applyCssToWidget(
+                bar,
+                `
+                box {
+                    background-color: alpha(@accent_bg_color, 0.1);
+                    border: 1px solid alpha(@accent_bg_color, 0.3);
+                    padding: 8px 12px;
+                    border-radius: 0;
+                }
+            `
+            );
+
+            this._selectionCountLabel = new Gtk.Label({
+                label: '0 selected',
+                hexpand: true,
+                xalign: 0,
+            });
+            bar.append(this._selectionCountLabel);
+
+            // Clear selection button
+            const clearButton = new Gtk.Button({
+                icon_name: 'edit-clear-all-symbolic',
+                tooltip_text: 'Clear selection',
+            });
+            applyCssToWidget(
+                clearButton,
+                `
+                button {
+                    border-radius: 0;
+                }
+            `
+            );
+            clearButton.connect('clicked', () => {
+                batchProcessingState.clearSelections();
+            });
+            bar.append(clearButton);
+
+            // Process selected button
+            this._processSelectedButton = new Gtk.Button({
+                label: 'Process Selected',
+                css_classes: ['suggested-action'],
+                sensitive: false,
+            });
+            applyCssToWidget(
+                this._processSelectedButton,
+                `
+                button {
+                    border-radius: 0;
+                    padding: 6px 16px;
+                }
+            `
+            );
+            this._processSelectedButton.connect('clicked', () => {
+                this._processSelectedWallpapers();
+            });
+            bar.append(this._processSelectedButton);
+
+            return bar;
+        }
+
+        /**
+         * Connect to batch processing state signals
+         * @private
+         */
+        _connectBatchStateSignals() {
+            batchProcessingState.connect('selection-changed', (_, count) => {
+                this._updateSelectionUI(count);
+            });
+
+            batchProcessingState.connect('selection-mode-changed', (_, enabled) => {
+                if (this._selectionMode !== enabled) {
+                    this._selectionMode = enabled;
+                    this._selectionModeButton.set_active(enabled);
+                    this._refreshDisplayedWallpapers();
+                }
+            });
+        }
+
+        /**
+         * Toggle selection mode
+         * @private
+         * @param {boolean} enabled - Whether to enable selection mode
+         */
+        _toggleSelectionMode(enabled) {
+            this._selectionMode = enabled;
+            batchProcessingState.setSelectionMode(enabled);
+
+            // Show/hide batch actions bar
+            this._batchActionsBar.set_visible(enabled);
+
+            // Refresh display to show/hide checkboxes
+            this._refreshDisplayedWallpapers();
+        }
+
+        /**
+         * Refresh displayed wallpapers (to update checkboxes)
+         * @private
+         */
+        _refreshDisplayedWallpapers() {
+            // Re-render the current wallpapers to update checkbox state
+            // This preserves the current view but updates the cards
+            this._currentPage = 1;
+            this._hasMorePages = true;
+            this._performSearch();
+        }
+
+        /**
+         * Handle checkbox toggle on a wallpaper
+         * @private
+         * @param {Object} wallpaper - Wallpaper data
+         * @param {boolean} isChecked - New checked state
+         */
+        _onWallpaperCheckboxToggle(wallpaper, isChecked) {
+            const wallpaperData = {
+                path: wallpaper.path,
+                type: 'wallhaven',
+                name: wallpaper.id,
+                data: {
+                    id: wallpaper.id,
+                    resolution: wallpaper.resolution,
+                    file_size: wallpaper.file_size,
+                    thumbUrl: wallpaper.thumbs.small,
+                },
+            };
+
+            if (isChecked) {
+                batchProcessingState.addSelection(wallpaperData);
+            } else {
+                batchProcessingState.removeSelection(wallpaper.path);
+            }
+        }
+
+        /**
+         * Update selection UI based on count
+         * @private
+         * @param {number} count - Number of selected items
+         */
+        _updateSelectionUI(count) {
+            const maxSelections = batchProcessingState.getMaxSelections();
+            this._selectionCountLabel.set_label(
+                `${count} of ${maxSelections} selected`
+            );
+            this._processSelectedButton.set_sensitive(count > 0);
+
+            // Update button text
+            if (count > 0) {
+                this._processSelectedButton.set_label(
+                    `Process ${count} Wallpaper${count !== 1 ? 's' : ''}`
+                );
+            } else {
+                this._processSelectedButton.set_label('Process Selected');
+            }
+        }
+
+        /**
+         * Process selected wallpapers - download and emit for batch processing
+         * @private
+         */
+        async _processSelectedWallpapers() {
+            const selections = batchProcessingState.getSelections();
+            if (selections.length === 0) return;
+
+            showToast(this, `Preparing ${selections.length} wallpapers...`);
+
+            const wallpapersDir = GLib.build_filenamev([GLib.get_user_data_dir(), 'aether', 'wallpapers']);
+            ensureDirectoryExists(wallpapersDir);
+
+            const downloadedWallpapers = [];
+            for (const selection of selections) {
+                const filename = selection.path.split('/').pop();
+                const localPath = GLib.build_filenamev([wallpapersDir, filename]);
+
+                try {
+                    const file = Gio.File.new_for_path(localPath);
+                    if (!file.query_exists(null)) {
+                        await wallhavenService.downloadWallpaper(selection.path, localPath);
+                    }
+
+                    downloadedWallpapers.push({
+                        ...selection,
+                        path: localPath,
+                        originalPath: selection.path,
+                    });
+                } catch (e) {
+                    console.error(`Failed to download ${selection.path}:`, e.message);
+                }
+            }
+
+            if (downloadedWallpapers.length === 0) {
+                showToast(this, 'Failed to download any wallpapers', 3);
+                return;
+            }
+
+            this._toggleSelectionMode(false);
+            this.emit('process-batch-requested', downloadedWallpapers);
         }
 
         /**

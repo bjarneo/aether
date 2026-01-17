@@ -40,6 +40,8 @@ import {ConfigWriter} from './utils/ConfigWriter.js';
 import {DialogManager} from './utils/DialogManager.js';
 import {ThemeExporter} from './services/ThemeExporter.js';
 import {themeState} from './state/ThemeState.js';
+import {batchProcessingState} from './state/BatchProcessingState.js';
+import {BatchProcessingView} from './components/batch/BatchProcessingView.js';
 
 /**
  * AetherWindow - Main application window
@@ -291,6 +293,12 @@ export const AetherWindow = GObject.registerClass(
                     this.paletteGenerator.addWallhavenImage(wallpaper);
                 }
             );
+            this._wallhavenBrowser.connect(
+                'process-batch-requested',
+                (_, wallpapers) => {
+                    this._onBatchProcessingRequested(wallpapers);
+                }
+            );
             this._viewStack.add_titled_with_icon(
                 this._wallhavenBrowser,
                 'wallhaven',
@@ -308,6 +316,12 @@ export const AetherWindow = GObject.registerClass(
                     this._favoritesView.loadFavorites();
                 }
             });
+            this._localBrowser.connect(
+                'process-batch-requested',
+                (_, wallpapers) => {
+                    this._onBatchProcessingRequested(wallpapers);
+                }
+            );
             this._viewStack.add_titled_with_icon(
                 this._localBrowser,
                 'local',
@@ -320,6 +334,12 @@ export const AetherWindow = GObject.registerClass(
             this._favoritesView.connect('wallpaper-selected', (_, path) => {
                 this._onBrowserWallpaperSelected(path);
             });
+            this._favoritesView.connect(
+                'process-batch-requested',
+                (_, wallpapers) => {
+                    this._onBatchProcessingRequested(wallpapers);
+                }
+            );
             this._viewStack.add_titled_with_icon(
                 this._favoritesView,
                 'favorites',
@@ -366,6 +386,20 @@ export const AetherWindow = GObject.registerClass(
                 'Scheduler',
                 'alarm-symbolic'
             );
+
+            // Batch Processing page (hidden from tab bar)
+            this._batchProcessingView = new BatchProcessingView();
+            this._batchProcessingView.connect(
+                'theme-selected',
+                (_, result) => {
+                    this._applyBatchResult(result);
+                }
+            );
+            this._batchProcessingView.connect('cancelled', () => {
+                this._onBatchProcessingCancelled();
+            });
+            // Add as named page without title (won't show in tab bar)
+            this._viewStack.add_named(this._batchProcessingView, 'batch');
 
             // Refresh scheduler when switching to it
             this._viewStack.connect('notify::visible-child-name', () => {
@@ -902,6 +936,56 @@ export const AetherWindow = GObject.registerClass(
         _showBlueprintsTab() {
             this._viewStack.set_visible_child_name('blueprints');
             this._blueprintsView.loadBlueprints();
+        }
+
+        // ==================== Batch Processing ====================
+
+        /**
+         * Handle batch processing request from browser
+         * @private
+         * @param {Array<Object>} wallpapers - Wallpapers to process
+         */
+        _onBatchProcessingRequested(wallpapers) {
+            // Switch to batch processing view
+            this._viewStack.set_visible_child_name('batch');
+
+            // Start processing
+            this._batchProcessingView.startProcessing(wallpapers);
+        }
+
+        /**
+         * Apply selected batch processing result to theme state
+         * @private
+         * @param {Object} result - Processing result with wallpaper and colors
+         */
+        _applyBatchResult(result) {
+            if (!result?.success || !result.colors) {
+                return;
+            }
+
+            // Apply the selected theme to state
+            themeState.setWallpaper(result.wallpaper.path);
+            themeState.setPalette(result.colors, {resetExtended: true});
+
+            // Reset batch state and switch to editor
+            batchProcessingState.reset();
+            this._viewStack.set_visible_child_name('editor');
+
+            const toast = new Adw.Toast({
+                title: 'Theme applied from batch processing',
+                timeout: 2,
+            });
+            this.toastOverlay.add_toast(toast);
+        }
+
+        /**
+         * Handle batch processing cancelled
+         * @private
+         */
+        _onBatchProcessingCancelled() {
+            batchProcessingState.reset();
+            this._batchProcessingView.reset();
+            this._viewStack.set_visible_child_name('wallhaven');
         }
     }
 );

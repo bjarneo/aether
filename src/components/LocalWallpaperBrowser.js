@@ -8,6 +8,7 @@ import Gdk from 'gi://Gdk?version=4.0';
 
 import {favoritesService} from '../services/favorites-service.js';
 import {thumbnailService} from '../services/thumbnail-service.js';
+import {batchProcessingState} from '../state/BatchProcessingState.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {uploadWallpaper} from '../utils/wallpaper-utils.js';
@@ -69,6 +70,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             'wallpaper-selected': {param_types: [GObject.TYPE_STRING]},
             'favorites-changed': {},
             'add-to-additional-images': {param_types: [GObject.TYPE_JSOBJECT]},
+            'process-batch-requested': {param_types: [GObject.TYPE_JSOBJECT]},
         },
     },
     class LocalWallpaperBrowser extends Gtk.Box {
@@ -420,6 +422,16 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             });
             batchDeleteButton.connect('clicked', () => this._batchDelete());
             bar.append(batchDeleteButton);
+
+            // Process selected button (batch processing)
+            this._processSelectedButton = new Gtk.Button({
+                label: 'Process',
+                icon_name: 'media-playback-start-symbolic',
+                tooltip_text: 'Process selected wallpapers',
+                css_classes: ['suggested-action'],
+            });
+            this._processSelectedButton.connect('clicked', () => this._processSelected());
+            bar.append(this._processSelectedButton);
 
             return bar;
         }
@@ -1155,6 +1167,36 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             DialogManager.showToast(this, {
                 title: `${added} wallpaper${plural(added)} added to favorites`,
             });
+        }
+
+        /**
+         * Process selected wallpapers for batch theme generation
+         * @private
+         */
+        _processSelected() {
+            if (this._selectedWallpapers.size === 0) return;
+
+            // Build wallpaper data array
+            const wallpapers = [];
+            for (const path of this._selectedWallpapers) {
+                const name = GLib.path_get_basename(path);
+                wallpapers.push({
+                    path: path,
+                    type: 'local',
+                    name: name,
+                    data: {name},
+                });
+            }
+
+            // Exit multi-select mode
+            this._multiSelectMode = false;
+            this._multiSelectButton.set_active(false);
+            this._selectedWallpapers.clear();
+            this._updateMultiSelectUI();
+            this._renderWallpapers();
+
+            // Emit signal for batch processing
+            this.emit('process-batch-requested', wallpapers);
         }
 
         _openFolder() {
