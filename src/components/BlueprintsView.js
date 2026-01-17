@@ -1,32 +1,30 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
-import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
-import GdkPixbuf from 'gi://GdkPixbuf';
 import Gdk from 'gi://Gdk?version=4.0';
+import GdkPixbuf from 'gi://GdkPixbuf';
+import Gtk from 'gi://Gtk?version=4.0';
 
+import {SPACING, GRID} from '../constants/ui-constants.js';
+import {aetherApiService} from '../services/aether-api-service.js';
+import {thumbnailService} from '../services/thumbnail-service.js';
+import {themeState} from '../state/ThemeState.js';
+import {DialogManager} from '../utils/DialogManager.js';
 import {
     enumerateDirectory,
     loadJsonFile,
     saveJsonFile,
     deleteFile,
 } from '../utils/file-utils.js';
-import {applyCssToWidget} from '../utils/ui-helpers.js';
-import {DialogManager} from '../utils/DialogManager.js';
-import {thumbnailService} from '../services/thumbnail-service.js';
-import {aetherApiService} from '../services/aether-api-service.js';
 import {
     createButtonRow,
-    createInfoRow,
     createLinkRow,
     createToolbar,
     createIconButton,
 } from '../utils/ui-builders.js';
-import {SPACING, GRID} from '../constants/ui-constants.js';
-import {themeState} from '../state/ThemeState.js';
+import {applyCssToWidget} from '../utils/ui-helpers.js';
 import {OmarchyThemesBrowser} from './OmarchyThemesBrowser.js';
-import {applyCssToWidget as applyCss} from '../utils/ui-helpers.js';
 
 /**
  * BlueprintsView - Full-featured blueprints management tab
@@ -105,7 +103,7 @@ export const BlueprintsView = GObject.registerClass(
             });
 
             // Style toggle buttons
-            applyCss(toggleBox, `
+            applyCssToWidget(toggleBox, `
                 box button {
                     border-radius: 0;
                     padding: 6px 16px;

@@ -605,27 +605,26 @@ export const AetherWindow = GObject.registerClass(
                 themeState.resetAppOverrides();
 
                 // Load colors into ThemeState
-                if (theme.colors && theme.colors.length === 16) {
+                if (theme.colors?.length === 16) {
                     themeState.setPalette(theme.colors, {resetExtended: true});
                 }
 
                 // Load extended colors if available
-                if (theme.extendedColors && Object.keys(theme.extendedColors).length > 0) {
+                const hasExtendedColors = theme.extendedColors && Object.keys(theme.extendedColors).length > 0;
+                if (hasExtendedColors) {
                     themeState.setExtendedColors(theme.extendedColors);
                 }
 
                 // Use the first background image from the theme
-                if (theme.wallpapers && theme.wallpapers.length > 0) {
+                if (theme.wallpapers?.length > 0) {
                     themeState.setWallpaper(theme.wallpapers[0]);
                 }
 
-                // Switch to editor tab first
+                // Switch to editor tab and custom palette editing mode
                 this._viewStack.set_visible_child_name('editor');
-
-                // Switch to custom tab for palette editing
                 this.paletteGenerator.switchToCustomTab();
 
-                // Show toast
+                // Show confirmation toast
                 const toast = new Adw.Toast({
                     title: `Imported theme: ${theme.name}`,
                     timeout: 3,

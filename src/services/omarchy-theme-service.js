@@ -100,46 +100,9 @@ export class OmarchyThemeService {
         // Track theme names to avoid duplicates (user themes take priority)
         const loadedThemeNames = new Set();
 
-        // Load themes from a directory
-        const loadFromDirectory = (themesDir, isSystemTheme = false) => {
-            const dir = Gio.File.new_for_path(themesDir);
-            if (!dir.query_exists(null)) {
-                return;
-            }
-
-            try {
-                enumerateDirectory(themesDir, (fileInfo, filePath, fileName) => {
-                    const fileType = fileInfo.get_file_type();
-                    if (fileType !== Gio.FileType.DIRECTORY && fileType !== Gio.FileType.SYMBOLIC_LINK) {
-                        return;
-                    }
-
-                    // Skip hidden directories
-                    if (fileName.startsWith('.')) {
-                        return;
-                    }
-
-                    // Skip if already loaded from user directory
-                    if (loadedThemeNames.has(fileName)) {
-                        return;
-                    }
-
-                    const theme = this._loadTheme(filePath, fileName, fileInfo, isSystemTheme);
-                    if (theme) {
-                        this._themes.push(theme);
-                        loadedThemeNames.add(fileName);
-                    }
-                }, 'standard::name,standard::type,standard::is-symlink,standard::symlink-target');
-            } catch (e) {
-                console.error(`Error loading themes from ${themesDir}:`, e.message);
-            }
-        };
-
-        // Load user themes first (they take priority)
-        loadFromDirectory(USER_THEMES_DIR, false);
-
-        // Load system themes
-        loadFromDirectory(SYSTEM_THEMES_DIR, true);
+        // Load user themes first (they take priority), then system themes
+        this._loadThemesFromDirectory(USER_THEMES_DIR, false, loadedThemeNames);
+        this._loadThemesFromDirectory(SYSTEM_THEMES_DIR, true, loadedThemeNames);
 
         // Sort themes alphabetically, with current theme first
         this._themes.sort((a, b) => {
@@ -149,6 +112,38 @@ export class OmarchyThemeService {
         });
 
         return this._themes;
+    }
+
+    /**
+     * Load themes from a specific directory
+     * @private
+     * @param {string} themesDir - Directory path
+     * @param {boolean} isSystemTheme - Whether these are system themes
+     * @param {Set<string>} loadedThemeNames - Set of already loaded theme names
+     */
+    _loadThemesFromDirectory(themesDir, isSystemTheme, loadedThemeNames) {
+        const dir = Gio.File.new_for_path(themesDir);
+        if (!dir.query_exists(null)) return;
+
+        try {
+            enumerateDirectory(themesDir, (fileInfo, filePath, fileName) => {
+                const fileType = fileInfo.get_file_type();
+                const isValidType = fileType === Gio.FileType.DIRECTORY || fileType === Gio.FileType.SYMBOLIC_LINK;
+
+                // Skip non-directories, hidden files, and already loaded themes
+                if (!isValidType || fileName.startsWith('.') || loadedThemeNames.has(fileName)) {
+                    return;
+                }
+
+                const theme = this._loadTheme(filePath, fileName, fileInfo, isSystemTheme);
+                if (theme) {
+                    this._themes.push(theme);
+                    loadedThemeNames.add(fileName);
+                }
+            }, 'standard::name,standard::type,standard::is-symlink,standard::symlink-target');
+        } catch (e) {
+            console.error(`Error loading themes from ${themesDir}:`, e.message);
+        }
     }
 
     /**

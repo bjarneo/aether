@@ -13,13 +13,13 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
-import Gtk from 'gi://Gtk?version=4.0';
-import GdkPixbuf from 'gi://GdkPixbuf';
 import Gdk from 'gi://Gdk?version=4.0';
+import GdkPixbuf from 'gi://GdkPixbuf';
+import Gtk from 'gi://Gtk?version=4.0';
 
-import {applyCssToWidget} from '../utils/ui-helpers.js';
-import {thumbnailService} from '../services/thumbnail-service.js';
 import {SPACING} from '../constants/ui-constants.js';
+import {thumbnailService} from '../services/thumbnail-service.js';
+import {applyCssToWidget} from '../utils/ui-helpers.js';
 
 /**
  * OmarchyThemeCard - Card component for displaying an Omarchy theme
@@ -159,15 +159,7 @@ export const OmarchyThemeCard = GObject.registerClass(
                 // Use a selection of colors for gradient effect
                 [0, 5, 10, 15].forEach(i => {
                     const box = new Gtk.Box({hexpand: true});
-                    applyCssToWidget(
-                        box,
-                        `
-                        box {
-                            background-color: ${colors[i] || colors[0]};
-                            border-radius: 0;
-                        }
-                    `
-                    );
+                    this._setBoxColor(box, colors[i] || colors[0]);
                     grid.append(box);
                 });
             }
@@ -192,53 +184,47 @@ export const OmarchyThemeCard = GObject.registerClass(
             const colors = this._theme.colors || [];
             if (colors.length === 0) return container;
 
-            // Row 1: colors 0-7
-            const row1 = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 1,
-            });
-            for (let i = 0; i < 8 && i < colors.length; i++) {
-                const box = new Gtk.Box({
-                    width_request: 22,
-                    height_request: 16,
-                });
-                applyCssToWidget(
-                    box,
-                    `
-                    box {
-                        background-color: ${colors[i]};
-                        border-radius: 0;
-                    }
-                `
-                );
-                row1.append(box);
-            }
+            // Row 1: colors 0-7, Row 2: colors 8-15
+            container.append(this._createColorRow(colors, 0, 8));
+            container.append(this._createColorRow(colors, 8, 16));
 
-            // Row 2: colors 8-15
-            const row2 = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 1,
-            });
-            for (let i = 8; i < 16 && i < colors.length; i++) {
-                const box = new Gtk.Box({
-                    width_request: 22,
-                    height_request: 16,
-                });
-                applyCssToWidget(
-                    box,
-                    `
-                    box {
-                        background-color: ${colors[i]};
-                        border-radius: 0;
-                    }
-                `
-                );
-                row2.append(box);
-            }
-
-            container.append(row1);
-            container.append(row2);
             return container;
+        }
+
+        /**
+         * Create a row of color swatches
+         * @private
+         * @param {string[]} colors - Array of hex colors
+         * @param {number} start - Start index
+         * @param {number} end - End index
+         * @returns {Gtk.Box} Color row widget
+         */
+        _createColorRow(colors, start, end) {
+            const row = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 1,
+            });
+
+            for (let i = start; i < end && i < colors.length; i++) {
+                const box = new Gtk.Box({
+                    width_request: 22,
+                    height_request: 16,
+                });
+                this._setBoxColor(box, colors[i]);
+                row.append(box);
+            }
+
+            return row;
+        }
+
+        /**
+         * Apply background color to a box widget
+         * @private
+         * @param {Gtk.Box} box - Box widget
+         * @param {string} color - Hex color
+         */
+        _setBoxColor(box, color) {
+            applyCssToWidget(box, `box { background-color: ${color}; border-radius: 0; }`);
         }
 
         /**
@@ -347,52 +333,41 @@ export const OmarchyThemeCard = GObject.registerClass(
             });
 
             // Import button
-            const importButton = new Gtk.Button({
-                label: 'Import',
-                hexpand: true,
-            });
-            applyCssToWidget(
-                importButton,
-                `
-                button {
-                    border-radius: 0;
-                    padding: 6px 12px;
-                }
-            `
-            );
-            importButton.connect('clicked', () => {
+            const importButton = this._createButton('Import', false, () => {
                 this.emit('theme-import', this._theme);
             });
             buttonBox.append(importButton);
 
             // Apply button
-            const applyButton = new Gtk.Button({
-                label: 'Apply',
-                hexpand: true,
-                css_classes: ['suggested-action'],
-                sensitive: !this._theme.isCurrentTheme,
-            });
-            applyCssToWidget(
-                applyButton,
-                `
-                button {
-                    border-radius: 0;
-                    padding: 6px 12px;
-                }
-            `
+            const isCurrentTheme = this._theme.isCurrentTheme;
+            const applyButton = this._createButton(
+                isCurrentTheme ? 'Current' : 'Apply',
+                true,
+                () => this.emit('theme-apply', this._theme)
             );
-            applyButton.connect('clicked', () => {
-                this.emit('theme-apply', this._theme);
-            });
-
-            // If current theme, show as less prominent
-            if (this._theme.isCurrentTheme) {
-                applyButton.set_label('Current');
-            }
-
+            applyButton.set_sensitive(!isCurrentTheme);
             buttonBox.append(applyButton);
 
             return buttonBox;
+        }
+
+        /**
+         * Create a styled button
+         * @private
+         * @param {string} label - Button label
+         * @param {boolean} suggested - Whether to use suggested-action style
+         * @param {Function} onClick - Click handler
+         * @returns {Gtk.Button} Button widget
+         */
+        _createButton(label, suggested, onClick) {
+            const button = new Gtk.Button({
+                label,
+                hexpand: true,
+                css_classes: suggested ? ['suggested-action'] : [],
+            });
+            applyCssToWidget(button, 'button { border-radius: 0; padding: 6px 12px; }');
+            button.connect('clicked', onClick);
+            return button;
         }
 
         /**

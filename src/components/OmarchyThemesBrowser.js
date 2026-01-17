@@ -14,13 +14,13 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
-import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
+import Gtk from 'gi://Gtk?version=4.0';
 
-import {OmarchyThemeCard} from './OmarchyThemeCard.js';
+import {SPACING, GRID} from '../constants/ui-constants.js';
 import {omarchyThemeService} from '../services/omarchy-theme-service.js';
 import {applyCssToWidget} from '../utils/ui-helpers.js';
-import {SPACING, GRID} from '../constants/ui-constants.js';
+import {OmarchyThemeCard} from './OmarchyThemeCard.js';
 
 /**
  * OmarchyThemesBrowser - Component for browsing and managing Omarchy themes
@@ -282,14 +282,7 @@ export const OmarchyThemesBrowser = GObject.registerClass(
 
             try {
                 this._themes = await omarchyThemeService.loadAllThemes();
-
-                // Update current theme label
-                const currentTheme = omarchyThemeService.getCurrentThemeName();
-                if (currentTheme) {
-                    this._currentThemeLabel.set_label(`Current: ${currentTheme}`);
-                } else {
-                    this._currentThemeLabel.set_label('No theme active');
-                }
+                this._updateCurrentThemeLabel();
 
                 if (this._themes.length === 0) {
                     this._contentStack.set_visible_child_name('empty');
@@ -305,34 +298,47 @@ export const OmarchyThemesBrowser = GObject.registerClass(
         }
 
         /**
+         * Update the current theme label
+         * @private
+         */
+        _updateCurrentThemeLabel() {
+            const currentTheme = omarchyThemeService.getCurrentThemeName();
+            const label = currentTheme ? `Current: ${currentTheme}` : 'No theme active';
+            this._currentThemeLabel.set_label(label);
+        }
+
+        /**
          * Render theme cards
          * @private
          */
         _renderThemes() {
-            // Clear existing cards
-            let child = this._flowBox.get_first_child();
-            while (child) {
-                const next = child.get_next_sibling();
-                this._flowBox.remove(child);
-                child = next;
-            }
+            this._clearFlowBox();
 
-            // Add theme cards
             for (const theme of this._themes) {
                 const card = new OmarchyThemeCard(theme);
-
-                // Store theme name for filtering
                 card._themeName = theme.name.toLowerCase();
 
                 card.connect('theme-import', (_, themeData) => {
                     this.emit('theme-imported', themeData);
                 });
-
                 card.connect('theme-apply', (_, themeData) => {
                     this._applyTheme(themeData);
                 });
 
                 this._flowBox.append(card);
+            }
+        }
+
+        /**
+         * Clear all children from the flow box
+         * @private
+         */
+        _clearFlowBox() {
+            let child = this._flowBox.get_first_child();
+            while (child) {
+                const next = child.get_next_sibling();
+                this._flowBox.remove(child);
+                child = next;
             }
         }
 
@@ -348,8 +354,7 @@ export const OmarchyThemesBrowser = GObject.registerClass(
             while (child) {
                 const card = child.get_child();
                 const name = card?._themeName || '';
-                const visible = !query || name.includes(query);
-                child.set_visible(visible);
+                child.set_visible(!query || name.includes(query));
                 child = child.get_next_sibling();
             }
         }
