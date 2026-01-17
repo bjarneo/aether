@@ -2,7 +2,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import {ConfigWriter} from '../../utils/ConfigWriter.js';
 import {ColorMapper} from '../utils/color-mapper.js';
-import {extractColorsFromWallpaperIM} from '../../utils/imagemagick-color-extraction.js';
+import {extractColorsFromWallpaperIM} from '../../utils/color-extraction.js';
 
 /**
  * Command handler for generating theme from wallpaper

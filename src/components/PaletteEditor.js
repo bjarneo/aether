@@ -4,7 +4,7 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw?version=1';
 
-import {extractColorsFromWallpaperIM} from '../utils/imagemagick-color-extraction.js';
+import {extractColorsFromWallpaperIM} from '../utils/color-extraction.js';
 import {adjustColor} from '../utils/color-utils.js';
 import {ensureDirectoryExists} from '../utils/file-utils.js';
 import {registerCustomIcons} from '../utils/ui-helpers.js';
