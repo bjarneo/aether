@@ -101,6 +101,19 @@ Aether maps Base16 colors to ANSI terminal colors following the [base16-shell](h
 | 14 (Bright Cyan) | base0C |
 | 15 (Bright White) | base07 |
 
+### Extended Colors
+
+When importing a Base16 scheme, Aether automatically derives extended colors from the palette:
+
+| Extended Color | Derived From |
+|----------------|--------------|
+| `accent` | color4 (Blue) |
+| `cursor` | color15 (Bright White) |
+| `selection_foreground` | color0 (Black/Background) |
+| `selection_background` | color15 (Bright White) |
+
+These extended colors can be manually adjusted after import in the Extended Colors section.
+
 ## Finding Base16 Schemes
 
 Popular repositories with Base16 schemes:

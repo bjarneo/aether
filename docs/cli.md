@@ -17,6 +17,9 @@ aether --generate ~/Wallpapers/sunset.jpg
 # Import Base16 color scheme
 aether --import-base16 ~/themes/dracula.yaml
 
+# Import colors.toml (omarchy/ethereal format)
+aether --import-colors-toml ~/themes/colors.toml
+
 # Open GUI with specific wallpaper
 aether --wallpaper ~/Wallpapers/sunset.jpg
 ```
@@ -143,6 +146,46 @@ aether --import-base16 ~/themes/solarized.yaml --light-mode
 Base16 schemes are available from [tinted-theming/schemes](https://github.com/tinted-theming/schemes) (250+ schemes).
 
 See [Base16 documentation](base16.md) for format details and color mapping.
+
+### Import Colors.toml
+
+Import a flat colors.toml file (compatible with omarchy/ethereal themes):
+
+```bash
+aether --import-colors-toml /path/to/colors.toml
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--wallpaper FILE` | Include wallpaper with the theme |
+| `--light-mode` | Generate light theme variant |
+
+**Examples:**
+
+```bash
+# Import colors.toml
+aether --import-colors-toml ~/.local/share/omarchy/themes/ethereal/colors.toml
+
+# Import with wallpaper
+aether --import-colors-toml ~/themes/colors.toml --wallpaper ~/wallpaper.jpg
+```
+
+The colors.toml format uses a flat structure with color0-color15, plus extended colors:
+
+```toml
+accent = "#7d82d9"
+cursor = "#ffcead"
+foreground = "#ffcead"
+background = "#060B1E"
+selection_foreground = "#060B1E"
+selection_background = "#ffcead"
+color0 = "#060B1E"
+color1 = "#ff6188"
+# ... color2-color14
+color15 = "#ffcead"
+```
 
 ### Open with Wallpaper
 

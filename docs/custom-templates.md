@@ -18,6 +18,10 @@ Place your templates here. Aether prioritizes custom templates over defaults.
 | `{foreground}` | Hex color | `#cdd6f4` |
 | `{color0}` - `{color15}` | ANSI colors | `#45475a` |
 | `{red}`, `{green}`, etc. | Named colors | `#f38ba8` |
+| `{accent}` | Accent/highlight color | `#89b4fa` |
+| `{cursor}` | Cursor color | `#cdd6f4` |
+| `{selection_foreground}` | Selected text color | `#1e1e2e` |
+| `{selection_background}` | Selection highlight | `#cdd6f4` |
 
 ### Format Modifiers
 
