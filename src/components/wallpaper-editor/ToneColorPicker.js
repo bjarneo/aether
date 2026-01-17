@@ -239,7 +239,7 @@ export const ToneColorPicker = GObject.registerClass(
                 }`;
                 applyCssToWidget(this._customColorButton, css);
                 // Remove icon when showing color
-                this._customColorButton.set_icon_name(null);
+                this._customColorButton.set_icon_name('');
             } else {
                 // Reset to default icon appearance
                 applyCssToWidget(this._customColorButton, '');
