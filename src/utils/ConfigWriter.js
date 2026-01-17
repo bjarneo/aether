@@ -358,6 +358,14 @@ export class ConfigWriter {
             variables[`color${i}`] = variables[name];
         });
 
+        // Ensure extended colors have defaults if not provided
+        variables.accent = variables.accent || variables.blue;
+        variables.cursor = variables.cursor || variables.foreground;
+        variables.selection_foreground =
+            variables.selection_foreground || variables.background;
+        variables.selection_background =
+            variables.selection_background || variables.foreground;
+
         // Add theme type for VSCode and other templates
         variables.theme_type = lightMode ? 'light' : 'dark';
 

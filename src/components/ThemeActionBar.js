@@ -2,6 +2,7 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
 
 import {applyCssToWidget} from '../utils/ui-helpers.js';
+import {SPACING} from '../constants/ui-constants.js';
 
 /**
  * ThemeActionBar - Clean action bar with grouped theme actions
@@ -13,6 +14,8 @@ export const ThemeActionBar = GObject.registerClass(
             'toggle-settings': {param_types: [GObject.TYPE_BOOLEAN]},
             'export-theme': {},
             'save-blueprint': {},
+            'import-base16': {},
+            'import-colors-toml': {},
             reset: {},
             clear: {},
             'apply-theme': {},
@@ -140,6 +143,10 @@ export const ThemeActionBar = GObject.registerClass(
             saveBtn.connect('clicked', () => this.emit('save-blueprint'));
             leftGroup.append(saveBtn);
 
+            // Import menu button
+            const importMenuBtn = this._createImportMenuButton();
+            leftGroup.append(importMenuBtn);
+
             this.append(leftGroup);
 
             // Right side: primary actions
@@ -252,6 +259,96 @@ export const ThemeActionBar = GObject.registerClass(
 
         setSettingsVisible(visible) {
             this._settingsToggle.set_active(visible);
+        }
+
+        /**
+         * Creates the import menu button with dropdown
+         * @returns {Gtk.MenuButton} The menu button widget
+         * @private
+         */
+        _createImportMenuButton() {
+            // Create popover with import options
+            const popover = new Gtk.Popover();
+
+            const popoverBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: SPACING.SM,
+                margin_top: SPACING.SM,
+                margin_bottom: SPACING.SM,
+                margin_start: SPACING.SM,
+                margin_end: SPACING.SM,
+            });
+
+            // Base16 import option
+            const base16ButtonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: SPACING.SM,
+            });
+            base16ButtonBox.append(
+                new Gtk.Image({icon_name: 'document-open-symbolic'})
+            );
+            base16ButtonBox.append(new Gtk.Label({label: 'Base16 (.yaml)'}));
+
+            const base16Button = new Gtk.Button({
+                child: base16ButtonBox,
+                css_classes: ['flat'],
+            });
+            base16Button.connect('clicked', () => {
+                popover.popdown();
+                this.emit('import-base16');
+            });
+            popoverBox.append(base16Button);
+
+            // Colors.toml import option
+            const tomlButtonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: SPACING.SM,
+            });
+            tomlButtonBox.append(
+                new Gtk.Image({icon_name: 'document-open-symbolic'})
+            );
+            tomlButtonBox.append(new Gtk.Label({label: 'Colors (.toml)'}));
+
+            const tomlButton = new Gtk.Button({
+                child: tomlButtonBox,
+                css_classes: ['flat'],
+            });
+            tomlButton.connect('clicked', () => {
+                popover.popdown();
+                this.emit('import-colors-toml');
+            });
+            popoverBox.append(tomlButton);
+
+            popover.set_child(popoverBox);
+
+            // Create menu button with label
+            const buttonContent = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 6,
+            });
+            buttonContent.append(
+                new Gtk.Image({icon_name: 'document-open-symbolic'})
+            );
+            buttonContent.append(new Gtk.Label({label: 'Import'}));
+
+            const menuButton = new Gtk.MenuButton({
+                child: buttonContent,
+                popover: popover,
+                tooltip_text: 'Import color scheme',
+                css_classes: ['flat'],
+            });
+            applyCssToWidget(
+                menuButton,
+                `
+                menubutton button {
+                    border-radius: 0;
+                    padding: 6px 12px;
+                    font-size: 13px;
+                }
+            `
+            );
+
+            return menuButton;
         }
 
         get widget() {

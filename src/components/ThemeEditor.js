@@ -14,8 +14,12 @@ import {ColorPaletteDisplay} from './palette-editor/ColorPaletteDisplay.js';
 import {AdditionalImagesSection} from './palette-editor/AdditionalImagesSection.js';
 import {ColorPickerDialog} from './palette/color-picker-dialog.js';
 import {AppColorOverrides} from './palette/AppColorOverrides.js';
-import {SPACING} from '../constants/ui-constants.js';
+import {ExtendedColorControls} from './palette/ExtendedColorControls.js';
 import {themeState} from '../state/ThemeState.js';
+import {readFileAsText} from '../utils/file-utils.js';
+import {parseBase16Yaml} from '../utils/base16-utils.js';
+import {parseColorsToml} from '../utils/toml-utils.js';
+import {showToast} from '../utils/ui-helpers.js';
 
 /**
  * ThemeEditor - Redesigned main editor with sharp, modern aesthetics
@@ -145,7 +149,7 @@ export const ThemeEditor = GObject.registerClass(
             });
             this._editorContent.append(this._wallpaperHero);
 
-            // Color palette section
+            // Color palette (has its own header)
             this._colorPalette = new ColorPaletteDisplay();
             this._colorPalette.connect('color-clicked', (_, index, color) => {
                 this._openColorPicker(index, color);
@@ -154,6 +158,10 @@ export const ThemeEditor = GObject.registerClass(
                 // Lock state is managed internally
             });
             this._editorContent.append(this._colorPalette);
+
+            // Extended color controls (accent, cursor, selection)
+            this._extendedColors = new ExtendedColorControls();
+            this._editorContent.append(this._extendedColors);
 
             // Additional images section
             this._additionalImages = new AdditionalImagesSection();
@@ -491,6 +499,134 @@ export const ThemeEditor = GObject.registerClass(
         // Compatibility methods
         switchToEditorTab() {}
         switchToCustomTab() {}
+
+        /**
+         * Opens file dialog to import Base16 color scheme
+         * @private
+         */
+        _importBase16() {
+            const dialog = new Gtk.FileDialog({
+                title: 'Import Base16 Color Scheme',
+            });
+
+            // Create filter for YAML files
+            const filter = new Gtk.FileFilter();
+            filter.set_name('Base16 YAML Files');
+            filter.add_pattern('*.yaml');
+            filter.add_pattern('*.yml');
+
+            const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
+            filterList.append(filter);
+            dialog.set_filters(filterList);
+
+            dialog.open(this.get_root(), null, (source, result) => {
+                try {
+                    const file = dialog.open_finish(result);
+                    if (file) {
+                        const filePath = file.get_path();
+                        this._processBase16File(filePath);
+                    }
+                } catch (e) {
+                    // User cancelled or error
+                    if (!e.message.includes('Dismissed')) {
+                        console.error('File picker error:', e.message);
+                    }
+                }
+            });
+        }
+
+        /**
+         * Processes and applies a Base16 YAML file
+         * @param {string} filePath - Path to the Base16 YAML file
+         * @private
+         */
+        _processBase16File(filePath) {
+            try {
+                const content = readFileAsText(filePath);
+                const result = parseBase16Yaml(content);
+
+                if (result.colors && result.colors.length === 16) {
+                    // Apply the imported colors
+                    this._originalPalette = [...result.colors];
+                    this.setPalette(result.colors);
+
+                    // Emit signal for parent components
+                    this.emit('palette-generated', result.colors);
+
+                    // Show success toast
+                    showToast(this, `Imported: ${result.scheme}`);
+                }
+            } catch (error) {
+                console.error('Failed to import Base16 scheme:', error.message);
+                showToast(this, `Import failed: ${error.message}`, 4);
+            }
+        }
+
+        /**
+         * Opens file dialog to import colors.toml color scheme
+         * @private
+         */
+        _importColorsToml() {
+            const dialog = new Gtk.FileDialog({
+                title: 'Import Colors TOML',
+            });
+
+            const filter = new Gtk.FileFilter();
+            filter.set_name('TOML Files');
+            filter.add_pattern('*.toml');
+
+            const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
+            filterList.append(filter);
+            dialog.set_filters(filterList);
+
+            dialog.open(this.get_root(), null, (source, result) => {
+                try {
+                    const file = dialog.open_finish(result);
+                    if (file) {
+                        const filePath = file.get_path();
+                        this._processColorsTomlFile(filePath);
+                    }
+                } catch (e) {
+                    if (!e.message.includes('Dismissed')) {
+                        console.error('File picker error:', e.message);
+                    }
+                }
+            });
+        }
+
+        /**
+         * Processes and applies a colors.toml file
+         * @param {string} filePath - Path to the colors.toml file
+         * @private
+         */
+        _processColorsTomlFile(filePath) {
+            try {
+                const content = readFileAsText(filePath);
+                const result = parseColorsToml(content);
+
+                if (result.colors && result.colors.length === 16) {
+                    // Apply the imported colors
+                    this._originalPalette = [...result.colors];
+                    this.setPalette(result.colors);
+
+                    // Apply extended colors if present
+                    if (
+                        result.extendedColors &&
+                        Object.keys(result.extendedColors).length > 0
+                    ) {
+                        themeState.setExtendedColors(result.extendedColors);
+                    }
+
+                    // Emit signal for parent components
+                    this.emit('palette-generated', result.colors);
+
+                    showToast(this, 'Imported colors.toml successfully');
+                }
+            } catch (error) {
+                console.error('Failed to import colors.toml:', error.message);
+                showToast(this, `Import failed: ${error.message}`, 4);
+            }
+        }
 
         reset() {
             this._currentWallpaper = null;

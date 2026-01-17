@@ -192,6 +192,11 @@ export const ColorSynthesizer = GObject.registerClass(
             const assignments = {
                 background: this._palette[0],
                 foreground: this._palette[15],
+                // Extended colors with auto-derivation from palette
+                accent: this._palette[4], // blue
+                cursor: this._palette[15], // foreground
+                selection_foreground: this._palette[0], // background
+                selection_background: this._palette[15], // foreground
             };
 
             semanticNames.forEach((name, i) => {

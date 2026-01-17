@@ -7,10 +7,12 @@ import {ColorSwatchGrid} from '../palette/color-swatch-grid.js';
 import {ColorPickerDialog} from '../palette/color-picker-dialog.js';
 import {WallpaperColorPicker} from '../palette/wallpaper-color-picker.js';
 import {AppColorOverrides} from '../palette/AppColorOverrides.js';
+import {ExtendedColorControls} from '../palette/ExtendedColorControls.js';
 import {SPACING} from '../../constants/ui-constants.js';
 import {themeState} from '../../state/ThemeState.js';
 import {readFileAsText} from '../../utils/file-utils.js';
 import {parseBase16Yaml} from '../../utils/base16-utils.js';
+import {parseColorsToml} from '../../utils/toml-utils.js';
 import {showToast} from '../../utils/ui-helpers.js';
 
 /**
@@ -119,6 +121,10 @@ export const ColorPaletteSection = GObject.registerClass(
                 this._openColorPicker(index, color, swatch);
             });
             this.append(this._swatchGrid.widget);
+
+            // Extended color controls (accent, cursor, selection)
+            this._extendedColors = new ExtendedColorControls();
+            this.append(this._extendedColors);
 
             // App color overrides (always visible)
             this._advancedGroup = new Adw.PreferencesGroup({
@@ -314,11 +320,40 @@ export const ColorPaletteSection = GObject.registerClass(
             });
             popoverBox.append(base16Button);
 
+            // Colors.toml import option
+            const tomlButtonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: SPACING.SM,
+            });
+            tomlButtonBox.append(
+                new Gtk.Image({icon_name: 'document-open-symbolic'})
+            );
+            tomlButtonBox.append(new Gtk.Label({label: 'Colors (.toml)'}));
+
+            const tomlButton = new Gtk.Button({
+                child: tomlButtonBox,
+                css_classes: ['flat'],
+            });
+            tomlButton.connect('clicked', () => {
+                popover.popdown();
+                this._importColorsToml();
+            });
+            popoverBox.append(tomlButton);
+
             popover.set_child(popoverBox);
 
-            // Create menu button
+            // Create menu button with label
+            const buttonContent = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 4,
+            });
+            buttonContent.append(
+                new Gtk.Image({icon_name: 'document-open-symbolic'})
+            );
+            buttonContent.append(new Gtk.Label({label: 'Import'}));
+
             const menuButton = new Gtk.MenuButton({
-                icon_name: 'document-open-symbolic',
+                child: buttonContent,
                 popover: popover,
                 tooltip_text: 'Import color scheme',
             });
@@ -391,6 +426,78 @@ export const ColorPaletteSection = GObject.registerClass(
                 }
             } catch (error) {
                 console.error('Failed to import Base16 scheme:', error.message);
+                showToast(this, `Import failed: ${error.message}`, 4);
+            }
+        }
+
+        /**
+         * Opens file dialog to import colors.toml color scheme
+         * @private
+         */
+        _importColorsToml() {
+            const dialog = new Gtk.FileDialog({
+                title: 'Import Colors TOML',
+            });
+
+            const filter = new Gtk.FileFilter();
+            filter.set_name('TOML Files');
+            filter.add_pattern('*.toml');
+
+            const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
+            filterList.append(filter);
+            dialog.set_filters(filterList);
+
+            dialog.open(this.get_root(), null, (source, result) => {
+                try {
+                    const file = dialog.open_finish(result);
+                    if (file) {
+                        const filePath = file.get_path();
+                        this._processColorsTomlFile(filePath);
+                    }
+                } catch (e) {
+                    if (!e.message.includes('Dismissed')) {
+                        console.error('File picker error:', e.message);
+                    }
+                }
+            });
+        }
+
+        /**
+         * Processes and applies a colors.toml file
+         * @param {string} filePath - Path to the colors.toml file
+         * @private
+         */
+        _processColorsTomlFile(filePath) {
+            try {
+                const content = readFileAsText(filePath);
+                const result = parseColorsToml(content);
+
+                if (result.colors && result.colors.length === 16) {
+                    // Apply the imported colors
+                    this._palette = [...result.colors];
+                    this._swatchGrid.setPalette(result.colors);
+
+                    // Update centralized state
+                    themeState.setPalette(result.colors);
+
+                    // Apply extended colors if present
+                    if (
+                        result.extendedColors &&
+                        Object.keys(result.extendedColors).length > 0
+                    ) {
+                        themeState.setExtendedColors(result.extendedColors);
+                    }
+
+                    // Emit signal for parent components
+                    this.emit('palette-imported', {
+                        colors: result.colors,
+                        extendedColors: result.extendedColors,
+                    });
+
+                    showToast(this, 'Imported colors.toml successfully');
+                }
+            } catch (error) {
+                console.error('Failed to import colors.toml:', error.message);
                 showToast(this, `Import failed: ${error.message}`, 4);
             }
         }

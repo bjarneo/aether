@@ -4,14 +4,15 @@
  */
 export class ColorMapper {
     /**
-     * Maps palette colors to color roles
+     * Maps palette colors to color roles including extended colors
      * Uses the same mapping as ColorSynthesizer._createColorAssignments()
      *
      * @param {string[]} palette - Array of exactly 16 hex color values
+     * @param {Object} [extendedColors={}] - Optional extended color overrides
      * @returns {Object} Object mapping role names to color values
      * @throws {Error} If palette is invalid (not array or < 16 colors)
      */
-    static mapColorsToRoles(palette) {
+    static mapColorsToRoles(palette, extendedColors = {}) {
         // Validate input
         if (!Array.isArray(palette)) {
             throw new Error('Palette must be an array of colors');
@@ -42,6 +43,13 @@ export class ColorMapper {
             bright_magenta: palette[13],
             bright_cyan: palette[14],
             bright_white: palette[15],
+            // Extended colors with defaults (or use overrides if present)
+            accent: extendedColors.accent || palette[4], // blue
+            cursor: extendedColors.cursor || palette[15], // foreground
+            selection_foreground:
+                extendedColors.selection_foreground || palette[0], // background
+            selection_background:
+                extendedColors.selection_background || palette[15], // foreground
         };
     }
 }

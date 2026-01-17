@@ -452,6 +452,14 @@ export const AetherWindow = GObject.registerClass(
                 this._applyCurrentTheme();
             });
 
+            this.actionBar.connect('import-base16', () => {
+                this.paletteGenerator._importBase16();
+            });
+
+            this.actionBar.connect('import-colors-toml', () => {
+                this.paletteGenerator._importColorsToml();
+            });
+
             return this.actionBar;
         }
 

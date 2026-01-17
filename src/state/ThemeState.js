@@ -127,6 +127,9 @@ export const ThemeState = GObject.registerClass(
 
             /** @private @type {string[]} */
             this._additionalImages = [];
+
+            /** @private @type {Object} Extended color overrides (accent, cursor, selection_*) */
+            this._extendedColors = {};
         }
 
         // ==================== Palette ====================
@@ -325,7 +328,7 @@ export const ThemeState = GObject.registerClass(
          * @param {string[]} palette - 16-color palette array
          * @returns {ColorRoles} Color role mappings
          */
-        _buildColorRoles(palette) {
+        _buildColorRoles(palette, extendedOverrides = {}) {
             const semanticNames = [
                 'black', 'red', 'green', 'yellow',
                 'blue', 'magenta', 'cyan', 'white',
@@ -344,15 +347,27 @@ export const ThemeState = GObject.registerClass(
                 roles[`color${i}`] = palette[i];
             });
 
+            // Add extended colors with auto-derivation (or use overrides if present)
+            roles.accent = extendedOverrides.accent || palette[4]; // blue
+            roles.cursor = extendedOverrides.cursor || palette[15]; // foreground
+            roles.selection_foreground =
+                extendedOverrides.selection_foreground || palette[0]; // background
+            roles.selection_background =
+                extendedOverrides.selection_background || palette[15]; // foreground
+
             return roles;
         }
 
         /**
          * Update color roles from current palette
+         * Preserves any extended color overrides that were set manually
          * @private
          */
         _updateColorRolesFromPalette() {
-            this._colorRoles = this._buildColorRoles(this._palette);
+            this._colorRoles = this._buildColorRoles(
+                this._palette,
+                this._extendedColors
+            );
             this.emit('color-roles-changed', this._colorRoles);
         }
 
@@ -363,6 +378,63 @@ export const ThemeState = GObject.registerClass(
          */
         _createDefaultColorRoles() {
             return this._buildColorRoles(DEFAULT_PALETTE);
+        }
+
+        // ==================== Extended Colors ====================
+
+        /**
+         * Valid extended color names
+         * @private
+         * @type {string[]}
+         */
+        static EXTENDED_COLOR_NAMES = [
+            'accent',
+            'cursor',
+            'selection_foreground',
+            'selection_background',
+        ];
+
+        /**
+         * Set an extended color (accent, cursor, selection_*)
+         * @param {string} name - Color name (accent, cursor, selection_foreground, selection_background)
+         * @param {string} color - Hex color string
+         */
+        setExtendedColor(name, color) {
+            if (!ThemeState.EXTENDED_COLOR_NAMES.includes(name)) return;
+
+            this._extendedColors[name] = color;
+            this._colorRoles[name] = color;
+            this.emit('color-roles-changed', this._colorRoles);
+        }
+
+        /**
+         * Get extended color overrides
+         * @returns {Object} Extended color overrides
+         */
+        getExtendedColors() {
+            return {...this._extendedColors};
+        }
+
+        /**
+         * Set all extended colors at once
+         * @param {Object} colors - Extended color mappings
+         */
+        setExtendedColors(colors) {
+            ThemeState.EXTENDED_COLOR_NAMES.forEach(name => {
+                if (colors[name]) {
+                    this._extendedColors[name] = colors[name];
+                    this._colorRoles[name] = colors[name];
+                }
+            });
+            this.emit('color-roles-changed', this._colorRoles);
+        }
+
+        /**
+         * Reset extended colors to auto-derived values
+         */
+        resetExtendedColors() {
+            this._extendedColors = {};
+            this._updateColorRolesFromPalette();
         }
 
         // ==================== App Overrides ====================
@@ -486,6 +558,7 @@ export const ThemeState = GObject.registerClass(
                     wallpaperSource: this._wallpaperMetadata?.source || 'local',
                     lightMode: this._lightMode,
                     lockedColors: [...this._lockedColors],
+                    extendedColors: {...this._extendedColors},
                 },
                 adjustments: {...this._adjustments},
                 appOverrides: {...this._appOverrides},
@@ -503,6 +576,13 @@ export const ThemeState = GObject.registerClass(
         fromBlueprint(blueprint) {
             if (blueprint.palette) {
                 const {palette} = blueprint;
+
+                // Restore extended colors first (before setPalette triggers rebuild)
+                if (palette.extendedColors) {
+                    this._extendedColors = {...palette.extendedColors};
+                } else {
+                    this._extendedColors = {};
+                }
 
                 if (palette.colors) {
                     this.setPalette(palette.colors, {silent: true});
@@ -559,6 +639,7 @@ export const ThemeState = GObject.registerClass(
             this._wallpaperMetadata = null;
             this._lightMode = false;
             this._adjustments = {...DEFAULT_ADJUSTMENTS};
+            this._extendedColors = {};
             this._colorRoles = this._createDefaultColorRoles();
             this._appOverrides = {};
             this._neovimTheme = null;

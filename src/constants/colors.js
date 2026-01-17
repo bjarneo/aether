@@ -54,6 +54,27 @@ export const ANSI_COLOR_ROLES = [
         label: 'Bright White',
         description: 'Bright white (ANSI 15)',
     },
+    // Extended color roles (editable, auto-derived from palette by default)
+    {
+        id: 'accent',
+        label: 'Accent',
+        description: 'Accent color for highlights and interactive elements',
+    },
+    {
+        id: 'cursor',
+        label: 'Cursor',
+        description: 'Cursor color for text input',
+    },
+    {
+        id: 'selection_foreground',
+        label: 'Selection Foreground',
+        description: 'Text color when selected',
+    },
+    {
+        id: 'selection_background',
+        label: 'Selection Background',
+        description: 'Background color when selected',
+    },
 ];
 
 // Map semantic names to color0-15 for backwards compatibility
@@ -97,6 +118,11 @@ export const DEFAULT_COLORS = {
     bright_magenta: '#bb9af7',
     bright_cyan: '#7dcfff',
     bright_white: '#c0caf5',
+    // Extended colors (derived from palette by default)
+    accent: '#7aa2f7', // blue
+    cursor: '#c0caf5', // foreground
+    selection_foreground: '#1a1b26', // background (inverted)
+    selection_background: '#c0caf5', // foreground (inverted)
 };
 
 // ANSI color names for tooltips with descriptions
