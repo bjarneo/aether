@@ -93,10 +93,15 @@ export const OmarchyThemeCard = GObject.registerClass(
             const theme = this._theme;
 
             // If we have a preview image, try to load it
-            if (theme.previewImage && GLib.file_test(theme.previewImage, GLib.FileTest.EXISTS)) {
+            if (
+                theme.previewImage &&
+                GLib.file_test(theme.previewImage, GLib.FileTest.EXISTS)
+            ) {
                 try {
                     const file = Gio.File.new_for_path(theme.previewImage);
-                    const thumbPath = thumbnailService.getThumbnailPath(theme.previewImage);
+                    const thumbPath = thumbnailService.getThumbnailPath(
+                        theme.previewImage
+                    );
                     const thumbFile = Gio.File.new_for_path(thumbPath);
 
                     let pixbuf;
@@ -133,7 +138,10 @@ export const OmarchyThemeCard = GObject.registerClass(
                         height_request: 120,
                     });
                 } catch (e) {
-                    console.warn(`Failed to load preview for ${theme.name}:`, e.message);
+                    console.warn(
+                        `Failed to load preview for ${theme.name}:`,
+                        e.message
+                    );
                 }
             }
 
@@ -224,7 +232,10 @@ export const OmarchyThemeCard = GObject.registerClass(
          * @param {string} color - Hex color
          */
         _setBoxColor(box, color) {
-            applyCssToWidget(box, `box { background-color: ${color}; border-radius: 0; }`);
+            applyCssToWidget(
+                box,
+                `box { background-color: ${color}; border-radius: 0; }`
+            );
         }
 
         /**
@@ -365,7 +376,10 @@ export const OmarchyThemeCard = GObject.registerClass(
                 hexpand: true,
                 css_classes: suggested ? ['suggested-action'] : [],
             });
-            applyCssToWidget(button, 'button { border-radius: 0; padding: 6px 12px; }');
+            applyCssToWidget(
+                button,
+                'button { border-radius: 0; padding: 6px 12px; }'
+            );
             button.connect('clicked', onClick);
             return button;
         }

@@ -442,7 +442,9 @@ export const ThemeEditor = GObject.registerClass(
             }
 
             if (palette.appOverrides) {
-                this._appOverridesWidget.loadFromBlueprint(palette.appOverrides);
+                this._appOverridesWidget.loadFromBlueprint(
+                    palette.appOverrides
+                );
             }
 
             this._colorPalette.setLockedColors(new Array(16).fill(false));

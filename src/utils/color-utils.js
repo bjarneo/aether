@@ -552,41 +552,47 @@ export function generatePaletteFromColor(baseColor) {
 
     // Hue ranges mapping to ANSI slot (1-6): Red, Green, Yellow, Blue, Magenta, Cyan
     const hueRanges = [
-        {min: 345, max: 360, slot: 1}, {min: 0, max: 45, slot: 1},   // Red
-        {min: 45, max: 75, slot: 3},                                  // Yellow
-        {min: 75, max: 165, slot: 2},                                 // Green
-        {min: 165, max: 195, slot: 6},                                // Cyan
-        {min: 195, max: 285, slot: 4},                                // Blue
-        {min: 285, max: 345, slot: 5},                                // Magenta
+        {min: 345, max: 360, slot: 1},
+        {min: 0, max: 45, slot: 1}, // Red
+        {min: 45, max: 75, slot: 3}, // Yellow
+        {min: 75, max: 165, slot: 2}, // Green
+        {min: 165, max: 195, slot: 6}, // Cyan
+        {min: 195, max: 285, slot: 4}, // Blue
+        {min: 285, max: 345, slot: 5}, // Magenta
     ];
 
-    const baseSlot = hueRanges.find(r => 
-        baseHue >= r.min && baseHue < r.max
-    )?.slot ?? 1;
+    const baseSlot =
+        hueRanges.find(r => baseHue >= r.min && baseHue < r.max)?.slot ?? 1;
 
     // Standard ANSI color hues: Red, Green, Yellow, Blue, Magenta, Cyan
     const ansiHues = [0, 120, 60, 240, 300, 180];
 
     // Generate standard colors (1-6) with base saturation and lightness
-    const colors1to6 = ansiHues.map((hue, i) => 
-        i + 1 === baseSlot ? baseColor : hslToHex(hue, baseSaturation, baseLightness)
+    const colors1to6 = ansiHues.map((hue, i) =>
+        i + 1 === baseSlot
+            ? baseColor
+            : hslToHex(hue, baseSaturation, baseLightness)
     );
 
     // Generate bright versions (9-14) with increased brightness and saturation
     const brightLightness = Math.min(100, baseLightness + 10);
     const brightSaturation = Math.min(100, baseSaturation * 1.1);
-    const colors9to14 = ansiHues.map((hue, i) => 
+    const colors9to14 = ansiHues.map((hue, i) =>
         i + 1 === baseSlot
             ? hslToHex(baseHue, brightSaturation, brightLightness)
             : hslToHex(hue, brightSaturation, brightLightness)
     );
 
     return [
-        hslToHex(baseHue, baseSaturation * 0.4, Math.max(3, baseLightness * 0.15)), // 0: background
-        ...colors1to6,                                                               // 1-6: standard colors
-        hslToHex(baseHue, baseSaturation * 0.15, 92),                                // 7: white
-        hslToHex(baseHue, baseSaturation * 0.35, Math.min(40, baseLightness)),       // 8: bright black
-        ...colors9to14,                                                              // 9-14: bright colors
-        hslToHex(baseHue, baseSaturation * 0.1, 98),                                 // 15: bright white
+        hslToHex(
+            baseHue,
+            baseSaturation * 0.4,
+            Math.max(3, baseLightness * 0.15)
+        ), // 0: background
+        ...colors1to6, // 1-6: standard colors
+        hslToHex(baseHue, baseSaturation * 0.15, 92), // 7: white
+        hslToHex(baseHue, baseSaturation * 0.35, Math.min(40, baseLightness)), // 8: bright black
+        ...colors9to14, // 9-14: bright colors
+        hslToHex(baseHue, baseSaturation * 0.1, 98), // 15: bright white
     ];
 }

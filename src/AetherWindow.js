@@ -610,7 +610,9 @@ export const AetherWindow = GObject.registerClass(
                 }
 
                 // Load extended colors if available
-                const hasExtendedColors = theme.extendedColors && Object.keys(theme.extendedColors).length > 0;
+                const hasExtendedColors =
+                    theme.extendedColors &&
+                    Object.keys(theme.extendedColors).length > 0;
                 if (hasExtendedColors) {
                     themeState.setExtendedColors(theme.extendedColors);
                 }

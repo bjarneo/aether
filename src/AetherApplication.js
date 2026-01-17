@@ -277,7 +277,9 @@ export const AetherApplication = GObject.registerClass(
 
                 const lightMode = options.contains('light-mode');
                 // GLib normalizes hyphens to underscores in option names
-                const noApply = options.contains('no-apply') || options.contains('no_apply');
+                const noApply =
+                    options.contains('no-apply') ||
+                    options.contains('no_apply');
 
                 let outputPath = null;
                 if (options.contains('output')) {
@@ -375,7 +377,10 @@ export const AetherApplication = GObject.registerClass(
                 const lightMode = options.contains('light-mode');
 
                 this.hold();
-                ImportBase16Command.execute(filePath, {wallpaperPath, lightMode})
+                ImportBase16Command.execute(filePath, {
+                    wallpaperPath,
+                    lightMode,
+                })
                     .then(success => {
                         this.release();
                         if (!success) {
@@ -402,7 +407,10 @@ export const AetherApplication = GObject.registerClass(
         _handleImportColorsToml(options) {
             if (options.contains('import-colors-toml')) {
                 const filePath = options
-                    .lookup_value('import-colors-toml', GLib.VariantType.new('s'))
+                    .lookup_value(
+                        'import-colors-toml',
+                        GLib.VariantType.new('s')
+                    )
                     .get_string()[0];
 
                 // Check for optional wallpaper
@@ -416,7 +424,10 @@ export const AetherApplication = GObject.registerClass(
                 const lightMode = options.contains('light-mode');
 
                 this.hold();
-                ImportColorsTomlCommand.execute(filePath, {wallpaperPath, lightMode})
+                ImportColorsTomlCommand.execute(filePath, {
+                    wallpaperPath,
+                    lightMode,
+                })
                     .then(success => {
                         this.release();
                         if (!success) {

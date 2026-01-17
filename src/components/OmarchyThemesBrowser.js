@@ -303,7 +303,9 @@ export const OmarchyThemesBrowser = GObject.registerClass(
          */
         _updateCurrentThemeLabel() {
             const currentTheme = omarchyThemeService.getCurrentThemeName();
-            const label = currentTheme ? `Current: ${currentTheme}` : 'No theme active';
+            const label = currentTheme
+                ? `Current: ${currentTheme}`
+                : 'No theme active';
             this._currentThemeLabel.set_label(label);
         }
 
@@ -366,7 +368,9 @@ export const OmarchyThemesBrowser = GObject.registerClass(
          */
         async _applyTheme(theme) {
             try {
-                const success = await omarchyThemeService.applyTheme(theme.name);
+                const success = await omarchyThemeService.applyTheme(
+                    theme.name
+                );
                 if (success) {
                     this.emit('theme-applied', theme);
                     // Reload to update current theme indicator

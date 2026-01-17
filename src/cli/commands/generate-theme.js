@@ -138,8 +138,12 @@ export class GenerateThemeCommand {
                     print(`✓ Theme files generated successfully`);
                     print(`  Output directory: ${result.themePath}`);
                     print('');
-                    print('Generated files can be found in the output directory.');
-                    print('No symlinks were created and no theme was activated.');
+                    print(
+                        'Generated files can be found in the output directory.'
+                    );
+                    print(
+                        'No symlinks were created and no theme was activated.'
+                    );
                 } else {
                     print('✗ Failed to generate theme files');
                     return false;

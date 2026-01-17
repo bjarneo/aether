@@ -111,14 +111,17 @@ export function createWallpaperCard(
             margin_start: 6,
             active: isSelected,
         });
-        applyCssToWidget(checkbox, `
+        applyCssToWidget(
+            checkbox,
+            `
             checkbutton {
                 background-color: alpha(@window_bg_color, 0.9);
                 border-radius: 0;
                 min-width: 24px;
                 min-height: 24px;
             }
-        `);
+        `
+        );
 
         if (onCheckboxToggle) {
             checkbox.connect('toggled', () => {
@@ -174,8 +177,12 @@ export function createWallpaperCard(
     });
 
     function updateFavButtonStyle(active) {
-        const color = active ? '@accent_bg_color' : 'alpha(@window_fg_color, 0.7)';
-        applyCssToWidget(favButton, `
+        const color = active
+            ? '@accent_bg_color'
+            : 'alpha(@window_fg_color, 0.7)';
+        applyCssToWidget(
+            favButton,
+            `
             button {
                 background-color: alpha(@window_bg_color, 0.9);
                 border-radius: 0;
@@ -188,7 +195,8 @@ export function createWallpaperCard(
                 background-color: @window_bg_color;
                 color: @accent_bg_color;
             }
-        `);
+        `
+        );
     }
 
     updateFavButtonStyle(isFavorite);
@@ -200,7 +208,9 @@ export function createWallpaperCard(
             wallpaper.data
         );
         updateFavButtonStyle(isFav);
-        favButton.set_tooltip_text(isFav ? 'Remove from favorites' : 'Add to favorites');
+        favButton.set_tooltip_text(
+            isFav ? 'Remove from favorites' : 'Add to favorites'
+        );
         if (onFavoriteToggle) {
             onFavoriteToggle(wallpaper, isFav);
         }

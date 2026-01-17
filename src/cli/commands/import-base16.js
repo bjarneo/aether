@@ -23,7 +23,9 @@ export class ImportBase16Command {
 
         if (!filePath) {
             print('Error: Base16 file path is required');
-            print('Usage: aether --import-base16 <file.yaml> [--wallpaper <path>]');
+            print(
+                'Usage: aether --import-base16 <file.yaml> [--wallpaper <path>]'
+            );
             return false;
         }
 
@@ -68,7 +70,9 @@ export class ImportBase16Command {
             if (finalWallpaperPath) {
                 const wpFile = Gio.File.new_for_path(finalWallpaperPath);
                 if (!wpFile.query_exists(null)) {
-                    print(`Warning: Wallpaper not found: ${finalWallpaperPath}`);
+                    print(
+                        `Warning: Wallpaper not found: ${finalWallpaperPath}`
+                    );
                 }
             }
 

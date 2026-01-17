@@ -160,8 +160,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             const emptyState = createEmptyState({
                 icon: 'folder-pictures-symbolic',
                 title: 'No Wallpapers Found',
-                description:
-                    'Add images to ~/Wallpapers to browse them here',
+                description: 'Add images to ~/Wallpapers to browse them here',
             });
             this._contentStack.add_named(emptyState, 'empty');
 
@@ -256,7 +255,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                         : 'view-sort-descending-symbolic'
                 );
                 this._sortOrderButton.set_tooltip_text(
-                    this._sortOrder === 'asc' ? 'Sort ascending' : 'Sort descending'
+                    this._sortOrder === 'asc'
+                        ? 'Sort ascending'
+                        : 'Sort descending'
                 );
                 this._applySortAndFilter();
             });
@@ -275,9 +276,21 @@ export const LocalWallpaperBrowser = GObject.registerClass(
 
             this._gridSizeButtons = {};
             const sizes = [
-                {key: 'small', icon: 'view-grid-symbolic', tooltip: 'Small thumbnails'},
-                {key: 'medium', icon: 'view-app-grid-symbolic', tooltip: 'Medium thumbnails'},
-                {key: 'large', icon: 'view-dual-symbolic', tooltip: 'Large thumbnails'},
+                {
+                    key: 'small',
+                    icon: 'view-grid-symbolic',
+                    tooltip: 'Small thumbnails',
+                },
+                {
+                    key: 'medium',
+                    icon: 'view-app-grid-symbolic',
+                    tooltip: 'Medium thumbnails',
+                },
+                {
+                    key: 'large',
+                    icon: 'view-dual-symbolic',
+                    tooltip: 'Large thumbnails',
+                },
             ];
 
             sizes.forEach(({key, icon, tooltip}) => {
@@ -289,9 +302,11 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 btn.connect('toggled', () => {
                     if (btn.get_active()) {
                         // Deactivate other buttons
-                        Object.entries(this._gridSizeButtons).forEach(([k, b]) => {
-                            if (k !== key) b.set_active(false);
-                        });
+                        Object.entries(this._gridSizeButtons).forEach(
+                            ([k, b]) => {
+                                if (k !== key) b.set_active(false);
+                            }
+                        );
                         this._gridSize = key;
                         this._updateGridSize();
                     }
@@ -432,20 +447,33 @@ export const LocalWallpaperBrowser = GObject.registerClass(
 
             try {
                 // Scan root directory
-                this._wallpapers = await this._scanDirectory(this._wallpapersPath, null);
+                this._wallpapers = await this._scanDirectory(
+                    this._wallpapersPath,
+                    null
+                );
 
                 // Scan subdirectories
                 const subdirs = getSubdirectories(this._wallpapersPath);
                 for (const subdir of subdirs) {
-                    const subdirPath = GLib.build_filenamev([this._wallpapersPath, subdir]);
-                    const subdirWallpapers = await this._scanDirectory(subdirPath, subdir);
+                    const subdirPath = GLib.build_filenamev([
+                        this._wallpapersPath,
+                        subdir,
+                    ]);
+                    const subdirWallpapers = await this._scanDirectory(
+                        subdirPath,
+                        subdir
+                    );
                     if (subdirWallpapers.length > 0) {
                         this._subfolders.set(subdir, subdirWallpapers);
                     }
                 }
 
-                const totalCount = this._wallpapers.length +
-                    Array.from(this._subfolders.values()).reduce((sum, arr) => sum + arr.length, 0);
+                const totalCount =
+                    this._wallpapers.length +
+                    Array.from(this._subfolders.values()).reduce(
+                        (sum, arr) => sum + arr.length,
+                        0
+                    );
 
                 if (totalCount === 0) {
                     this._contentStack.set_visible_child_name('empty');
@@ -475,7 +503,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                         const file = Gio.File.new_for_path(filePath);
                         // Get size and modTime directly from fileInfo (already queried)
                         const size = fileInfo.get_size();
-                        const modTime = fileInfo.get_modification_date_time()?.to_unix() || 0;
+                        const modTime =
+                            fileInfo.get_modification_date_time()?.to_unix() ||
+                            0;
                         wallpapers.push({
                             name: fileInfo.get_name(),
                             file: file,
@@ -487,7 +517,10 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                     }
                 }
             } catch (e) {
-                console.error(`Error scanning directory ${dirPath}:`, e.message);
+                console.error(
+                    `Error scanning directory ${dirPath}:`,
+                    e.message
+                );
             }
             return wallpapers;
         }
@@ -497,7 +530,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             this._sortWallpapers(this._wallpapers);
 
             // Sort each subfolder's wallpapers
-            this._subfolders.forEach((wallpapers) => {
+            this._subfolders.forEach(wallpapers => {
                 this._sortWallpapers(wallpapers);
             });
 
@@ -524,7 +557,8 @@ export const LocalWallpaperBrowser = GObject.registerClass(
 
         async _renderWallpapers() {
             // Check if we can reorder existing cards (same wallpapers, just different order)
-            const canReorder = this._cardCache.size > 0 &&
+            const canReorder =
+                this._cardCache.size > 0 &&
                 this._wallpapers.every(wp => this._cardCache.has(wp.path));
 
             if (canReorder) {
@@ -600,7 +634,10 @@ export const LocalWallpaperBrowser = GObject.registerClass(
 
             // Render subfolder sections
             for (const [folderName, wallpapers] of this._subfolders) {
-                const expander = await this._createSubfolderExpander(folderName, wallpapers);
+                const expander = await this._createSubfolderExpander(
+                    folderName,
+                    wallpapers
+                );
                 this._subfolderExpanders.set(folderName, expander);
                 this._mainContainer.append(expander);
             }
@@ -677,7 +714,8 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 showCheckbox: this._multiSelectMode,
                 isSelected: this._selectedWallpapers.has(wallpaper.path),
                 height: GRID_SIZES[this._gridSize],
-                onContextMenu: (wp, widget, x, y) => this._showContextMenu(wp, widget, x, y),
+                onContextMenu: (wp, widget, x, y) =>
+                    this._showContextMenu(wp, widget, x, y),
                 onCheckboxToggle: (wp, isChecked) => {
                     if (isChecked) {
                         this._selectedWallpapers.add(wp.path);
@@ -706,14 +744,18 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             // Cache the card and its FlowBoxChild parent for reordering
             const flowBoxChild = mainBox.get_parent();
             if (targetGrid === this._gridFlow) {
-                this._cardCache.set(wallpaper.path, {card: mainBox, flowBoxChild});
+                this._cardCache.set(wallpaper.path, {
+                    card: mainBox,
+                    flowBoxChild,
+                });
             }
 
             // Load thumbnail asynchronously (non-blocking)
             thumbnailService.getThumbnail(wallpaper.file).then(thumbPath => {
                 if (thumbPath) {
                     try {
-                        const pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbPath);
+                        const pixbuf =
+                            GdkPixbuf.Pixbuf.new_from_file(thumbPath);
                         const texture = Gdk.Texture.new_for_pixbuf(pixbuf);
                         picture.set_paintable(texture);
                     } catch (e) {
@@ -735,7 +777,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
 
         _updateMultiSelectUI() {
             const count = this._selectedWallpapers.size;
-            this._batchActionsBar.set_visible(this._multiSelectMode && count > 0);
+            this._batchActionsBar.set_visible(
+                this._multiSelectMode && count > 0
+            );
             this._selectionCountLabel.set_label(`${count} selected`);
         }
 
@@ -788,7 +832,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             addAction('set', () => this._setAsWallpaper(wallpaper));
             addAction('preview', () => this._showPreview(wallpaper));
             addAction('favorite', () => {
-                favoritesService.addFavorite(wallpaper.path, 'local', {name: wallpaper.name});
+                favoritesService.addFavorite(wallpaper.path, 'local', {
+                    name: wallpaper.name,
+                });
                 this.emit('favorites-changed');
             });
             addAction('move', () => this._showMoveDialog(wallpaper));
@@ -846,16 +892,21 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             try {
                 const format = GdkPixbuf.Pixbuf.get_file_info(wallpaper.path);
                 if (format && format[1] && format[2]) {
-                    infoBox.append(new Gtk.Label({label: `Resolution: ${format[1]}x${format[2]}`}));
+                    infoBox.append(
+                        new Gtk.Label({
+                            label: `Resolution: ${format[1]}x${format[2]}`,
+                        })
+                    );
                 }
             } catch (e) {
                 // Ignore dimension loading errors
             }
 
             const sizeKB = Math.round(wallpaper.size / 1024);
-            const sizeStr = sizeKB > 1024
-                ? `${(sizeKB / 1024).toFixed(1)} MB`
-                : `${sizeKB} KB`;
+            const sizeStr =
+                sizeKB > 1024
+                    ? `${(sizeKB / 1024).toFixed(1)} MB`
+                    : `${sizeKB} KB`;
             infoBox.append(new Gtk.Label({label: `Size: ${sizeStr}`}));
 
             contentBox.append(infoBox);
@@ -878,7 +929,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 body: 'Enter a new name for this wallpaper',
                 placeholder: baseName,
                 defaultValue: baseName,
-                onSubmit: (newName) => {
+                onSubmit: newName => {
                     if (!newName || newName === baseName) return;
 
                     const newFileName = newName + extension;
@@ -886,9 +937,15 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                     const newPath = GLib.build_filenamev([dir, newFileName]);
 
                     if (moveFile(wallpaper.path, newPath)) {
-                        this._updateFavoriteOnPathChange(wallpaper.path, newPath, newFileName);
+                        this._updateFavoriteOnPathChange(
+                            wallpaper.path,
+                            newPath,
+                            newFileName
+                        );
                         this._loadWallpapersAsync();
-                        DialogManager.showToast(this, {title: 'Wallpaper renamed'});
+                        DialogManager.showToast(this, {
+                            title: 'Wallpaper renamed',
+                        });
                     }
                 },
             });
@@ -941,7 +998,10 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                     title: subdir,
                     icon_name: 'folder-symbolic',
                 });
-                row._folderPath = GLib.build_filenamev([this._wallpapersPath, subdir]);
+                row._folderPath = GLib.build_filenamev([
+                    this._wallpapersPath,
+                    subdir,
+                ]);
                 listBox.append(row);
             }
 
@@ -968,7 +1028,10 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             createFolderBtn.connect('clicked', () => {
                 const name = newFolderEntry.get_text().trim();
                 if (name) {
-                    const newPath = GLib.build_filenamev([this._wallpapersPath, name]);
+                    const newPath = GLib.build_filenamev([
+                        this._wallpapersPath,
+                        name,
+                    ]);
                     ensureDirectoryExists(newPath);
                     // Add new row
                     const row = new Adw.ActionRow({
@@ -1005,7 +1068,11 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 }
 
                 if (moveFile(wallpaper.path, newPath)) {
-                    this._updateFavoriteOnPathChange(wallpaper.path, newPath, fileName);
+                    this._updateFavoriteOnPathChange(
+                        wallpaper.path,
+                        newPath,
+                        fileName
+                    );
                     dialog.close();
                     this._loadWallpapersAsync();
                     DialogManager.showToast(this, {title: 'Wallpaper moved'});
@@ -1033,7 +1100,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                             this.emit('favorites-changed');
                         }
                         this._loadWallpapersAsync();
-                        DialogManager.showToast(this, {title: 'Wallpaper deleted'});
+                        DialogManager.showToast(this, {
+                            title: 'Wallpaper deleted',
+                        });
                     }
                 },
             });
@@ -1063,7 +1132,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                     this._updateMultiSelectUI();
                     this.emit('favorites-changed');
                     this._loadWallpapersAsync();
-                    DialogManager.showToast(this, {title: `${deleted} wallpaper${plural(deleted)} deleted`});
+                    DialogManager.showToast(this, {
+                        title: `${deleted} wallpaper${plural(deleted)} deleted`,
+                    });
                 },
             });
         }
@@ -1080,7 +1151,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 }
             }
             this.emit('favorites-changed');
-            DialogManager.showToast(this, {title: `${added} wallpaper${plural(added)} added to favorites`});
+            DialogManager.showToast(this, {
+                title: `${added} wallpaper${plural(added)} added to favorites`,
+            });
         }
 
         _openFolder() {

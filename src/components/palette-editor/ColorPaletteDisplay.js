@@ -16,7 +16,9 @@ export const ColorPaletteDisplay = GObject.registerClass(
             'color-clicked': {
                 param_types: [GObject.TYPE_INT, GObject.TYPE_STRING],
             },
-            'color-locked': {param_types: [GObject.TYPE_INT, GObject.TYPE_BOOLEAN]},
+            'color-locked': {
+                param_types: [GObject.TYPE_INT, GObject.TYPE_BOOLEAN],
+            },
         },
     },
     class ColorPaletteDisplay extends Gtk.Box {

@@ -10,10 +10,7 @@ import {thumbnailService} from '../services/thumbnail-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {wallhavenService} from '../services/wallhaven-service.js';
-import {
-    createSectionHeader,
-    createEmptyState,
-} from './ui/BrowserHeader.js';
+import {createSectionHeader, createEmptyState} from './ui/BrowserHeader.js';
 import {SPACING, GRID} from '../constants/ui-constants.js';
 
 export const FavoritesView = GObject.registerClass(

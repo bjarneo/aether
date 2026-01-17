@@ -97,7 +97,9 @@ function parseSimpleToml(content) {
         }
 
         // Match key = "value" or key = 'value' or key = value pattern
-        const match = trimmed.match(/^([a-zA-Z0-9_]+)\s*=\s*["']?([^"'\s]+)["']?$/);
+        const match = trimmed.match(
+            /^([a-zA-Z0-9_]+)\s*=\s*["']?([^"'\s]+)["']?$/
+        );
         if (match) {
             const key = match[1];
             const value = match[2].trim();

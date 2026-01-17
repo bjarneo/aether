@@ -103,12 +103,15 @@ export const BlueprintsView = GObject.registerClass(
             });
 
             // Style toggle buttons
-            applyCssToWidget(toggleBox, `
+            applyCssToWidget(
+                toggleBox,
+                `
                 box button {
                     border-radius: 0;
                     padding: 6px 16px;
                 }
-            `);
+            `
+            );
 
             this._blueprintsToggle.connect('toggled', () => {
                 if (this._blueprintsToggle.get_active()) {

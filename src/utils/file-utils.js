@@ -108,7 +108,8 @@ export function writeTextToFileAsync(path, content) {
                 null,
                 (source, result) => {
                     try {
-                        const [success] = source.replace_contents_finish(result);
+                        const [success] =
+                            source.replace_contents_finish(result);
                         if (!success) {
                             reject(new Error(`Failed to write file: ${path}`));
                             return;
@@ -226,7 +227,8 @@ export function enumerateDirectoryAsync(
                 null,
                 (source, result) => {
                     try {
-                        const enumerator = source.enumerate_children_finish(result);
+                        const enumerator =
+                            source.enumerate_children_finish(result);
 
                         const processNextBatch = () => {
                             enumerator.next_files_async(
@@ -235,17 +237,33 @@ export function enumerateDirectoryAsync(
                                 null,
                                 (enum_source, enum_result) => {
                                     try {
-                                        const infos = enum_source.next_files_finish(enum_result);
+                                        const infos =
+                                            enum_source.next_files_finish(
+                                                enum_result
+                                            );
                                         if (infos.length === 0) {
-                                            enumerator.close_async(GLib.PRIORITY_DEFAULT, null, () => {});
+                                            enumerator.close_async(
+                                                GLib.PRIORITY_DEFAULT,
+                                                null,
+                                                () => {}
+                                            );
                                             resolve(results);
                                             return;
                                         }
 
                                         for (const fileInfo of infos) {
-                                            const fileName = fileInfo.get_name();
-                                            const filePath = GLib.build_filenamev([dirPath, fileName]);
-                                            results.push({fileInfo, filePath, fileName});
+                                            const fileName =
+                                                fileInfo.get_name();
+                                            const filePath =
+                                                GLib.build_filenamev([
+                                                    dirPath,
+                                                    fileName,
+                                                ]);
+                                            results.push({
+                                                fileInfo,
+                                                filePath,
+                                                fileName,
+                                            });
                                         }
 
                                         // Process next batch
@@ -463,7 +481,7 @@ export function getFileMetadata(path) {
  * @returns {Promise<{size: number, modTime: number}>} File metadata
  */
 export function getFileMetadataAsync(path) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         const file = Gio.File.new_for_path(path);
         file.query_info_async(
             'standard::size,time::modified',
@@ -475,7 +493,8 @@ export function getFileMetadataAsync(path) {
                     const info = source.query_info_finish(result);
                     resolve({
                         size: info.get_size(),
-                        modTime: info.get_modification_date_time()?.to_unix() || 0,
+                        modTime:
+                            info.get_modification_date_time()?.to_unix() || 0,
                     });
                 } catch (e) {
                     resolve({size: 0, modTime: 0});

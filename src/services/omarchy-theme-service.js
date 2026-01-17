@@ -11,7 +11,11 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
-import {readFileAsText, enumerateDirectory, fileExists} from '../utils/file-utils.js';
+import {
+    readFileAsText,
+    enumerateDirectory,
+    fileExists,
+} from '../utils/file-utils.js';
 import {parseColorsToml, isColorsTomlFormat} from '../utils/toml-utils.js';
 
 /**
@@ -102,7 +106,11 @@ export class OmarchyThemeService {
 
         // Load user themes first (they take priority), then system themes
         this._loadThemesFromDirectory(USER_THEMES_DIR, false, loadedThemeNames);
-        this._loadThemesFromDirectory(SYSTEM_THEMES_DIR, true, loadedThemeNames);
+        this._loadThemesFromDirectory(
+            SYSTEM_THEMES_DIR,
+            true,
+            loadedThemeNames
+        );
 
         // Sort themes alphabetically, with current theme first
         this._themes.sort((a, b) => {
@@ -126,21 +134,36 @@ export class OmarchyThemeService {
         if (!dir.query_exists(null)) return;
 
         try {
-            enumerateDirectory(themesDir, (fileInfo, filePath, fileName) => {
-                const fileType = fileInfo.get_file_type();
-                const isValidType = fileType === Gio.FileType.DIRECTORY || fileType === Gio.FileType.SYMBOLIC_LINK;
+            enumerateDirectory(
+                themesDir,
+                (fileInfo, filePath, fileName) => {
+                    const fileType = fileInfo.get_file_type();
+                    const isValidType =
+                        fileType === Gio.FileType.DIRECTORY ||
+                        fileType === Gio.FileType.SYMBOLIC_LINK;
 
-                // Skip non-directories, hidden files, and already loaded themes
-                if (!isValidType || fileName.startsWith('.') || loadedThemeNames.has(fileName)) {
-                    return;
-                }
+                    // Skip non-directories, hidden files, and already loaded themes
+                    if (
+                        !isValidType ||
+                        fileName.startsWith('.') ||
+                        loadedThemeNames.has(fileName)
+                    ) {
+                        return;
+                    }
 
-                const theme = this._loadTheme(filePath, fileName, fileInfo, isSystemTheme);
-                if (theme) {
-                    this._themes.push(theme);
-                    loadedThemeNames.add(fileName);
-                }
-            }, 'standard::name,standard::type,standard::is-symlink,standard::symlink-target');
+                    const theme = this._loadTheme(
+                        filePath,
+                        fileName,
+                        fileInfo,
+                        isSystemTheme
+                    );
+                    if (theme) {
+                        this._themes.push(theme);
+                        loadedThemeNames.add(fileName);
+                    }
+                },
+                'standard::name,standard::type,standard::is-symlink,standard::symlink-target'
+            );
         } catch (e) {
             console.error(`Error loading themes from ${themesDir}:`, e.message);
         }
@@ -174,13 +197,16 @@ export class OmarchyThemeService {
                 ['omarchy-theme-set', themeName],
                 Gio.SubprocessFlags.NONE
             );
-            const success = await new Promise((resolve) => {
+            const success = await new Promise(resolve => {
                 subprocess.wait_async(null, (proc, result) => {
                     try {
                         proc.wait_finish(result);
                         resolve(proc.get_successful());
                     } catch (e) {
-                        console.error('Error running omarchy-theme-set:', e.message);
+                        console.error(
+                            'Error running omarchy-theme-set:',
+                            e.message
+                        );
                         resolve(false);
                     }
                 });
@@ -220,7 +246,10 @@ export class OmarchyThemeService {
                 symlinkTarget = fileInfo.get_symlink_target();
                 // Resolve relative symlinks
                 if (symlinkTarget && !symlinkTarget.startsWith('/')) {
-                    resolvedPath = GLib.build_filenamev([USER_THEMES_DIR, symlinkTarget]);
+                    resolvedPath = GLib.build_filenamev([
+                        USER_THEMES_DIR,
+                        symlinkTarget,
+                    ]);
                 } else {
                     resolvedPath = symlinkTarget;
                 }
@@ -228,12 +257,15 @@ export class OmarchyThemeService {
 
             // Check if resolved path exists
             if (!fileExists(resolvedPath)) {
-                console.warn(`Theme ${themeName} points to non-existent path: ${resolvedPath}`);
+                console.warn(
+                    `Theme ${themeName} points to non-existent path: ${resolvedPath}`
+                );
                 return null;
             }
 
             // Determine if this is an Aether-generated theme
-            const isAetherGenerated = isSymlink && symlinkTarget === AETHER_THEME_DIR;
+            const isAetherGenerated =
+                isSymlink && symlinkTarget === AETHER_THEME_DIR;
 
             // Extract colors
             const colorResult = this._extractColors(resolvedPath);
@@ -284,7 +316,10 @@ export class OmarchyThemeService {
                     return parseColorsToml(content);
                 }
             } catch (e) {
-                console.warn(`Failed to parse colors.toml in ${themePath}:`, e.message);
+                console.warn(
+                    `Failed to parse colors.toml in ${themePath}:`,
+                    e.message
+                );
             }
         }
 
@@ -327,7 +362,12 @@ export class OmarchyThemeService {
         }
 
         // Find preview image (in priority order)
-        const previewCandidates = ['screenshot.png', 'logo.png', 'theme.png', 'preview.png'];
+        const previewCandidates = [
+            'screenshot.png',
+            'logo.png',
+            'theme.png',
+            'preview.png',
+        ];
         for (const candidate of previewCandidates) {
             const imagePath = GLib.build_filenamev([themePath, candidate]);
             if (fileExists(imagePath)) {
@@ -340,12 +380,16 @@ export class OmarchyThemeService {
         const backgroundsDir = GLib.build_filenamev([themePath, 'backgrounds']);
         if (fileExists(backgroundsDir)) {
             try {
-                enumerateDirectory(backgroundsDir, (fileInfo, filePath, fileName) => {
-                    const contentType = fileInfo.get_content_type();
-                    if (contentType && contentType.startsWith('image/')) {
-                        wallpapers.push(filePath);
-                    }
-                }, 'standard::name,standard::content-type');
+                enumerateDirectory(
+                    backgroundsDir,
+                    (fileInfo, filePath, fileName) => {
+                        const contentType = fileInfo.get_content_type();
+                        if (contentType && contentType.startsWith('image/')) {
+                            wallpapers.push(filePath);
+                        }
+                    },
+                    'standard::name,standard::content-type'
+                );
             } catch (e) {
                 // Ignore
             }

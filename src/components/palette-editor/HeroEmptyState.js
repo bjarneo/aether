@@ -253,9 +253,7 @@ export const HeroEmptyState = GObject.registerClass(
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: 6,
             });
-            localContent.append(
-                new Gtk.Image({icon_name: 'folder-symbolic'})
-            );
+            localContent.append(new Gtk.Image({icon_name: 'folder-symbolic'}));
             localContent.append(new Gtk.Label({label: 'Local'}));
             localBtn.set_child(localContent);
 

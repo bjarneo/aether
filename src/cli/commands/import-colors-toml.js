@@ -81,7 +81,9 @@ export class ImportColorsTomlCommand {
             if (finalWallpaperPath) {
                 const wpFile = Gio.File.new_for_path(finalWallpaperPath);
                 if (!wpFile.query_exists(null)) {
-                    print(`Warning: Wallpaper not found: ${finalWallpaperPath}`);
+                    print(
+                        `Warning: Wallpaper not found: ${finalWallpaperPath}`
+                    );
                 }
             }
 

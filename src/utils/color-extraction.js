@@ -274,7 +274,10 @@ function samplePixels(imageData) {
     const {pixels, width, height, channels, rowstride} = imageData;
     const colors = [];
     const hasAlpha = channels === 4;
-    const sampleRate = Math.max(1, Math.floor((width * height) / MAX_PIXELS_TO_SAMPLE));
+    const sampleRate = Math.max(
+        1,
+        Math.floor((width * height) / MAX_PIXELS_TO_SAMPLE)
+    );
 
     for (let y = 0; y < height; y += sampleRate) {
         for (let x = 0; x < width; x += sampleRate) {
@@ -306,7 +309,11 @@ class ColorBucket {
 
     _computeRanges() {
         if (this.colors.length === 0) {
-            this.ranges = {r: {min: 0, max: 0}, g: {min: 0, max: 0}, b: {min: 0, max: 0}};
+            this.ranges = {
+                r: {min: 0, max: 0},
+                g: {min: 0, max: 0},
+                b: {min: 0, max: 0},
+            };
             return;
         }
 
@@ -319,8 +326,14 @@ class ColorBucket {
 
         for (const color of this.colors) {
             for (const channel of ['r', 'g', 'b']) {
-                this.ranges[channel].min = Math.min(this.ranges[channel].min, color[channel]);
-                this.ranges[channel].max = Math.max(this.ranges[channel].max, color[channel]);
+                this.ranges[channel].min = Math.min(
+                    this.ranges[channel].min,
+                    color[channel]
+                );
+                this.ranges[channel].max = Math.max(
+                    this.ranges[channel].max,
+                    color[channel]
+                );
             }
         }
     }
@@ -368,7 +381,9 @@ class ColorBucket {
             return {r: 0, g: 0, b: 0, count: 0};
         }
 
-        let rSum = 0, gSum = 0, bSum = 0;
+        let rSum = 0,
+            gSum = 0,
+            bSum = 0;
         for (const color of this.colors) {
             rSum += color.r;
             gSum += color.g;
@@ -388,7 +403,12 @@ class ColorBucket {
      * @returns {number}
      */
     getVolume() {
-        return this._getRange('r') * this._getRange('g') * this._getRange('b') * this.colors.length;
+        return (
+            this._getRange('r') *
+            this._getRange('g') *
+            this._getRange('b') *
+            this.colors.length
+        );
     }
 }
 

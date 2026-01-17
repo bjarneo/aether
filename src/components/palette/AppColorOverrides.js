@@ -274,17 +274,22 @@ export const AppColorOverrides = GObject.registerClass(
                 },
                 neovim: {
                     background: 'Editor background',
-                    foreground: 'Object properties, builtin types, builtin variables, member access, default text',
+                    foreground:
+                        'Object properties, builtin types, builtin variables, member access, default text',
                     red: 'Errors, diagnostics, tags, deletions, breakpoints',
                     green: 'Comments, strings, success states, git additions',
                     yellow: 'Types, classes, constructors, warnings, numbers, booleans',
                     blue: 'Functions, keywords, directories, links, info diagnostics',
-                    magenta: 'Storage keywords, special keywords, identifiers, namespaces',
+                    magenta:
+                        'Storage keywords, special keywords, identifiers, namespaces',
                     cyan: 'Parameters, regex, preprocessor, hints, properties',
                     white: 'Inactive elements, statusline, secondary text',
-                    bright_black: 'Line highlight, gutter elements, disabled states',
-                    bright_red: 'Constants, numbers, current line number, git modifications',
-                    bright_magenta: 'Function declarations, exception handling, tags',
+                    bright_black:
+                        'Line highlight, gutter elements, disabled states',
+                    bright_red:
+                        'Constants, numbers, current line number, git modifications',
+                    bright_magenta:
+                        'Function declarations, exception handling, tags',
                 },
             };
 

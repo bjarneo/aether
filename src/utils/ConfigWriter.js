@@ -339,10 +339,22 @@ export class ConfigWriter {
 
         // Semantic name to index mapping for color0-15 aliases
         const semanticOrder = [
-            'black', 'red', 'green', 'yellow',
-            'blue', 'magenta', 'cyan', 'white',
-            'bright_black', 'bright_red', 'bright_green', 'bright_yellow',
-            'bright_blue', 'bright_magenta', 'bright_cyan', 'bright_white',
+            'black',
+            'red',
+            'green',
+            'yellow',
+            'blue',
+            'magenta',
+            'cyan',
+            'white',
+            'bright_black',
+            'bright_red',
+            'bright_green',
+            'bright_yellow',
+            'bright_blue',
+            'bright_magenta',
+            'bright_cyan',
+            'bright_white',
         ];
 
         // Add color0-15 aliases for backwards compatibility with existing templates
@@ -484,7 +496,6 @@ export class ConfigWriter {
             );
         }
     }
-
 
     _replaceVariable(content, key, value) {
         // Replace {key}

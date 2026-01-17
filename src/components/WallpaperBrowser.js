@@ -10,7 +10,11 @@ import {favoritesService} from '../services/favorites-service.js';
 import {createWallpaperCard} from './WallpaperCard.js';
 import {ResponsiveGridManager} from './wallpaper-browser/ResponsiveGridManager.js';
 import {WallpaperFiltersPanel} from './wallpaper-browser/WallpaperFiltersPanel.js';
-import {removeAllChildren, showToast, applyCssToWidget} from '../utils/ui-helpers.js';
+import {
+    removeAllChildren,
+    showToast,
+    applyCssToWidget,
+} from '../utils/ui-helpers.js';
 import {
     ensureDirectoryExists,
     loadJsonFile,

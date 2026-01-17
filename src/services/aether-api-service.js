@@ -89,12 +89,12 @@ class AetherApiService {
             const file = Gio.File.new_for_path(filePath);
             const [success, contents] = file.load_contents(null);
             if (success) {
-                return { contents, error: null };
+                return {contents, error: null};
             }
-            return { contents: null, error: 'Failed to read file' };
+            return {contents: null, error: 'Failed to read file'};
         } catch (e) {
             console.error(`Failed to read file ${filePath}:`, e.message);
-            return { contents: null, error: e.message };
+            return {contents: null, error: e.message};
         }
     }
 
@@ -138,9 +138,13 @@ class AetherApiService {
 
         // Add wallpaper part if present
         if (wallpaperPath) {
-            const { contents: imageData, error } = this._readFileContents(wallpaperPath);
+            const {contents: imageData, error} =
+                this._readFileContents(wallpaperPath);
             if (error) {
-                return { body: null, error: `Failed to read wallpaper: ${error}` };
+                return {
+                    body: null,
+                    error: `Failed to read wallpaper: ${error}`,
+                };
             }
             if (imageData) {
                 const filename = GLib.path_get_basename(wallpaperPath);
@@ -172,7 +176,7 @@ class AetherApiService {
             offset += part.length;
         }
 
-        return { body: result, error: null };
+        return {body: result, error: null};
     }
 
     /**
@@ -185,7 +189,8 @@ class AetherApiService {
         if (!this.hasApiKey()) {
             return {
                 success: false,
-                message: 'No API key configured. Go to Settings to add your aethr.no API key.',
+                message:
+                    'No API key configured. Go to Settings to add your aethr.no API key.',
             };
         }
 
@@ -227,7 +232,8 @@ class AetherApiService {
             if (!message) {
                 resolve({
                     success: false,
-                    message: 'Failed to create network request. Please check your internet connection.',
+                    message:
+                        'Failed to create network request. Please check your internet connection.',
                 });
                 return;
             }
