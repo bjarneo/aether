@@ -45,7 +45,6 @@ import {themeState} from '../state/ThemeState.js';
  * - Preset library (10 popular themes: Dracula, Nord, Gruvbox, etc.)
  * - Neovim theme selector (37 LazyVim-compatible themes)
  * - Template settings (enable/disable optional templates)
- * - Experimental features (per-app color overrides)
  * - Accessibility checker integration
  *
  * Signals:
@@ -108,7 +107,6 @@ export const SettingsSidebar = GObject.registerClass(
             this._selectedNeovimConfig = null;
             this._neovimPresetRows = []; // Store references to preset rows for visual feedback
             this._baseColor = '#89b4fa'; // Default base color for palette generation
-            this._enableAppOverrides = true; // Per-app color overrides (always enabled)
 
             // Load persisted settings
             this._loadSettings();
@@ -162,7 +160,7 @@ export const SettingsSidebar = GObject.registerClass(
 
         /**
          * Initializes all UI sections and adds them to scrollable container
-         * Creates light mode, adjustments, gradient, presets, Neovim, template, and experimental sections
+         * Creates light mode, adjustments, gradient, presets, Neovim, font, template, and accessibility sections
          * @private
          */
         _initializeUI() {
@@ -256,10 +254,6 @@ export const SettingsSidebar = GObject.registerClass(
             // Template Settings Section
             const templateSettings = this._createTemplateSettings();
             contentBox.append(templateSettings);
-
-            // Experimental Section
-            const experimentalSettings = this._createExperimentalSettings();
-            contentBox.append(experimentalSettings);
 
             // Accessibility Section (at bottom)
             this._accessibilityPanel = new AccessibilityPanel();
@@ -771,6 +765,7 @@ export const SettingsSidebar = GObject.registerClass(
         /**
          * Creates template settings section
          * Allows enabling/disabling optional templates (Neovim, Zed, VSCode, GTK)
+         * GTK includes a clear button to remove theme files when enabled
          * @returns {Adw.ExpanderRow} Template settings widget
          * @private
          */
@@ -825,6 +820,51 @@ export const SettingsSidebar = GObject.registerClass(
             this._vscodeSwitch = vscodeSwitch;
             expanderRow.add_row(vscodeRow);
 
+            // GTK template
+            const gtkRow = new Adw.ActionRow({
+                title: 'Include GTK Theme',
+                subtitle: 'Copy gtk.css to GTK 3.0 and GTK 4.0 config',
+            });
+
+            const gtkSuffixBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: SPACING.SM,
+                valign: Gtk.Align.CENTER,
+            });
+
+            this._gtkClearButton = new Gtk.Button({
+                icon_name: 'user-trash-symbolic',
+                tooltip_text: 'Remove GTK theme files',
+                valign: Gtk.Align.CENTER,
+                visible: false,
+                css_classes: ['flat', 'circular'],
+            });
+
+            this._gtkClearButton.connect('clicked', () => {
+                this._clearGtkTheme();
+            });
+
+            this._gtkSwitch = new Gtk.Switch({
+                active: this._includeGtk,
+                valign: Gtk.Align.CENTER,
+            });
+
+            this._gtkSwitch.connect('notify::active', sw => {
+                this._includeGtk = sw.get_active();
+                this._gtkClearButton.set_visible(this._includeGtk);
+                emitSettingsChanged();
+            });
+
+            this._gtkClearButton.set_visible(this._includeGtk);
+
+            gtkSuffixBox.append(this._gtkClearButton);
+            gtkSuffixBox.append(this._gtkSwitch);
+
+            gtkRow.add_suffix(gtkSuffixBox);
+            gtkRow.set_activatable_widget(this._gtkSwitch);
+
+            expanderRow.add_row(gtkRow);
+
             return expanderRow;
         }
 
@@ -858,73 +898,6 @@ export const SettingsSidebar = GObject.registerClass(
             expanderRow.add_row(
                 createWrapperRow({child: fontBox, addMargins: false})
             );
-
-            return expanderRow;
-        }
-
-        _createExperimentalSettings() {
-            const expanderRow = new Adw.ExpanderRow({
-                title: 'Experimental',
-                subtitle: 'Features that might or might not be part of Aether',
-            });
-
-            // GTK Theming row
-            const gtkRow = new Adw.ActionRow({
-                title: 'Include GTK Theming',
-            });
-
-            // Add info button with description
-            const gtkInfoButton = new Gtk.Button({
-                icon_name: 'help-about-symbolic',
-                valign: Gtk.Align.CENTER,
-                tooltip_text: 'Copy gtk.css to GTK 3.0 and GTK 4.0 config',
-                css_classes: ['flat', 'circular'],
-            });
-
-            // Create a box to hold the info button, clear button, and switch
-            const suffixBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: SPACING.SM,
-                valign: Gtk.Align.CENTER,
-            });
-
-            suffixBox.append(gtkInfoButton);
-
-            // Create clear button (initially hidden)
-            this._gtkClearButton = new Gtk.Button({
-                icon_name: 'user-trash-symbolic',
-                tooltip_text: 'Remove GTK theme files',
-                valign: Gtk.Align.CENTER,
-                visible: false,
-                css_classes: ['flat', 'circular'],
-            });
-
-            this._gtkClearButton.connect('clicked', () => {
-                this._clearGtkTheme();
-            });
-
-            this._gtkSwitch = new Gtk.Switch({
-                active: this._includeGtk,
-                valign: Gtk.Align.CENTER,
-            });
-
-            this._gtkSwitch.connect('notify::active', sw => {
-                this._includeGtk = sw.get_active();
-                // Show/hide clear button based on switch state
-                this._gtkClearButton.set_visible(this._includeGtk);
-                this.emit('settings-changed', this.getSettings());
-            });
-
-            // Set initial visibility of clear button
-            this._gtkClearButton.set_visible(this._includeGtk);
-
-            suffixBox.append(this._gtkClearButton);
-            suffixBox.append(this._gtkSwitch);
-
-            gtkRow.add_suffix(suffixBox);
-            gtkRow.set_activatable_widget(this._gtkSwitch);
-
-            expanderRow.add_row(gtkRow);
 
             return expanderRow;
         }
@@ -990,7 +963,6 @@ export const SettingsSidebar = GObject.registerClass(
                 includeGtk: this._includeGtk,
                 lightMode: this._lightMode,
                 selectedNeovimConfig: this._selectedNeovimConfig,
-                enableAppOverrides: this._enableAppOverrides,
             };
         }
 
@@ -1012,7 +984,6 @@ export const SettingsSidebar = GObject.registerClass(
                 this._includeZed = settings.includeZed ?? false;
                 this._includeVscode = settings.includeVscode ?? false;
                 this._includeGtk = settings.includeGtk ?? false;
-                this._enableAppOverrides = settings.enableAppOverrides ?? false;
                 console.log('Loaded settings from', this._settingsPath);
             }
         }
@@ -1034,7 +1005,6 @@ export const SettingsSidebar = GObject.registerClass(
                 includeZed: this._includeZed,
                 includeVscode: this._includeVscode,
                 includeGtk: this._includeGtk,
-                enableAppOverrides: this._enableAppOverrides,
             };
 
             const success = saveJsonFile(this._settingsPath, settings);
