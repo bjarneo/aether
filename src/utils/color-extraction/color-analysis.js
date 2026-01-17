@@ -113,32 +113,42 @@ export function hasLowColorDiversity(colors) {
 }
 
 /**
+ * Finds a color by lightness extremity
+ * @param {string[]} colors - Array of hex colors
+ * @param {boolean} findLightest - Whether to find lightest (true) or darkest (false)
+ * @param {Set<number>} [excludeIndices] - Indices to skip
+ * @returns {{color: string, index: number}} Found color and its index
+ * @private
+ */
+function findColorByLightness(colors, findLightest, excludeIndices = null) {
+    let bestIndex = 0;
+    let bestLightness = findLightest ? -1 : 101;
+
+    for (let i = 0; i < colors.length; i++) {
+        if (excludeIndices?.has(i)) continue;
+
+        const hsl = getColorHSL(colors[i]);
+        const isBetter = findLightest
+            ? hsl.l > bestLightness
+            : hsl.l < bestLightness;
+
+        if (isBetter) {
+            bestLightness = hsl.l;
+            bestIndex = i;
+        }
+    }
+
+    return {color: colors[bestIndex], index: bestIndex};
+}
+
+/**
  * Finds background color - darkest or lightest based on mode
  * @param {string[]} colors - Array of hex colors
  * @param {boolean} lightMode - Light mode flag
  * @returns {{color: string, index: number}} Background color and its index
  */
 export function findBackgroundColor(colors, lightMode) {
-    let bgIndex = 0;
-    let bgLightness = lightMode ? -1 : 101;
-
-    for (let i = 0; i < colors.length; i++) {
-        const hsl = getColorHSL(colors[i]);
-
-        if (lightMode) {
-            if (hsl.l > bgLightness) {
-                bgLightness = hsl.l;
-                bgIndex = i;
-            }
-        } else {
-            if (hsl.l < bgLightness) {
-                bgLightness = hsl.l;
-                bgIndex = i;
-            }
-        }
-    }
-
-    return {color: colors[bgIndex], index: bgIndex};
+    return findColorByLightness(colors, lightMode);
 }
 
 /**
@@ -149,28 +159,7 @@ export function findBackgroundColor(colors, lightMode) {
  * @returns {{color: string, index: number}} Foreground color and its index
  */
 export function findForegroundColor(colors, lightMode, usedIndices) {
-    let fgIndex = 0;
-    let fgLightness = lightMode ? 101 : -1;
-
-    for (let i = 0; i < colors.length; i++) {
-        if (usedIndices.has(i)) continue;
-
-        const hsl = getColorHSL(colors[i]);
-
-        if (lightMode) {
-            if (hsl.l < fgLightness) {
-                fgLightness = hsl.l;
-                fgIndex = i;
-            }
-        } else {
-            if (hsl.l > fgLightness) {
-                fgLightness = hsl.l;
-                fgIndex = i;
-            }
-        }
-    }
-
-    return {color: colors[fgIndex], index: fgIndex};
+    return findColorByLightness(colors, !lightMode, usedIndices);
 }
 
 /**
@@ -182,22 +171,11 @@ export function findForegroundColor(colors, lightMode, usedIndices) {
  * @returns {number} Score (lower is better)
  */
 export function calculateColorScore(hsl, targetHue) {
-    // Hue difference is the primary factor - multiply by 3 to prioritize it
     const hueDiff = calculateHueDistance(hsl.h, targetHue) * 3;
-
-    // Heavily penalize extremely desaturated colors
     const saturationPenalty = hsl.s < MIN_CHROMATIC_SATURATION ? 50 : 0;
-
-    // Reward higher saturation
     const saturationReward = (100 - hsl.s) / 2;
-
-    // Very minimal lightness penalties - just avoid extremes
-    let lightnessPenalty = 0;
-    if (hsl.l < TOO_DARK_THRESHOLD) {
-        lightnessPenalty = 10;
-    } else if (hsl.l > TOO_BRIGHT_THRESHOLD) {
-        lightnessPenalty = 10;
-    }
+    const lightnessPenalty =
+        hsl.l < TOO_DARK_THRESHOLD || hsl.l > TOO_BRIGHT_THRESHOLD ? 10 : 0;
 
     return hueDiff + saturationPenalty + saturationReward + lightnessPenalty;
 }

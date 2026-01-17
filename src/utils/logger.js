@@ -47,8 +47,7 @@ function formatMessage(level, message, source, data) {
     const parts = [];
 
     if (includeTimestamp) {
-        const now = new Date();
-        parts.push(`[${now.toISOString()}]`);
+        parts.push(`[${new Date().toISOString()}]`);
     }
 
     parts.push(`[${level}]`);
@@ -59,21 +58,19 @@ function formatMessage(level, message, source, data) {
 
     parts.push(message);
 
-    if (data !== undefined) {
-        if (data instanceof Error) {
-            parts.push(`- ${data.message}`);
-            if (data.stack) {
-                parts.push(`\n${data.stack}`);
-            }
-        } else if (typeof data === 'object') {
-            try {
-                parts.push(`- ${JSON.stringify(data)}`);
-            } catch (e) {
-                parts.push(`- [Object]`);
-            }
-        } else {
-            parts.push(`- ${data}`);
+    if (data === undefined) return parts.join(' ');
+
+    if (data instanceof Error) {
+        parts.push(`- ${data.message}`);
+        if (data.stack) parts.push(`\n${data.stack}`);
+    } else if (typeof data === 'object') {
+        try {
+            parts.push(`- ${JSON.stringify(data)}`);
+        } catch (_) {
+            parts.push(`- [Object]`);
         }
+    } else {
+        parts.push(`- ${data}`);
     }
 
     return parts.join(' ');

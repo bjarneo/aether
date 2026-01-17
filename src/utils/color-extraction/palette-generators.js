@@ -317,34 +317,51 @@ export function generateMonochromaticPalette(dominantColors, lightMode) {
 }
 
 /**
+ * Helper to transform a chromatic palette with custom color rules
+ * @param {string[]} dominantColors - Array of dominant colors from image
+ * @param {boolean} lightMode - Whether to generate light mode palette
+ * @param {Object} rules - Transformation rules for different color indices
+ * @returns {string[]} Transformed palette
+ * @private
+ */
+function transformChromaticPalette(dominantColors, lightMode, rules) {
+    const palette = generateChromaticPalette(dominantColors, lightMode);
+
+    return palette.map((color, index) => {
+        const hsl = getColorHSL(color);
+        const rule = rules[index] || rules.default;
+        return lightMode ? rule.light(hsl) : rule.dark(hsl);
+    });
+}
+
+/**
  * Generates a pastel color palette (low saturation, high lightness)
  * @param {string[]} dominantColors - Array of dominant colors from image
  * @param {boolean} lightMode - Whether to generate light mode palette
  * @returns {string[]} Array of 16 pastel ANSI colors
  */
 export function generatePastelPalette(dominantColors, lightMode) {
-    const palette = generateChromaticPalette(dominantColors, lightMode);
-
-    return palette.map((color, index) => {
-        const hsl = getColorHSL(color);
-
-        if (index === 0) {
-            return lightMode
-                ? hslToHex(hsl.h, 10, 95)
-                : hslToHex(hsl.h, 15, 20);
-        } else if (index === 7 || index === 15) {
-            return lightMode
-                ? hslToHex(hsl.h, 25, 35)
-                : hslToHex(hsl.h, 20, 75);
-        } else if (index === 8) {
-            return lightMode
-                ? hslToHex(hsl.h, 15, 65)
-                : hslToHex(hsl.h, 12, 45);
-        } else {
-            const pastelSaturation = Math.min(35, hsl.s);
-            const pastelLightness = lightMode ? 50 : 70;
-            return hslToHex(hsl.h, pastelSaturation, pastelLightness);
-        }
+    return transformChromaticPalette(dominantColors, lightMode, {
+        0: {
+            light: hsl => hslToHex(hsl.h, 10, 95),
+            dark: hsl => hslToHex(hsl.h, 15, 20),
+        },
+        7: {
+            light: hsl => hslToHex(hsl.h, 25, 35),
+            dark: hsl => hslToHex(hsl.h, 20, 75),
+        },
+        15: {
+            light: hsl => hslToHex(hsl.h, 25, 35),
+            dark: hsl => hslToHex(hsl.h, 20, 75),
+        },
+        8: {
+            light: hsl => hslToHex(hsl.h, 15, 65),
+            dark: hsl => hslToHex(hsl.h, 12, 45),
+        },
+        default: {
+            light: hsl => hslToHex(hsl.h, Math.min(35, hsl.s), 50),
+            dark: hsl => hslToHex(hsl.h, Math.min(35, hsl.s), 70),
+        },
     });
 }
 
@@ -355,28 +372,37 @@ export function generatePastelPalette(dominantColors, lightMode) {
  * @returns {string[]} Array of 16 colorful ANSI colors
  */
 export function generateColorfulPalette(dominantColors, lightMode) {
-    const palette = generateChromaticPalette(dominantColors, lightMode);
-
-    return palette.map((color, index) => {
-        const hsl = getColorHSL(color);
-
-        if (index === 0) {
-            return lightMode ? hslToHex(hsl.h, 8, 98) : hslToHex(hsl.h, 12, 8);
-        } else if (index === 7 || index === 15) {
-            return lightMode
-                ? hslToHex(hsl.h, 15, 10)
-                : hslToHex(hsl.h, 10, 95);
-        } else if (index === 8) {
-            return lightMode
-                ? hslToHex(hsl.h, 20, 50)
-                : hslToHex(hsl.h, 15, 55);
-        } else {
-            const colorfulSaturation = Math.max(75, Math.min(95, hsl.s + 30));
-            const colorfulLightness = lightMode
-                ? Math.max(35, Math.min(55, hsl.l))
-                : Math.max(55, Math.min(70, hsl.l));
-            return hslToHex(hsl.h, colorfulSaturation, colorfulLightness);
-        }
+    return transformChromaticPalette(dominantColors, lightMode, {
+        0: {
+            light: hsl => hslToHex(hsl.h, 8, 98),
+            dark: hsl => hslToHex(hsl.h, 12, 8),
+        },
+        7: {
+            light: hsl => hslToHex(hsl.h, 15, 10),
+            dark: hsl => hslToHex(hsl.h, 10, 95),
+        },
+        15: {
+            light: hsl => hslToHex(hsl.h, 15, 10),
+            dark: hsl => hslToHex(hsl.h, 10, 95),
+        },
+        8: {
+            light: hsl => hslToHex(hsl.h, 20, 50),
+            dark: hsl => hslToHex(hsl.h, 15, 55),
+        },
+        default: {
+            light: hsl =>
+                hslToHex(
+                    hsl.h,
+                    Math.max(75, Math.min(95, hsl.s + 30)),
+                    Math.max(35, Math.min(55, hsl.l))
+                ),
+            dark: hsl =>
+                hslToHex(
+                    hsl.h,
+                    Math.max(75, Math.min(95, hsl.s + 30)),
+                    Math.max(55, Math.min(70, hsl.l))
+                ),
+        },
     });
 }
 
@@ -387,24 +413,37 @@ export function generateColorfulPalette(dominantColors, lightMode) {
  * @returns {string[]} Array of 16 muted ANSI colors
  */
 export function generateMutedPalette(dominantColors, lightMode) {
-    const palette = generateChromaticPalette(dominantColors, lightMode);
-
-    return palette.map((color, index) => {
-        const hsl = getColorHSL(color);
-
-        if (index === 0) {
-            return lightMode ? hslToHex(hsl.h, 5, 95) : hslToHex(hsl.h, 8, 15);
-        } else if (index === 7 || index === 15) {
-            return lightMode ? hslToHex(hsl.h, 10, 20) : hslToHex(hsl.h, 8, 85);
-        } else if (index === 8) {
-            return lightMode ? hslToHex(hsl.h, 8, 60) : hslToHex(hsl.h, 6, 50);
-        } else {
-            const mutedSaturation = Math.max(15, Math.min(35, hsl.s * 0.5));
-            const mutedLightness = lightMode
-                ? Math.max(40, Math.min(60, hsl.l))
-                : Math.max(50, Math.min(65, hsl.l));
-            return hslToHex(hsl.h, mutedSaturation, mutedLightness);
-        }
+    return transformChromaticPalette(dominantColors, lightMode, {
+        0: {
+            light: hsl => hslToHex(hsl.h, 5, 95),
+            dark: hsl => hslToHex(hsl.h, 8, 15),
+        },
+        7: {
+            light: hsl => hslToHex(hsl.h, 10, 20),
+            dark: hsl => hslToHex(hsl.h, 8, 85),
+        },
+        15: {
+            light: hsl => hslToHex(hsl.h, 10, 20),
+            dark: hsl => hslToHex(hsl.h, 8, 85),
+        },
+        8: {
+            light: hsl => hslToHex(hsl.h, 8, 60),
+            dark: hsl => hslToHex(hsl.h, 6, 50),
+        },
+        default: {
+            light: hsl =>
+                hslToHex(
+                    hsl.h,
+                    Math.max(15, Math.min(35, hsl.s * 0.5)),
+                    Math.max(40, Math.min(60, hsl.l))
+                ),
+            dark: hsl =>
+                hslToHex(
+                    hsl.h,
+                    Math.max(15, Math.min(35, hsl.s * 0.5)),
+                    Math.max(50, Math.min(65, hsl.l))
+                ),
+        },
     });
 }
 
@@ -415,26 +454,37 @@ export function generateMutedPalette(dominantColors, lightMode) {
  * @returns {string[]} Array of 16 bright ANSI colors
  */
 export function generateBrightPalette(dominantColors, lightMode) {
-    const palette = generateChromaticPalette(dominantColors, lightMode);
-
-    return palette.map((color, index) => {
-        const hsl = getColorHSL(color);
-
-        if (index === 0) {
-            return lightMode ? hslToHex(hsl.h, 6, 98) : hslToHex(hsl.h, 10, 6);
-        } else if (index === 7 || index === 15) {
-            return lightMode ? hslToHex(hsl.h, 12, 15) : hslToHex(hsl.h, 8, 98);
-        } else if (index === 8) {
-            return lightMode
-                ? hslToHex(hsl.h, 15, 55)
-                : hslToHex(hsl.h, 12, 65);
-        } else {
-            const brightSaturation = Math.max(45, Math.min(70, hsl.s));
-            const brightLightness = lightMode
-                ? Math.max(45, Math.min(65, hsl.l + 10))
-                : Math.max(65, Math.min(80, hsl.l + 15));
-            return hslToHex(hsl.h, brightSaturation, brightLightness);
-        }
+    return transformChromaticPalette(dominantColors, lightMode, {
+        0: {
+            light: hsl => hslToHex(hsl.h, 6, 98),
+            dark: hsl => hslToHex(hsl.h, 10, 6),
+        },
+        7: {
+            light: hsl => hslToHex(hsl.h, 12, 15),
+            dark: hsl => hslToHex(hsl.h, 8, 98),
+        },
+        15: {
+            light: hsl => hslToHex(hsl.h, 12, 15),
+            dark: hsl => hslToHex(hsl.h, 8, 98),
+        },
+        8: {
+            light: hsl => hslToHex(hsl.h, 15, 55),
+            dark: hsl => hslToHex(hsl.h, 12, 65),
+        },
+        default: {
+            light: hsl =>
+                hslToHex(
+                    hsl.h,
+                    Math.max(45, Math.min(70, hsl.s)),
+                    Math.max(45, Math.min(65, hsl.l + 10))
+                ),
+            dark: hsl =>
+                hslToHex(
+                    hsl.h,
+                    Math.max(45, Math.min(70, hsl.s)),
+                    Math.max(65, Math.min(80, hsl.l + 15))
+                ),
+        },
     });
 }
 

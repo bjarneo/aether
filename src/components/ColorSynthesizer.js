@@ -163,15 +163,10 @@ export const ColorSynthesizer = GObject.registerClass(
         }
 
         _updateColorButtonStyle(button, hexColor) {
-            const css = `
-            .color-button-custom {
-                background-color: ${hexColor};
-                min-width: 48px;
-                min-height: 32px;
-                border-radius: 0px;
-            }
-        `;
-            applyCssToWidget(button, css);
+            applyCssToWidget(
+                button,
+                `.color-button-custom { background-color: ${hexColor}; min-width: 48px; min-height: 32px; border-radius: 0px; }`
+            );
         }
 
         setPalette(colors) {
@@ -179,24 +174,27 @@ export const ColorSynthesizer = GObject.registerClass(
             this._autoAssignColors();
         }
 
-        _autoAssignColors() {
-            if (this._palette.length < 16) return;
-
-            const assignments = this._createColorAssignments();
-
+        /**
+         * Updates color buttons from a color map
+         * @param {Object} colorMap - Map of roleId to hex color
+         * @private
+         */
+        _applyColorMap(colorMap) {
             forEachChild(this._listBox, childRow => {
-                const roleId = childRow._roleId;
-                const colorButton = childRow._colorButton;
-                const assignedColor = assignments[roleId];
-
-                if (!assignedColor) return;
+                const hexColor = colorMap[childRow._roleId];
+                if (!hexColor) return;
 
                 const color = new Gdk.RGBA();
-                color.parse(assignedColor);
-                colorButton.set_rgba(color);
-                this._colorRoles.set(roleId, assignedColor);
-                this._updateColorButtonStyle(colorButton, assignedColor);
+                color.parse(hexColor);
+                childRow._colorButton.set_rgba(color);
+                this._colorRoles.set(childRow._roleId, hexColor);
+                this._updateColorButtonStyle(childRow._colorButton, hexColor);
             });
+        }
+
+        _autoAssignColors() {
+            if (this._palette.length < 16) return;
+            this._applyColorMap(this._createColorAssignments());
         }
 
         _createColorAssignments() {
@@ -237,19 +235,7 @@ export const ColorSynthesizer = GObject.registerClass(
         }
 
         loadColors(colorRoles) {
-            forEachChild(this._listBox, childRow => {
-                const roleId = childRow._roleId;
-                const colorButton = childRow._colorButton;
-                const savedColor = colorRoles[roleId];
-
-                if (!savedColor) return;
-
-                const color = new Gdk.RGBA();
-                color.parse(savedColor);
-                colorButton.set_rgba(color);
-                this._colorRoles.set(roleId, savedColor);
-                this._updateColorButtonStyle(colorButton, savedColor);
-            });
+            this._applyColorMap(colorRoles);
         }
 
         _initializeDefaults() {

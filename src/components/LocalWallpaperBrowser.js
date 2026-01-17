@@ -163,12 +163,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             });
             applyCssToWidget(
                 loadingLabel,
-                `
-                label {
-                    font-size: 13px;
-                    opacity: 0.6;
-                }
-            `
+                'label { font-size: 13px; opacity: 0.6; }'
             );
             loadingBox.append(spinner);
             loadingBox.append(loadingLabel);
@@ -246,11 +241,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             });
             applyCssToWidget(
                 this._sortDropdown,
-                `
-                dropdown {
-                    min-width: 80px;
-                }
-            `
+                'dropdown { min-width: 80px; }'
             );
             this._sortDropdown.connect('notify::selected', () => {
                 const modes = ['name', 'date', 'size'];
@@ -356,14 +347,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             });
             applyCssToWidget(
                 actionsBox,
-                `
-                box {
-                    background-color: alpha(@view_bg_color, 0.5);
-                    border: 1px solid alpha(@borders, 0.15);
-                    border-radius: 0;
-                    padding: 2px;
-                }
-            `
+                'box { background-color: alpha(@view_bg_color, 0.5); border: 1px solid alpha(@borders, 0.15); border-radius: 0; padding: 2px; }'
             );
 
             // Refresh button
@@ -409,14 +393,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
 
             applyCssToWidget(
                 bar,
-                `
-                box {
-                    background-color: alpha(@accent_bg_color, 0.1);
-                    border: 1px solid alpha(@accent_bg_color, 0.3);
-                    padding: 8px 12px;
-                    border-radius: 0;
-                }
-            `
+                'box { background-color: alpha(@accent_bg_color, 0.1); border: 1px solid alpha(@accent_bg_color, 0.3); padding: 8px 12px; border-radius: 0; }'
             );
 
             this._selectionCountLabel = new Gtk.Label({
@@ -553,21 +530,15 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         }
 
         _sortWallpapers(wallpapers) {
-            wallpapers.sort((a, b) => {
-                let cmp = 0;
-                switch (this._sortMode) {
-                    case 'name':
-                        cmp = a.name.localeCompare(b.name);
-                        break;
-                    case 'date':
-                        cmp = a.modTime - b.modTime;
-                        break;
-                    case 'size':
-                        cmp = a.size - b.size;
-                        break;
-                }
-                return this._sortOrder === 'asc' ? cmp : -cmp;
-            });
+            const comparators = {
+                name: (a, b) => a.name.localeCompare(b.name),
+                date: (a, b) => a.modTime - b.modTime,
+                size: (a, b) => a.size - b.size,
+            };
+            const cmp = comparators[this._sortMode] || comparators.name;
+            const dir = this._sortOrder === 'asc' ? 1 : -1;
+
+            wallpapers.sort((a, b) => cmp(a, b) * dir);
         }
 
         async _renderWallpapers() {

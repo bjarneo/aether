@@ -82,14 +82,12 @@ export class SignalTracker {
         const index = this._connections.findIndex(
             c => c.object === object && c.handlerId === handlerId
         );
-        if (index !== -1) {
-            try {
-                object.disconnect(handlerId);
-            } catch (e) {
-                // Object may already be destroyed
-            }
-            this._connections.splice(index, 1);
-        }
+        if (index === -1) return;
+
+        try {
+            object.disconnect(handlerId);
+        } catch (_) {}
+        this._connections.splice(index, 1);
     }
 
     /**
@@ -109,34 +107,19 @@ export class SignalTracker {
      * Call this in the widget's cleanup/destroy handler
      */
     disconnectAll() {
-        // Disconnect all signal connections
         for (const {object, handlerId} of this._connections) {
             try {
                 object.disconnect(handlerId);
-            } catch (e) {
-                // Object may already be destroyed, ignore
-            }
+            } catch (_) {}
         }
         this._connections = [];
 
-        // Remove all timeout sources
-        for (const sourceId of this._timeoutIds) {
+        for (const sourceId of [...this._timeoutIds, ...this._idleIds]) {
             try {
                 GLib.Source.remove(sourceId);
-            } catch (e) {
-                // Source may already be removed
-            }
+            } catch (_) {}
         }
         this._timeoutIds = [];
-
-        // Remove all idle sources
-        for (const sourceId of this._idleIds) {
-            try {
-                GLib.Source.remove(sourceId);
-            } catch (e) {
-                // Source may already be removed
-            }
-        }
         this._idleIds = [];
     }
 

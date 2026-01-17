@@ -200,20 +200,10 @@ export const SettingsSidebar = GObject.registerClass(
                 margin_bottom: SPACING.SM,
             });
 
-            const headerLabel = new Gtk.Label({
-                label: 'SETTINGS',
-                xalign: 0,
-            });
+            const headerLabel = new Gtk.Label({label: 'SETTINGS', xalign: 0});
             applyCssToWidget(
                 headerLabel,
-                `
-                label {
-                    font-size: 13px;
-                    font-weight: 700;
-                    letter-spacing: 0.5px;
-                    opacity: 0.7;
-                }
-            `
+                'label { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; opacity: 0.7; }'
             );
             headerBox.append(headerLabel);
 
@@ -223,12 +213,7 @@ export const SettingsSidebar = GObject.registerClass(
             });
             applyCssToWidget(
                 headerSubtitle,
-                `
-                label {
-                    font-size: 11px;
-                    opacity: 0.5;
-                }
-            `
+                'label { font-size: 11px; opacity: 0.5; }'
             );
             headerBox.append(headerSubtitle);
             this.append(headerBox);
@@ -446,12 +431,7 @@ export const SettingsSidebar = GObject.registerClass(
             });
             applyCssToWidget(
                 this._gradientPreviewBox,
-                `
-                box {
-                    border: 1px solid alpha(@borders, 0.2);
-                    border-radius: 0;
-                }
-            `
+                'box { border: 1px solid alpha(@borders, 0.2); border-radius: 0; }'
             );
             controlsBox.append(this._gradientPreviewBox);
 
@@ -464,12 +444,7 @@ export const SettingsSidebar = GObject.registerClass(
             });
             applyCssToWidget(
                 generateButton,
-                `
-                button {
-                    border-radius: 0;
-                    padding: 8px 16px;
-                }
-            `
+                'button { border-radius: 0; padding: 8px 16px; }'
             );
             generateButton.connect('clicked', () => this._generateGradient());
 
@@ -610,12 +585,7 @@ export const SettingsSidebar = GObject.registerClass(
             });
             applyCssToWidget(
                 generatePaletteButton,
-                `
-                button {
-                    border-radius: 0;
-                    padding: 8px 16px;
-                }
-            `
+                'button { border-radius: 0; padding: 8px 16px; }'
             );
             generatePaletteButton.connect('clicked', () => {
                 const generatedColors = generatePaletteFromColor(
@@ -996,49 +966,33 @@ export const SettingsSidebar = GObject.registerClass(
 
         /**
          * Loads persisted settings from disk
-         * Reads from ~/.config/aether/settings.json
          * @private
          */
         _loadSettings() {
-            const configDir = GLib.build_filenamev([
-                GLib.get_user_config_dir(),
-                'aether',
-            ]);
-            ensureDirectoryExists(configDir);
+            ensureDirectoryExists(GLib.path_get_dirname(this._settingsPath));
 
             const settings = loadJsonFile(this._settingsPath);
-            if (settings) {
-                this._includeNeovim = settings.includeNeovim ?? true;
-                this._includeZed = settings.includeZed ?? false;
-                this._includeVscode = settings.includeVscode ?? false;
-                this._includeGtk = settings.includeGtk ?? false;
-                console.log('Loaded settings from', this._settingsPath);
-            }
+            if (!settings) return;
+
+            this._includeNeovim = settings.includeNeovim ?? true;
+            this._includeZed = settings.includeZed ?? false;
+            this._includeVscode = settings.includeVscode ?? false;
+            this._includeGtk = settings.includeGtk ?? false;
         }
 
         /**
          * Saves current settings to disk
-         * Writes to ~/.config/aether/settings.json
          * @public
          */
         saveSettings() {
-            const configDir = GLib.build_filenamev([
-                GLib.get_user_config_dir(),
-                'aether',
-            ]);
-            ensureDirectoryExists(configDir);
+            ensureDirectoryExists(GLib.path_get_dirname(this._settingsPath));
 
-            const settings = {
+            saveJsonFile(this._settingsPath, {
                 includeNeovim: this._includeNeovim,
                 includeZed: this._includeZed,
                 includeVscode: this._includeVscode,
                 includeGtk: this._includeGtk,
-            };
-
-            const success = saveJsonFile(this._settingsPath, settings);
-            if (success) {
-                console.log('Saved settings to', this._settingsPath);
-            }
+            });
         }
 
         setLightMode(lightMode) {

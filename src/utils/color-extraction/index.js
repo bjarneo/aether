@@ -72,78 +72,63 @@ export async function extractColorsWithImageMagick(
             throw new Error('Not enough colors extracted from image');
         }
 
-        let palette;
+        // Extraction mode generators with descriptions
+        const modeGenerators = {
+            monochromatic: {
+                fn: generateMonochromaticPalette,
+                desc: 'Monochromatic mode - generating single-hue palette',
+            },
+            analogous: {
+                fn: generateAnalogousPalette,
+                desc: 'Analogous mode - generating harmonious adjacent hues',
+            },
+            pastel: {
+                fn: generatePastelPalette,
+                desc: 'Pastel mode - generating soft, muted palette',
+            },
+            material: {
+                fn: generateMaterialPalette,
+                desc: 'Material mode - using Material Design backgrounds',
+            },
+            colorful: {
+                fn: generateColorfulPalette,
+                desc: 'Colorful mode - generating vibrant palette',
+            },
+            muted: {
+                fn: generateMutedPalette,
+                desc: 'Muted mode - generating desaturated palette',
+            },
+            bright: {
+                fn: generateBrightPalette,
+                desc: 'Bright mode - generating high-lightness palette',
+            },
+        };
 
-        // Generate palette based on extraction mode
-        switch (extractionMode) {
-            case 'monochromatic':
+        let palette;
+        const generator = modeGenerators[extractionMode];
+
+        if (generator) {
+            log.info(generator.desc);
+            palette = generator.fn(dominantColors, lightMode);
+        } else {
+            // Auto-detect image type for 'normal' mode
+            if (isMonochromeImage(dominantColors)) {
                 log.info(
-                    'Monochromatic mode - generating single-hue palette from dominant color'
+                    'Detected monochrome image - generating grayscale palette'
                 );
-                palette = generateMonochromaticPalette(
+                palette = generateMonochromePalette(dominantColors, lightMode);
+            } else if (hasLowColorDiversity(dominantColors)) {
+                log.info('Detected low diversity - generating subtle palette');
+                palette = generateSubtleBalancedPalette(
                     dominantColors,
                     lightMode
                 );
-                break;
-            case 'analogous':
-                log.info('Analogous mode - generating harmonious adjacent hues');
-                palette = generateAnalogousPalette(dominantColors, lightMode);
-                break;
-            case 'pastel':
-                log.info('Pastel mode - generating soft, muted palette');
-                palette = generatePastelPalette(dominantColors, lightMode);
-                break;
-            case 'material':
+            } else {
                 log.info(
-                    'Material mode - using image colors with Material Design backgrounds'
+                    'Detected diverse image - generating chromatic palette'
                 );
-                palette = generateMaterialPalette(dominantColors, lightMode);
-                break;
-            case 'colorful':
-                log.info(
-                    'Colorful mode - generating vibrant, highly saturated palette'
-                );
-                palette = generateColorfulPalette(dominantColors, lightMode);
-                break;
-            case 'muted':
-                log.info('Muted mode - generating desaturated, calm palette');
-                palette = generateMutedPalette(dominantColors, lightMode);
-                break;
-            case 'bright':
-                log.info(
-                    'Bright mode - generating high-lightness, energetic palette'
-                );
-                palette = generateBrightPalette(dominantColors, lightMode);
-                break;
-            case 'normal':
-            default:
-                // Auto-detect image type and generate appropriate palette
-                if (isMonochromeImage(dominantColors)) {
-                    log.info(
-                        'Detected monochrome/grayscale image - generating grayscale palette'
-                    );
-                    palette = generateMonochromePalette(
-                        dominantColors,
-                        lightMode
-                    );
-                } else if (hasLowColorDiversity(dominantColors)) {
-                    log.info(
-                        'Detected low color diversity - generating subtle balanced palette'
-                    );
-                    palette = generateSubtleBalancedPalette(
-                        dominantColors,
-                        lightMode
-                    );
-                } else {
-                    log.info(
-                        'Detected diverse chromatic image - generating vibrant colorful palette'
-                    );
-                    palette = generateChromaticPalette(
-                        dominantColors,
-                        lightMode
-                    );
-                }
-                break;
+                palette = generateChromaticPalette(dominantColors, lightMode);
+            }
         }
 
         // Normalize brightness for readability
