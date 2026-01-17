@@ -12,6 +12,17 @@ import {
     getCustomApps,
 } from '../../utils/template-utils.js';
 import {SPACING} from '../../constants/ui-constants.js';
+import {rgbaToHex} from '../../utils/color-utils.js';
+
+// Files excluded from per-app overrides (internal templates or terminal configs handled elsewhere)
+const EXCLUDED_TEMPLATE_FILES = [
+    'aether.override.css',
+    'gtk.css',
+    'alacritty.toml',
+    'ghostty.conf',
+    'kitty.conf',
+    'btop.theme',
+];
 
 export const AppColorOverrides = GObject.registerClass(
     {
@@ -59,17 +70,7 @@ export const AppColorOverrides = GObject.registerClass(
             const addedApps = new Set();
 
             templateMap.forEach((filePath, fileName) => {
-                // Skip excluded files
-                const excludedFiles = [
-                    'aether.override.css',
-                    'gtk.css',
-                    'alacritty.toml',
-                    'ghostty.conf',
-                    'kitty.conf',
-                    'btop.theme',
-                ];
-
-                if (excludedFiles.includes(fileName)) {
+                if (EXCLUDED_TEMPLATE_FILES.includes(fileName)) {
                     return;
                 }
 
@@ -571,7 +572,7 @@ export const AppColorOverrides = GObject.registerClass(
                 }
 
                 const rgba = colorButton.get_rgba();
-                const hex = this._rgbaToHex(rgba);
+                const hex = rgbaToHex(rgba);
                 row.set_subtitle(`Custom: ${hex}`);
                 onColorChanged(hex);
                 clearButton.set_visible(true);
@@ -651,13 +652,6 @@ export const AppColorOverrides = GObject.registerClass(
 
         resetAllOverrides() {
             this._resetAllOverrides();
-        }
-
-        _rgbaToHex(rgba) {
-            const r = Math.round(rgba.red * 255);
-            const g = Math.round(rgba.green * 255);
-            const b = Math.round(rgba.blue * 255);
-            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
         }
 
         getOverrides() {

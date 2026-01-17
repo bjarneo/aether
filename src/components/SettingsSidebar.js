@@ -1071,15 +1071,9 @@ export const SettingsSidebar = GObject.registerClass(
         }
 
         setNeovimTheme(config) {
-            // Set the selected neovim config and update visual feedback
             this._selectedNeovimConfig = config;
             this._updateNeovimPresetSelection(config);
-
-            if (config) {
-                this.emit('neovim-theme-changed', true);
-            } else {
-                this.emit('neovim-theme-changed', false);
-            }
+            this.emit('neovim-theme-changed', Boolean(config));
         }
 
         get widget() {

@@ -460,8 +460,7 @@ export class ConfigWriter {
             let processed = content;
 
             // Check if there are app-specific overrides for this template
-            // Map fileName to app name (remove extension)
-            const appName = this._getAppNameFromFileName(fileName);
+            const appName = getAppNameFromFileName(fileName);
             const appSpecificOverrides = appOverrides[appName] || {};
 
             // Merge app-specific overrides with base variables
@@ -486,9 +485,6 @@ export class ConfigWriter {
         }
     }
 
-    _getAppNameFromFileName(fileName) {
-        return getAppNameFromFileName(fileName);
-    }
 
     _replaceVariable(content, key, value) {
         // Replace {key}
