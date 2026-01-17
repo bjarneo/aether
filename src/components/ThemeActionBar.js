@@ -4,6 +4,74 @@ import Gtk from 'gi://Gtk?version=4.0';
 import {applyCssToWidget} from '../utils/ui-helpers.js';
 import {SPACING} from '../constants/ui-constants.js';
 
+/** @constant {string} Shared CSS for flat action buttons */
+const FLAT_BUTTON_CSS = `
+    button {
+        border-radius: 0;
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+`;
+
+/** @constant {string} CSS for separator elements */
+const SEPARATOR_CSS = `
+    separator {
+        opacity: 0.3;
+    }
+`;
+
+/** @constant {string} CSS for destructive buttons with hover effect */
+const DESTRUCTIVE_BUTTON_CSS = `
+    button {
+        border-radius: 0;
+        padding: 6px 12px;
+        font-size: 13px;
+        opacity: 0.7;
+    }
+    button:hover {
+        opacity: 1;
+        color: @destructive_bg_color;
+    }
+`;
+
+/**
+ * Create a button with icon and label
+ * @param {string} iconName - Icon name
+ * @param {string} label - Button label
+ * @param {string[]} cssClasses - CSS classes for button
+ * @returns {Gtk.Button} The created button
+ */
+function createIconLabelButton(iconName, label, cssClasses = ['flat']) {
+    const content = new Gtk.Box({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        spacing: 6,
+    });
+    content.append(new Gtk.Image({icon_name: iconName}));
+    content.append(new Gtk.Label({label}));
+
+    const button = new Gtk.Button({
+        child: content,
+        css_classes: cssClasses,
+    });
+    applyCssToWidget(button, FLAT_BUTTON_CSS);
+
+    return button;
+}
+
+/**
+ * Create a styled separator
+ * @returns {Gtk.Separator} The created separator
+ */
+function createSeparator(marginStart = 8, marginEnd = 8) {
+    const separator = new Gtk.Separator({
+        orientation: Gtk.Orientation.VERTICAL,
+        margin_start: marginStart,
+        margin_end: marginEnd,
+    });
+    applyCssToWidget(separator, SEPARATOR_CSS);
+    return separator;
+}
+
 /**
  * ThemeActionBar - Clean action bar with grouped theme actions
  * Features primary/secondary action hierarchy
@@ -19,6 +87,8 @@ export const ThemeActionBar = GObject.registerClass(
             reset: {},
             clear: {},
             'apply-theme': {},
+            undo: {},
+            redo: {},
         },
     },
     class ThemeActionBar extends Gtk.Box {
@@ -75,70 +145,20 @@ export const ThemeActionBar = GObject.registerClass(
             });
             leftGroup.append(this._settingsToggle);
 
-            // Separator
-            const sep1 = new Gtk.Separator({
-                orientation: Gtk.Orientation.VERTICAL,
-                margin_start: 8,
-                margin_end: 8,
-            });
-            applyCssToWidget(
-                sep1,
-                `
-                separator {
-                    opacity: 0.3;
-                }
-            `
-            );
-            leftGroup.append(sep1);
+            leftGroup.append(createSeparator());
 
             // Export button
-            const exportBtn = new Gtk.Button({
-                css_classes: ['flat'],
-            });
-            const exportContent = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-            });
-            exportContent.append(
-                new Gtk.Image({icon_name: 'document-save-symbolic'})
-            );
-            exportContent.append(new Gtk.Label({label: 'Export'}));
-            exportBtn.set_child(exportContent);
-            applyCssToWidget(
-                exportBtn,
-                `
-                button {
-                    border-radius: 0;
-                    padding: 6px 12px;
-                    font-size: 13px;
-                }
-            `
+            const exportBtn = createIconLabelButton(
+                'document-save-symbolic',
+                'Export'
             );
             exportBtn.connect('clicked', () => this.emit('export-theme'));
             leftGroup.append(exportBtn);
 
             // Save blueprint button
-            const saveBtn = new Gtk.Button({
-                css_classes: ['flat'],
-            });
-            const saveContent = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 6,
-            });
-            saveContent.append(
-                new Gtk.Image({icon_name: 'bookmark-new-symbolic'})
-            );
-            saveContent.append(new Gtk.Label({label: 'Save'}));
-            saveBtn.set_child(saveContent);
-            applyCssToWidget(
-                saveBtn,
-                `
-                button {
-                    border-radius: 0;
-                    padding: 6px 12px;
-                    font-size: 13px;
-                }
-            `
+            const saveBtn = createIconLabelButton(
+                'bookmark-new-symbolic',
+                'Save'
             );
             saveBtn.connect('clicked', () => this.emit('save-blueprint'));
             leftGroup.append(saveBtn);
@@ -155,6 +175,42 @@ export const ThemeActionBar = GObject.registerClass(
                 spacing: 8,
             });
 
+            // Undo/Redo buttons
+            const historyGroup = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 4,
+            });
+
+            const historyButtonCss = `
+                button {
+                    border-radius: 0;
+                    padding: 6px 10px;
+                }
+            `;
+
+            this._undoBtn = new Gtk.Button({
+                icon_name: 'edit-undo-symbolic',
+                tooltip_text: 'Undo (Ctrl+Z)',
+                css_classes: ['flat'],
+                sensitive: false,
+            });
+            applyCssToWidget(this._undoBtn, historyButtonCss);
+            this._undoBtn.connect('clicked', () => this.emit('undo'));
+            historyGroup.append(this._undoBtn);
+
+            this._redoBtn = new Gtk.Button({
+                icon_name: 'edit-redo-symbolic',
+                tooltip_text: 'Redo (Ctrl+Shift+Z)',
+                css_classes: ['flat'],
+                sensitive: false,
+            });
+            applyCssToWidget(this._redoBtn, historyButtonCss);
+            this._redoBtn.connect('clicked', () => this.emit('redo'));
+            historyGroup.append(this._redoBtn);
+
+            rightGroup.append(historyGroup);
+            rightGroup.append(createSeparator(4, 4));
+
             // Destructive actions (grouped, subtle)
             const destructiveGroup = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
@@ -167,21 +223,7 @@ export const ThemeActionBar = GObject.registerClass(
                 tooltip_text: 'Remove theme and switch to default',
                 css_classes: ['flat'],
             });
-            applyCssToWidget(
-                clearBtn,
-                `
-                button {
-                    border-radius: 0;
-                    padding: 6px 12px;
-                    font-size: 13px;
-                    opacity: 0.7;
-                }
-                button:hover {
-                    opacity: 1;
-                    color: @destructive_bg_color;
-                }
-            `
-            );
+            applyCssToWidget(clearBtn, DESTRUCTIVE_BUTTON_CSS);
             clearBtn.connect('clicked', () => this.emit('clear'));
             destructiveGroup.append(clearBtn);
 
@@ -191,41 +233,12 @@ export const ThemeActionBar = GObject.registerClass(
                 tooltip_text: 'Reset all changes',
                 css_classes: ['flat'],
             });
-            applyCssToWidget(
-                resetBtn,
-                `
-                button {
-                    border-radius: 0;
-                    padding: 6px 12px;
-                    font-size: 13px;
-                    opacity: 0.7;
-                }
-                button:hover {
-                    opacity: 1;
-                    color: @destructive_bg_color;
-                }
-            `
-            );
+            applyCssToWidget(resetBtn, DESTRUCTIVE_BUTTON_CSS);
             resetBtn.connect('clicked', () => this.emit('reset'));
             destructiveGroup.append(resetBtn);
 
             rightGroup.append(destructiveGroup);
-
-            // Separator
-            const sep2 = new Gtk.Separator({
-                orientation: Gtk.Orientation.VERTICAL,
-                margin_start: 8,
-                margin_end: 8,
-            });
-            applyCssToWidget(
-                sep2,
-                `
-                separator {
-                    opacity: 0.3;
-                }
-            `
-            );
-            rightGroup.append(sep2);
+            rightGroup.append(createSeparator());
 
             // Apply button (primary CTA)
             const applyBtn = new Gtk.Button({
@@ -267,7 +280,6 @@ export const ThemeActionBar = GObject.registerClass(
          * @private
          */
         _createImportMenuButton() {
-            // Create popover with import options
             const popover = new Gtk.Popover();
 
             const popoverBox = new Gtk.Box({
@@ -279,45 +291,32 @@ export const ThemeActionBar = GObject.registerClass(
                 margin_end: SPACING.SM,
             });
 
-            // Base16 import option
-            const base16ButtonBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: SPACING.SM,
-            });
-            base16ButtonBox.append(
-                new Gtk.Image({icon_name: 'document-open-symbolic'})
-            );
-            base16ButtonBox.append(new Gtk.Label({label: 'Base16 (.yaml)'}));
+            // Import options configuration
+            const importOptions = [
+                {label: 'Base16 (.yaml)', signal: 'import-base16'},
+                {label: 'Colors (.toml)', signal: 'import-colors-toml'},
+            ];
 
-            const base16Button = new Gtk.Button({
-                child: base16ButtonBox,
-                css_classes: ['flat'],
-            });
-            base16Button.connect('clicked', () => {
-                popover.popdown();
-                this.emit('import-base16');
-            });
-            popoverBox.append(base16Button);
+            for (const option of importOptions) {
+                const buttonBox = new Gtk.Box({
+                    orientation: Gtk.Orientation.HORIZONTAL,
+                    spacing: SPACING.SM,
+                });
+                buttonBox.append(
+                    new Gtk.Image({icon_name: 'document-open-symbolic'})
+                );
+                buttonBox.append(new Gtk.Label({label: option.label}));
 
-            // Colors.toml import option
-            const tomlButtonBox = new Gtk.Box({
-                orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: SPACING.SM,
-            });
-            tomlButtonBox.append(
-                new Gtk.Image({icon_name: 'document-open-symbolic'})
-            );
-            tomlButtonBox.append(new Gtk.Label({label: 'Colors (.toml)'}));
-
-            const tomlButton = new Gtk.Button({
-                child: tomlButtonBox,
-                css_classes: ['flat'],
-            });
-            tomlButton.connect('clicked', () => {
-                popover.popdown();
-                this.emit('import-colors-toml');
-            });
-            popoverBox.append(tomlButton);
+                const button = new Gtk.Button({
+                    child: buttonBox,
+                    css_classes: ['flat'],
+                });
+                button.connect('clicked', () => {
+                    popover.popdown();
+                    this.emit(option.signal);
+                });
+                popoverBox.append(button);
+            }
 
             popover.set_child(popoverBox);
 
@@ -333,7 +332,7 @@ export const ThemeActionBar = GObject.registerClass(
 
             const menuButton = new Gtk.MenuButton({
                 child: buttonContent,
-                popover: popover,
+                popover,
                 tooltip_text: 'Import color scheme',
                 css_classes: ['flat'],
             });
@@ -353,6 +352,22 @@ export const ThemeActionBar = GObject.registerClass(
 
         get widget() {
             return this;
+        }
+
+        /**
+         * Set undo button enabled state
+         * @param {boolean} enabled - Whether undo is available
+         */
+        setUndoEnabled(enabled) {
+            this._undoBtn.set_sensitive(enabled);
+        }
+
+        /**
+         * Set redo button enabled state
+         * @param {boolean} enabled - Whether redo is available
+         */
+        setRedoEnabled(enabled) {
+            this._redoBtn.set_sensitive(enabled);
         }
     }
 );

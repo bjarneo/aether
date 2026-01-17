@@ -10,6 +10,7 @@
 import GObject from 'gi://GObject';
 
 import {DEFAULT_PALETTE} from '../constants/colors.js';
+import {HistoryManager} from './HistoryManager.js';
 
 /**
  * @typedef {Object} ColorRoles
@@ -89,6 +90,7 @@ export const ThemeState = GObject.registerClass(
             'app-overrides-changed': {param_types: [GObject.TYPE_JSOBJECT]},
             'neovim-theme-changed': {param_types: [GObject.TYPE_STRING]},
             'state-reset': {},
+            'history-changed': {},
         },
     },
     class ThemeState extends GObject.Object {
@@ -130,6 +132,15 @@ export const ThemeState = GObject.registerClass(
 
             /** @private @type {Object} Extended color overrides (accent, cursor, selection_*) */
             this._extendedColors = {};
+
+            /** @private @type {HistoryManager} */
+            this._historyManager = new HistoryManager();
+            this._historyManager.connect('history-changed', () => {
+                this.emit('history-changed');
+            });
+
+            /** @private @type {boolean} Flag to prevent history capture during restore */
+            this._isRestoring = false;
         }
 
         // ==================== Palette ====================
@@ -155,6 +166,10 @@ export const ThemeState = GObject.registerClass(
                 return;
             }
 
+            if (!silent) {
+                this._captureBeforeState();
+            }
+
             this._palette = [...colors];
 
             // Reset extended colors so they auto-derive from new palette
@@ -166,6 +181,7 @@ export const ThemeState = GObject.registerClass(
 
             if (!silent) {
                 this.emit('palette-changed', this._palette);
+                this._captureSnapshot('Set palette');
             }
         }
 
@@ -177,9 +193,11 @@ export const ThemeState = GObject.registerClass(
         setColor(index, color) {
             if (index < 0 || index > 15) return;
 
+            this._captureBeforeState();
             this._palette[index] = color;
             this._updateColorRolesFromPalette();
             this.emit('palette-changed', this._palette);
+            this._captureSnapshot(`Set color ${index}`);
         }
 
         // ==================== Color Locks ====================
@@ -264,8 +282,10 @@ export const ThemeState = GObject.registerClass(
         setLightMode(enabled) {
             if (this._lightMode === enabled) return;
 
+            this._captureBeforeState();
             this._lightMode = enabled;
             this.emit('light-mode-changed', enabled);
+            this._captureSnapshot('Toggle light mode');
         }
 
         // ==================== Adjustments ====================
@@ -283,11 +303,13 @@ export const ThemeState = GObject.registerClass(
          * @param {Partial<Adjustments>} values - Adjustment values to update
          */
         setAdjustments(values) {
+            this._captureBeforeState();
             this._adjustments = {
                 ...this._adjustments,
                 ...values,
             };
             this.emit('adjustments-changed', this._adjustments);
+            this._captureSnapshot('Adjust colors');
         }
 
         /**
@@ -421,9 +443,11 @@ export const ThemeState = GObject.registerClass(
         setExtendedColor(name, color) {
             if (!ThemeState.EXTENDED_COLOR_NAMES.includes(name)) return;
 
+            this._captureBeforeState();
             this._extendedColors[name] = color;
             this._colorRoles[name] = color;
             this.emit('color-roles-changed', this._colorRoles);
+            this._captureSnapshot(`Set ${name}`);
         }
 
         /**
@@ -439,6 +463,7 @@ export const ThemeState = GObject.registerClass(
          * @param {Object} colors - Extended color mappings
          */
         setExtendedColors(colors) {
+            this._captureBeforeState();
             ThemeState.EXTENDED_COLOR_NAMES.forEach(name => {
                 if (colors[name]) {
                     this._extendedColors[name] = colors[name];
@@ -446,6 +471,7 @@ export const ThemeState = GObject.registerClass(
                 }
             });
             this.emit('color-roles-changed', this._colorRoles);
+            this._captureSnapshot('Set extended colors');
         }
 
         /**
@@ -665,6 +691,149 @@ export const ThemeState = GObject.registerClass(
             this._additionalImages = [];
 
             this.emit('state-reset');
+        }
+
+        // ==================== History ====================
+
+        /**
+         * Create a snapshot object from given state
+         * @private
+         * @param {Object} state - State values
+         * @param {string} action - Description
+         * @returns {Object} Snapshot object
+         */
+        _createSnapshot(state, action) {
+            return {
+                palette: [...state.palette],
+                extendedColors: {...state.extendedColors},
+                adjustments: {...state.adjustments},
+                lightMode: state.lightMode,
+                action,
+            };
+        }
+
+        /**
+         * Capture state before a change (call before modifying state)
+         * Only captures if this would be the first history entry
+         * @private
+         */
+        _captureBeforeState() {
+            if (this._isRestoring || this._historyManager.isRestoring) return;
+
+            // Only capture "before" state if history is empty
+            if (
+                !this._historyManager.canUndo() &&
+                !this._historyManager.canRedo()
+            ) {
+                this._historyManager.push(
+                    this._createSnapshot(
+                        {
+                            palette: this._palette,
+                            extendedColors: this._extendedColors,
+                            adjustments: this._adjustments,
+                            lightMode: this._lightMode,
+                        },
+                        'Initial state'
+                    )
+                );
+            }
+        }
+
+        /**
+         * Capture current state as a history snapshot (call after modifying state)
+         * @private
+         * @param {string} action - Description of what changed
+         */
+        _captureSnapshot(action) {
+            if (this._isRestoring || this._historyManager.isRestoring) return;
+
+            this._historyManager.push(
+                this._createSnapshot(
+                    {
+                        palette: this._palette,
+                        extendedColors: this._extendedColors,
+                        adjustments: this._adjustments,
+                        lightMode: this._lightMode,
+                    },
+                    action
+                )
+            );
+        }
+
+        /**
+         * Restore state from a snapshot
+         * @private
+         * @param {Object} snapshot - History snapshot
+         */
+        _restoreSnapshot(snapshot) {
+            this._isRestoring = true;
+
+            this._palette = [...snapshot.palette];
+            this._extendedColors = {...snapshot.extendedColors};
+            this._adjustments = {...snapshot.adjustments};
+            this._lightMode = snapshot.lightMode;
+
+            this._updateColorRolesFromPalette();
+
+            // Emit signals for UI updates
+            this.emit('palette-changed', this._palette);
+            this.emit('adjustments-changed', this._adjustments);
+            this.emit('light-mode-changed', this._lightMode);
+
+            this._isRestoring = false;
+        }
+
+        /**
+         * Perform history navigation (undo or redo)
+         * @private
+         * @param {Function} navigateFn - History manager method to call
+         * @returns {boolean} Whether navigation was performed
+         */
+        _performHistoryNavigation(navigateFn) {
+            const snapshot = navigateFn.call(this._historyManager);
+            if (!snapshot) return false;
+
+            this._restoreSnapshot(snapshot);
+            return true;
+        }
+
+        /**
+         * Undo last change
+         * @returns {boolean} Whether undo was performed
+         */
+        undo() {
+            return this._performHistoryNavigation(this._historyManager.undo);
+        }
+
+        /**
+         * Redo previously undone change
+         * @returns {boolean} Whether redo was performed
+         */
+        redo() {
+            return this._performHistoryNavigation(this._historyManager.redo);
+        }
+
+        /**
+         * Check if undo is available
+         * @returns {boolean} Whether undo is possible
+         */
+        canUndo() {
+            return this._historyManager.canUndo();
+        }
+
+        /**
+         * Check if redo is available
+         * @returns {boolean} Whether redo is possible
+         */
+        canRedo() {
+            return this._historyManager.canRedo();
+        }
+
+        /**
+         * Clear history (e.g., when loading a new wallpaper)
+         */
+        clearHistory() {
+            this._historyManager.clear();
         }
     }
 );

@@ -19,6 +19,7 @@
  */
 
 import GLib from 'gi://GLib';
+import Gdk from 'gi://Gdk?version=4.0';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
@@ -76,6 +77,22 @@ export const AetherWindow = GObject.registerClass(
                 this._updateAccessibility();
                 this._updateAppOverrideColors();
             });
+
+            // Update undo/redo button states when history changes
+            themeState.connect('history-changed', () => {
+                this._updateHistoryButtons();
+            });
+        }
+
+        /**
+         * Update undo/redo button enabled states
+         * @private
+         */
+        _updateHistoryButtons() {
+            if (this.actionBar) {
+                this.actionBar.setUndoEnabled(themeState.canUndo());
+                this.actionBar.setRedoEnabled(themeState.canRedo());
+            }
         }
 
         /**
@@ -131,6 +148,47 @@ export const AetherWindow = GObject.registerClass(
 
                 return GLib.SOURCE_REMOVE;
             });
+
+            // Setup keyboard shortcuts for undo/redo
+            this._setupKeyboardShortcuts();
+        }
+
+        /**
+         * Setup keyboard shortcuts for the window
+         * @private
+         */
+        _setupKeyboardShortcuts() {
+            const keyController = new Gtk.EventControllerKey();
+            keyController.connect(
+                'key-pressed',
+                (_controller, keyval, _keycode, state) => {
+                    const ctrlPressed =
+                        (state & Gdk.ModifierType.CONTROL_MASK) !== 0;
+                    const shiftPressed =
+                        (state & Gdk.ModifierType.SHIFT_MASK) !== 0;
+
+                    if (!ctrlPressed) return false;
+
+                    // Ctrl+Z for undo, Ctrl+Shift+Z or Ctrl+Y for redo
+                    const isUndo = !shiftPressed && keyval === Gdk.KEY_z;
+                    const isRedo =
+                        (shiftPressed && keyval === Gdk.KEY_z) ||
+                        (!shiftPressed && keyval === Gdk.KEY_y);
+
+                    if (isUndo && themeState.canUndo()) {
+                        themeState.undo();
+                        return true;
+                    }
+
+                    if (isRedo && themeState.canRedo()) {
+                        themeState.redo();
+                        return true;
+                    }
+
+                    return false;
+                }
+            );
+            this.add_controller(keyController);
         }
 
         /**
@@ -464,6 +522,14 @@ export const AetherWindow = GObject.registerClass(
 
             this.actionBar.connect('import-colors-toml', () => {
                 this.paletteGenerator._importColorsToml();
+            });
+
+            this.actionBar.connect('undo', () => {
+                themeState.undo();
+            });
+
+            this.actionBar.connect('redo', () => {
+                themeState.redo();
             });
 
             return this.actionBar;
