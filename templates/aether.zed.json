@@ -31,12 +31,12 @@
         "text.muted": "{white}",
         "text.placeholder": "{white}",
         "text.disabled": "{black}",
-        "text.accent": "{cyan}",
+        "text.accent": "{accent}",
         "icon": null,
         "icon.muted": null,
         "icon.disabled": null,
         "icon.placeholder": null,
-        "icon.accent": null,
+        "icon.accent": "{accent}",
         "status_bar.background": "{background}",
         "title_bar.background": "{background}",
         "title_bar.inactive_background": "{bright_black}",
@@ -94,7 +94,7 @@
         "terminal.ansi.white": "{foreground}",
         "terminal.ansi.bright_white": "{white}",
         "terminal.ansi.dim_white": null,
-        "link_text.hover": "{cyan}",
+        "link_text.hover": "{accent}",
         "conflict": "{yellow}",
         "conflict.background": "{background}",
         "conflict.border": "{yellow}",
@@ -139,8 +139,8 @@
         "warning.border": "{yellow}",
         "players": [
           {
-            "cursor": "{foreground}",
-            "selection": "{black}",
+            "cursor": "{cursor}",
+            "selection": "{selection_background}80",
             "background": null
           }
         ],
