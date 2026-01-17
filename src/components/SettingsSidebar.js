@@ -33,6 +33,7 @@ import {
     ensureDirectoryExists,
 } from '../utils/file-utils.js';
 import {themeState} from '../state/ThemeState.js';
+import {SignalTracker} from '../utils/signal-tracker.js';
 
 /**
  * SettingsSidebar - Comprehensive theme settings and customization panel
@@ -92,6 +93,9 @@ export const SettingsSidebar = GObject.registerClass(
                 spacing: 0,
             });
 
+            // Signal tracker for cleanup
+            this._signals = new SignalTracker();
+
             this._settingsPath = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
                 'aether',
@@ -116,38 +120,60 @@ export const SettingsSidebar = GObject.registerClass(
         }
 
         /**
+         * Called when widget is removed from the widget tree
+         * Cleans up all signal connections to prevent memory leaks
+         */
+        vfunc_unroot() {
+            this._signals.disconnectAll();
+            super.vfunc_unroot();
+        }
+
+        /**
          * Connect to centralized theme state signals
+         * Uses SignalTracker for proper cleanup on destroy
          * @private
          */
         _connectThemeState() {
             // Listen for light mode changes from other components
-            themeState.connect('light-mode-changed', (_, lightMode) => {
-                if (this._lightMode !== lightMode) {
-                    this._lightMode = lightMode;
-                    // Update UI switch if exists
-                    if (this._lightModeSwitch) {
-                        this._lightModeSwitch.set_active(lightMode);
+            this._signals.track(
+                themeState,
+                'light-mode-changed',
+                (_, lightMode) => {
+                    if (this._lightMode !== lightMode) {
+                        this._lightMode = lightMode;
+                        // Update UI switch if exists
+                        if (this._lightModeSwitch) {
+                            this._lightModeSwitch.set_active(lightMode);
+                        }
                     }
                 }
-            });
+            );
 
             // Listen for adjustments changes
-            themeState.connect('adjustments-changed', (_, adjustments) => {
-                if (this._adjustmentControls) {
-                    this._adjustmentControls.setValues(adjustments);
+            this._signals.track(
+                themeState,
+                'adjustments-changed',
+                (_, adjustments) => {
+                    if (this._adjustmentControls) {
+                        this._adjustmentControls.setValues(adjustments);
+                    }
                 }
-            });
+            );
 
             // Listen for neovim theme changes
-            themeState.connect('neovim-theme-changed', (_, theme) => {
-                if (theme && theme !== this._selectedNeovimConfig) {
-                    this._selectedNeovimConfig = theme;
-                    this._updateNeovimPresetSelection(theme);
+            this._signals.track(
+                themeState,
+                'neovim-theme-changed',
+                (_, theme) => {
+                    if (theme && theme !== this._selectedNeovimConfig) {
+                        this._selectedNeovimConfig = theme;
+                        this._updateNeovimPresetSelection(theme);
+                    }
                 }
-            });
+            );
 
             // Listen for state reset
-            themeState.connect('state-reset', () => {
+            this._signals.track(themeState, 'state-reset', () => {
                 this.resetAdjustments();
                 this._lightMode = false;
                 if (this._lightModeSwitch) {
@@ -927,10 +953,12 @@ export const SettingsSidebar = GObject.registerClass(
 
             // Show checkmark feedback
             this._gtkClearButton.set_icon_name('object-select-symbolic');
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2000, () => {
-                this._gtkClearButton.set_icon_name('user-trash-symbolic');
-                return GLib.SOURCE_REMOVE;
-            });
+            this._signals.trackTimeout(
+                GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2000, () => {
+                    this._gtkClearButton.set_icon_name('user-trash-symbolic');
+                    return GLib.SOURCE_REMOVE;
+                })
+            );
         }
 
         /**

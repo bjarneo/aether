@@ -7,6 +7,7 @@ import {rgbaToHex} from '../utils/color-utils.js';
 import {applyCssToWidget, forEachChild} from '../utils/ui-helpers.js';
 import {ANSI_COLOR_ROLES, DEFAULT_COLORS} from '../constants/colors.js';
 import {themeState} from '../state/ThemeState.js';
+import {SignalTracker} from '../utils/signal-tracker.js';
 
 /**
  * ColorSynthesizer - Color role assignment interface
@@ -54,6 +55,9 @@ export const ColorSynthesizer = GObject.registerClass(
                 spacing: 0,
             });
 
+            // Signal tracker for cleanup
+            this._signals = new SignalTracker();
+
             this._palette = [];
             this._colorRoles = new Map();
 
@@ -73,12 +77,22 @@ export const ColorSynthesizer = GObject.registerClass(
         }
 
         /**
+         * Called when widget is removed from the widget tree
+         * Cleans up all signal connections to prevent memory leaks
+         */
+        vfunc_unroot() {
+            this._signals.disconnectAll();
+            super.vfunc_unroot();
+        }
+
+        /**
          * Connect to centralized theme state signals
+         * Uses SignalTracker for proper cleanup on destroy
          * @private
          */
         _connectThemeState() {
             // Listen for palette changes from ThemeState
-            themeState.connect('palette-changed', (_, palette) => {
+            this._signals.track(themeState, 'palette-changed', (_, palette) => {
                 // Only update if different to avoid loops
                 if (JSON.stringify(palette) !== JSON.stringify(this._palette)) {
                     this.setPalette(palette);
@@ -86,12 +100,16 @@ export const ColorSynthesizer = GObject.registerClass(
             });
 
             // Listen for color role changes
-            themeState.connect('color-roles-changed', (_, colorRoles) => {
-                this.loadColors(colorRoles);
-            });
+            this._signals.track(
+                themeState,
+                'color-roles-changed',
+                (_, colorRoles) => {
+                    this.loadColors(colorRoles);
+                }
+            );
 
             // Listen for state reset
-            themeState.connect('state-reset', () => {
+            this._signals.track(themeState, 'state-reset', () => {
                 this.reset();
             });
         }

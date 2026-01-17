@@ -19,9 +19,6 @@
   ],
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "colorthief": "^2.4.0"
-  },
   "devDependencies": {
     "prettier": "^3.6.2"
   }

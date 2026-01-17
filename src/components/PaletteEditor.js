@@ -14,6 +14,7 @@ import {ColorPaletteSection} from './palette-editor/ColorPaletteSection.js';
 import {EmptyState} from './palette-editor/EmptyState.js';
 import {SPACING} from '../constants/ui-constants.js';
 import {themeState} from '../state/ThemeState.js';
+import {SignalTracker} from '../utils/signal-tracker.js';
 
 /**
  * PaletteEditor - Main component for palette creation and wallpaper management
@@ -67,6 +68,9 @@ export const PaletteEditor = GObject.registerClass(
                 spacing: SPACING.MD,
             });
 
+            // Signal tracker for cleanup
+            this._signals = new SignalTracker();
+
             registerCustomIcons();
 
             // Local state references (synced with themeState)
@@ -81,12 +85,22 @@ export const PaletteEditor = GObject.registerClass(
         }
 
         /**
+         * Called when widget is removed from the widget tree
+         * Cleans up all signal connections to prevent memory leaks
+         */
+        vfunc_unroot() {
+            this._signals.disconnectAll();
+            super.vfunc_unroot();
+        }
+
+        /**
          * Connect to centralized theme state signals
+         * Uses SignalTracker for proper cleanup on destroy
          * @private
          */
         _connectThemeState() {
             // Listen for external palette changes (e.g., from blueprint loading)
-            themeState.connect('palette-changed', (_, palette) => {
+            this._signals.track(themeState, 'palette-changed', (_, palette) => {
                 // Only update if different (avoid loops)
                 if (JSON.stringify(palette) !== JSON.stringify(this._palette)) {
                     this._palette = [...palette];
@@ -101,22 +115,33 @@ export const PaletteEditor = GObject.registerClass(
             // When user moves sliders, adjustments are applied via applyAdjustments() call.
 
             // Listen for light mode changes
-            themeState.connect('light-mode-changed', (_, lightMode) => {
-                this._lightMode = lightMode;
-            });
+            this._signals.track(
+                themeState,
+                'light-mode-changed',
+                (_, lightMode) => {
+                    this._lightMode = lightMode;
+                }
+            );
 
             // Listen for wallpaper changes
-            themeState.connect('wallpaper-changed', (_, wallpaperPath) => {
-                if (wallpaperPath && wallpaperPath !== this._currentWallpaper) {
-                    this.loadWallpaper(
-                        wallpaperPath,
-                        themeState.getWallpaperMetadata()
-                    );
+            this._signals.track(
+                themeState,
+                'wallpaper-changed',
+                (_, wallpaperPath) => {
+                    if (
+                        wallpaperPath &&
+                        wallpaperPath !== this._currentWallpaper
+                    ) {
+                        this.loadWallpaper(
+                            wallpaperPath,
+                            themeState.getWallpaperMetadata()
+                        );
+                    }
                 }
-            });
+            );
 
             // Listen for state reset
-            themeState.connect('state-reset', () => {
+            this._signals.track(themeState, 'state-reset', () => {
                 this.reset();
             });
         }

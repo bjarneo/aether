@@ -29,6 +29,10 @@ import {
     styleButton,
 } from './ui/BrowserHeader.js';
 import {SPACING, GRID} from '../constants/ui-constants.js';
+import {SignalTracker} from '../utils/signal-tracker.js';
+import {createLogger} from '../utils/logger.js';
+
+const log = createLogger('LocalWallpaperBrowser');
 
 // Grid size presets (thumbnail heights)
 const GRID_SIZES = {
@@ -74,6 +78,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 spacing: SPACING.MD,
             });
 
+            // Signal tracker for cleanup
+            this._signals = new SignalTracker();
+
             this._wallpapersPath = GLib.build_filenamev([
                 GLib.get_home_dir(),
                 'Wallpapers',
@@ -90,6 +97,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             this._subfolders = new Map(); // Map<folderName, wallpaper[]>
             this._cardCache = new Map(); // Map<path, {card, flowBoxChild}> for reordering
             this._subfolderExpanders = new Map(); // Map<folderName, expander> for reordering
+            this._pendingThumbnails = new Set(); // Track pending thumbnail loads for cancellation
 
             this._initializeUI();
 
@@ -102,6 +110,16 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             this._gridManager.initialize();
 
             this._loadWallpapersAsync();
+        }
+
+        /**
+         * Called when widget is removed from the widget tree
+         * Cleans up all signal connections and pending operations
+         */
+        vfunc_unroot() {
+            this._signals.disconnectAll();
+            this._pendingThumbnails.clear();
+            super.vfunc_unroot();
         }
 
         _initializeUI() {
@@ -483,7 +501,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 this._applySortAndFilter();
                 this._contentStack.set_visible_child_name('content');
             } catch (e) {
-                console.error('Error loading local wallpapers:', e.message);
+                log.error('Error loading local wallpapers', e);
                 this._contentStack.set_visible_child_name('empty');
             }
         }
@@ -517,10 +535,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                     }
                 }
             } catch (e) {
-                console.error(
-                    `Error scanning directory ${dirPath}:`,
-                    e.message
-                );
+                log.error(`Error scanning directory ${dirPath}`, e);
             }
             return wallpapers;
         }
@@ -750,16 +765,31 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 });
             }
 
+            // Track this thumbnail load for cancellation on destroy
+            const loadId = wallpaper.path;
+            this._pendingThumbnails.add(loadId);
+
             // Load thumbnail asynchronously (non-blocking)
             thumbnailService.getThumbnail(wallpaper.file).then(thumbPath => {
+                // Skip if component was destroyed or this load was cancelled
+                if (!this._pendingThumbnails.has(loadId)) {
+                    return;
+                }
+                this._pendingThumbnails.delete(loadId);
+
                 if (thumbPath) {
                     try {
-                        const pixbuf =
-                            GdkPixbuf.Pixbuf.new_from_file(thumbPath);
+                        // Load at scaled size to reduce memory usage
+                        const pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                            thumbPath,
+                            GRID_SIZES[this._gridSize] * 2, // 2x for HiDPI
+                            GRID_SIZES[this._gridSize] * 2,
+                            true // preserve aspect ratio
+                        );
                         const texture = Gdk.Texture.new_for_pixbuf(pixbuf);
                         picture.set_paintable(texture);
                     } catch (e) {
-                        console.error('Failed to load thumbnail:', e.message);
+                        log.error('Failed to load thumbnail', e);
                         picture.set_file(wallpaper.file);
                     }
                 } else {
@@ -1168,7 +1198,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                     try {
                         launcher.open_containing_folder_finish(result);
                     } catch (e) {
-                        console.error('Error opening folder:', e.message);
+                        log.error('Error opening folder', e);
                     }
                 }
             );
