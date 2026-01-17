@@ -249,21 +249,20 @@ function savePaletteToCache(cacheKey, palette) {
  * @returns {{pixels: Uint8Array, width: number, height: number, channels: number, rowstride: number}}
  */
 function loadImagePixels(imagePath) {
-    // Load and scale image for faster processing
     const pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
         imagePath,
         IMAGE_SCALE_SIZE,
         IMAGE_SCALE_SIZE,
-        true // preserve aspect ratio
+        true
     );
 
-    const width = pixbuf.get_width();
-    const height = pixbuf.get_height();
-    const channels = pixbuf.get_n_channels();
-    const rowstride = pixbuf.get_rowstride();
-    const pixels = pixbuf.get_pixels();
-
-    return {pixels, width, height, channels, rowstride};
+    return {
+        pixels: pixbuf.get_pixels(),
+        width: pixbuf.get_width(),
+        height: pixbuf.get_height(),
+        channels: pixbuf.get_n_channels(),
+        rowstride: pixbuf.get_rowstride(),
+    };
 }
 
 /**
@@ -274,27 +273,22 @@ function loadImagePixels(imagePath) {
 function samplePixels(imageData) {
     const {pixels, width, height, channels, rowstride} = imageData;
     const colors = [];
-
-    // Calculate sampling rate to stay within bounds
-    const totalPixels = width * height;
-    const sampleRate = Math.max(
-        1,
-        Math.floor(totalPixels / MAX_PIXELS_TO_SAMPLE)
-    );
+    const hasAlpha = channels === 4;
+    const sampleRate = Math.max(1, Math.floor((width * height) / MAX_PIXELS_TO_SAMPLE));
 
     for (let y = 0; y < height; y += sampleRate) {
         for (let x = 0; x < width; x += sampleRate) {
             const offset = y * rowstride + x * channels;
-            const r = pixels[offset];
-            const g = pixels[offset + 1];
-            const b = pixels[offset + 2];
 
-            // Skip fully transparent pixels if alpha channel exists
-            if (channels === 4 && pixels[offset + 3] < 128) {
+            if (hasAlpha && pixels[offset + 3] < 128) {
                 continue;
             }
 
-            colors.push({r, g, b});
+            colors.push({
+                r: pixels[offset],
+                g: pixels[offset + 1],
+                b: pixels[offset + 2],
+            });
         }
     }
 
@@ -307,29 +301,32 @@ function samplePixels(imageData) {
 class ColorBucket {
     constructor(colors) {
         this.colors = colors;
-        this._updateStats();
+        this._computeRanges();
     }
 
-    _updateStats() {
+    _computeRanges() {
         if (this.colors.length === 0) {
-            this.rMin = this.rMax = 0;
-            this.gMin = this.gMax = 0;
-            this.bMin = this.bMax = 0;
+            this.ranges = {r: {min: 0, max: 0}, g: {min: 0, max: 0}, b: {min: 0, max: 0}};
             return;
         }
 
-        this.rMin = this.rMax = this.colors[0].r;
-        this.gMin = this.gMax = this.colors[0].g;
-        this.bMin = this.bMax = this.colors[0].b;
+        const first = this.colors[0];
+        this.ranges = {
+            r: {min: first.r, max: first.r},
+            g: {min: first.g, max: first.g},
+            b: {min: first.b, max: first.b},
+        };
 
         for (const color of this.colors) {
-            this.rMin = Math.min(this.rMin, color.r);
-            this.rMax = Math.max(this.rMax, color.r);
-            this.gMin = Math.min(this.gMin, color.g);
-            this.gMax = Math.max(this.gMax, color.g);
-            this.bMin = Math.min(this.bMin, color.b);
-            this.bMax = Math.max(this.bMax, color.b);
+            for (const channel of ['r', 'g', 'b']) {
+                this.ranges[channel].min = Math.min(this.ranges[channel].min, color[channel]);
+                this.ranges[channel].max = Math.max(this.ranges[channel].max, color[channel]);
+            }
         }
+    }
+
+    _getRange(channel) {
+        return this.ranges[channel].max - this.ranges[channel].min;
     }
 
     /**
@@ -337,12 +334,12 @@ class ColorBucket {
      * @returns {'r'|'g'|'b'}
      */
     getLongestChannel() {
-        const rRange = this.rMax - this.rMin;
-        const gRange = this.gMax - this.gMin;
-        const bRange = this.bMax - this.bMin;
+        const rRange = this._getRange('r');
+        const gRange = this._getRange('g');
+        const bRange = this._getRange('b');
 
         if (rRange >= gRange && rRange >= bRange) return 'r';
-        if (gRange >= rRange && gRange >= bRange) return 'g';
+        if (gRange >= bRange) return 'g';
         return 'b';
     }
 
@@ -352,15 +349,13 @@ class ColorBucket {
      */
     split() {
         const channel = this.getLongestChannel();
-
-        // Sort by the longest channel
         this.colors.sort((a, b) => a[channel] - b[channel]);
 
         const midpoint = Math.floor(this.colors.length / 2);
-        const left = this.colors.slice(0, midpoint);
-        const right = this.colors.slice(midpoint);
-
-        return [new ColorBucket(left), new ColorBucket(right)];
+        return [
+            new ColorBucket(this.colors.slice(0, midpoint)),
+            new ColorBucket(this.colors.slice(midpoint)),
+        ];
     }
 
     /**
@@ -368,25 +363,23 @@ class ColorBucket {
      * @returns {{r: number, g: number, b: number, count: number}}
      */
     getAverageColor() {
-        if (this.colors.length === 0) {
+        const count = this.colors.length;
+        if (count === 0) {
             return {r: 0, g: 0, b: 0, count: 0};
         }
 
-        let rSum = 0,
-            gSum = 0,
-            bSum = 0;
+        let rSum = 0, gSum = 0, bSum = 0;
         for (const color of this.colors) {
             rSum += color.r;
             gSum += color.g;
             bSum += color.b;
         }
 
-        const count = this.colors.length;
         return {
             r: Math.round(rSum / count),
             g: Math.round(gSum / count),
             b: Math.round(bSum / count),
-            count: count,
+            count,
         };
     }
 
@@ -395,12 +388,7 @@ class ColorBucket {
      * @returns {number}
      */
     getVolume() {
-        return (
-            (this.rMax - this.rMin) *
-            (this.gMax - this.gMin) *
-            (this.bMax - this.bMin) *
-            this.colors.length
-        );
+        return this._getRange('r') * this._getRange('g') * this._getRange('b') * this.colors.length;
     }
 }
 
@@ -416,48 +404,65 @@ function medianCut(colors, numColors) {
     }
 
     if (colors.length <= numColors) {
-        // Not enough colors to quantize, return unique colors
-        const seen = new Set();
-        const unique = [];
-        for (const c of colors) {
-            const key = `${c.r},${c.g},${c.b}`;
-            if (!seen.has(key)) {
-                seen.add(key);
-                unique.push({...c, count: 1});
-            }
-        }
-        return unique;
+        return deduplicateColors(colors);
     }
 
-    // Start with one bucket containing all colors
-    let buckets = [new ColorBucket(colors)];
+    const buckets = [new ColorBucket(colors)];
 
-    // Split until we have enough buckets
     while (buckets.length < numColors) {
-        // Find the bucket with the largest volume to split
-        let maxVolume = -1;
-        let maxIndex = 0;
+        const splitIndex = findLargestSplittableBucket(buckets);
+        if (splitIndex === -1) break;
 
-        for (let i = 0; i < buckets.length; i++) {
-            const volume = buckets[i].getVolume();
-            if (volume > maxVolume && buckets[i].colors.length > 1) {
+        const [left, right] = buckets[splitIndex].split();
+        buckets.splice(splitIndex, 1, left, right);
+    }
+
+    return buckets
+        .map(bucket => bucket.getAverageColor())
+        .filter(c => c.count > 0);
+}
+
+/**
+ * Deduplicates colors and returns unique entries with count
+ * @param {Array<{r: number, g: number, b: number}>} colors - Array of RGB colors
+ * @returns {Array<{r: number, g: number, b: number, count: number}>} Unique colors
+ */
+function deduplicateColors(colors) {
+    const seen = new Set();
+    const unique = [];
+
+    for (const c of colors) {
+        const key = `${c.r},${c.g},${c.b}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            unique.push({...c, count: 1});
+        }
+    }
+
+    return unique;
+}
+
+/**
+ * Finds the bucket with largest volume that can be split
+ * @param {ColorBucket[]} buckets - Array of color buckets
+ * @returns {number} Index of bucket to split, or -1 if none available
+ */
+function findLargestSplittableBucket(buckets) {
+    let maxVolume = 0;
+    let maxIndex = -1;
+
+    for (let i = 0; i < buckets.length; i++) {
+        const bucket = buckets[i];
+        if (bucket.colors.length > 1) {
+            const volume = bucket.getVolume();
+            if (volume > maxVolume) {
                 maxVolume = volume;
                 maxIndex = i;
             }
         }
-
-        // If no bucket can be split, stop
-        if (maxVolume <= 0) break;
-
-        // Split the largest bucket
-        const [left, right] = buckets[maxIndex].split();
-        buckets.splice(maxIndex, 1, left, right);
     }
 
-    // Get average color from each bucket
-    return buckets
-        .map(bucket => bucket.getAverageColor())
-        .filter(c => c.count > 0);
+    return maxIndex;
 }
 
 /**
@@ -467,41 +472,23 @@ function medianCut(colors, numColors) {
  * @param {number} numColors - Number of colors to extract
  * @returns {Promise<string[]>} Array of hex colors sorted by dominance
  */
-function extractDominantColors(imagePath, numColors) {
-    return new Promise((resolve, reject) => {
-        try {
-            // Load image and get pixel data
-            const imageData = loadImagePixels(imagePath);
+async function extractDominantColors(imagePath, numColors) {
+    const imageData = loadImagePixels(imagePath);
+    const pixels = samplePixels(imageData);
 
-            // Sample pixels from the image
-            const pixels = samplePixels(imageData);
+    if (pixels.length < MIN_PIXELS_TO_SAMPLE / 10) {
+        throw new Error('Not enough pixels to extract colors');
+    }
 
-            if (pixels.length < MIN_PIXELS_TO_SAMPLE / 10) {
-                reject(new Error('Not enough pixels to extract colors'));
-                return;
-            }
+    const quantizedColors = medianCut(pixels, numColors);
 
-            // Run median-cut quantization
-            const quantizedColors = medianCut(pixels, numColors);
+    if (quantizedColors.length === 0) {
+        throw new Error('No colors extracted from image');
+    }
 
-            if (quantizedColors.length === 0) {
-                reject(new Error('No colors extracted from image'));
-                return;
-            }
+    quantizedColors.sort((a, b) => b.count - a.count);
 
-            // Sort by count (dominance) and convert to hex
-            quantizedColors.sort((a, b) => b.count - a.count);
-
-            const hexColors = quantizedColors.map(c => {
-                const hex = rgbToHex(c.r, c.g, c.b);
-                return hex.toUpperCase();
-            });
-
-            resolve(hexColors);
-        } catch (e) {
-            reject(new Error(`Color extraction failed: ${e.message}`));
-        }
-    });
+    return quantizedColors.map(c => rgbToHex(c.r, c.g, c.b).toUpperCase());
 }
 
 // ============================================================================
