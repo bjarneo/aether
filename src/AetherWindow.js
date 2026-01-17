@@ -282,11 +282,21 @@ export const AetherWindow = GObject.registerClass(
             this._blueprintsView.connect('save-requested', () => {
                 this._saveBlueprint();
             });
+            this._blueprintsView.connect('theme-imported', (_, theme) => {
+                this._importOmarchyTheme(theme);
+            });
+            this._blueprintsView.connect('theme-applied', (_, theme) => {
+                const toast = new Adw.Toast({
+                    title: `Applied theme: ${theme.name}`,
+                    timeout: 3,
+                });
+                this.toastOverlay.add_toast(toast);
+            });
 
             this._viewStack.add_titled_with_icon(
                 this._blueprintsView,
                 'blueprints',
-                'Blueprints',
+                'Themes',
                 'color-select-symbolic'
             );
 
@@ -575,6 +585,54 @@ export const AetherWindow = GObject.registerClass(
                 }
             } catch (e) {
                 console.error(`Error loading blueprint: ${e.message}`);
+            }
+
+            this._updateAccessibility();
+        }
+
+        /**
+         * Import an Omarchy theme into the editor
+         * Loads the theme's colors and first background into the palette editor
+         * @param {Object} theme - Omarchy theme data
+         * @private
+         */
+        _importOmarchyTheme(theme) {
+            try {
+                console.log('Importing Omarchy theme:', theme.name);
+
+                // Reset adjustments for fresh start
+                this.settingsSidebar.resetAdjustments();
+                themeState.resetAppOverrides();
+
+                // Load colors into ThemeState
+                if (theme.colors && theme.colors.length === 16) {
+                    themeState.setPalette(theme.colors, {resetExtended: true});
+                }
+
+                // Load extended colors if available
+                if (theme.extendedColors && Object.keys(theme.extendedColors).length > 0) {
+                    themeState.setExtendedColors(theme.extendedColors);
+                }
+
+                // Use the first background image from the theme
+                if (theme.wallpapers && theme.wallpapers.length > 0) {
+                    themeState.setWallpaper(theme.wallpapers[0]);
+                }
+
+                // Switch to editor tab first
+                this._viewStack.set_visible_child_name('editor');
+
+                // Switch to custom tab for palette editing
+                this.paletteGenerator.switchToCustomTab();
+
+                // Show toast
+                const toast = new Adw.Toast({
+                    title: `Imported theme: ${theme.name}`,
+                    timeout: 3,
+                });
+                this.toastOverlay.add_toast(toast);
+            } catch (e) {
+                console.error(`Error importing Omarchy theme: ${e.message}`);
             }
 
             this._updateAccessibility();

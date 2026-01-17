@@ -25,6 +25,8 @@ import {
 } from '../utils/ui-builders.js';
 import {SPACING, GRID} from '../constants/ui-constants.js';
 import {themeState} from '../state/ThemeState.js';
+import {OmarchyThemesBrowser} from './OmarchyThemesBrowser.js';
+import {applyCssToWidget as applyCss} from '../utils/ui-helpers.js';
 
 /**
  * BlueprintsView - Full-featured blueprints management tab
@@ -35,6 +37,7 @@ import {themeState} from '../state/ThemeState.js';
  * - Import/Export blueprints
  * - Post to Aether community
  * - API key settings
+ * - Browse installed Omarchy themes
  *
  * @class BlueprintsView
  * @extends {Gtk.Box}
@@ -46,6 +49,12 @@ export const BlueprintsView = GObject.registerClass(
                 param_types: [GObject.TYPE_JSOBJECT],
             },
             'save-requested': {},
+            'theme-imported': {
+                param_types: [GObject.TYPE_JSOBJECT],
+            },
+            'theme-applied': {
+                param_types: [GObject.TYPE_JSOBJECT],
+            },
         },
     },
     class BlueprintsView extends Gtk.Box {
@@ -69,6 +78,93 @@ export const BlueprintsView = GObject.registerClass(
         }
 
         _buildUI() {
+            // View switcher at the top - centered
+            const switcherBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
+                margin_top: SPACING.MD,
+                margin_bottom: SPACING.SM,
+                halign: Gtk.Align.CENTER,
+            });
+
+            // Create segmented toggle buttons
+            const toggleBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 0,
+                css_classes: ['linked'],
+            });
+
+            this._blueprintsToggle = new Gtk.ToggleButton({
+                label: 'My Blueprints',
+                active: true,
+            });
+            this._themesToggle = new Gtk.ToggleButton({
+                label: 'Omarchy Themes',
+                active: false,
+            });
+
+            // Style toggle buttons
+            applyCss(toggleBox, `
+                box button {
+                    border-radius: 0;
+                    padding: 6px 16px;
+                }
+            `);
+
+            this._blueprintsToggle.connect('toggled', () => {
+                if (this._blueprintsToggle.get_active()) {
+                    this._themesToggle.set_active(false);
+                    this._contentStack.set_visible_child_name('blueprints');
+                }
+            });
+
+            this._themesToggle.connect('toggled', () => {
+                if (this._themesToggle.get_active()) {
+                    this._blueprintsToggle.set_active(false);
+                    this._contentStack.set_visible_child_name('themes');
+                    // Refresh themes when switching to the tab
+                    this._omarchyBrowser.refresh();
+                }
+            });
+
+            toggleBox.append(this._blueprintsToggle);
+            toggleBox.append(this._themesToggle);
+            switcherBox.append(toggleBox);
+
+            this.append(switcherBox);
+
+            // Content stack for switching between views
+            this._contentStack = new Gtk.Stack({
+                vexpand: true,
+                hexpand: true,
+                transition_type: Gtk.StackTransitionType.CROSSFADE,
+            });
+
+            // Blueprints view
+            const blueprintsContent = this._createBlueprintsContent();
+            this._contentStack.add_named(blueprintsContent, 'blueprints');
+
+            // Omarchy themes browser
+            this._omarchyBrowser = new OmarchyThemesBrowser();
+            this._omarchyBrowser.connect('theme-imported', (_, theme) => {
+                this.emit('theme-imported', theme);
+            });
+            this._omarchyBrowser.connect('theme-applied', (_, theme) => {
+                this.emit('theme-applied', theme);
+            });
+            this._contentStack.add_named(this._omarchyBrowser, 'themes');
+
+            this._contentStack.set_visible_child_name('blueprints');
+            this.append(this._contentStack);
+        }
+
+        /**
+         * Create the blueprints content view
+         * @private
+         * @returns {Gtk.ScrolledWindow} Blueprints content
+         */
+        _createBlueprintsContent() {
             const scrolled = new Gtk.ScrolledWindow({
                 vexpand: true,
                 hexpand: true,
@@ -100,7 +196,7 @@ export const BlueprintsView = GObject.registerClass(
 
             clamp.set_child(mainBox);
             scrolled.set_child(clamp);
-            this.append(scrolled);
+            return scrolled;
         }
 
         _createSaveSection() {
