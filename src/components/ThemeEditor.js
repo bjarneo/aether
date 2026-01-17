@@ -256,7 +256,8 @@ export const ThemeEditor = GObject.registerClass(
                     });
 
                     this._originalPalette = [...mergedColors];
-                    this.setPalette(mergedColors);
+                    // Reset extended colors so they auto-derive from new palette
+                    this.setPalette(mergedColors, {resetExtended: true});
                     this.emit('palette-generated', mergedColors);
                     this._wallpaperHero.setLoading(false);
                 },
@@ -311,24 +312,24 @@ export const ThemeEditor = GObject.registerClass(
             this.loadWallpaper(path);
         }
 
-        setPalette(colors, {updateState = true} = {}) {
+        setPalette(colors, {updateState = true, resetExtended = false} = {}) {
             this._palette = [...colors];
             this._colorPalette.setPalette(colors);
 
             if (updateState) {
-                themeState.setPalette(colors, {silent: true});
+                themeState.setPalette(colors, {silent: true, resetExtended});
             }
         }
 
         applyPreset(preset) {
             this._originalPalette = [...preset.colors];
-            this.setPalette(preset.colors);
+            this.setPalette(preset.colors, {resetExtended: true});
             this.emit('palette-generated', preset.colors);
         }
 
         applyHarmony(colors) {
             this._originalPalette = [...colors];
-            this.setPalette(colors);
+            this.setPalette(colors, {resetExtended: true});
             this.emit('palette-generated', colors);
         }
 
@@ -546,9 +547,9 @@ export const ThemeEditor = GObject.registerClass(
                 const result = parseBase16Yaml(content);
 
                 if (result.colors && result.colors.length === 16) {
-                    // Apply the imported colors
+                    // Apply the imported colors, reset extended to auto-derive
                     this._originalPalette = [...result.colors];
-                    this.setPalette(result.colors);
+                    this.setPalette(result.colors, {resetExtended: true});
 
                     // Emit signal for parent components
                     this.emit('palette-generated', result.colors);
@@ -605,11 +606,11 @@ export const ThemeEditor = GObject.registerClass(
                 const result = parseColorsToml(content);
 
                 if (result.colors && result.colors.length === 16) {
-                    // Apply the imported colors
+                    // Apply the imported colors, reset extended to auto-derive
                     this._originalPalette = [...result.colors];
-                    this.setPalette(result.colors);
+                    this.setPalette(result.colors, {resetExtended: true});
 
-                    // Apply extended colors if present
+                    // Apply extended colors from file if present (overrides auto-derived)
                     if (
                         result.extendedColors &&
                         Object.keys(result.extendedColors).length > 0

@@ -147,14 +147,21 @@ export const ThemeState = GObject.registerClass(
          * @param {string[]} colors - Array of 16 hex color strings
          * @param {Object} [options] - Options
          * @param {boolean} [options.silent=false] - Skip signal emission
+         * @param {boolean} [options.resetExtended=false] - Reset extended colors to auto-derive from palette
          */
-        setPalette(colors, {silent = false} = {}) {
+        setPalette(colors, {silent = false, resetExtended = false} = {}) {
             if (!Array.isArray(colors) || colors.length !== 16) {
                 console.error('Invalid palette: must be array of 16 colors');
                 return;
             }
 
             this._palette = [...colors];
+
+            // Reset extended colors so they auto-derive from new palette
+            if (resetExtended) {
+                this._extendedColors = {};
+            }
+
             this._updateColorRolesFromPalette();
 
             if (!silent) {

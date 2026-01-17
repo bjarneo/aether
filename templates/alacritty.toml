@@ -25,4 +25,8 @@ white   = "{bright_white}"
 
 [colors.cursor]
 text   = "{background}"
-cursor = "{foreground}"
+cursor = "{cursor}"
+
+[colors.selection]
+text       = "{selection_foreground}"
+background = "{selection_background}"
