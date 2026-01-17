@@ -19,9 +19,9 @@ import {
     deleteFile,
     moveFile,
     getSubdirectories,
-    getFileModificationTime,
-    getFileSize,
+    getFileMetadata,
     ensureDirectoryExists,
+    enumerateDirectoryAsync,
 } from '../utils/file-utils.js';
 import {
     createSectionHeader,
@@ -88,6 +88,8 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             this._selectedWallpapers = new Set();
             this._wallpapers = []; // Root wallpapers
             this._subfolders = new Map(); // Map<folderName, wallpaper[]>
+            this._cardCache = new Map(); // Map<path, {card, flowBoxChild}> for reordering
+            this._subfolderExpanders = new Map(); // Map<folderName, expander> for reordering
 
             this._initializeUI();
 
@@ -416,6 +418,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             this._contentStack.set_visible_child_name('loading');
             this._wallpapers = [];
             this._subfolders.clear();
+            this._cardCache.clear();
+            this._subfolderExpanders.clear();
+            removeAllChildren(this._gridFlow);
 
             const dir = Gio.File.new_for_path(this._wallpapersPath);
 
@@ -458,26 +463,26 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         async _scanDirectory(dirPath, folderName) {
             const wallpapers = [];
             try {
-                const dir = Gio.File.new_for_path(dirPath);
-                const enumerator = dir.enumerate_children(
-                    'standard::*',
-                    Gio.FileQueryInfoFlags.NONE,
-                    null
+                // Use async directory enumeration with all needed attributes in one query
+                const entries = await enumerateDirectoryAsync(
+                    dirPath,
+                    'standard::name,standard::type,standard::content-type,standard::size,time::modified'
                 );
 
-                let info;
-                while ((info = enumerator.next_file(null))) {
-                    const contentType = info.get_content_type();
+                for (const {fileInfo, filePath} of entries) {
+                    const contentType = fileInfo.get_content_type();
                     if (contentType && contentType.startsWith('image/')) {
-                        const file = dir.get_child(info.get_name());
-                        const path = file.get_path();
+                        const file = Gio.File.new_for_path(filePath);
+                        // Get size and modTime directly from fileInfo (already queried)
+                        const size = fileInfo.get_size();
+                        const modTime = fileInfo.get_modification_date_time()?.to_unix() || 0;
                         wallpapers.push({
-                            name: info.get_name(),
+                            name: fileInfo.get_name(),
                             file: file,
-                            path: path,
+                            path: filePath,
                             folder: folderName,
-                            modTime: getFileModificationTime(path),
-                            size: getFileSize(path),
+                            modTime: modTime,
+                            size: size,
                         });
                     }
                 }
@@ -518,10 +523,66 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         }
 
         async _renderWallpapers() {
-            // Clear root grid
-            removeAllChildren(this._gridFlow);
+            // Check if we can reorder existing cards (same wallpapers, just different order)
+            const canReorder = this._cardCache.size > 0 &&
+                this._wallpapers.every(wp => this._cardCache.has(wp.path));
 
-            // Clear subfolder expanders (keep the grid in mainContainer)
+            if (canReorder) {
+                // Use FlowBox's built-in sort function for efficient reordering
+                this._applySortFunction();
+            } else {
+                // Full rebuild needed (new wallpapers loaded or first render)
+                await this._fullRebuildWallpapers();
+            }
+
+            // Reapply search filter
+            if (this._searchQuery) {
+                this._filterWallpapers();
+            }
+        }
+
+        /**
+         * Applies sort function to FlowBox for efficient reordering
+         * Uses GTK's native sort mechanism instead of manual DOM manipulation
+         * @private
+         */
+        _applySortFunction() {
+            // Build a sort index map for O(1) lookups during comparison
+            const sortIndex = new Map();
+            this._wallpapers.forEach((wp, index) => {
+                sortIndex.set(wp.path, index);
+            });
+
+            // Set sort function on FlowBox - GTK handles the reordering efficiently
+            this._gridFlow.set_sort_func((child1, child2) => {
+                const card1 = child1.get_child();
+                const card2 = child2.get_child();
+                const path1 = card1?._wallpaperPath;
+                const path2 = card2?._wallpaperPath;
+
+                const index1 = sortIndex.get(path1) ?? 0;
+                const index2 = sortIndex.get(path2) ?? 0;
+
+                return index1 - index2;
+            });
+
+            // Trigger the sort
+            this._gridFlow.invalidate_sort();
+        }
+
+        /**
+         * Full rebuild of wallpaper cards (used on initial load or grid size change)
+         * @private
+         */
+        async _fullRebuildWallpapers() {
+            // Clear sort function during rebuild
+            this._gridFlow.set_sort_func(null);
+
+            // Clear existing cards and cache
+            removeAllChildren(this._gridFlow);
+            this._cardCache.clear();
+
+            // Clear subfolder expanders
             let child = this._mainContainer.get_first_child();
             while (child) {
                 const next = child.get_next_sibling();
@@ -530,6 +591,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 }
                 child = next;
             }
+            this._subfolderExpanders.clear();
 
             // Render root wallpapers
             for (const wp of this._wallpapers) {
@@ -539,12 +601,8 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             // Render subfolder sections
             for (const [folderName, wallpapers] of this._subfolders) {
                 const expander = await this._createSubfolderExpander(folderName, wallpapers);
+                this._subfolderExpanders.set(folderName, expander);
                 this._mainContainer.append(expander);
-            }
-
-            // Reapply search filter
-            if (this._searchQuery) {
-                this._filterWallpapers();
             }
         }
 
@@ -642,26 +700,36 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             mainBox._wallpaperName = wallpaper.name.toLowerCase();
             mainBox._wallpaperPath = wallpaper.path;
 
-            // Load thumbnail asynchronously
-            const thumbPath = await thumbnailService.getThumbnail(wallpaper.file);
-            if (thumbPath) {
-                try {
-                    const pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbPath);
-                    const texture = Gdk.Texture.new_for_pixbuf(pixbuf);
-                    picture.set_paintable(texture);
-                } catch (e) {
-                    console.error('Failed to load thumbnail:', e.message);
-                    picture.set_file(wallpaper.file);
-                }
-            } else {
-                picture.set_file(wallpaper.file);
+            // Append to grid first so we can get the FlowBoxChild
+            targetGrid.append(mainBox);
+
+            // Cache the card and its FlowBoxChild parent for reordering
+            const flowBoxChild = mainBox.get_parent();
+            if (targetGrid === this._gridFlow) {
+                this._cardCache.set(wallpaper.path, {card: mainBox, flowBoxChild});
             }
 
-            targetGrid.append(mainBox);
+            // Load thumbnail asynchronously (non-blocking)
+            thumbnailService.getThumbnail(wallpaper.file).then(thumbPath => {
+                if (thumbPath) {
+                    try {
+                        const pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbPath);
+                        const texture = Gdk.Texture.new_for_pixbuf(pixbuf);
+                        picture.set_paintable(texture);
+                    } catch (e) {
+                        console.error('Failed to load thumbnail:', e.message);
+                        picture.set_file(wallpaper.file);
+                    }
+                } else {
+                    picture.set_file(wallpaper.file);
+                }
+            });
         }
 
         _updateGridSize() {
-            // Re-render to apply new height
+            // Clear cache to force full rebuild with new card heights
+            this._cardCache.clear();
+            this._subfolderExpanders.clear();
             this._renderWallpapers();
         }
 

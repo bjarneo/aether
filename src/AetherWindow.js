@@ -70,12 +70,8 @@ export const AetherWindow = GObject.registerClass(
          * @private
          */
         _connectThemeState() {
-            // Update accessibility when palette or color roles change
-            themeState.connect('palette-changed', () => {
-                this._updateAccessibility();
-                this._updateAppOverrideColors();
-            });
-
+            // Only listen to color-roles-changed since it's always emitted after palette-changed.
+            // This prevents duplicate updates when setPalette() is called (which emits both signals).
             themeState.connect('color-roles-changed', () => {
                 this._updateAccessibility();
                 this._updateAppOverrideColors();

@@ -2,7 +2,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
 /**
- * Reads file contents as text
+ * Reads file contents as text (synchronous)
  * @param {string} path - File path
  * @returns {string} File contents
  * @throws {Error} If file cannot be read
@@ -20,7 +20,31 @@ export function readFileAsText(path) {
 }
 
 /**
- * Writes text content to file
+ * Reads file contents as text (asynchronous)
+ * @param {string} path - File path
+ * @returns {Promise<string>} File contents
+ */
+export function readFileAsTextAsync(path) {
+    return new Promise((resolve, reject) => {
+        const file = Gio.File.new_for_path(path);
+        file.load_contents_async(null, (source, result) => {
+            try {
+                const [success, contents] = source.load_contents_finish(result);
+                if (!success) {
+                    reject(new Error(`Could not read file: ${path}`));
+                    return;
+                }
+                const decoder = new TextDecoder();
+                resolve(decoder.decode(contents));
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+}
+
+/**
+ * Writes text content to file (synchronous)
  * @param {string} path - File path
  * @param {string} content - Content to write
  * @throws {Error} If file cannot be written
@@ -54,6 +78,51 @@ export function writeTextToFile(path, content) {
         console.error(`Error writing to ${path}:`, e.message);
         throw e;
     }
+}
+
+/**
+ * Writes text content to file (asynchronous)
+ * @param {string} path - File path
+ * @param {string} content - Content to write
+ * @returns {Promise<void>}
+ */
+export function writeTextToFileAsync(path, content) {
+    return new Promise((resolve, reject) => {
+        try {
+            const file = Gio.File.new_for_path(path);
+
+            // Ensure content is a string and not null/undefined
+            if (content === null || content === undefined) {
+                content = '';
+            }
+
+            const contentStr = String(content);
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(contentStr);
+
+            file.replace_contents_async(
+                bytes,
+                null,
+                false,
+                Gio.FileCreateFlags.REPLACE_DESTINATION,
+                null,
+                (source, result) => {
+                    try {
+                        const [success] = source.replace_contents_finish(result);
+                        if (!success) {
+                            reject(new Error(`Failed to write file: ${path}`));
+                            return;
+                        }
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                }
+            );
+        } catch (e) {
+            reject(e);
+        }
+    });
 }
 
 /**
@@ -106,7 +175,7 @@ export function ensureDirectoryExists(path, permissions = 0o755) {
 }
 
 /**
- * Enumerates files in a directory
+ * Enumerates files in a directory (synchronous)
  * @param {string} dirPath - Directory path
  * @param {Function} callback - Callback function called for each file (fileInfo, filePath)
  * @param {string} attributes - File attributes to query
@@ -133,6 +202,71 @@ export function enumerateDirectory(
     } catch (e) {
         console.error(`Error enumerating directory ${dirPath}:`, e.message);
     }
+}
+
+/**
+ * Enumerates files in a directory (asynchronous)
+ * @param {string} dirPath - Directory path
+ * @param {string} attributes - File attributes to query
+ * @returns {Promise<Array<{fileInfo: Gio.FileInfo, filePath: string, fileName: string}>>}
+ */
+export function enumerateDirectoryAsync(
+    dirPath,
+    attributes = 'standard::name,standard::type'
+) {
+    return new Promise((resolve, reject) => {
+        try {
+            const dir = Gio.File.new_for_path(dirPath);
+            const results = [];
+
+            dir.enumerate_children_async(
+                attributes,
+                Gio.FileQueryInfoFlags.NONE,
+                GLib.PRIORITY_DEFAULT,
+                null,
+                (source, result) => {
+                    try {
+                        const enumerator = source.enumerate_children_finish(result);
+
+                        const processNextBatch = () => {
+                            enumerator.next_files_async(
+                                100, // Process in batches of 100
+                                GLib.PRIORITY_DEFAULT,
+                                null,
+                                (enum_source, enum_result) => {
+                                    try {
+                                        const infos = enum_source.next_files_finish(enum_result);
+                                        if (infos.length === 0) {
+                                            enumerator.close_async(GLib.PRIORITY_DEFAULT, null, () => {});
+                                            resolve(results);
+                                            return;
+                                        }
+
+                                        for (const fileInfo of infos) {
+                                            const fileName = fileInfo.get_name();
+                                            const filePath = GLib.build_filenamev([dirPath, fileName]);
+                                            results.push({fileInfo, filePath, fileName});
+                                        }
+
+                                        // Process next batch
+                                        processNextBatch();
+                                    } catch (e) {
+                                        reject(e);
+                                    }
+                                }
+                            );
+                        };
+
+                        processNextBatch();
+                    } catch (e) {
+                        reject(e);
+                    }
+                }
+            );
+        } catch (e) {
+            reject(e);
+        }
+    });
 }
 
 /**
@@ -298,6 +432,57 @@ export function getFileSize(path) {
     } catch (e) {
         return 0;
     }
+}
+
+/**
+ * Gets file metadata (size and modification time) in a single query
+ * More efficient than calling getFileSize and getFileModificationTime separately
+ * @param {string} path - File path
+ * @returns {{size: number, modTime: number}} File metadata
+ */
+export function getFileMetadata(path) {
+    try {
+        const file = Gio.File.new_for_path(path);
+        const info = file.query_info(
+            'standard::size,time::modified',
+            Gio.FileQueryInfoFlags.NONE,
+            null
+        );
+        return {
+            size: info.get_size(),
+            modTime: info.get_modification_date_time()?.to_unix() || 0,
+        };
+    } catch (e) {
+        return {size: 0, modTime: 0};
+    }
+}
+
+/**
+ * Gets file metadata asynchronously (size and modification time) in a single query
+ * @param {string} path - File path
+ * @returns {Promise<{size: number, modTime: number}>} File metadata
+ */
+export function getFileMetadataAsync(path) {
+    return new Promise((resolve) => {
+        const file = Gio.File.new_for_path(path);
+        file.query_info_async(
+            'standard::size,time::modified',
+            Gio.FileQueryInfoFlags.NONE,
+            GLib.PRIORITY_DEFAULT,
+            null,
+            (source, result) => {
+                try {
+                    const info = source.query_info_finish(result);
+                    resolve({
+                        size: info.get_size(),
+                        modTime: info.get_modification_date_time()?.to_unix() || 0,
+                    });
+                } catch (e) {
+                    resolve({size: 0, modTime: 0});
+                }
+            }
+        );
+    });
 }
 
 /**

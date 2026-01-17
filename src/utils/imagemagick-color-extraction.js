@@ -138,6 +138,9 @@ const IMAGE_PROCESSING_QUALITY = 85;
 /** Image bit depth */
 const IMAGE_BIT_DEPTH = 8;
 
+/** Timeout for ImageMagick subprocess in milliseconds */
+const IMAGEMAGICK_TIMEOUT_MS = 30000;
+
 // ============================================================================
 // CACHE MANAGEMENT
 // ============================================================================
@@ -245,12 +248,36 @@ function savePaletteToCache(cacheKey, palette) {
 /**
  * Extracts the N most dominant colors from an image using ImageMagick
  * Optimized for speed with resize and quality settings
+ * Includes timeout to prevent hanging on corrupted images
  * @param {string} imagePath - Path to the image file
  * @param {number} numColors - Number of colors to extract
  * @returns {Promise<string[]>} Array of hex colors sorted by dominance
  */
 function extractDominantColors(imagePath, numColors) {
     return new Promise((resolve, reject) => {
+        let timeoutId = null;
+        let cancellable = null;
+        let proc = null;
+        let completed = false;
+
+        const cleanup = () => {
+            if (timeoutId) {
+                GLib.source_remove(timeoutId);
+                timeoutId = null;
+            }
+        };
+
+        const handleCompletion = (error, colors) => {
+            if (completed) return;
+            completed = true;
+            cleanup();
+            if (error) {
+                reject(error);
+            } else {
+                resolve(colors);
+            }
+        };
+
         try {
             const argv = [
                 'magick',
@@ -268,36 +295,50 @@ function extractDominantColors(imagePath, numColors) {
                 'histogram:info:-',
             ];
 
-            const proc = Gio.Subprocess.new(
+            cancellable = new Gio.Cancellable();
+
+            proc = Gio.Subprocess.new(
                 argv,
                 Gio.SubprocessFlags.STDOUT_PIPE |
                     Gio.SubprocessFlags.STDERR_PIPE
             );
 
-            proc.communicate_utf8_async(null, null, (source, result) => {
+            // Set up timeout
+            timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, IMAGEMAGICK_TIMEOUT_MS, () => {
+                timeoutId = null;
+                if (!completed) {
+                    console.error('ImageMagick timeout - killing subprocess');
+                    cancellable.cancel();
+                    proc.force_exit();
+                    handleCompletion(new Error('ImageMagick timeout: color extraction took too long'));
+                }
+                return GLib.SOURCE_REMOVE;
+            });
+
+            proc.communicate_utf8_async(null, cancellable, (source, result) => {
                 try {
                     const [, stdout, stderr] =
                         source.communicate_utf8_finish(result);
                     const exitCode = source.get_exit_status();
 
                     if (exitCode !== 0) {
-                        reject(new Error(`ImageMagick error: ${stderr}`));
+                        handleCompletion(new Error(`ImageMagick error: ${stderr}`));
                         return;
                     }
 
                     const colors = parseHistogramOutput(stdout);
                     if (colors.length === 0) {
-                        reject(new Error('No colors extracted from image'));
+                        handleCompletion(new Error('No colors extracted from image'));
                         return;
                     }
 
-                    resolve(colors);
+                    handleCompletion(null, colors);
                 } catch (e) {
-                    reject(e);
+                    handleCompletion(e);
                 }
             });
         } catch (e) {
-            reject(e);
+            handleCompletion(e);
         }
     });
 }
@@ -381,48 +422,43 @@ function isMonochromeImage(colors) {
 
 /**
  * Detects if colors are too similar to each other (low color diversity)
+ * Uses optimized hue bucketing instead of O(n²) pairwise comparison
  * @param {string[]} colors - Array of hex colors
  * @returns {boolean} True if colors lack diversity
  */
 function hasLowColorDiversity(colors) {
-    const hslColors = colors.map(color => {
+    // Sample first 16 colors for faster analysis (dominant colors are sorted by frequency)
+    const sampleSize = Math.min(16, colors.length);
+    const sampledColors = colors.slice(0, sampleSize);
+
+    // Convert to HSL and filter out grayscale
+    const chromaticColors = [];
+    for (const color of sampledColors) {
         const hsl = getColorHSL(color);
-        return {hue: hsl.h, saturation: hsl.s, lightness: hsl.l};
-    });
-
-    let similarCount = 0;
-    let totalComparisons = 0;
-
-    for (let i = 0; i < hslColors.length; i++) {
-        for (let j = i + 1; j < hslColors.length; j++) {
-            const color1 = hslColors[i];
-            const color2 = hslColors[j];
-
-            // Skip grayscale colors
-            if (
-                color1.saturation < MONOCHROME_SATURATION_THRESHOLD ||
-                color2.saturation < MONOCHROME_SATURATION_THRESHOLD
-            ) {
-                continue;
-            }
-
-            totalComparisons++;
-
-            const hueDiff = calculateHueDistance(color1.hue, color2.hue);
-            const lightnessDiff = Math.abs(color1.lightness - color2.lightness);
-
-            if (
-                hueDiff < SIMILAR_HUE_RANGE &&
-                lightnessDiff < SIMILAR_LIGHTNESS_RANGE
-            ) {
-                similarCount++;
-            }
+        if (hsl.s >= MONOCHROME_SATURATION_THRESHOLD) {
+            chromaticColors.push({hue: hsl.h, lightness: hsl.l});
         }
     }
 
-    if (totalComparisons === 0) return false;
+    // If less than 3 chromatic colors, can't determine diversity meaningfully
+    if (chromaticColors.length < 3) return false;
 
-    return similarCount / totalComparisons > LOW_DIVERSITY_THRESHOLD;
+    // Use hue bucketing for O(n) complexity instead of O(n²)
+    // Divide the hue wheel into 12 buckets (30 degrees each, matching SIMILAR_HUE_RANGE)
+    const hueBuckets = new Array(12).fill(0);
+    const HUE_BUCKET_SIZE = 30;
+
+    for (const color of chromaticColors) {
+        const bucket = Math.floor(color.hue / HUE_BUCKET_SIZE) % 12;
+        hueBuckets[bucket]++;
+    }
+
+    // Count how many buckets have colors
+    const occupiedBuckets = hueBuckets.filter(count => count > 0).length;
+
+    // If colors are spread across fewer than 3 hue buckets, they lack diversity
+    // With 12 buckets, having colors in only 1-2 buckets means low diversity
+    return occupiedBuckets < 3;
 }
 
 // ============================================================================
