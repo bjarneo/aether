@@ -20,6 +20,7 @@ import {readFileAsText} from '../utils/file-utils.js';
 import {parseBase16Yaml} from '../utils/base16-utils.js';
 import {parseColorsToml} from '../utils/toml-utils.js';
 import {showToast} from '../utils/ui-helpers.js';
+import {LivePreviewPanel} from './preview/LivePreviewPanel.js';
 
 /**
  * ThemeEditor - Redesigned main editor with sharp, modern aesthetics
@@ -162,6 +163,10 @@ export const ThemeEditor = GObject.registerClass(
             // Extended color controls (accent, cursor, selection)
             this._extendedColors = new ExtendedColorControls();
             this._editorContent.append(this._extendedColors);
+
+            // Live preview panel
+            this._livePreview = new LivePreviewPanel();
+            this._editorContent.append(this._livePreview);
 
             // Additional images section
             this._additionalImages = new AdditionalImagesSection();
