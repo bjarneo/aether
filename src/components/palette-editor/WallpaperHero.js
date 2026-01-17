@@ -136,7 +136,7 @@ export const WallpaperHero = GObject.registerClass(
 
             // Wallpaper preview
             this._preview = new Gtk.Picture({
-                height_request: 280,
+                height_request: 364,
                 can_shrink: true,
                 content_fit: Gtk.ContentFit.COVER,
                 hexpand: true,
