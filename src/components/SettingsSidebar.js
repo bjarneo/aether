@@ -102,7 +102,6 @@ export const SettingsSidebar = GObject.registerClass(
 
             // Default values
             this._includeNeovim = true;
-            this._includeVencord = false;
             this._includeZed = false;
             this._includeVscode = false;
             this._includeGtk = false;
@@ -776,7 +775,7 @@ export const SettingsSidebar = GObject.registerClass(
 
         /**
          * Creates template settings section
-         * Allows enabling/disabling optional templates (Neovim, Vencord, Zed, VSCode, GTK)
+         * Allows enabling/disabling optional templates (Neovim, Zed, VSCode, GTK)
          * @returns {Adw.ExpanderRow} Template settings widget
          * @private
          */
@@ -803,19 +802,6 @@ export const SettingsSidebar = GObject.registerClass(
             });
             this._neovimSwitch = neovimSwitch;
             expanderRow.add_row(neovimRow);
-
-            // Vencord template
-            const {row: vencordRow, switch: vencordSwitch} = createSwitchRow({
-                title: 'Include Vencord Theme',
-                subtitle: 'Copy vencord.theme.css to theme directory',
-                active: this._includeVencord,
-                onChanged: active => {
-                    this._includeVencord = active;
-                    emitSettingsChanged();
-                },
-            });
-            this._vencordSwitch = vencordSwitch;
-            expanderRow.add_row(vencordRow);
 
             // Zed template
             const {row: zedRow, switch: zedSwitch} = createSwitchRow({
@@ -1004,7 +990,6 @@ export const SettingsSidebar = GObject.registerClass(
         getSettings() {
             return {
                 includeNeovim: this._includeNeovim,
-                includeVencord: this._includeVencord,
                 includeZed: this._includeZed,
                 includeVscode: this._includeVscode,
                 includeGtk: this._includeGtk,
@@ -1029,7 +1014,6 @@ export const SettingsSidebar = GObject.registerClass(
             const settings = loadJsonFile(this._settingsPath);
             if (settings) {
                 this._includeNeovim = settings.includeNeovim ?? true;
-                this._includeVencord = settings.includeVencord ?? false;
                 this._includeZed = settings.includeZed ?? false;
                 this._includeVscode = settings.includeVscode ?? false;
                 this._includeGtk = settings.includeGtk ?? false;
@@ -1052,7 +1036,6 @@ export const SettingsSidebar = GObject.registerClass(
 
             const settings = {
                 includeNeovim: this._includeNeovim,
-                includeVencord: this._includeVencord,
                 includeZed: this._includeZed,
                 includeVscode: this._includeVscode,
                 includeGtk: this._includeGtk,

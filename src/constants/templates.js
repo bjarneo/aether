@@ -15,7 +15,6 @@ export const TEMPLATE_APP_NAME_MAP = {
     'mako.ini': 'mako',
     'neovim.lua': 'neovim',
     'swayosd.css': 'swayosd',
-    'vencord.theme.css': 'vencord',
     'walker.css': 'walker',
     'waybar.css': 'waybar',
     'wofi.css': 'wofi',

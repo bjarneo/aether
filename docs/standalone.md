@@ -25,7 +25,6 @@ When you click "Apply Theme", Aether generates all theme files to:
 ├── neovim.lua            # Neovim colorscheme
 ├── vscode.json           # VSCode color theme
 ├── aether.zed.json       # Zed editor theme
-├── vencord.theme.css     # Discord/Vencord theme
 └── ...                   # Other app configs
 ```
 

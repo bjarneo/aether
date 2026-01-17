@@ -66,7 +66,6 @@ export const AppColorOverrides = GObject.registerClass(
                     'alacritty.toml',
                     'ghostty.conf',
                     'kitty.conf',
-                    'vencord.theme.css',
                     'btop.theme',
                 ];
 

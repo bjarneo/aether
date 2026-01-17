@@ -20,7 +20,6 @@ import {DEFAULT_COLORS} from '../constants/colors.js';
 import {getAppNameFromFileName} from '../constants/templates.js';
 import {GtkThemeApplier} from './theme-appliers/GtkThemeApplier.js';
 import {VscodeThemeApplier} from './theme-appliers/VscodeThemeApplier.js';
-import {VencordThemeApplier} from './theme-appliers/VencordThemeApplier.js';
 import {ZedThemeApplier} from './theme-appliers/ZedThemeApplier.js';
 
 /**
@@ -30,7 +29,7 @@ import {ZedThemeApplier} from './theme-appliers/ZedThemeApplier.js';
  * - Process template files with color variable substitution
  * - Copy wallpapers and additional images to theme directory
  * - Generate config files for multiple applications (Hyprland, Kitty, Waybar, etc.)
- * - Handle special cases (GTK, Vencord, Zed, VSCode, Neovim)
+ * - Handle special cases (GTK, Zed, VSCode, Neovim)
  * - Apply themes using omarchy theme manager
  * - Manage light/dark mode indicators
  *
@@ -89,7 +88,6 @@ export class ConfigWriter {
         // Initialize theme appliers
         this.gtkApplier = new GtkThemeApplier();
         this.vscodeApplier = new VscodeThemeApplier(this.templatesDir);
-        this.vencordApplier = new VencordThemeApplier(this.themeDir);
         this.zedApplier = new ZedThemeApplier(this.themeDir);
     }
 
@@ -102,7 +100,6 @@ export class ConfigWriter {
      * @param {string} [options.wallpaperPath] - Path to wallpaper file
      * @param {Object} [options.settings={}] - Theme settings
      * @param {boolean} [options.settings.includeGtk] - Apply GTK theming
-     * @param {boolean} [options.settings.includeVencord] - Apply Vencord (Discord) theme
      * @param {boolean} [options.settings.includeZed] - Apply Zed editor theme
      * @param {boolean} [options.settings.includeVscode] - Apply VSCode theme
      * @param {boolean} [options.lightMode=false] - Light mode flag
@@ -145,11 +142,6 @@ export class ConfigWriter {
                     'gtk.css',
                 ]);
                 this.gtkApplier.apply(gtkSourcePath);
-            }
-
-            // Copy Vencord theme to all existing installations if enabled
-            if (settings.includeVencord === true) {
-                this.vencordApplier.apply();
             }
 
             // Copy Zed theme if enabled
@@ -396,14 +388,6 @@ export class ConfigWriter {
                 return;
             }
 
-            // Skip vencord.theme.css if includeVencord is false
-            if (
-                fileName === 'vencord.theme.css' &&
-                settings.includeVencord === false
-            ) {
-                return;
-            }
-
             // Skip aether.zed.json if includeZed is false
             if (
                 fileName === 'aether.zed.json' &&
@@ -603,14 +587,6 @@ export class ConfigWriter {
         templateMap.forEach((templatePath, fileName) => {
             // Skip neovim.lua if includeNeovim is false
             if (fileName === 'neovim.lua' && settings.includeNeovim === false) {
-                return;
-            }
-
-            // Skip vencord.theme.css if includeVencord is false
-            if (
-                fileName === 'vencord.theme.css' &&
-                settings.includeVencord === false
-            ) {
                 return;
             }
 
