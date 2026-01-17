@@ -82,6 +82,10 @@ See `aether --help` for all options.
 | [Standalone](docs/standalone.md) | Using Aether without Omarchy |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues |
 
+## Complementary Projects
+
+- [omarchy-theme-hook](https://github.com/imbypass/omarchy-theme-hook/) — A clean solution to extend your Omarchy theme to other apps.
+
 ## Contributing
 
 - **Templates**: Add apps in `templates/`

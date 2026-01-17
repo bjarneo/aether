@@ -212,3 +212,7 @@ To use the Cava example:
 mkdir -p ~/.config/aether/custom
 cp -r examples/custom/apps/* ~/.config/aether/custom/
 ```
+
+## See Also
+
+- [omarchy-theme-hook](https://github.com/imbypass/omarchy-theme-hook/) — A clean solution to extend your Omarchy theme to other apps.
