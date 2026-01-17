@@ -28,6 +28,7 @@ import {SPACING, GRID} from '../constants/ui-constants.js';
  *
  * Features:
  * - Auto-discovers wallpapers from ~/Wallpapers directory
+ * - Search by filename with real-time filtering
  * - Async thumbnail generation via thumbnailService (cached for performance)
  * - Grid layout with responsive FlowBox (2-3 columns)
  * - Favorites integration with star button on each card
@@ -103,6 +104,8 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 GLib.get_home_dir(),
                 'Wallpapers',
             ]);
+
+            this._searchQuery = '';
 
             this._initializeUI();
 
@@ -207,9 +210,21 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 orientation: Gtk.Orientation.HORIZONTAL,
                 spacing: SPACING.SM,
                 margin_bottom: SPACING.SM,
+                margin_start: SPACING.MD,
+                margin_end: SPACING.MD,
             });
 
-            // Spacer
+            // Search entry
+            this._searchEntry = new Gtk.SearchEntry({
+                placeholder_text: 'Search wallpapers...',
+                width_request: 200,
+            });
+            this._searchEntry.connect('search-changed', () => {
+                this._filterWallpapers();
+            });
+            toolbarBox.append(this._searchEntry);
+
+            // Spacer to push action buttons to the right
             const spacer = new Gtk.Box({hexpand: true});
             toolbarBox.append(spacer);
 
@@ -316,6 +331,11 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 }
 
                 this._contentStack.set_visible_child_name('content');
+
+                // Reapply search filter if there's an active query
+                if (this._searchQuery) {
+                    this._filterWallpapers();
+                }
             } catch (e) {
                 console.error('Error loading local wallpapers:', e.message);
                 this._contentStack.set_visible_child_name('empty');
@@ -339,6 +359,9 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 () => this.emit('favorites-changed'),
                 wp => this.emit('add-to-additional-images', wallpaperData)
             );
+
+            // Store wallpaper name for filtering
+            mainBox._wallpaperName = wallpaper.name.toLowerCase();
 
             // Load thumbnail asynchronously using shared service
             const thumbPath = await thumbnailService.getThumbnail(
@@ -386,6 +409,29 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 // Emit signal with the new path in ~/Wallpapers
                 this.emit('wallpaper-selected', destPath);
             });
+        }
+
+        /**
+         * Filters wallpaper cards based on search query
+         * Shows/hides cards whose filename contains the search text
+         * @private
+         */
+        _filterWallpapers() {
+            const query = this._searchEntry.get_text().toLowerCase().trim();
+            this._searchQuery = query;
+
+            let child = this._gridFlow.get_first_child();
+
+            while (child) {
+                // Get the card (mainBox) from the FlowBoxChild
+                const card = child.get_child();
+                const name = card?._wallpaperName || '';
+                const visible = !query || name.includes(query);
+
+                child.set_visible(visible);
+
+                child = child.get_next_sibling();
+            }
         }
     }
 );

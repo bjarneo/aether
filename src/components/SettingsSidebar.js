@@ -625,7 +625,7 @@ export const SettingsSidebar = GObject.registerClass(
                 css_classes: ['boxed-list'],
             });
 
-            COLOR_PRESETS.forEach((preset, presetIndex) => {
+            COLOR_PRESETS.forEach(preset => {
                 const presetRow = new Adw.ActionRow({
                     title: preset.name,
                     subtitle: preset.author,
@@ -638,7 +638,7 @@ export const SettingsSidebar = GObject.registerClass(
                     valign: Gtk.Align.CENTER,
                 });
 
-                preset.colors.slice(0, 6).forEach((color, colorIndex) => {
+                preset.colors.slice(0, 6).forEach(color => {
                     const colorBox = new Gtk.Box({
                         width_request: 20,
                         height_request: 20,
@@ -699,7 +699,7 @@ export const SettingsSidebar = GObject.registerClass(
                 css_classes: ['boxed-list'],
             });
 
-            NEOVIM_PRESETS.forEach((preset, index) => {
+            NEOVIM_PRESETS.forEach(preset => {
                 const presetRow = new Adw.ActionRow({
                     title: preset.name,
                     subtitle: preset.author,
