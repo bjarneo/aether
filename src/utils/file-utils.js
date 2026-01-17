@@ -230,6 +230,77 @@ export function saveJsonFile(path, data, pretty = true) {
 }
 
 /**
+ * Moves a file from source to destination
+ * @param {string} sourcePath - Source file path
+ * @param {string} destPath - Destination file path
+ * @returns {boolean} Success status
+ */
+export function moveFile(sourcePath, destPath) {
+    try {
+        const sourceFile = Gio.File.new_for_path(sourcePath);
+        const destFile = Gio.File.new_for_path(destPath);
+        sourceFile.move(destFile, Gio.FileCopyFlags.NONE, null, null);
+        return true;
+    } catch (e) {
+        console.error('Error moving file:', e.message);
+        return false;
+    }
+}
+
+/**
+ * Gets subdirectories in a directory
+ * @param {string} dirPath - Directory path
+ * @returns {string[]} Array of subdirectory names (sorted)
+ */
+export function getSubdirectories(dirPath) {
+    const subdirs = [];
+    enumerateDirectory(dirPath, (fileInfo, filePath, fileName) => {
+        if (fileInfo.get_file_type() === Gio.FileType.DIRECTORY) {
+            subdirs.push(fileName);
+        }
+    });
+    return subdirs.sort();
+}
+
+/**
+ * Gets file modification time
+ * @param {string} path - File path
+ * @returns {number} Modification time as Unix timestamp, or 0 on error
+ */
+export function getFileModificationTime(path) {
+    try {
+        const file = Gio.File.new_for_path(path);
+        const info = file.query_info(
+            'time::modified',
+            Gio.FileQueryInfoFlags.NONE,
+            null
+        );
+        return info.get_modification_date_time()?.to_unix() || 0;
+    } catch (e) {
+        return 0;
+    }
+}
+
+/**
+ * Gets file size in bytes
+ * @param {string} path - File path
+ * @returns {number} File size in bytes, or 0 on error
+ */
+export function getFileSize(path) {
+    try {
+        const file = Gio.File.new_for_path(path);
+        const info = file.query_info(
+            'standard::size',
+            Gio.FileQueryInfoFlags.NONE,
+            null
+        );
+        return info.get_size();
+    } catch (e) {
+        return 0;
+    }
+}
+
+/**
  * Creates a symbolic link, with fallback to file copy if symlink fails
  * @param {string} sourcePath - Source file path (target of the symlink)
  * @param {string} symlinkPath - Path where symlink should be created
