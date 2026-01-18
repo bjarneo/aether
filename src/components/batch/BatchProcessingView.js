@@ -173,20 +173,20 @@ export const BatchProcessingView = GObject.registerClass(
          * @param {Array<Object>} results - Processing results
          */
         _onProcessingCompleted(results) {
-            const successful = results.filter(r => r.success);
-            const failed = results.filter(r => !r.success);
+            const successCount = results.filter(r => r.success).length;
+            const failCount = results.length - successCount;
 
             log.info(
-                `Processing completed: ${successful.length} success, ${failed.length} failed`
+                `Processing completed: ${successCount} success, ${failCount} failed`
             );
 
-            this._progressPanel.showComplete(successful.length, failed.length);
+            this._progressPanel.showComplete(successCount, failCount);
             this._progressPanel.setCancelLabel('View Results');
 
-            // Transition to comparison after a short delay
-            setTimeout(() => {
+            // Auto-transition if all successful, otherwise user clicks "View Results"
+            if (successCount > 0 && failCount === 0) {
                 this._showComparison(results);
-            }, 1000);
+            }
         }
 
         /**
@@ -242,13 +242,8 @@ export const BatchProcessingView = GObject.registerClass(
          * @param {string} phase - New phase
          */
         _onPhaseChanged(phase) {
-            const pageMap = {
-                processing: 'processing',
-                comparison: 'comparison',
-            };
-            const pageName = pageMap[phase];
-            if (pageName) {
-                this._contentStack.set_visible_child_name(pageName);
+            if (phase === 'processing' || phase === 'comparison') {
+                this._contentStack.set_visible_child_name(phase);
             }
         }
 

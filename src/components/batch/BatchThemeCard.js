@@ -153,34 +153,88 @@ export const BatchThemeCard = GObject.registerClass(
             // Error overlay for failed extractions
             if (!this._result.success) {
                 const errorOverlay = new Gtk.Box({
+                    orientation: Gtk.Orientation.VERTICAL,
+                    spacing: 4,
                     halign: Gtk.Align.CENTER,
                     valign: Gtk.Align.CENTER,
+                    // Show full error message on hover
+                    tooltip_text:
+                        this._result.error || 'Color extraction failed',
                 });
                 applyCssToWidget(
                     errorOverlay,
                     `
                     box {
-                        background-color: alpha(@error_bg_color, 0.85);
+                        background-color: alpha(@error_bg_color, 0.9);
                         color: @error_fg_color;
-                        padding: 8px 12px;
+                        padding: 12px 16px;
                         border-radius: 0;
                     }
                 `
                 );
+
+                const errorIcon = new Gtk.Image({
+                    icon_name: 'dialog-error-symbolic',
+                });
+                applyCssToWidget(
+                    errorIcon,
+                    `
+                    image {
+                        -gtk-icon-size: 24px;
+                    }
+                `
+                );
+                errorOverlay.append(errorIcon);
+
                 const errorLabel = new Gtk.Label({
-                    label: 'Extraction failed',
-                    css_classes: ['caption'],
+                    label: 'Failed',
+                    css_classes: ['caption', 'heading'],
                 });
                 errorOverlay.append(errorLabel);
+
                 overlay.add_overlay(errorOverlay);
+
+                // Dim the whole card for failed extractions
+                applyCssToWidget(
+                    this._picture,
+                    `
+                    picture {
+                        border-radius: 0;
+                        opacity: 0.5;
+                        filter: grayscale(50%);
+                    }
+                `
+                );
             }
 
             this.append(overlay);
 
-            // Color swatches grid (2 rows x 8 colors)
+            // Color swatches grid (2 rows x 8 colors) or placeholder for failed
             if (this._result.success && this._result.colors?.length === 16) {
                 const swatchesGrid = this._createSwatchesGrid();
                 this.append(swatchesGrid);
+            } else if (!this._result.success) {
+                // Placeholder for failed extractions
+                const placeholder = new Gtk.Box({
+                    height_request: 44, // Same height as swatches grid
+                    hexpand: true,
+                });
+                applyCssToWidget(
+                    placeholder,
+                    `
+                    box {
+                        background: repeating-linear-gradient(
+                            45deg,
+                            alpha(@error_bg_color, 0.1),
+                            alpha(@error_bg_color, 0.1) 10px,
+                            transparent 10px,
+                            transparent 20px
+                        );
+                        border: 1px dashed alpha(@error_bg_color, 0.3);
+                    }
+                `
+                );
+                this.append(placeholder);
             }
 
             // Wallpaper name
@@ -201,13 +255,18 @@ export const BatchThemeCard = GObject.registerClass(
             );
             this.append(nameLabel);
 
-            // Click gesture for selection
-            const clickGesture = new Gtk.GestureClick();
-            clickGesture.connect('pressed', () => {
-                this.emit('selected');
-            });
-            this.add_controller(clickGesture);
-            this.set_cursor(Gdk.Cursor.new_from_name('pointer', null));
+            // Click gesture for selection (only for successful extractions)
+            if (this._result.success) {
+                const clickGesture = new Gtk.GestureClick();
+                clickGesture.connect('pressed', () => {
+                    this.emit('selected');
+                });
+                this.add_controller(clickGesture);
+                this.set_cursor(Gdk.Cursor.new_from_name('pointer', null));
+            } else {
+                // Set not-allowed cursor for failed cards
+                this.set_cursor(Gdk.Cursor.new_from_name('not-allowed', null));
+            }
         }
 
         /**
@@ -274,8 +333,12 @@ export const BatchThemeCard = GObject.registerClass(
          * @returns {string} Wallpaper name
          */
         _getWallpaperName() {
-            const wp = this._result.wallpaper;
-            return wp?.name || wp?.path?.split('/').pop() || 'Unknown';
+            const {wallpaper} = this._result;
+            return (
+                wallpaper?.name ||
+                wallpaper?.path?.split('/').pop() ||
+                'Unknown'
+            );
         }
 
         /**
@@ -309,6 +372,7 @@ export const BatchThemeCard = GObject.registerClass(
             const hoverColor = selected
                 ? '@accent_bg_color'
                 : 'alpha(@accent_bg_color, 0.5)';
+
             applyCssToWidget(
                 this,
                 `

@@ -1260,12 +1260,25 @@ export const WallpaperBrowser = GObject.registerClass(
             });
             bar.append(clearButton);
 
-            // Process selected button
+            // Process selected button with spinner container
+            const processBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: SPACING.SM,
+            });
+
+            this._processSpinner = new Gtk.Spinner({
+                visible: false,
+            });
+            processBox.append(this._processSpinner);
+
             this._processSelectedButton = new Gtk.Button({
-                label: 'Process Selected',
                 css_classes: ['suggested-action'],
                 sensitive: false,
             });
+            this._processButtonLabel = new Gtk.Label({
+                label: 'Process Selected',
+            });
+            this._processSelectedButton.set_child(this._processButtonLabel);
             applyCssToWidget(
                 this._processSelectedButton,
                 `
@@ -1278,7 +1291,12 @@ export const WallpaperBrowser = GObject.registerClass(
             this._processSelectedButton.connect('clicked', () => {
                 this._processSelectedWallpapers();
             });
-            bar.append(this._processSelectedButton);
+            processBox.append(this._processSelectedButton);
+
+            bar.append(processBox);
+
+            /** @private @type {boolean} Whether downloads are in progress */
+            this._isDownloading = false;
 
             return bar;
         }
@@ -1368,16 +1386,15 @@ export const WallpaperBrowser = GObject.registerClass(
             this._selectionCountLabel.set_label(
                 `${count} of ${maxSelections} selected`
             );
-            this._processSelectedButton.set_sensitive(count > 0);
 
-            // Update button text
-            if (count > 0) {
-                this._processSelectedButton.set_label(
-                    `Process ${count} Wallpaper${count !== 1 ? 's' : ''}`
-                );
-            } else {
-                this._processSelectedButton.set_label('Process Selected');
-            }
+            if (this._isDownloading) return;
+
+            this._processSelectedButton.set_sensitive(count > 0);
+            const label =
+                count > 0
+                    ? `Process ${count} Wallpaper${count !== 1 ? 's' : ''}`
+                    : 'Process Selected';
+            this._processButtonLabel.set_label(label);
         }
 
         /**
@@ -1386,9 +1403,9 @@ export const WallpaperBrowser = GObject.registerClass(
          */
         async _processSelectedWallpapers() {
             const selections = batchProcessingState.getSelections();
-            if (selections.length === 0) return;
+            if (selections.length === 0 || this._isDownloading) return;
 
-            showToast(this, `Preparing ${selections.length} wallpapers...`);
+            this._setDownloadingState(true, selections.length);
 
             const wallpapersDir = GLib.build_filenamev([
                 GLib.get_user_data_dir(),
@@ -1398,12 +1415,20 @@ export const WallpaperBrowser = GObject.registerClass(
             ensureDirectoryExists(wallpapersDir);
 
             const downloadedWallpapers = [];
-            for (const selection of selections) {
+            const failedDownloads = [];
+
+            for (let i = 0; i < selections.length; i++) {
+                const selection = selections[i];
                 const filename = selection.path.split('/').pop();
                 const localPath = GLib.build_filenamev([
                     wallpapersDir,
                     filename,
                 ]);
+
+                // Update progress
+                this._processButtonLabel.set_label(
+                    `Downloading ${i + 1}/${selections.length}...`
+                );
 
                 try {
                     const file = Gio.File.new_for_path(localPath);
@@ -1424,16 +1449,50 @@ export const WallpaperBrowser = GObject.registerClass(
                         `Failed to download ${selection.path}:`,
                         e.message
                     );
+                    failedDownloads.push(selection);
                 }
             }
+
+            this._setDownloadingState(false);
 
             if (downloadedWallpapers.length === 0) {
                 showToast(this, 'Failed to download any wallpapers', 3);
                 return;
             }
 
+            // Show toast if some downloads failed
+            if (failedDownloads.length > 0) {
+                showToast(
+                    this,
+                    `${failedDownloads.length} wallpaper${failedDownloads.length > 1 ? 's' : ''} failed to download`
+                );
+            }
+
             this._toggleSelectionMode(false);
             this.emit('process-batch-requested', downloadedWallpapers);
+        }
+
+        /**
+         * Set the downloading state for batch processing
+         * @private
+         * @param {boolean} isDownloading - Whether downloads are in progress
+         * @param {number} [count] - Number of items being downloaded
+         */
+        _setDownloadingState(isDownloading, count = 0) {
+            this._isDownloading = isDownloading;
+            this._processSpinner.set_visible(isDownloading);
+            this._processSelectedButton.set_sensitive(!isDownloading);
+
+            if (isDownloading) {
+                this._processSpinner.start();
+                this._processButtonLabel.set_label(`Downloading 0/${count}...`);
+            } else {
+                this._processSpinner.stop();
+                this._processSelectedButton.set_sensitive(
+                    batchProcessingState.getSelectionCount() > 0
+                );
+                this._processButtonLabel.set_label('Process Selected');
+            }
         }
 
         /**

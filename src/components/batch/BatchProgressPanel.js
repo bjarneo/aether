@@ -11,6 +11,7 @@
 
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk?version=4.0';
+import Adw from 'gi://Adw?version=1';
 
 import {applyCssToWidget, removeAllChildren} from '../../utils/ui-helpers.js';
 import {SPACING} from '../../constants/ui-constants.js';
@@ -144,9 +145,57 @@ export const BatchProgressPanel = GObject.registerClass(
             `
             );
             this._cancelButton.connect('clicked', () => {
-                this.emit('cancel-requested');
+                this._onCancelClicked();
             });
             this.append(this._cancelButton);
+
+            /** @private @type {boolean} Whether processing is currently active */
+            this._isProcessing = false;
+
+            /** @private @type {boolean} Whether processing is complete */
+            this._isComplete = false;
+        }
+
+        /**
+         * Handle cancel button click - show confirmation if processing
+         * @private
+         */
+        _onCancelClicked() {
+            const needsConfirmation = this._isProcessing && !this._isComplete;
+            if (!needsConfirmation) {
+                this.emit('cancel-requested');
+                return;
+            }
+
+            this._showCancelConfirmation();
+        }
+
+        /**
+         * Show cancel confirmation dialog
+         * @private
+         */
+        _showCancelConfirmation() {
+            const dialog = new Adw.AlertDialog({
+                heading: 'Cancel Processing?',
+                body: 'Processing is still in progress. Do you want to cancel and lose the remaining wallpapers?',
+            });
+
+            dialog.add_response('continue', 'Continue Processing');
+            dialog.add_response('cancel', 'Cancel Processing');
+            dialog.set_response_appearance(
+                'cancel',
+                Adw.ResponseAppearance.DESTRUCTIVE
+            );
+            dialog.set_default_response('continue');
+            dialog.set_close_response('continue');
+
+            dialog.connect('response', (_, response) => {
+                if (response === 'cancel') {
+                    this.emit('cancel-requested');
+                }
+            });
+
+            dialog.present(this.get_root());
         }
 
         /**
@@ -162,6 +211,10 @@ export const BatchProgressPanel = GObject.registerClass(
 
             this._itemRows.clear();
             removeAllChildren(this._itemsList);
+
+            // Set processing state
+            this._isProcessing = true;
+            this._isComplete = false;
 
             // Create item rows
             for (const item of this._items) {
@@ -347,14 +400,15 @@ export const BatchProgressPanel = GObject.registerClass(
          * @param {number} failCount - Number of failed items
          */
         showComplete(successCount, failCount) {
+            this._isProcessing = false;
+            this._isComplete = true;
+
             this._progressBar.set_fraction(1);
             this._progressBar.set_text('Complete');
 
-            let message = `${successCount} wallpaper${successCount !== 1 ? 's' : ''} processed successfully`;
-            if (failCount > 0) {
-                message += `, ${failCount} failed`;
-            }
-            this._progressLabel.set_label(message);
+            const successText = `${successCount} wallpaper${successCount !== 1 ? 's' : ''} processed successfully`;
+            const failText = failCount > 0 ? `, ${failCount} failed` : '';
+            this._progressLabel.set_label(successText + failText);
 
             this._cancelButton.set_label('Continue');
         }
@@ -363,6 +417,9 @@ export const BatchProgressPanel = GObject.registerClass(
          * Show cancelled state
          */
         showCancelled() {
+            this._isProcessing = false;
+            this._isComplete = true;
+
             this._progressLabel.set_label('Processing cancelled');
             this._cancelButton.set_label('Close');
         }

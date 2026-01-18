@@ -12,6 +12,7 @@
  */
 
 import GObject from 'gi://GObject';
+import Gdk from 'gi://Gdk?version=4.0';
 import Gtk from 'gi://Gtk?version=4.0';
 
 import {BatchThemeCard} from './BatchThemeCard.js';
@@ -75,9 +76,9 @@ export const BatchResultsGrid = GObject.registerClass(
 
             this.append(header);
 
-            // Instructions
+            // Instructions with keyboard hints
             const instructions = new Gtk.Label({
-                label: 'Click a theme to select it for application',
+                label: 'Click or use ←/→ to select • Space to preview • Enter to apply • Esc to go back',
                 css_classes: ['dim-label', 'caption'],
                 xalign: 0,
                 margin_start: SPACING.MD,
@@ -113,6 +114,115 @@ export const BatchResultsGrid = GObject.registerClass(
             // Action bar at bottom
             this._actionBar = this._createActionBar();
             this.append(this._actionBar);
+
+            // Keyboard navigation
+            this._setupKeyboardNavigation();
+        }
+
+        /**
+         * Setup keyboard navigation for the grid
+         * @private
+         */
+        _setupKeyboardNavigation() {
+            const keyController = new Gtk.EventControllerKey();
+            keyController.connect('key-pressed', (_, keyval) => {
+                return this._onKeyPressed(keyval);
+            });
+            this.add_controller(keyController);
+        }
+
+        /**
+         * Handle key press for navigation
+         * @private
+         * @param {number} keyval - Key value
+         * @returns {boolean} Whether the key was handled
+         */
+        _onKeyPressed(keyval) {
+            const hasSuccessfulResults = this._results.some(r => r.success);
+            if (!hasSuccessfulResults) return false;
+
+            // Handle navigation keys
+            if (keyval === Gdk.KEY_Left || keyval === Gdk.KEY_h) {
+                this._navigateCards(-1);
+                return true;
+            }
+
+            if (keyval === Gdk.KEY_Right || keyval === Gdk.KEY_l) {
+                this._navigateCards(1);
+                return true;
+            }
+
+            if (keyval === Gdk.KEY_Escape) {
+                this.emit('theme-selected', null);
+                return true;
+            }
+
+            // Handle number keys (1-9) for quick selection
+            if (keyval >= Gdk.KEY_1 && keyval <= Gdk.KEY_9) {
+                const index = keyval - Gdk.KEY_1;
+                if (
+                    index < this._results.length &&
+                    this._results[index]?.success
+                ) {
+                    this._onCardSelected(index);
+                    return true;
+                }
+                return false;
+            }
+
+            // Handle actions on selected card
+            const selectedResult = this._getSelectedSuccessfulResult();
+            if (!selectedResult) return false;
+
+            if (keyval === Gdk.KEY_Return || keyval === Gdk.KEY_KP_Enter) {
+                this.emit('theme-selected', selectedResult);
+                return true;
+            }
+
+            if (keyval === Gdk.KEY_space) {
+                this.emit('preview-requested', selectedResult);
+                return true;
+            }
+
+            return false;
+        }
+
+        /**
+         * Get the currently selected result if it's successful
+         * @private
+         * @returns {Object|null} Selected successful result or null
+         */
+        _getSelectedSuccessfulResult() {
+            if (this._selectedIndex < 0) return null;
+            const result = this._results[this._selectedIndex];
+            return result?.success ? result : null;
+        }
+
+        /**
+         * Navigate between cards
+         * @private
+         * @param {number} direction - -1 for previous, 1 for next
+         */
+        _navigateCards(direction) {
+            const successfulIndices = this._results
+                .map((r, i) => (r.success ? i : -1))
+                .filter(i => i >= 0);
+
+            if (successfulIndices.length === 0) return;
+
+            let currentPos = successfulIndices.indexOf(this._selectedIndex);
+
+            if (currentPos === -1) {
+                // Nothing selected, select first or last based on direction
+                currentPos = direction > 0 ? 0 : successfulIndices.length - 1;
+            } else {
+                currentPos += direction;
+                // Wrap around
+                if (currentPos < 0) currentPos = successfulIndices.length - 1;
+                if (currentPos >= successfulIndices.length) currentPos = 0;
+            }
+
+            this._onCardSelected(successfulIndices[currentPos]);
         }
 
         /**
@@ -262,22 +372,29 @@ export const BatchResultsGrid = GObject.registerClass(
          * @private
          */
         _updateSelectionUI() {
-            const hasSelection = this._selectedIndex >= 0;
+            const selectedResult = this._getSelectedSuccessfulResult();
+            this._applyButton.set_sensitive(selectedResult !== null);
 
-            this._applyButton.set_sensitive(
-                hasSelection && this._results[this._selectedIndex]?.success
-            );
-
-            if (hasSelection) {
-                const result = this._results[this._selectedIndex];
-                const name =
-                    result.wallpaper?.name ||
-                    result.wallpaper?.path?.split('/').pop() ||
-                    'Unknown';
+            if (selectedResult) {
+                const name = this._getWallpaperName(selectedResult.wallpaper);
                 this._selectionLabel.set_label(`Selected: ${name}`);
             } else {
                 this._selectionLabel.set_label('No theme selected');
             }
+        }
+
+        /**
+         * Get wallpaper display name
+         * @private
+         * @param {Object} wallpaper - Wallpaper object
+         * @returns {string} Display name
+         */
+        _getWallpaperName(wallpaper) {
+            return (
+                wallpaper?.name ||
+                wallpaper?.path?.split('/').pop() ||
+                'Unknown'
+            );
         }
 
         /**
