@@ -281,92 +281,75 @@ export const HeroEmptyState = GObject.registerClass(
         _createStepsIndicator() {
             const box = new Gtk.Box({
                 orientation: Gtk.Orientation.HORIZONTAL,
-                spacing: 32,
+                spacing: 24,
                 halign: Gtk.Align.CENTER,
-                margin_top: 40,
+                margin_top: 48,
             });
 
-            const steps = [
-                {icon: 'image-x-generic-symbolic', label: 'Select'},
-                {icon: 'color-select-symbolic', label: 'Extract'},
-                {icon: 'emblem-ok-symbolic', label: 'Apply'},
-            ];
+            const steps = ['Select', 'Extract', 'Apply'];
 
-            steps.forEach((step, index) => {
+            steps.forEach((label, index) => {
                 const stepBox = new Gtk.Box({
                     orientation: Gtk.Orientation.HORIZONTAL,
-                    spacing: 8,
-                });
-
-                // Step number
-                const numberBox = new Gtk.Box({
-                    width_request: 24,
-                    height_request: 24,
-                    halign: Gtk.Align.CENTER,
+                    spacing: 10,
                     valign: Gtk.Align.CENTER,
                 });
-                const numberLabel = new Gtk.Label({
+
+                // Number
+                const number = new Gtk.Label({
                     label: `${index + 1}`,
                     halign: Gtk.Align.CENTER,
                     valign: Gtk.Align.CENTER,
+                    width_request: 28,
+                    height_request: 28,
                 });
                 applyCssToWidget(
-                    numberBox,
+                    number,
                     `
-                    box {
-                        background-color: alpha(@accent_bg_color, 0.15);
+                    label {
+                        background-color: alpha(@accent_bg_color, 0.12);
+                        color: @accent_bg_color;
+                        font-size: 13px;
+                        font-weight: 600;
                         border-radius: 0;
                     }
                 `
                 );
-                applyCssToWidget(
-                    numberLabel,
-                    `
-                    label {
-                        font-size: 11px;
-                        font-weight: 700;
-                        color: @accent_bg_color;
-                    }
-                `
-                );
-                numberBox.append(numberLabel);
-                stepBox.append(numberBox);
+                stepBox.append(number);
 
-                // Step label
-                const label = new Gtk.Label({
-                    label: step.label,
-                    css_classes: ['dim-label'],
+                // Label
+                const stepLabel = new Gtk.Label({
+                    label: label,
                 });
                 applyCssToWidget(
-                    label,
+                    stepLabel,
                     `
                     label {
-                        font-size: 12px;
+                        font-size: 13px;
                         font-weight: 500;
-                        opacity: 0.7;
+                        opacity: 0.6;
                     }
                 `
                 );
-                stepBox.append(label);
+                stepBox.append(stepLabel);
 
                 box.append(stepBox);
 
-                // Arrow between steps
+                // Separator dot
                 if (index < steps.length - 1) {
-                    const arrow = new Gtk.Label({
-                        label: '→',
-                        css_classes: ['dim-label'],
+                    const dot = new Gtk.Label({
+                        label: '\u2022',
                     });
                     applyCssToWidget(
-                        arrow,
+                        dot,
                         `
                         label {
-                            opacity: 0.3;
-                            font-size: 14px;
+                            opacity: 0.2;
+                            font-size: 8px;
                         }
                     `
                     );
-                    box.append(arrow);
+                    box.append(dot);
                 }
             });
 
