@@ -94,7 +94,6 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             this._sortOrder = 'asc'; // 'asc' | 'desc'
             this._gridSize = 'medium'; // 'small' | 'medium' | 'large'
             this._multiSelectMode = false;
-            this._selectedWallpapers = new Set();
             this._wallpapers = []; // Root wallpapers
             this._subfolders = new Map(); // Map<folderName, wallpaper[]>
             this._cardCache = new Map(); // Map<path, {card, flowBoxChild}> for reordering
@@ -336,8 +335,11 @@ export const LocalWallpaperBrowser = GObject.registerClass(
             styleButton(this._multiSelectButton, {flat: true});
             this._multiSelectButton.connect('toggled', () => {
                 this._multiSelectMode = this._multiSelectButton.get_active();
-                this._selectedWallpapers.clear();
+                batchProcessingState.clearSelections();
                 this._updateMultiSelectUI();
+                // Clear cache to force full rebuild with/without checkboxes
+                this._cardCache.clear();
+                this._subfolderExpanders.clear();
                 this._renderWallpapers();
             });
             toolbarBox.append(this._multiSelectButton);
@@ -712,15 +714,15 @@ export const LocalWallpaperBrowser = GObject.registerClass(
 
             const cardOptions = {
                 showCheckbox: this._multiSelectMode,
-                isSelected: this._selectedWallpapers.has(wallpaper.path),
+                isSelected: batchProcessingState.isSelected(wallpaper.path),
                 height: GRID_SIZES[this._gridSize],
                 onContextMenu: (wp, widget, x, y) =>
                     this._showContextMenu(wp, widget, x, y),
                 onCheckboxToggle: (wp, isChecked) => {
                     if (isChecked) {
-                        this._selectedWallpapers.add(wp.path);
+                        batchProcessingState.addSelection(wallpaperData);
                     } else {
-                        this._selectedWallpapers.delete(wp.path);
+                        batchProcessingState.removeSelection(wp.path);
                     }
                     this._updateMultiSelectUI();
                 },
@@ -791,7 +793,7 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         }
 
         _updateMultiSelectUI() {
-            const count = this._selectedWallpapers.size;
+            const count = batchProcessingState.getSelectionCount();
             this._batchActionsBar.set_visible(
                 this._multiSelectMode && count > 0
             );
@@ -1124,9 +1126,10 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         }
 
         _batchDelete() {
-            if (this._selectedWallpapers.size === 0) return;
+            const selections = batchProcessingState.getSelections();
+            if (selections.length === 0) return;
 
-            const count = this._selectedWallpapers.size;
+            const count = selections.length;
             const dialogManager = new DialogManager(this.get_root());
             dialogManager.showConfirmation({
                 heading: 'Delete Wallpapers',
@@ -1135,15 +1138,15 @@ export const LocalWallpaperBrowser = GObject.registerClass(
                 cancelText: 'Cancel',
                 onConfirm: () => {
                     let deleted = 0;
-                    for (const path of this._selectedWallpapers) {
-                        if (deleteFile(path)) {
-                            if (favoritesService.isFavorite(path)) {
-                                favoritesService.removeFavorite(path);
+                    for (const wp of selections) {
+                        if (deleteFile(wp.path)) {
+                            if (favoritesService.isFavorite(wp.path)) {
+                                favoritesService.removeFavorite(wp.path);
                             }
                             deleted++;
                         }
                     }
-                    this._selectedWallpapers.clear();
+                    batchProcessingState.clearSelections();
                     this._updateMultiSelectUI();
                     this.emit('favorites-changed');
                     this._loadWallpapersAsync();
@@ -1155,13 +1158,15 @@ export const LocalWallpaperBrowser = GObject.registerClass(
         }
 
         _batchFavorite() {
-            if (this._selectedWallpapers.size === 0) return;
+            const selections = batchProcessingState.getSelections();
+            if (selections.length === 0) return;
 
             let added = 0;
-            for (const path of this._selectedWallpapers) {
-                if (!favoritesService.isFavorite(path)) {
-                    const name = GLib.path_get_basename(path);
-                    favoritesService.addFavorite(path, 'local', {name});
+            for (const wp of selections) {
+                if (!favoritesService.isFavorite(wp.path)) {
+                    favoritesService.addFavorite(wp.path, 'local', {
+                        name: wp.name,
+                    });
                     added++;
                 }
             }
@@ -1176,29 +1181,18 @@ export const LocalWallpaperBrowser = GObject.registerClass(
          * @private
          */
         _processSelected() {
-            if (this._selectedWallpapers.size === 0) return;
-
-            // Build wallpaper data array
-            const wallpapers = [];
-            for (const path of this._selectedWallpapers) {
-                const name = GLib.path_get_basename(path);
-                wallpapers.push({
-                    path: path,
-                    type: 'local',
-                    name: name,
-                    data: {name},
-                });
-            }
+            const selections = batchProcessingState.getSelections();
+            if (selections.length === 0) return;
 
             // Exit multi-select mode
             this._multiSelectMode = false;
             this._multiSelectButton.set_active(false);
-            this._selectedWallpapers.clear();
+            batchProcessingState.clearSelections();
             this._updateMultiSelectUI();
             this._renderWallpapers();
 
-            // Emit signal for batch processing
-            this.emit('process-batch-requested', wallpapers);
+            // Emit signal for batch processing (selections already have correct format)
+            this.emit('process-batch-requested', selections);
         }
 
         _openFolder() {
