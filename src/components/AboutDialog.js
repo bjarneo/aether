@@ -2,7 +2,7 @@ import Adw from 'gi://Adw?version=1';
 import Gtk from 'gi://Gtk?version=4.0';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import GObject from 'gi://GObject';
+
 import {SPACING} from '../constants/ui-constants.js';
 
 export class AboutDialog {
@@ -28,9 +28,19 @@ export class AboutDialog {
 
         // Header bar with close button
         const headerBar = new Adw.HeaderBar({
-            show_end_title_buttons: true,
+            show_end_title_buttons: false,
             show_start_title_buttons: false,
         });
+
+        // Add close button on the right
+        const closeBtn = new Gtk.Button({
+            icon_name: 'window-close-symbolic',
+            css_classes: ['flat'],
+            tooltip_text: 'Close',
+        });
+        closeBtn.connect('clicked', () => dialog.close());
+        headerBar.pack_end(closeBtn);
+
         toolbarView.add_top_bar(headerBar);
 
         // Content
