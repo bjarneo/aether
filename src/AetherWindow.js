@@ -9,7 +9,6 @@
  * - WallpaperBrowser: Wallhaven integration
  * - LocalWallpaperBrowser: Local wallpaper browsing
  * - FavoritesView: Favorite wallpapers
- * - SchedulerView: Theme scheduling
  *
  * State Management:
  * Components share state through ThemeState (src/state/ThemeState.js).
@@ -35,7 +34,6 @@ import {WallpaperEditor} from './components/WallpaperEditor.js';
 import {WallpaperBrowser} from './components/WallpaperBrowser.js';
 import {LocalWallpaperBrowser} from './components/LocalWallpaperBrowser.js';
 import {FavoritesView} from './components/FavoritesView.js';
-import {SchedulerView} from './components/SchedulerView.js';
 import {ConfigWriter} from './utils/ConfigWriter.js';
 import {DialogManager} from './utils/DialogManager.js';
 import {ThemeExporter} from './services/ThemeExporter.js';
@@ -378,15 +376,6 @@ export const AetherWindow = GObject.registerClass(
                 'color-select-symbolic'
             );
 
-            // Scheduler page
-            this._schedulerView = new SchedulerView();
-            this._viewStack.add_titled_with_icon(
-                this._schedulerView,
-                'scheduler',
-                'Scheduler',
-                'alarm-symbolic'
-            );
-
             // Batch Processing page (hidden from tab bar)
             this._batchProcessingView = new BatchProcessingView();
             this._batchProcessingView.connect('theme-selected', (_, result) => {
@@ -397,13 +386,6 @@ export const AetherWindow = GObject.registerClass(
             });
             // Add as named page without title (won't show in tab bar)
             this._viewStack.add_named(this._batchProcessingView, 'batch');
-
-            // Refresh scheduler when switching to it
-            this._viewStack.connect('notify::visible-child-name', () => {
-                if (this._viewStack.get_visible_child_name() === 'scheduler') {
-                    this._schedulerView.refresh();
-                }
-            });
 
             // Connect view switcher to view stack
             this._viewSwitcher.set_stack(this._viewStack);

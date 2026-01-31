@@ -26,7 +26,6 @@ import {
     ImportBlueprintCommand,
     ImportBase16Command,
     ImportColorsTomlCommand,
-    CheckScheduleCommand,
 } from './cli/index.js';
 import {BlueprintWidget} from './components/BlueprintWidget.js';
 import {runMigrations} from './utils/migrations.js';
@@ -151,15 +150,6 @@ export const AetherApplication = GObject.registerClass(
             );
 
             this.add_main_option(
-                'check-schedule',
-                0,
-                GLib.OptionFlags.NONE,
-                GLib.OptionArg.NONE,
-                'Check and apply scheduled theme changes (used by scheduler daemon)',
-                null
-            );
-
-            this.add_main_option(
                 'import-base16',
                 0,
                 GLib.OptionFlags.NONE,
@@ -215,7 +205,6 @@ export const AetherApplication = GObject.registerClass(
             if (this._handleImportBlueprint(options)) return 0;
             if (this._handleImportBase16(options)) return 0;
             if (this._handleImportColorsToml(options)) return 0;
-            if (this._handleCheckSchedule(options)) return 0;
             if (this._handleWidgetMode(options)) return 0;
 
             // Handle wallpaper option for GUI mode
@@ -440,28 +429,6 @@ export const AetherApplication = GObject.registerClass(
                         imports.system.exit(1);
                     });
 
-                return true;
-            }
-            return false;
-        }
-
-        /**
-         * Handle --check-schedule command
-         * @private
-         * @param {GLib.VariantDict} options - Command options
-         * @returns {boolean} True if handled
-         */
-        _handleCheckSchedule(options) {
-            if (options.contains('check-schedule')) {
-                this.hold();
-                CheckScheduleCommand.execute()
-                    .then(() => {
-                        this.release();
-                    })
-                    .catch(error => {
-                        printerr(`Error: ${error.message}`);
-                        this.release();
-                    });
                 return true;
             }
             return false;

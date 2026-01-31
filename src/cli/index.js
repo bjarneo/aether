@@ -8,5 +8,4 @@ export {GenerateThemeCommand} from './commands/generate-theme.js';
 export {ImportBlueprintCommand} from './commands/import-blueprint.js';
 export {ImportBase16Command} from './commands/import-base16.js';
 export {ImportColorsTomlCommand} from './commands/import-colors-toml.js';
-export {CheckScheduleCommand} from './commands/check-schedule.js';
 export {ColorMapper} from './utils/color-mapper.js';
