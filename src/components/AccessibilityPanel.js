@@ -262,6 +262,16 @@ export const AccessibilityPanel = GObject.registerClass(
         }
 
         updateColors(colors) {
+            // Guard against updates when widget is not attached to window
+            try {
+                if (!this.get_root()) {
+                    return;
+                }
+            } catch (e) {
+                // Widget may be in process of destruction
+                return;
+            }
+
             this._colors = colors;
 
             if (!colors.background || !colors.foreground) {

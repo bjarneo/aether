@@ -68,6 +68,10 @@ export class ResponsiveGridManager {
             GLib.PRIORITY_DEFAULT,
             this.LAYOUT_CONSTANTS.INITIAL_DELAY,
             () => {
+                // Guard against callbacks firing during/after widget destruction
+                if (this._isCleanedUp) {
+                    return GLib.SOURCE_REMOVE;
+                }
                 this._updateColumns();
                 return GLib.SOURCE_REMOVE;
             }
@@ -96,6 +100,10 @@ export class ResponsiveGridManager {
             GLib.PRIORITY_DEFAULT,
             this.LAYOUT_CONSTANTS.POLLING_INTERVAL,
             () => {
+                // Guard against callbacks firing during/after widget destruction
+                if (this._isCleanedUp) {
+                    return GLib.SOURCE_REMOVE;
+                }
                 const width = this._getAvailableWidth();
                 if (
                     Math.abs(width - this._lastWidth) >
@@ -117,6 +125,10 @@ export class ResponsiveGridManager {
      * @private
      */
     _getAvailableWidth() {
+        // Return fallback if widget is being destroyed
+        if (this._isCleanedUp) {
+            return this.LAYOUT_CONSTANTS.FALLBACK_WIDTH;
+        }
         const scrollWidth = this._scrolledWindow.get_allocated_width();
         const window = this._widget.get_root();
         const windowWidth = window?.get_allocated_width() || 0;
