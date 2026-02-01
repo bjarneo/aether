@@ -158,6 +158,7 @@ export const HARMONY_TYPES = [
 // Color adjustment limits
 export const ADJUSTMENT_LIMITS = {
     vibrance: {min: -50, max: 50, step: 5, default: 0},
+    saturation: {min: -100, max: 100, step: 5, default: 0},
     contrast: {min: -30, max: 30, step: 5, default: 0},
     brightness: {min: -30, max: 30, step: 5, default: 0},
     hue: {min: -180, max: 180, step: 10, default: 0},

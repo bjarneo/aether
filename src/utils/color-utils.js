@@ -199,21 +199,26 @@ export function brightenColor(hexColor, amount = 20) {
 }
 
 /**
- * Applies comprehensive color adjustments with 6 parameters
+ * Applies comprehensive color adjustments with 7 parameters
  * Used by SettingsSidebar color adjustment controls for palette customization
  *
  * Adjustment Pipeline (order matters):
  * 1. Hue Shift: Rotates hue on color wheel
  * 2. Temperature: Shifts toward warm (orange/30°) or cool (blue/210°)
- * 3. Vibrance: Adjusts saturation intensity
- * 4. Brightness: Shifts lightness up/down
- * 5. Contrast: Expands/compresses around 50% lightness midpoint
- * 6. Gamma: Applies power curve correction to RGB channels
+ * 3. Vibrance: Adds/subtracts saturation linearly
+ * 4. Saturation: Multiplies saturation by percentage
+ * 5. Brightness: Shifts lightness up/down
+ * 6. Contrast: Expands/compresses around 50% lightness midpoint
+ * 7. Gamma: Applies power curve correction to RGB channels
  *
  * Temperature Behavior:
  * - Positive values (1-100): Shift toward warm orange tones (~30°)
  * - Negative values (-100 to -1): Shift toward cool blue tones (~210°)
  * - Blends current hue toward target with 30% strength
+ *
+ * Saturation Behavior:
+ * - Multiplies current saturation by (100 + value) / 100
+ * - -100 = grayscale, 0 = no change, 100 = double saturation
  *
  * Contrast Behavior:
  * - Expands/compresses lightness deviation from 50% midpoint
@@ -227,22 +232,23 @@ export function brightenColor(hexColor, amount = 20) {
  * - Typical range: 0.5-2.0
  *
  * @param {string} hexColor - Input hex color (with or without #)
- * @param {number} vibrance - Saturation adjustment (-100 to 100, 0 = no change)
+ * @param {number} vibrance - Linear saturation adjustment (-100 to 100, 0 = no change)
  * @param {number} contrast - Contrast adjustment (-100 to 100, 0 = no change)
  * @param {number} brightness - Brightness adjustment (-100 to 100, 0 = no change)
  * @param {number} hueShift - Hue rotation in degrees (-360 to 360, 0 = no change)
  * @param {number} [temperature=0] - Temperature shift (-100 to 100, 0 = neutral)
  * @param {number} [gamma=1.0] - Gamma correction (0.1 to 3.0, 1.0 = linear)
+ * @param {number} [saturation=0] - Percentage saturation adjustment (-100 to 100, 0 = no change)
  * @returns {string} Adjusted hex color string with # prefix
  *
  * @example
  * // Warm, vibrant, high-contrast adjustment
- * adjustColor('#3b82f6', 20, 30, 10, 0, 50, 1.2)
+ * adjustColor('#3b82f6', 20, 30, 10, 0, 50, 1.2, 0)
  * // Returns: '#5B9FFF' (warmer, more saturated, higher contrast)
  *
  * @example
  * // Cool, desaturated, low-contrast adjustment
- * adjustColor('#f97316', -30, -20, -10, 0, -50, 0.8)
+ * adjustColor('#f97316', -30, -20, -10, 0, -50, 0.8, -50)
  * // Returns: '#A96B5C' (cooler, less saturated, lower contrast, darker)
  */
 export function adjustColor(
@@ -252,7 +258,8 @@ export function adjustColor(
     brightness,
     hueShift,
     temperature = 0,
-    gamma = 1.0
+    gamma = 1.0,
+    saturation = 0
 ) {
     let rgb = hexToRgb(hexColor);
     let hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
@@ -273,8 +280,14 @@ export function adjustColor(
         hsl.h = (currentHue + hueDiff * tempAmount * 0.3 + 360) % 360;
     }
 
-    // Apply vibrance (saturation adjustment)
+    // Apply vibrance (linear saturation adjustment)
     hsl.s = Math.max(0, Math.min(100, hsl.s + vibrance));
+
+    // Apply saturation (percentage-based multiplier)
+    if (saturation !== 0) {
+        const saturationMultiplier = (100 + saturation) / 100;
+        hsl.s = Math.max(0, Math.min(100, hsl.s * saturationMultiplier));
+    }
 
     // Apply brightness
     hsl.l = Math.max(0, Math.min(100, hsl.l + brightness));

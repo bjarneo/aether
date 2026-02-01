@@ -37,6 +37,7 @@ import {HistoryManager} from './HistoryManager.js';
 /**
  * @typedef {Object} Adjustments
  * @property {number} vibrance - Vibrance adjustment (-100 to 100)
+ * @property {number} saturation - Saturation adjustment (-100 to 100)
  * @property {number} contrast - Contrast adjustment (-100 to 100)
  * @property {number} brightness - Brightness adjustment (-100 to 100)
  * @property {number} hueShift - Hue shift adjustment (0 to 360)
@@ -55,6 +56,7 @@ import {HistoryManager} from './HistoryManager.js';
  */
 const DEFAULT_ADJUSTMENTS = {
     vibrance: 0,
+    saturation: 0,
     contrast: 0,
     brightness: 0,
     hueShift: 0,

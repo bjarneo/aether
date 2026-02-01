@@ -43,6 +43,18 @@ export class ColorAdjustmentControls {
         this.vibranceScale = vibranceSlider.scale;
         slidersBox.append(vibranceSlider.box);
 
+        // Saturation
+        const saturationSlider = this._createCompactSlider({
+            label: 'Saturation',
+            min: ADJUSTMENT_LIMITS.saturation.min,
+            max: ADJUSTMENT_LIMITS.saturation.max,
+            defaultValue: ADJUSTMENT_LIMITS.saturation.default,
+            step: ADJUSTMENT_LIMITS.saturation.step,
+            onChange: () => this._emitChange(),
+        });
+        this.saturationScale = saturationSlider.scale;
+        slidersBox.append(saturationSlider.box);
+
         // Contrast
         const contrastSlider = this._createCompactSlider({
             label: 'Contrast',
@@ -291,6 +303,7 @@ export class ColorAdjustmentControls {
     getValues() {
         return {
             vibrance: this.vibranceScale.get_value(),
+            saturation: this.saturationScale.get_value(),
             contrast: this.contrastScale.get_value(),
             brightness: this.brightnessScale.get_value(),
             hueShift: this.hueScale.get_value(),
@@ -301,6 +314,7 @@ export class ColorAdjustmentControls {
 
     reset() {
         this.vibranceScale.set_value(ADJUSTMENT_LIMITS.vibrance.default);
+        this.saturationScale.set_value(ADJUSTMENT_LIMITS.saturation.default);
         this.contrastScale.set_value(ADJUSTMENT_LIMITS.contrast.default);
         this.brightnessScale.set_value(ADJUSTMENT_LIMITS.brightness.default);
         this.hueScale.set_value(ADJUSTMENT_LIMITS.hue.default);
@@ -320,6 +334,7 @@ export class ColorAdjustmentControls {
 
         const scaleMap = {
             vibrance: this.vibranceScale,
+            saturation: this.saturationScale,
             contrast: this.contrastScale,
             brightness: this.brightnessScale,
             hueShift: this.hueScale,
