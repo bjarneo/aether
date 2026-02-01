@@ -350,7 +350,7 @@ export const AppColorOverrides = GObject.registerClass(
             });
             const helpLabel = new Gtk.Label({
                 label: 'Click an application to customize its color mappings',
-                css_classes: ['dim-label', 'caption'],
+                css_classes: ['dimmed', 'caption'],
                 wrap: true,
                 xalign: 0,
                 margin_top: 6,
@@ -393,7 +393,7 @@ export const AppColorOverrides = GObject.registerClass(
 
             // Count indicator - shows number of overrides for this app
             const countLabel = new Gtk.Label({
-                css_classes: ['dim-label', 'caption'],
+                css_classes: ['dimmed', 'caption'],
                 valign: Gtk.Align.CENTER,
             });
             this._updateCountLabel(countLabel, app.name);
@@ -450,7 +450,7 @@ export const AppColorOverrides = GObject.registerClass(
                 label: `Override color variables for ${app.label}. These will take precedence over the default palette colors.`,
                 wrap: true,
                 xalign: 0,
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
                 margin_bottom: 6,
             });
             content.append(desc);
@@ -476,7 +476,7 @@ export const AppColorOverrides = GObject.registerClass(
             if (colorVars.length === 0) {
                 const emptyLabel = new Gtk.Label({
                     label: 'No color variables found in this template',
-                    css_classes: ['dim-label'],
+                    css_classes: ['dimmed'],
                     margin_top: SPACING.MD,
                     margin_bottom: SPACING.MD,
                 });

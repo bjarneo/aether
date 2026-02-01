@@ -111,7 +111,7 @@ export const WallpaperColorPicker = GObject.registerClass(
         _createZoomControls() {
             this._zoomLabel = new Gtk.Label({
                 label: this._formatZoomLabel(this._zoomLevel),
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
                 width_request: 50,
             });
 
@@ -243,7 +243,7 @@ export const WallpaperColorPicker = GObject.registerClass(
 
             const colorLabel = new Gtk.Label({
                 label: 'Color Preview:',
-                css_classes: ['caption', 'dim-label'],
+                css_classes: ['caption', 'dimmed'],
                 xalign: 0,
             });
             previewBox.append(colorLabel);
@@ -265,7 +265,7 @@ export const WallpaperColorPicker = GObject.registerClass(
 
             this._rgbLabel = new Gtk.Label({
                 label: 'RGB: 0, 0, 0',
-                css_classes: ['caption', 'dim-label'],
+                css_classes: ['caption', 'dimmed'],
                 xalign: 0,
                 hexpand: true,
             });

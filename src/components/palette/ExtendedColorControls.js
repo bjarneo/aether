@@ -102,7 +102,7 @@ export const ExtendedColorControls = GObject.registerClass(
             // Hint text
             const hint = new Gtk.Label({
                 label: 'Click to edit · Right-click to copy',
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
             });
             applyCssToWidget(
                 hint,
@@ -251,7 +251,7 @@ export const ExtendedColorControls = GObject.registerClass(
 
                 const label = new Gtk.Label({
                     label: role.shortLabel,
-                    css_classes: ['dim-label'],
+                    css_classes: ['dimmed'],
                 });
                 applyCssToWidget(
                     label,

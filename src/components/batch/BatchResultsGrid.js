@@ -70,7 +70,7 @@ export const BatchResultsGrid = GObject.registerClass(
 
             this._resultsCountLabel = new Gtk.Label({
                 label: '0 themes generated',
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
             });
             header.append(this._resultsCountLabel);
 
@@ -79,7 +79,7 @@ export const BatchResultsGrid = GObject.registerClass(
             // Instructions with keyboard hints
             const instructions = new Gtk.Label({
                 label: 'Click or use ←/→ to select • Space to preview • Enter to apply • Esc to go back',
-                css_classes: ['dim-label', 'caption'],
+                css_classes: ['dimmed', 'caption'],
                 xalign: 0,
                 margin_start: SPACING.MD,
                 margin_bottom: SPACING.SM,

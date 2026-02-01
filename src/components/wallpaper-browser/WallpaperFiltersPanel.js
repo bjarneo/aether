@@ -114,7 +114,7 @@ export const WallpaperFiltersPanel = GObject.registerClass(
             const sortLabel = new Gtk.Label({
                 label: 'Sort',
                 xalign: 0,
-                css_classes: ['caption', 'dim-label'],
+                css_classes: ['caption', 'dimmed'],
             });
 
             this._sortDropdown = new Gtk.DropDown({
@@ -156,7 +156,7 @@ export const WallpaperFiltersPanel = GObject.registerClass(
             const categoriesLabel = new Gtk.Label({
                 label: 'Categories',
                 xalign: 0,
-                css_classes: ['caption', 'dim-label'],
+                css_classes: ['caption', 'dimmed'],
             });
 
             const categoriesCheckBox = new Gtk.Box({
@@ -225,7 +225,7 @@ export const WallpaperFiltersPanel = GObject.registerClass(
             const purityLabel = new Gtk.Label({
                 label: 'Purity',
                 xalign: 0,
-                css_classes: ['caption', 'dim-label'],
+                css_classes: ['caption', 'dimmed'],
             });
 
             const purityCheckBox = new Gtk.Box({

@@ -131,7 +131,7 @@ export const OmarchyThemesBrowser = GObject.registerClass(
             this._currentThemeLabel = new Gtk.Label({
                 label: 'Loading...',
                 halign: Gtk.Align.START,
-                css_classes: ['dim-label', 'caption'],
+                css_classes: ['dimmed', 'caption'],
             });
             titleBox.append(this._currentThemeLabel);
 

@@ -94,7 +94,7 @@ export const BatchProgressPanel = GObject.registerClass(
             // Progress label
             this._progressLabel = new Gtk.Label({
                 label: 'Preparing...',
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
             });
             progressContainer.append(this._progressLabel);
 

@@ -201,7 +201,6 @@ export const PaletteEditor = GObject.registerClass(
                 this._originalPalette[index] = color;
                 // Update centralized state
                 themeState.setColor(index, color);
-                this.emit('palette-generated', this._palette);
             });
             this._colorPalette.connect('overrides-changed', (_, overrides) => {
                 this.emit('overrides-changed', overrides);

@@ -449,7 +449,7 @@ export const BlueprintsView = GObject.registerClass(
                 const dateLabel = new Gtk.Label({
                     label: timestamp,
                     halign: Gtk.Align.START,
-                    css_classes: ['dim-label', 'caption'],
+                    css_classes: ['dimmed', 'caption'],
                     margin_start: 12,
                     margin_end: 12,
                     margin_bottom: 8,

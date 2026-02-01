@@ -38,7 +38,7 @@ export const EmptyState = GObject.registerClass(
             const icon = new Gtk.Image({
                 icon_name: 'image-x-generic-symbolic',
                 pixel_size: 96,
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
             });
             this.append(icon);
 

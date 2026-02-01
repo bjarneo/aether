@@ -116,7 +116,7 @@ export const FilterSliderRow = GObject.registerClass(
                 label: this._formatValue(this._defaultValue),
                 width_chars: SLIDER.VALUE_LABEL_CHARS,
                 xalign: 1,
-                css_classes: ['monospace', 'dim-label'],
+                css_classes: ['monospace', 'dimmed'],
             });
 
             // Connect value change

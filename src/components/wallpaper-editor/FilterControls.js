@@ -77,7 +77,7 @@ export const FilterControls = GObject.registerClass(
                 label: 'No filters active',
                 xalign: 0,
                 hexpand: true,
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
             });
             headerBox.append(this._activeFilterLabel);
 
@@ -565,7 +565,7 @@ export const FilterControls = GObject.registerClass(
                 label: `${Math.round(defaultValue)}${unit}`,
                 width_chars: 7,
                 xalign: 1,
-                css_classes: ['monospace', 'dim-label'],
+                css_classes: ['monospace', 'dimmed'],
             });
 
             scale.connect('value-changed', () => {

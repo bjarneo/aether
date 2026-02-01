@@ -91,7 +91,7 @@ export const FontSelector = GObject.registerClass(
                 label: currentFont
                     ? `Current: ${currentFont}`
                     : 'No font configured',
-                css_classes: ['dim-label', 'caption'],
+                css_classes: ['dimmed', 'caption'],
                 xalign: 0,
                 margin_start: 6,
                 margin_bottom: 6,

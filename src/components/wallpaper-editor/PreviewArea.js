@@ -65,7 +65,7 @@ export const PreviewArea = GObject.registerClass(
             // Hint label for click-and-hold feature
             const hintLabel = new Gtk.Label({
                 label: 'Hold click to view original',
-                css_classes: ['dim-label', 'caption'],
+                css_classes: ['dimmed', 'caption'],
                 xalign: 1,
             });
             headerBox.append(hintLabel);

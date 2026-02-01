@@ -94,7 +94,7 @@ export const WallpaperHero = GObject.registerClass(
             this._filenameLabel = new Gtk.Label({
                 label: '',
                 xalign: 0,
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
                 ellipsize: 3, // PANGO_ELLIPSIZE_END
             });
             applyCssToWidget(

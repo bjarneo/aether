@@ -212,7 +212,7 @@ export const SelectiveColorControls = GObject.registerClass(
                 label: `${Math.round(initialValue)}${unit}`,
                 width_chars: 6,
                 xalign: 1,
-                css_classes: ['monospace', 'dim-label'],
+                css_classes: ['monospace', 'dimmed'],
             });
 
             scale.connect('value-changed', () => {

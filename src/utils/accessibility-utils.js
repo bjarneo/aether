@@ -17,17 +17,17 @@ export function getRelativeLuminance(hexColor) {
     const gsRGB = rgb.g / 255;
     const bsRGB = rgb.b / 255;
 
-    // Apply gamma correction
+    // Apply gamma correction (sRGB to linear)
     const r =
-        rsRGB <= 0.03928
+        rsRGB <= 0.04045
             ? rsRGB / 12.92
             : Math.pow((rsRGB + 0.055) / 1.055, 2.4);
     const g =
-        gsRGB <= 0.03928
+        gsRGB <= 0.04045
             ? gsRGB / 12.92
             : Math.pow((gsRGB + 0.055) / 1.055, 2.4);
     const b =
-        bsRGB <= 0.03928
+        bsRGB <= 0.04045
             ? bsRGB / 12.92
             : Math.pow((bsRGB + 0.055) / 1.055, 2.4);
 

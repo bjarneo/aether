@@ -124,6 +124,8 @@ export class ConfigWriter {
 
             if (wallpaperPath) {
                 this._copyWallpaper(wallpaperPath);
+                // Update wallpaper symlink so omarchy uses the new wallpaper
+                this.applyWallpaper(this.wallpaperPath);
             }
 
             // Copy additional images

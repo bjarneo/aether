@@ -78,7 +78,7 @@ export const ColorPaletteDisplay = GObject.registerClass(
             // Hint text
             const hint = new Gtk.Label({
                 label: 'Click to edit · Right-click to copy',
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
             });
             applyCssToWidget(
                 hint,
@@ -302,7 +302,7 @@ export const ColorPaletteDisplay = GObject.registerClass(
 
                 const label = new Gtk.Label({
                     label: role.name,
-                    css_classes: ['dim-label'],
+                    css_classes: ['dimmed'],
                 });
                 applyCssToWidget(
                     label,

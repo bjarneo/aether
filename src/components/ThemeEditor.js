@@ -232,7 +232,6 @@ export const ThemeEditor = GObject.registerClass(
                 this._originalPalette[index] = color;
                 this._colorPalette.updateColor(index, color);
                 themeState.setColor(index, color);
-                this.emit('palette-generated', this._palette);
             });
         }
 

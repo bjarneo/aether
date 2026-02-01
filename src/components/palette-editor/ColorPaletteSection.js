@@ -112,7 +112,7 @@ export const ColorPaletteSection = GObject.registerClass(
                 label: 'Click any color to manually edit, or pick from wallpaper',
                 xalign: 0,
                 margin_bottom: 6,
-                css_classes: ['dim-label', 'caption'],
+                css_classes: ['dimmed', 'caption'],
             });
             this.append(subtitle);
 
@@ -183,7 +183,7 @@ export const ColorPaletteSection = GObject.registerClass(
             // Swatch selector label
             const selectorLabel = new Gtk.Label({
                 label: 'Select a color slot to replace:',
-                css_classes: ['caption', 'dim-label'],
+                css_classes: ['caption', 'dimmed'],
                 xalign: 0,
                 margin_bottom: SPACING.SM,
             });

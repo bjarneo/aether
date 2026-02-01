@@ -1056,7 +1056,7 @@ export const WallpaperBrowser = GObject.registerClass(
                 label: 'Get your API key from:\nhttps://wallhaven.cc/settings/account',
                 wrap: true,
                 xalign: 0,
-                css_classes: ['dim-label', 'caption'],
+                css_classes: ['dimmed', 'caption'],
             });
 
             contentBox.append(apiGroup);
@@ -1133,7 +1133,7 @@ export const WallpaperBrowser = GObject.registerClass(
                 label: 'Leave empty to show all resolutions. Use presets above or enter custom resolutions.',
                 wrap: true,
                 xalign: 0,
-                css_classes: ['dim-label', 'caption'],
+                css_classes: ['dimmed', 'caption'],
                 margin_start: 12,
                 margin_end: 12,
                 margin_top: 6,

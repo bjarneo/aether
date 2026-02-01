@@ -294,7 +294,7 @@ export function createSliderRow(config) {
             label: formatValue(value),
             width_chars: SLIDER.VALUE_LABEL_CHARS,
             xalign: 1,
-            css_classes: ['monospace', 'dim-label'],
+            css_classes: ['monospace', 'dimmed'],
         });
     }
 
@@ -894,7 +894,7 @@ export function createPresetRow(config) {
     const applyIcon = new Gtk.Image({
         icon_name: 'go-next-symbolic',
         valign: Gtk.Align.CENTER,
-        css_classes: ['dim-label'],
+        css_classes: ['dimmed'],
     });
     row.add_suffix(applyIcon);
 

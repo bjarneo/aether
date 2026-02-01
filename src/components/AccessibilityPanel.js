@@ -138,7 +138,7 @@ export const AccessibilityPanel = GObject.registerClass(
                 label: '',
                 halign: Gtk.Align.START,
                 wrap: true,
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
             });
             group.append(this._complianceLabel);
 
@@ -245,7 +245,7 @@ export const AccessibilityPanel = GObject.registerClass(
             const nameLabel = new Gtk.Label({
                 label: item.name,
                 halign: Gtk.Align.START,
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
             });
             box.append(nameLabel);
 

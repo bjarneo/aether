@@ -76,7 +76,7 @@ export const HeroEmptyState = GObject.registerClass(
             // Subheadline
             const subheadline = new Gtk.Label({
                 label: 'Extract colors from any wallpaper',
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
                 halign: Gtk.Align.CENTER,
             });
             applyCssToWidget(
@@ -198,7 +198,7 @@ export const HeroEmptyState = GObject.registerClass(
             // Separator label
             const separator = new Gtk.Label({
                 label: 'Or browse from',
-                css_classes: ['dim-label'],
+                css_classes: ['dimmed'],
             });
             applyCssToWidget(
                 separator,
