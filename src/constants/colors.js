@@ -161,8 +161,13 @@ export const ADJUSTMENT_LIMITS = {
     saturation: {min: -100, max: 100, step: 5, default: 0},
     contrast: {min: -30, max: 30, step: 5, default: 0},
     brightness: {min: -30, max: 30, step: 5, default: 0},
+    shadows: {min: -50, max: 50, step: 5, default: 0},
+    highlights: {min: -50, max: 50, step: 5, default: 0},
     hue: {min: -180, max: 180, step: 10, default: 0},
     temperature: {min: -50, max: 50, step: 5, default: 0},
+    tint: {min: -50, max: 50, step: 5, default: 0},
+    blackPoint: {min: -30, max: 30, step: 5, default: 0},
+    whitePoint: {min: -30, max: 30, step: 5, default: 0},
     gamma: {min: 0.5, max: 2.0, step: 0.1, default: 1.0},
 };
 

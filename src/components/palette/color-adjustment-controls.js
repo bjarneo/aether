@@ -79,6 +79,30 @@ export class ColorAdjustmentControls {
         this.brightnessScale = brightnessSlider.scale;
         slidersBox.append(brightnessSlider.box);
 
+        // Shadows
+        const shadowsSlider = this._createCompactSlider({
+            label: 'Shadows',
+            min: ADJUSTMENT_LIMITS.shadows.min,
+            max: ADJUSTMENT_LIMITS.shadows.max,
+            defaultValue: ADJUSTMENT_LIMITS.shadows.default,
+            step: ADJUSTMENT_LIMITS.shadows.step,
+            onChange: () => this._emitChange(),
+        });
+        this.shadowsScale = shadowsSlider.scale;
+        slidersBox.append(shadowsSlider.box);
+
+        // Highlights
+        const highlightsSlider = this._createCompactSlider({
+            label: 'Highlights',
+            min: ADJUSTMENT_LIMITS.highlights.min,
+            max: ADJUSTMENT_LIMITS.highlights.max,
+            defaultValue: ADJUSTMENT_LIMITS.highlights.default,
+            step: ADJUSTMENT_LIMITS.highlights.step,
+            onChange: () => this._emitChange(),
+        });
+        this.highlightsScale = highlightsSlider.scale;
+        slidersBox.append(highlightsSlider.box);
+
         // Hue Shift
         const hueSlider = this._createCompactSlider({
             label: 'Hue Shift',
@@ -102,6 +126,42 @@ export class ColorAdjustmentControls {
         });
         this.temperatureScale = temperatureSlider.scale;
         slidersBox.append(temperatureSlider.box);
+
+        // Tint
+        const tintSlider = this._createCompactSlider({
+            label: 'Tint',
+            min: ADJUSTMENT_LIMITS.tint.min,
+            max: ADJUSTMENT_LIMITS.tint.max,
+            defaultValue: ADJUSTMENT_LIMITS.tint.default,
+            step: ADJUSTMENT_LIMITS.tint.step,
+            onChange: () => this._emitChange(),
+        });
+        this.tintScale = tintSlider.scale;
+        slidersBox.append(tintSlider.box);
+
+        // Black Point
+        const blackPointSlider = this._createCompactSlider({
+            label: 'Black Point',
+            min: ADJUSTMENT_LIMITS.blackPoint.min,
+            max: ADJUSTMENT_LIMITS.blackPoint.max,
+            defaultValue: ADJUSTMENT_LIMITS.blackPoint.default,
+            step: ADJUSTMENT_LIMITS.blackPoint.step,
+            onChange: () => this._emitChange(),
+        });
+        this.blackPointScale = blackPointSlider.scale;
+        slidersBox.append(blackPointSlider.box);
+
+        // White Point
+        const whitePointSlider = this._createCompactSlider({
+            label: 'White Point',
+            min: ADJUSTMENT_LIMITS.whitePoint.min,
+            max: ADJUSTMENT_LIMITS.whitePoint.max,
+            defaultValue: ADJUSTMENT_LIMITS.whitePoint.default,
+            step: ADJUSTMENT_LIMITS.whitePoint.step,
+            onChange: () => this._emitChange(),
+        });
+        this.whitePointScale = whitePointSlider.scale;
+        slidersBox.append(whitePointSlider.box);
 
         // Gamma
         const gammaSlider = this._createCompactSlider({
@@ -306,8 +366,13 @@ export class ColorAdjustmentControls {
             saturation: this.saturationScale.get_value(),
             contrast: this.contrastScale.get_value(),
             brightness: this.brightnessScale.get_value(),
+            shadows: this.shadowsScale.get_value(),
+            highlights: this.highlightsScale.get_value(),
             hueShift: this.hueScale.get_value(),
             temperature: this.temperatureScale.get_value(),
+            tint: this.tintScale.get_value(),
+            blackPoint: this.blackPointScale.get_value(),
+            whitePoint: this.whitePointScale.get_value(),
             gamma: this.gammaScale.get_value(),
         };
     }
@@ -317,8 +382,13 @@ export class ColorAdjustmentControls {
         this.saturationScale.set_value(ADJUSTMENT_LIMITS.saturation.default);
         this.contrastScale.set_value(ADJUSTMENT_LIMITS.contrast.default);
         this.brightnessScale.set_value(ADJUSTMENT_LIMITS.brightness.default);
+        this.shadowsScale.set_value(ADJUSTMENT_LIMITS.shadows.default);
+        this.highlightsScale.set_value(ADJUSTMENT_LIMITS.highlights.default);
         this.hueScale.set_value(ADJUSTMENT_LIMITS.hue.default);
         this.temperatureScale.set_value(ADJUSTMENT_LIMITS.temperature.default);
+        this.tintScale.set_value(ADJUSTMENT_LIMITS.tint.default);
+        this.blackPointScale.set_value(ADJUSTMENT_LIMITS.blackPoint.default);
+        this.whitePointScale.set_value(ADJUSTMENT_LIMITS.whitePoint.default);
         this.gammaScale.set_value(ADJUSTMENT_LIMITS.gamma.default);
     }
 
@@ -337,8 +407,13 @@ export class ColorAdjustmentControls {
             saturation: this.saturationScale,
             contrast: this.contrastScale,
             brightness: this.brightnessScale,
+            shadows: this.shadowsScale,
+            highlights: this.highlightsScale,
             hueShift: this.hueScale,
             temperature: this.temperatureScale,
+            tint: this.tintScale,
+            blackPoint: this.blackPointScale,
+            whitePoint: this.whitePointScale,
             gamma: this.gammaScale,
         };
 

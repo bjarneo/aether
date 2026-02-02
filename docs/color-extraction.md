@@ -66,16 +66,46 @@ Extracted palettes are cached at `~/.cache/aether/color-cache/`:
 
 ## Color Adjustments
 
-After extraction, fine-tune with sliders:
+After extraction, fine-tune with 12 adjustment sliders:
 
-| Adjustment | Effect |
-|------------|--------|
-| Vibrance | Boost muted colors |
-| Contrast | Increase color differences |
-| Brightness | Shift all lightness |
-| Hue Shift | Rotate color wheel |
-| Temperature | Warm (orange) ↔ Cool (blue) |
-| Gamma | Non-linear brightness |
+### Saturation & Vibrance
+
+| Adjustment | Range | Effect |
+|------------|-------|--------|
+| **Vibrance** | -50 to +50 | Intelligently boosts muted colors without over-saturating already vivid ones |
+| **Saturation** | -100 to +100 | Uniformly increases/decreases color intensity across all colors |
+
+### Tone & Exposure
+
+| Adjustment | Range | Effect |
+|------------|-------|--------|
+| **Contrast** | -30 to +30 | Increases/decreases difference between light and dark colors |
+| **Brightness** | -30 to +30 | Shifts overall lightness up or down |
+| **Shadows** | -50 to +50 | Adjusts dark tones only (negative = darker shadows, positive = lifted shadows) |
+| **Highlights** | -50 to +50 | Adjusts bright tones only (negative = subdued, positive = brighter) |
+| **Gamma** | 0.5 to 2.0 | Non-linear brightness curve (< 1 = darker midtones, > 1 = lighter midtones) |
+
+### Levels
+
+| Adjustment | Range | Effect |
+|------------|-------|--------|
+| **Black Point** | -30 to +30 | Adjusts the darkest point (positive = deeper blacks, negative = lifted blacks) |
+| **White Point** | -30 to +30 | Adjusts the brightest point (positive = brighter whites, negative = compressed whites) |
+
+### Color Grading
+
+| Adjustment | Range | Effect |
+|------------|-------|--------|
+| **Hue Shift** | -180° to +180° | Rotates all colors around the color wheel |
+| **Temperature** | -50 to +50 | Warm (orange/yellow) ↔ Cool (blue) shift |
+| **Tint** | -50 to +50 | Green ↔ Magenta shift (complements temperature) |
+
+### Tips
+
+- Double-click any slider to reset it to default
+- Click on the value label to type a precise number
+- Use **Reset Adjustments** button to reset all sliders at once
+- Adjustments are saved with blueprints and restored when loading
 
 ## Technical Details
 

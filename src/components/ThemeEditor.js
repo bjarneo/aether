@@ -349,7 +349,12 @@ export const ThemeEditor = GObject.registerClass(
                     values.hueShift,
                     values.temperature,
                     values.gamma,
-                    values.saturation
+                    values.saturation,
+                    values.shadows,
+                    values.highlights,
+                    values.tint,
+                    values.blackPoint,
+                    values.whitePoint
                 );
             });
 

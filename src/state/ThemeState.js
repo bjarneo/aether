@@ -40,8 +40,13 @@ import {HistoryManager} from './HistoryManager.js';
  * @property {number} saturation - Saturation adjustment (-100 to 100)
  * @property {number} contrast - Contrast adjustment (-100 to 100)
  * @property {number} brightness - Brightness adjustment (-100 to 100)
+ * @property {number} shadows - Shadow adjustment (-50 to 50, affects L < 30%)
+ * @property {number} highlights - Highlight adjustment (-50 to 50, affects L > 70%)
  * @property {number} hueShift - Hue shift adjustment (0 to 360)
  * @property {number} temperature - Temperature adjustment (-100 to 100)
+ * @property {number} tint - Tint adjustment (-50 to 50, magenta to green)
+ * @property {number} blackPoint - Black point adjustment (-30 to 30)
+ * @property {number} whitePoint - White point adjustment (-30 to 30)
  * @property {number} gamma - Gamma adjustment (0.1 to 3.0)
  */
 
@@ -59,8 +64,13 @@ const DEFAULT_ADJUSTMENTS = {
     saturation: 0,
     contrast: 0,
     brightness: 0,
+    shadows: 0,
+    highlights: 0,
     hueShift: 0,
     temperature: 0,
+    tint: 0,
+    blackPoint: 0,
+    whitePoint: 0,
     gamma: 1.0,
 };
 

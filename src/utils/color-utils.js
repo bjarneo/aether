@@ -199,37 +199,22 @@ export function brightenColor(hexColor, amount = 20) {
 }
 
 /**
- * Applies comprehensive color adjustments with 7 parameters
+ * Applies comprehensive color adjustments with 12 parameters
  * Used by SettingsSidebar color adjustment controls for palette customization
  *
  * Adjustment Pipeline (order matters):
  * 1. Hue Shift: Rotates hue on color wheel
  * 2. Temperature: Shifts toward warm (orange/30°) or cool (blue/210°)
- * 3. Vibrance: Adds/subtracts saturation linearly
- * 4. Saturation: Multiplies saturation by percentage
- * 5. Brightness: Shifts lightness up/down
- * 6. Contrast: Expands/compresses around 50% lightness midpoint
- * 7. Gamma: Applies power curve correction to RGB channels
- *
- * Temperature Behavior:
- * - Positive values (1-100): Shift toward warm orange tones (~30°)
- * - Negative values (-100 to -1): Shift toward cool blue tones (~210°)
- * - Blends current hue toward target with 30% strength
- *
- * Saturation Behavior:
- * - Multiplies current saturation by (100 + value) / 100
- * - -100 = grayscale, 0 = no change, 100 = double saturation
- *
- * Contrast Behavior:
- * - Expands/compresses lightness deviation from 50% midpoint
- * - Positive: Increases contrast (darker darks, lighter lights)
- * - Negative: Decreases contrast (everything toward 50% gray)
- *
- * Gamma Behavior:
- * - Applied in RGB space after HSL adjustments
- * - <1.0: Darkens midtones (increases shadows)
- * - >1.0: Lightens midtones (lifts shadows)
- * - Typical range: 0.5-2.0
+ * 3. Tint: Shifts toward magenta (300°) or green (120°)
+ * 4. Vibrance: Adds/subtracts saturation linearly
+ * 5. Saturation: Multiplies saturation by percentage
+ * 6. Brightness: Shifts lightness up/down
+ * 7. Shadows: Adjusts dark tones (L < 30%)
+ * 8. Highlights: Adjusts light tones (L > 70%)
+ * 9. Black Point: Crushes or lifts blacks
+ * 10. White Point: Clips or lowers whites
+ * 11. Contrast: Expands/compresses around 50% lightness midpoint
+ * 12. Gamma: Applies power curve correction to RGB channels
  *
  * @param {string} hexColor - Input hex color (with or without #)
  * @param {number} vibrance - Linear saturation adjustment (-100 to 100, 0 = no change)
@@ -239,17 +224,12 @@ export function brightenColor(hexColor, amount = 20) {
  * @param {number} [temperature=0] - Temperature shift (-100 to 100, 0 = neutral)
  * @param {number} [gamma=1.0] - Gamma correction (0.1 to 3.0, 1.0 = linear)
  * @param {number} [saturation=0] - Percentage saturation adjustment (-100 to 100, 0 = no change)
+ * @param {number} [shadows=0] - Shadow adjustment (-50 to 50, affects L < 30%)
+ * @param {number} [highlights=0] - Highlight adjustment (-50 to 50, affects L > 70%)
+ * @param {number} [tint=0] - Tint shift (-50 to 50, magenta to green)
+ * @param {number} [blackPoint=0] - Black point adjustment (-30 to 30)
+ * @param {number} [whitePoint=0] - White point adjustment (-30 to 30)
  * @returns {string} Adjusted hex color string with # prefix
- *
- * @example
- * // Warm, vibrant, high-contrast adjustment
- * adjustColor('#3b82f6', 20, 30, 10, 0, 50, 1.2, 0)
- * // Returns: '#5B9FFF' (warmer, more saturated, higher contrast)
- *
- * @example
- * // Cool, desaturated, low-contrast adjustment
- * adjustColor('#f97316', -30, -20, -10, 0, -50, 0.8, -50)
- * // Returns: '#A96B5C' (cooler, less saturated, lower contrast, darker)
  */
 export function adjustColor(
     hexColor,
@@ -259,7 +239,12 @@ export function adjustColor(
     hueShift,
     temperature = 0,
     gamma = 1.0,
-    saturation = 0
+    saturation = 0,
+    shadows = 0,
+    highlights = 0,
+    tint = 0,
+    blackPoint = 0,
+    whitePoint = 0
 ) {
     let rgb = hexToRgb(hexColor);
     let hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
@@ -280,6 +265,18 @@ export function adjustColor(
         hsl.h = (currentHue + hueDiff * tempAmount * 0.3 + 360) % 360;
     }
 
+    // Apply tint (shift hue toward magenta/green)
+    if (tint !== 0) {
+        // Positive = magenta (300°), Negative = green (120°)
+        const tintTarget = tint > 0 ? 300 : 120;
+        const tintAmount = Math.abs(tint) / 100;
+        const currentHue = hsl.h;
+
+        // Blend current hue toward target
+        const hueDiff = ((tintTarget - currentHue + 540) % 360) - 180;
+        hsl.h = (currentHue + hueDiff * tintAmount * 0.3 + 360) % 360;
+    }
+
     // Apply vibrance (linear saturation adjustment)
     hsl.s = Math.max(0, Math.min(100, hsl.s + vibrance));
 
@@ -291,6 +288,41 @@ export function adjustColor(
 
     // Apply brightness
     hsl.l = Math.max(0, Math.min(100, hsl.l + brightness));
+
+    // Apply shadows (affects dark tones, L < 30%)
+    if (shadows !== 0 && hsl.l < 30) {
+        // Smooth falloff: full effect at L=0, no effect at L=30
+        const shadowStrength = 1 - hsl.l / 30;
+        hsl.l = Math.max(0, Math.min(100, hsl.l + shadows * shadowStrength));
+    }
+
+    // Apply highlights (affects light tones, L > 70%)
+    if (highlights !== 0 && hsl.l > 70) {
+        // Smooth falloff: no effect at L=70, full effect at L=100
+        const highlightStrength = (hsl.l - 70) / 30;
+        hsl.l = Math.max(0, Math.min(100, hsl.l + highlights * highlightStrength));
+    }
+
+    // Apply black point (crush or lift blacks)
+    if (blackPoint !== 0) {
+        // Remap lightness: positive crushes blacks, negative lifts them
+        const minL = blackPoint > 0 ? blackPoint : 0;
+        const adjustedMinL = blackPoint < 0 ? -blackPoint : 0;
+        hsl.l = adjustedMinL + (hsl.l * (100 - adjustedMinL - minL)) / 100 + minL;
+        hsl.l = Math.max(0, Math.min(100, hsl.l));
+    }
+
+    // Apply white point (clip or lower whites)
+    if (whitePoint !== 0) {
+        // Positive lowers max lightness, negative raises minimum ceiling
+        const maxL = 100 - (whitePoint > 0 ? whitePoint : 0);
+        hsl.l = Math.min(maxL, hsl.l);
+        if (whitePoint < 0) {
+            // Negative expands toward white
+            hsl.l = Math.max(0, Math.min(100, hsl.l - whitePoint * (1 - hsl.l / 100)));
+        }
+        hsl.l = Math.max(0, Math.min(100, hsl.l));
+    }
 
     // Apply contrast (expand or compress around 50% lightness)
     const contrastFactor = contrast / 100;
