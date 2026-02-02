@@ -87,6 +87,24 @@ export const ThemeEditor = GObject.registerClass(
             themeState.connect('state-reset', () => {
                 this.reset();
             });
+
+            // Blueprint loaded: force full resync regardless of comparison guards
+            themeState.connect('blueprint-loaded', () => {
+                const palette = themeState.getPalette();
+                this._palette = [...palette];
+                this._originalPalette = [...palette];
+                this._colorPalette.setPalette(palette);
+                this._lightMode = themeState.getLightMode();
+
+                // Update wallpaper if present
+                const wallpaperPath = themeState.getWallpaper();
+                if (wallpaperPath && wallpaperPath !== this._currentWallpaper) {
+                    this.loadWallpaper(
+                        wallpaperPath,
+                        themeState.getWallpaperMetadata()
+                    );
+                }
+            });
         }
 
         _buildUI() {
@@ -376,67 +394,19 @@ export const ThemeEditor = GObject.registerClass(
             this._wallpaperMetadata = metadata;
         }
 
+        /**
+         * Loads palette data from a blueprint
+         * @param {Object} palette - Blueprint palette object
+         */
         async loadBlueprintPalette(palette) {
             if (palette.colors) {
                 this._originalPalette = [...palette.colors];
                 this.setPalette(palette.colors);
             }
 
-            if (palette.wallpaperUrl && !palette.wallpaper) {
-                try {
-                    const wallpapersDir = GLib.build_filenamev([
-                        GLib.get_user_data_dir(),
-                        'aether',
-                        'wallpapers',
-                    ]);
-                    ensureDirectoryExists(wallpapersDir);
+            await this._loadBlueprintWallpaper(palette);
 
-                    const urlParts = palette.wallpaperUrl.split('/');
-                    const filename =
-                        urlParts[urlParts.length - 1] ||
-                        'imported-wallpaper.jpg';
-                    const wallpaperPath = GLib.build_filenamev([
-                        wallpapersDir,
-                        filename,
-                    ]);
-
-                    const file = Gio.File.new_for_path(wallpaperPath);
-                    if (!file.query_exists(null)) {
-                        const {wallhavenService} = await import(
-                            '../services/wallhaven-service.js'
-                        );
-                        await wallhavenService.downloadWallpaper(
-                            palette.wallpaperUrl,
-                            wallpaperPath
-                        );
-                    }
-
-                    this.loadWallpaperWithoutExtraction(wallpaperPath);
-                    this._wallpaperMetadata = {
-                        url: palette.wallpaperUrl,
-                        source: palette.wallpaperSource || 'wallhaven',
-                    };
-                } catch (error) {
-                    console.error(
-                        'Failed to download wallpaper from URL:',
-                        error
-                    );
-                }
-            } else if (palette.wallpaper) {
-                this.loadWallpaperWithoutExtraction(palette.wallpaper);
-
-                if (palette.wallpaperUrl) {
-                    this._wallpaperMetadata = {
-                        url: palette.wallpaperUrl,
-                        source: palette.wallpaperSource || 'wallhaven',
-                    };
-                }
-            }
-
-            if (
-                palette.additionalImages &&
-                Array.isArray(palette.additionalImages)
-            ) {
+            if (Array.isArray(palette.additionalImages)) {
                 this._additionalImages.setImages(palette.additionalImages);
             } else {
                 this._additionalImages.reset();
@@ -447,12 +417,72 @@ export const ThemeEditor = GObject.registerClass(
             }
 
             if (palette.appOverrides) {
-                this._appOverridesWidget.loadFromBlueprint(
-                    palette.appOverrides
-                );
+                this._appOverridesWidget.loadFromBlueprint(palette.appOverrides);
             }
 
             this._colorPalette.setLockedColors(new Array(16).fill(false));
+        }
+
+        /**
+         * Loads wallpaper from blueprint, downloading if needed
+         * @private
+         * @param {Object} palette - Blueprint palette object
+         */
+        async _loadBlueprintWallpaper(palette) {
+            if (palette.wallpaperUrl && !palette.wallpaper) {
+                const wallpaperPath = await this._downloadWallpaper(palette.wallpaperUrl);
+                if (wallpaperPath) {
+                    this.loadWallpaperWithoutExtraction(wallpaperPath);
+                    this._wallpaperMetadata = {
+                        url: palette.wallpaperUrl,
+                        source: palette.wallpaperSource || 'wallhaven',
+                    };
+                }
+                return;
+            }
+
+            if (!palette.wallpaper) return;
+
+            this.loadWallpaperWithoutExtraction(palette.wallpaper);
+            if (palette.wallpaperUrl) {
+                this._wallpaperMetadata = {
+                    url: palette.wallpaperUrl,
+                    source: palette.wallpaperSource || 'wallhaven',
+                };
+            }
+        }
+
+        /**
+         * Downloads a wallpaper from URL
+         * @private
+         * @param {string} url - Wallpaper URL
+         * @returns {Promise<string|null>} Local path or null on failure
+         */
+        async _downloadWallpaper(url) {
+            try {
+                const wallpapersDir = GLib.build_filenamev([
+                    GLib.get_user_data_dir(),
+                    'aether',
+                    'wallpapers',
+                ]);
+                ensureDirectoryExists(wallpapersDir);
+
+                const urlParts = url.split('/');
+                const filename = urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
+                const wallpaperPath = GLib.build_filenamev([wallpapersDir, filename]);
+
+                const file = Gio.File.new_for_path(wallpaperPath);
+                if (file.query_exists(null)) {
+                    return wallpaperPath;
+                }
+
+                const {wallhavenService} = await import('../services/wallhaven-service.js');
+                await wallhavenService.downloadWallpaper(url, wallpaperPath);
+                return wallpaperPath;
+            } catch (error) {
+                console.error('Failed to download wallpaper from URL:', error);
+                return null;
+            }
         }
 
         setLightMode(lightMode) {
@@ -468,6 +498,10 @@ export const ThemeEditor = GObject.registerClass(
             this._appOverridesWidget.resetAllOverrides();
         }
 
+        /**
+         * Gets the current palette state for blueprint export
+         * @returns {Object} Palette state object
+         */
         getPalette() {
             return {
                 wallpaper: this._currentWallpaper,
@@ -475,9 +509,7 @@ export const ThemeEditor = GObject.registerClass(
                 wallpaperSource: this._wallpaperMetadata?.source || 'local',
                 colors: this._palette,
                 lightMode: this._lightMode,
-                appOverrides: this._appOverridesWidget.getOverrides
-                    ? this._appOverridesWidget.getOverrides()
-                    : {},
+                appOverrides: this.getAppOverrides(),
                 additionalImages: this._additionalImages.getImages(),
             };
         }
@@ -487,21 +519,15 @@ export const ThemeEditor = GObject.registerClass(
         }
 
         getAppOverrides() {
-            return this._appOverridesWidget.getOverrides
-                ? this._appOverridesWidget.getOverrides()
-                : {};
+            return this._appOverridesWidget?.getOverrides?.() || {};
         }
 
         updateAppOverrideColors(colors) {
-            if (this._appOverridesWidget?.setPaletteColors) {
-                this._appOverridesWidget.setPaletteColors(colors);
-            }
+            this._appOverridesWidget?.setPaletteColors?.(colors);
         }
 
         setNeovimThemeSelected(selected) {
-            if (this._appOverridesWidget?.setNeovimThemeSelected) {
-                this._appOverridesWidget.setNeovimThemeSelected(selected);
-            }
+            this._appOverridesWidget?.setNeovimThemeSelected?.(selected);
         }
 
         // Compatibility methods
@@ -513,15 +539,40 @@ export const ThemeEditor = GObject.registerClass(
          * @private
          */
         _importBase16() {
-            const dialog = new Gtk.FileDialog({
-                title: 'Import Base16 Color Scheme',
-            });
+            this._openFileDialog(
+                'Import Base16 Color Scheme',
+                {name: 'Base16 YAML Files', patterns: ['*.yaml', '*.yml']},
+                filePath => this._processBase16File(filePath)
+            );
+        }
 
-            // Create filter for YAML files
+        /**
+         * Opens file dialog to import colors.toml color scheme
+         * @private
+         */
+        _importColorsToml() {
+            this._openFileDialog(
+                'Import Colors TOML',
+                {name: 'TOML Files', patterns: ['*.toml']},
+                filePath => this._processColorsTomlFile(filePath)
+            );
+        }
+
+        /**
+         * Opens a file dialog with the given configuration
+         * @private
+         * @param {string} title - Dialog title
+         * @param {Object} filterConfig - Filter configuration
+         * @param {string} filterConfig.name - Filter display name
+         * @param {string[]} filterConfig.patterns - File patterns
+         * @param {Function} onFileSelected - Callback when file is selected
+         */
+        _openFileDialog(title, filterConfig, onFileSelected) {
+            const dialog = new Gtk.FileDialog({title});
+
             const filter = new Gtk.FileFilter();
-            filter.set_name('Base16 YAML Files');
-            filter.add_pattern('*.yaml');
-            filter.add_pattern('*.yml');
+            filter.set_name(filterConfig.name);
+            filterConfig.patterns.forEach(pattern => filter.add_pattern(pattern));
 
             const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
             filterList.append(filter);
@@ -531,11 +582,9 @@ export const ThemeEditor = GObject.registerClass(
                 try {
                     const file = dialog.open_finish(result);
                     if (file) {
-                        const filePath = file.get_path();
-                        this._processBase16File(filePath);
+                        onFileSelected(file.get_path());
                     }
                 } catch (e) {
-                    // User cancelled or error
                     if (!e.message.includes('Dismissed')) {
                         console.error('File picker error:', e.message);
                     }
@@ -545,25 +594,18 @@ export const ThemeEditor = GObject.registerClass(
 
         /**
          * Processes and applies a Base16 YAML file
-         * @param {string} filePath - Path to the Base16 YAML file
          * @private
+         * @param {string} filePath - Path to the Base16 YAML file
          */
         _processBase16File(filePath) {
             try {
                 const content = readFileAsText(filePath);
                 const result = parseBase16Yaml(content);
 
-                if (result.colors && result.colors.length === 16) {
-                    // Apply the imported colors, reset extended to auto-derive
-                    this._originalPalette = [...result.colors];
-                    this.setPalette(result.colors, {resetExtended: true});
+                if (!result.colors || result.colors.length !== 16) return;
 
-                    // Emit signal for parent components
-                    this.emit('palette-generated', result.colors);
-
-                    // Show success toast
-                    showToast(this, `Imported: ${result.scheme}`);
-                }
+                this._applyImportedPalette(result.colors);
+                showToast(this, `Imported: ${result.scheme}`);
             } catch (error) {
                 console.error('Failed to import Base16 scheme:', error.message);
                 showToast(this, `Import failed: ${error.message}`, 4);
@@ -571,69 +613,39 @@ export const ThemeEditor = GObject.registerClass(
         }
 
         /**
-         * Opens file dialog to import colors.toml color scheme
-         * @private
-         */
-        _importColorsToml() {
-            const dialog = new Gtk.FileDialog({
-                title: 'Import Colors TOML',
-            });
-
-            const filter = new Gtk.FileFilter();
-            filter.set_name('TOML Files');
-            filter.add_pattern('*.toml');
-
-            const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
-            filterList.append(filter);
-            dialog.set_filters(filterList);
-
-            dialog.open(this.get_root(), null, (source, result) => {
-                try {
-                    const file = dialog.open_finish(result);
-                    if (file) {
-                        const filePath = file.get_path();
-                        this._processColorsTomlFile(filePath);
-                    }
-                } catch (e) {
-                    if (!e.message.includes('Dismissed')) {
-                        console.error('File picker error:', e.message);
-                    }
-                }
-            });
-        }
-
-        /**
          * Processes and applies a colors.toml file
-         * @param {string} filePath - Path to the colors.toml file
          * @private
+         * @param {string} filePath - Path to the colors.toml file
          */
         _processColorsTomlFile(filePath) {
             try {
                 const content = readFileAsText(filePath);
                 const result = parseColorsToml(content);
 
-                if (result.colors && result.colors.length === 16) {
-                    // Apply the imported colors, reset extended to auto-derive
-                    this._originalPalette = [...result.colors];
-                    this.setPalette(result.colors, {resetExtended: true});
+                if (!result.colors || result.colors.length !== 16) return;
 
-                    // Apply extended colors from file if present (overrides auto-derived)
-                    if (
-                        result.extendedColors &&
-                        Object.keys(result.extendedColors).length > 0
-                    ) {
-                        themeState.setExtendedColors(result.extendedColors);
-                    }
+                this._applyImportedPalette(result.colors);
 
-                    // Emit signal for parent components
-                    this.emit('palette-generated', result.colors);
-
-                    showToast(this, 'Imported colors.toml successfully');
+                if (result.extendedColors && Object.keys(result.extendedColors).length > 0) {
+                    themeState.setExtendedColors(result.extendedColors);
                 }
+
+                showToast(this, 'Imported colors.toml successfully');
             } catch (error) {
                 console.error('Failed to import colors.toml:', error.message);
                 showToast(this, `Import failed: ${error.message}`, 4);
             }
+        }
+
+        /**
+         * Applies an imported palette to the UI and state
+         * @private
+         * @param {string[]} colors - Array of 16 hex colors
+         */
+        _applyImportedPalette(colors) {
+            this._originalPalette = [...colors];
+            this.setPalette(colors, {resetExtended: true});
+            this.emit('palette-generated', colors);
         }
 
         reset() {

@@ -112,6 +112,12 @@ export const ColorSynthesizer = GObject.registerClass(
             this._signals.track(themeState, 'state-reset', () => {
                 this.reset();
             });
+
+            // Blueprint loaded: force update regardless of comparison guard
+            this._signals.track(themeState, 'blueprint-loaded', () => {
+                this.setPalette(themeState.getPalette());
+                this.loadColors(themeState.getColorRoles());
+            });
         }
 
         _createColorRoleRow(role) {
@@ -197,34 +203,25 @@ export const ColorSynthesizer = GObject.registerClass(
             this._applyColorMap(this._createColorAssignments());
         }
 
+        /**
+         * Creates color role assignments from current palette
+         * @private
+         * @returns {Object} Color assignments keyed by role name
+         */
         _createColorAssignments() {
             const semanticNames = [
-                'black',
-                'red',
-                'green',
-                'yellow',
-                'blue',
-                'magenta',
-                'cyan',
-                'white',
-                'bright_black',
-                'bright_red',
-                'bright_green',
-                'bright_yellow',
-                'bright_blue',
-                'bright_magenta',
-                'bright_cyan',
-                'bright_white',
+                'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+                'bright_black', 'bright_red', 'bright_green', 'bright_yellow',
+                'bright_blue', 'bright_magenta', 'bright_cyan', 'bright_white',
             ];
 
             const assignments = {
                 background: this._palette[0],
                 foreground: this._palette[15],
-                // Extended colors with auto-derivation from palette
-                accent: this._palette[4], // blue
-                cursor: this._palette[15], // foreground
-                selection_foreground: this._palette[0], // background
-                selection_background: this._palette[15], // foreground
+                accent: this._palette[4],
+                cursor: this._palette[15],
+                selection_foreground: this._palette[0],
+                selection_background: this._palette[15],
             };
 
             semanticNames.forEach((name, i) => {
@@ -248,24 +245,15 @@ export const ColorSynthesizer = GObject.registerClass(
             return Object.fromEntries(this._colorRoles);
         }
 
+        /**
+         * Resets the component to default state
+         * Clears palette and restores default colors
+         */
         reset() {
             this._palette = [];
             this._colorRoles.clear();
             this._initializeDefaults();
-
-            // Reset all color buttons to default colors
-            forEachChild(this._listBox, childRow => {
-                const roleId = childRow._roleId;
-                const colorButton = childRow._colorButton;
-                const defaultColor = DEFAULT_COLORS[roleId];
-
-                if (defaultColor) {
-                    const color = new Gdk.RGBA();
-                    color.parse(defaultColor);
-                    colorButton.set_rgba(color);
-                    this._updateColorButtonStyle(colorButton, defaultColor);
-                }
-            });
+            this._applyColorMap(DEFAULT_COLORS);
         }
 
         get widget() {

@@ -74,6 +74,14 @@ export const ColorPaletteSection = GObject.registerClass(
             themeState.connect('state-reset', () => {
                 this.reset();
             });
+
+            // Blueprint loaded: force update regardless of comparison guard
+            themeState.connect('blueprint-loaded', () => {
+                this._palette = [...themeState.getPalette()];
+                this._swatchGrid.setPalette(this._palette);
+                this._appOverrides = {...themeState.getAppOverrides()};
+                this._appOverridesWidget.loadFromBlueprint(this._appOverrides);
+            });
         }
 
         _buildUI() {
@@ -366,15 +374,40 @@ export const ColorPaletteSection = GObject.registerClass(
          * @private
          */
         _importBase16() {
-            const dialog = new Gtk.FileDialog({
-                title: 'Import Base16 Color Scheme',
-            });
+            this._openFileDialog(
+                'Import Base16 Color Scheme',
+                {name: 'Base16 YAML Files', patterns: ['*.yaml', '*.yml']},
+                filePath => this._processBase16File(filePath)
+            );
+        }
 
-            // Create filter for YAML files
+        /**
+         * Opens file dialog to import colors.toml color scheme
+         * @private
+         */
+        _importColorsToml() {
+            this._openFileDialog(
+                'Import Colors TOML',
+                {name: 'TOML Files', patterns: ['*.toml']},
+                filePath => this._processColorsTomlFile(filePath)
+            );
+        }
+
+        /**
+         * Opens a file dialog with the given configuration
+         * @private
+         * @param {string} title - Dialog title
+         * @param {Object} filterConfig - Filter configuration
+         * @param {string} filterConfig.name - Filter display name
+         * @param {string[]} filterConfig.patterns - File patterns
+         * @param {Function} onFileSelected - Callback when file is selected
+         */
+        _openFileDialog(title, filterConfig, onFileSelected) {
+            const dialog = new Gtk.FileDialog({title});
+
             const filter = new Gtk.FileFilter();
-            filter.set_name('Base16 YAML Files');
-            filter.add_pattern('*.yaml');
-            filter.add_pattern('*.yml');
+            filter.set_name(filterConfig.name);
+            filterConfig.patterns.forEach(pattern => filter.add_pattern(pattern));
 
             const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
             filterList.append(filter);
@@ -384,11 +417,9 @@ export const ColorPaletteSection = GObject.registerClass(
                 try {
                     const file = dialog.open_finish(result);
                     if (file) {
-                        const filePath = file.get_path();
-                        this._processBase16File(filePath);
+                        onFileSelected(file.get_path());
                     }
                 } catch (e) {
-                    // User cancelled or error
                     if (!e.message.includes('Dismissed')) {
                         console.error('File picker error:', e.message);
                     }
@@ -398,32 +429,23 @@ export const ColorPaletteSection = GObject.registerClass(
 
         /**
          * Processes and applies a Base16 YAML file
-         * @param {string} filePath - Path to the Base16 YAML file
          * @private
+         * @param {string} filePath - Path to the Base16 YAML file
          */
         _processBase16File(filePath) {
             try {
                 const content = readFileAsText(filePath);
                 const result = parseBase16Yaml(content);
 
-                if (result.colors && result.colors.length === 16) {
-                    // Apply the imported colors
-                    this._palette = [...result.colors];
-                    this._swatchGrid.setPalette(result.colors);
+                if (!result.colors || result.colors.length !== 16) return;
 
-                    // Update centralized state
-                    themeState.setPalette(result.colors);
-
-                    // Emit signal for parent components
-                    this.emit('palette-imported', {
-                        colors: result.colors,
-                        scheme: result.scheme,
-                        author: result.author,
-                    });
-
-                    // Show success toast
-                    showToast(this, `Imported: ${result.scheme}`);
-                }
+                this._applyImportedPalette(result.colors);
+                this.emit('palette-imported', {
+                    colors: result.colors,
+                    scheme: result.scheme,
+                    author: result.author,
+                });
+                showToast(this, `Imported: ${result.scheme}`);
             } catch (error) {
                 console.error('Failed to import Base16 scheme:', error.message);
                 showToast(this, `Import failed: ${error.message}`, 4);
@@ -431,75 +453,43 @@ export const ColorPaletteSection = GObject.registerClass(
         }
 
         /**
-         * Opens file dialog to import colors.toml color scheme
-         * @private
-         */
-        _importColorsToml() {
-            const dialog = new Gtk.FileDialog({
-                title: 'Import Colors TOML',
-            });
-
-            const filter = new Gtk.FileFilter();
-            filter.set_name('TOML Files');
-            filter.add_pattern('*.toml');
-
-            const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
-            filterList.append(filter);
-            dialog.set_filters(filterList);
-
-            dialog.open(this.get_root(), null, (source, result) => {
-                try {
-                    const file = dialog.open_finish(result);
-                    if (file) {
-                        const filePath = file.get_path();
-                        this._processColorsTomlFile(filePath);
-                    }
-                } catch (e) {
-                    if (!e.message.includes('Dismissed')) {
-                        console.error('File picker error:', e.message);
-                    }
-                }
-            });
-        }
-
-        /**
          * Processes and applies a colors.toml file
-         * @param {string} filePath - Path to the colors.toml file
          * @private
+         * @param {string} filePath - Path to the colors.toml file
          */
         _processColorsTomlFile(filePath) {
             try {
                 const content = readFileAsText(filePath);
                 const result = parseColorsToml(content);
 
-                if (result.colors && result.colors.length === 16) {
-                    // Apply the imported colors
-                    this._palette = [...result.colors];
-                    this._swatchGrid.setPalette(result.colors);
+                if (!result.colors || result.colors.length !== 16) return;
 
-                    // Update centralized state
-                    themeState.setPalette(result.colors);
+                this._applyImportedPalette(result.colors);
 
-                    // Apply extended colors if present
-                    if (
-                        result.extendedColors &&
-                        Object.keys(result.extendedColors).length > 0
-                    ) {
-                        themeState.setExtendedColors(result.extendedColors);
-                    }
-
-                    // Emit signal for parent components
-                    this.emit('palette-imported', {
-                        colors: result.colors,
-                        extendedColors: result.extendedColors,
-                    });
-
-                    showToast(this, 'Imported colors.toml successfully');
+                if (result.extendedColors && Object.keys(result.extendedColors).length > 0) {
+                    themeState.setExtendedColors(result.extendedColors);
                 }
+
+                this.emit('palette-imported', {
+                    colors: result.colors,
+                    extendedColors: result.extendedColors,
+                });
+                showToast(this, 'Imported colors.toml successfully');
             } catch (error) {
                 console.error('Failed to import colors.toml:', error.message);
                 showToast(this, `Import failed: ${error.message}`, 4);
             }
+        }
+
+        /**
+         * Applies an imported palette to the UI and state
+         * @private
+         * @param {string[]} colors - Array of 16 hex colors
+         */
+        _applyImportedPalette(colors) {
+            this._palette = [...colors];
+            this._swatchGrid.setPalette(colors);
+            themeState.setPalette(colors);
         }
 
         reset() {

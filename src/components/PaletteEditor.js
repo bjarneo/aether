@@ -144,6 +144,24 @@ export const PaletteEditor = GObject.registerClass(
             this._signals.track(themeState, 'state-reset', () => {
                 this.reset();
             });
+
+            // Blueprint loaded: force full resync regardless of comparison guards
+            this._signals.track(themeState, 'blueprint-loaded', () => {
+                const palette = themeState.getPalette();
+                this._palette = [...palette];
+                this._originalPalette = [...palette];
+                this._colorPalette.setPalette(palette);
+                this._lightMode = themeState.getLightMode();
+
+                // Update wallpaper if present
+                const wallpaperPath = themeState.getWallpaper();
+                if (wallpaperPath && wallpaperPath !== this._currentWallpaper) {
+                    this.loadWallpaper(
+                        wallpaperPath,
+                        themeState.getWallpaperMetadata()
+                    );
+                }
+            });
         }
 
         /**
@@ -425,26 +443,18 @@ export const PaletteEditor = GObject.registerClass(
         switchToEditorTab() {}
         switchToCustomTab() {}
 
+        /**
+         * Loads palette data from a blueprint
+         * @param {Object} palette - Blueprint palette object
+         */
         async loadBlueprintPalette(palette) {
             if (palette.colors) {
                 this._originalPalette = [...palette.colors];
                 this.setPalette(palette.colors);
             }
 
-            // Handle wallpaper loading
-            if (palette.wallpaperUrl && !palette.wallpaper) {
-                await this._downloadAndLoadWallpaper(palette);
-            } else if (palette.wallpaper) {
-                this.loadWallpaperWithoutExtraction(palette.wallpaper);
-                if (palette.wallpaperUrl) {
-                    this._wallpaperMetadata = {
-                        url: palette.wallpaperUrl,
-                        source: palette.wallpaperSource || 'wallhaven',
-                    };
-                }
-            }
+            await this._loadBlueprintWallpaper(palette);
 
-            // Load additional images
             if (Array.isArray(palette.additionalImages)) {
                 this._additionalImages.setImages(palette.additionalImages);
             } else {
@@ -460,6 +470,28 @@ export const PaletteEditor = GObject.registerClass(
             }
 
             this._colorPalette.setLockedColors(new Array(16).fill(false));
+        }
+
+        /**
+         * Loads wallpaper from blueprint, downloading if needed
+         * @private
+         * @param {Object} palette - Blueprint palette object
+         */
+        async _loadBlueprintWallpaper(palette) {
+            if (palette.wallpaperUrl && !palette.wallpaper) {
+                await this._downloadAndLoadWallpaper(palette);
+                return;
+            }
+
+            if (!palette.wallpaper) return;
+
+            this.loadWallpaperWithoutExtraction(palette.wallpaper);
+            if (palette.wallpaperUrl) {
+                this._wallpaperMetadata = {
+                    url: palette.wallpaperUrl,
+                    source: palette.wallpaperSource || 'wallhaven',
+                };
+            }
         }
 
         async _downloadAndLoadWallpaper(palette) {

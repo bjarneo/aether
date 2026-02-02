@@ -27,6 +27,8 @@ import {
     ImportBase16Command,
     ImportColorsTomlCommand,
 } from './cli/index.js';
+import {themeState} from './state/ThemeState.js';
+import {blueprintService} from './services/BlueprintService.js';
 import {BlueprintWidget} from './components/BlueprintWidget.js';
 import {runMigrations} from './utils/migrations.js';
 import {ProtocolHandlerInstaller} from './utils/protocol-handler-installer.js';
@@ -252,53 +254,20 @@ export const AetherApplication = GObject.registerClass(
          * @returns {boolean} True if handled
          */
         _handleGenerate(options) {
-            if (options.contains('generate')) {
-                const wallpaperPath = options
-                    .lookup_value('generate', GLib.VariantType.new('s'))
-                    .get_string()[0];
+            if (!options.contains('generate')) return false;
 
-                let extractionMode = 'normal';
-                if (options.contains('extract-mode')) {
-                    extractionMode = options
-                        .lookup_value('extract-mode', GLib.VariantType.new('s'))
-                        .get_string()[0];
-                }
+            const wallpaperPath = this._getStringOption(options, 'generate');
+            const extractionMode = this._getStringOption(options, 'extract-mode') || 'normal';
+            const lightMode = options.contains('light-mode');
+            // GLib normalizes hyphens to underscores in option names
+            const noApply = options.contains('no-apply') || options.contains('no_apply');
+            const outputPath = this._getStringOption(options, 'output');
 
-                const lightMode = options.contains('light-mode');
-                // GLib normalizes hyphens to underscores in option names
-                const noApply =
-                    options.contains('no-apply') ||
-                    options.contains('no_apply');
+            this._runAsyncCommand(
+                GenerateThemeCommand.execute(wallpaperPath, extractionMode, lightMode, {noApply, outputPath})
+            );
 
-                let outputPath = null;
-                if (options.contains('output')) {
-                    outputPath = options
-                        .lookup_value('output', GLib.VariantType.new('s'))
-                        .get_string()[0];
-                }
-
-                this.hold();
-                GenerateThemeCommand.execute(
-                    wallpaperPath,
-                    extractionMode,
-                    lightMode,
-                    {noApply, outputPath}
-                )
-                    .then(success => {
-                        this.release();
-                        if (!success) {
-                            imports.system.exit(1);
-                        }
-                    })
-                    .catch(error => {
-                        printerr(`Error: ${error.message}`);
-                        this.release();
-                        imports.system.exit(1);
-                    });
-
-                return true;
-            }
-            return false;
+            return true;
         }
 
         /**
@@ -308,39 +277,29 @@ export const AetherApplication = GObject.registerClass(
          * @returns {boolean} True if handled
          */
         _handleImportBlueprint(options) {
-            if (options.contains('import-blueprint')) {
-                let source = options
-                    .lookup_value('import-blueprint', GLib.VariantType.new('s'))
-                    .get_string()[0];
+            if (!options.contains('import-blueprint')) return false;
 
-                // Parse aether:// protocol URLs
-                if (source.startsWith('aether://import?url=')) {
-                    const urlParam = source.substring(
-                        'aether://import?url='.length
-                    );
-                    source = decodeURIComponent(urlParam);
-                    print(`Parsed protocol URL: ${source}`);
-                }
+            let source = this._getStringOption(options, 'import-blueprint');
 
-                const autoApply = options.contains('auto-apply');
-
-                this.hold();
-                ImportBlueprintCommand.execute(source, autoApply)
-                    .then(success => {
-                        this.release();
-                        if (!success) {
-                            imports.system.exit(1);
-                        }
-                    })
-                    .catch(error => {
-                        printerr(`Error: ${error.message}`);
-                        this.release();
-                        imports.system.exit(1);
-                    });
-
-                return true;
+            // Parse aether:// protocol URLs
+            if (source.startsWith('aether://import?url=')) {
+                const urlParam = source.substring('aether://import?url='.length);
+                source = decodeURIComponent(urlParam);
+                print(`Parsed protocol URL: ${source}`);
             }
-            return false;
+
+            const autoApply = options.contains('auto-apply');
+
+            this._runAsyncCommand(
+                ImportBlueprintCommand.execute(source, autoApply).then(async success => {
+                    if (success) {
+                        await this._updateGuiAfterImport();
+                    }
+                    return success;
+                })
+            );
+
+            return true;
         }
 
         /**
@@ -350,41 +309,17 @@ export const AetherApplication = GObject.registerClass(
          * @returns {boolean} True if handled
          */
         _handleImportBase16(options) {
-            if (options.contains('import-base16')) {
-                const filePath = options
-                    .lookup_value('import-base16', GLib.VariantType.new('s'))
-                    .get_string()[0];
+            if (!options.contains('import-base16')) return false;
 
-                // Check for optional wallpaper
-                let wallpaperPath = null;
-                if (options.contains('wallpaper')) {
-                    wallpaperPath = options
-                        .lookup_value('wallpaper', GLib.VariantType.new('s'))
-                        .get_string()[0];
-                }
+            const filePath = this._getStringOption(options, 'import-base16');
+            const wallpaperPath = this._getStringOption(options, 'wallpaper');
+            const lightMode = options.contains('light-mode');
 
-                const lightMode = options.contains('light-mode');
+            this._runAsyncCommand(
+                ImportBase16Command.execute(filePath, {wallpaperPath, lightMode})
+            );
 
-                this.hold();
-                ImportBase16Command.execute(filePath, {
-                    wallpaperPath,
-                    lightMode,
-                })
-                    .then(success => {
-                        this.release();
-                        if (!success) {
-                            imports.system.exit(1);
-                        }
-                    })
-                    .catch(error => {
-                        printerr(`Error: ${error.message}`);
-                        this.release();
-                        imports.system.exit(1);
-                    });
-
-                return true;
-            }
-            return false;
+            return true;
         }
 
         /**
@@ -394,44 +329,17 @@ export const AetherApplication = GObject.registerClass(
          * @returns {boolean} True if handled
          */
         _handleImportColorsToml(options) {
-            if (options.contains('import-colors-toml')) {
-                const filePath = options
-                    .lookup_value(
-                        'import-colors-toml',
-                        GLib.VariantType.new('s')
-                    )
-                    .get_string()[0];
+            if (!options.contains('import-colors-toml')) return false;
 
-                // Check for optional wallpaper
-                let wallpaperPath = null;
-                if (options.contains('wallpaper')) {
-                    wallpaperPath = options
-                        .lookup_value('wallpaper', GLib.VariantType.new('s'))
-                        .get_string()[0];
-                }
+            const filePath = this._getStringOption(options, 'import-colors-toml');
+            const wallpaperPath = this._getStringOption(options, 'wallpaper');
+            const lightMode = options.contains('light-mode');
 
-                const lightMode = options.contains('light-mode');
+            this._runAsyncCommand(
+                ImportColorsTomlCommand.execute(filePath, {wallpaperPath, lightMode})
+            );
 
-                this.hold();
-                ImportColorsTomlCommand.execute(filePath, {
-                    wallpaperPath,
-                    lightMode,
-                })
-                    .then(success => {
-                        this.release();
-                        if (!success) {
-                            imports.system.exit(1);
-                        }
-                    })
-                    .catch(error => {
-                        printerr(`Error: ${error.message}`);
-                        this.release();
-                        imports.system.exit(1);
-                    });
-
-                return true;
-            }
-            return false;
+            return true;
         }
 
         /**
@@ -441,11 +349,46 @@ export const AetherApplication = GObject.registerClass(
          * @returns {boolean} True if handled
          */
         _handleWidgetMode(options) {
-            if (options.contains('widget-blueprint')) {
-                this._launchWidget();
-                return true;
-            }
-            return false;
+            if (!options.contains('widget-blueprint')) return false;
+
+            this._launchWidget();
+            return true;
+        }
+
+        /**
+         * Get a string option value from command line options
+         * @private
+         * @param {GLib.VariantDict} options - Command options
+         * @param {string} name - Option name
+         * @returns {string|null} Option value or null if not present
+         */
+        _getStringOption(options, name) {
+            if (!options.contains(name)) return null;
+
+            return options
+                .lookup_value(name, GLib.VariantType.new('s'))
+                .get_string()[0];
+        }
+
+        /**
+         * Run an async command with proper hold/release and error handling
+         * @private
+         * @param {Promise<boolean>} promise - Command promise
+         */
+        _runAsyncCommand(promise) {
+            this.hold();
+            promise
+                .then(success => {
+                    this.release();
+                    if (!success) {
+                        imports.system.exit(1);
+                    }
+                })
+                .catch(error => {
+                    printerr(`Error: ${error.message}`);
+                    this.release();
+                    imports.system.exit(1);
+                });
         }
 
         /**
@@ -496,6 +439,143 @@ export const AetherApplication = GObject.registerClass(
             });
 
             widget.present();
+        }
+
+        /**
+         * Update GUI state after CLI import
+         * Loads the imported blueprint into themeState so the editor updates
+         * @private
+         */
+        async _updateGuiAfterImport() {
+            try {
+                // Find the most recently imported blueprint (highest timestamp)
+                const allBlueprints = blueprintService.loadAll();
+                if (allBlueprints.length === 0) {
+                    return;
+                }
+
+                // Sort by timestamp descending and get the newest
+                allBlueprints.sort(
+                    (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+                );
+                const blueprint = allBlueprints[0];
+
+                // Handle wallpaper URL - download if not already local
+                if (blueprint.palette?.wallpaperUrl && !blueprint.palette?.wallpaper) {
+                    const wallpaperPath = await this._downloadWallpaperForBlueprint(
+                        blueprint.palette.wallpaperUrl
+                    );
+                    if (wallpaperPath) {
+                        blueprint.palette.wallpaper = wallpaperPath;
+                    }
+                }
+
+                themeState.fromBlueprint(blueprint);
+
+                // Activate window and switch to editor view
+                this.activate();
+
+                // Switch to editor tab after a small delay to ensure window is ready
+                GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                    const window = this.active_window;
+                    if (window) {
+                        // Switch to editor view
+                        if (window._viewStack) {
+                            window._viewStack.set_visible_child_name('editor');
+                        }
+                        // Switch to custom tab in the editor
+                        if (window.paletteGenerator) {
+                            window.paletteGenerator.switchToCustomTab();
+                        }
+                    }
+                    return GLib.SOURCE_REMOVE;
+                });
+            } catch (e) {
+                console.error(`Error updating GUI after import: ${e.message}`);
+            }
+        }
+
+        /**
+         * Download wallpaper from URL for blueprint import
+         * @param {string} url - Wallpaper URL
+         * @returns {Promise<string|null>} Local path or null on failure
+         * @private
+         */
+        async _downloadWallpaperForBlueprint(url) {
+            try {
+                const {ensureDirectoryExists} = await import('./utils/file-utils.js');
+                const Soup = (await import('gi://Soup?version=3.0')).default;
+
+                const wallpapersDir = GLib.build_filenamev([
+                    GLib.get_user_data_dir(),
+                    'aether',
+                    'wallpapers',
+                ]);
+                ensureDirectoryExists(wallpapersDir);
+
+                // Extract filename from URL
+                const urlParts = url.split('/');
+                const filename = urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
+                const wallpaperPath = GLib.build_filenamev([wallpapersDir, filename]);
+
+                // Check if already downloaded
+                if (GLib.file_test(wallpaperPath, GLib.FileTest.EXISTS)) {
+                    return wallpaperPath;
+                }
+
+                console.log(`Downloading wallpaper from: ${url}`);
+
+                // Download the wallpaper
+                return new Promise((resolve, reject) => {
+                    const session = new Soup.Session();
+                    const message = Soup.Message.new('GET', url);
+
+                    if (!message) {
+                        reject(new Error(`Invalid URL: ${url}`));
+                        return;
+                    }
+
+                    session.send_and_read_async(
+                        message,
+                        GLib.PRIORITY_DEFAULT,
+                        null,
+                        (session, result) => {
+                            try {
+                                const bytes = session.send_and_read_finish(result);
+                                const status = message.get_status();
+
+                                if (status !== 200) {
+                                    console.error(`Failed to download wallpaper: HTTP ${status}`);
+                                    resolve(null);
+                                    return;
+                                }
+
+                                const data = bytes.get_data();
+                                if (!data || data.length === 0) {
+                                    console.error('Empty response when downloading wallpaper');
+                                    resolve(null);
+                                    return;
+                                }
+
+                                // Write to file
+                                const file = Gio.File.new_for_path(wallpaperPath);
+                                const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null);
+                                stream.write_bytes(bytes, null);
+                                stream.close(null);
+
+                                console.log(`Wallpaper saved to: ${wallpaperPath}`);
+                                resolve(wallpaperPath);
+                            } catch (error) {
+                                console.error(`Error saving wallpaper: ${error.message}`);
+                                resolve(null);
+                            }
+                        }
+                    );
+                });
+            } catch (error) {
+                console.error(`Error downloading wallpaper: ${error.message}`);
+                return null;
+            }
         }
 
         /**

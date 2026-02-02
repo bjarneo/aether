@@ -47,6 +47,12 @@ export const ColorPaletteDisplay = GObject.registerClass(
                 this._lockedColors = new Array(16).fill(false);
                 this._updateSwatches();
             });
+
+            // Blueprint loaded: force update regardless of comparison guard
+            themeState.connect('blueprint-loaded', () => {
+                this._palette = [...themeState.getPalette()];
+                this._updateSwatches();
+            });
         }
 
         _buildUI() {
@@ -157,17 +163,19 @@ export const ColorPaletteDisplay = GObject.registerClass(
             return container;
         }
 
+        /**
+         * Creates a color swatch widget with overlay for lock button
+         * @private
+         * @param {number} index - Color index (0-15)
+         * @returns {Gtk.Overlay} Swatch overlay widget
+         */
         _createSwatch(index) {
             const color = this._palette[index] || '#1e1e2e';
             const isLocked = this._lockedColors[index];
             const colorName = ANSI_COLOR_NAMES[index] || `Color ${index}`;
 
-            // Overlay for swatch + lock button
-            const overlay = new Gtk.Overlay({
-                hexpand: true,
-            });
+            const overlay = new Gtk.Overlay({hexpand: true});
 
-            // Color box
             const swatch = new Gtk.Box({
                 height_request: 48,
                 hexpand: true,
@@ -178,9 +186,7 @@ export const ColorPaletteDisplay = GObject.registerClass(
                 ? '2px solid @accent_bg_color'
                 : '1px solid alpha(@borders, 0.2)';
 
-            applyCssToWidget(
-                swatch,
-                `
+            applyCssToWidget(swatch, `
                 box {
                     background-color: ${color};
                     border-radius: 0;
@@ -189,19 +195,29 @@ export const ColorPaletteDisplay = GObject.registerClass(
                 box:hover {
                     border: 2px solid alpha(white, 0.8);
                 }
-            `
-            );
+            `);
             swatch.set_cursor(Gdk.Cursor.new_from_name('pointer', null));
-
-            // Store reference for updates
             swatch._colorIndex = index;
             overlay.set_child(swatch);
 
-            // Lock button (appears on hover)
+            const lockBtn = this._createLockButton(index, isLocked);
+            overlay.add_overlay(lockBtn);
+
+            this._addSwatchControllers(overlay, swatch, lockBtn, index);
+
+            return overlay;
+        }
+
+        /**
+         * Creates the lock button for a swatch
+         * @private
+         * @param {number} index - Color index
+         * @param {boolean} isLocked - Current lock state
+         * @returns {Gtk.Button} Lock button widget
+         */
+        _createLockButton(index, isLocked) {
             const lockBtn = new Gtk.Button({
-                icon_name: isLocked
-                    ? 'changes-prevent-symbolic'
-                    : 'changes-allow-symbolic',
+                icon_name: isLocked ? 'changes-prevent-symbolic' : 'changes-allow-symbolic',
                 halign: Gtk.Align.END,
                 valign: Gtk.Align.START,
                 margin_top: 2,
@@ -210,9 +226,8 @@ export const ColorPaletteDisplay = GObject.registerClass(
                 css_classes: ['circular', 'flat'],
                 tooltip_text: isLocked ? 'Unlock color' : 'Lock color',
             });
-            applyCssToWidget(
-                lockBtn,
-                `
+
+            applyCssToWidget(lockBtn, `
                 button {
                     background-color: alpha(@window_bg_color, 0.95);
                     min-width: 20px;
@@ -220,25 +235,24 @@ export const ColorPaletteDisplay = GObject.registerClass(
                     padding: 2px;
                     border-radius: 0;
                 }
-            `
-            );
+            `);
 
-            lockBtn.connect('clicked', () => {
-                this._toggleLock(index);
-            });
-            overlay.add_overlay(lockBtn);
+            lockBtn.connect('clicked', () => this._toggleLock(index));
+            return lockBtn;
+        }
 
-            // Hover controller
+        /**
+         * Adds event controllers to a swatch
+         * @private
+         */
+        _addSwatchControllers(overlay, swatch, lockBtn, index) {
             const hoverController = new Gtk.EventControllerMotion();
-            hoverController.connect('enter', () => {
-                lockBtn.set_opacity(1.0);
-            });
+            hoverController.connect('enter', () => lockBtn.set_opacity(1.0));
             hoverController.connect('leave', () => {
                 lockBtn.set_opacity(this._lockedColors[index] ? 1.0 : 0.0);
             });
             overlay.add_controller(hoverController);
 
-            // Click handler
             const clickGesture = new Gtk.GestureClick();
             clickGesture.connect('pressed', () => {
                 if (!this._lockedColors[index]) {
@@ -247,16 +261,9 @@ export const ColorPaletteDisplay = GObject.registerClass(
             });
             swatch.add_controller(clickGesture);
 
-            // Right-click for copy
-            const rightClick = new Gtk.GestureClick({
-                button: Gdk.BUTTON_SECONDARY,
-            });
-            rightClick.connect('pressed', () => {
-                this._copyColor(index);
-            });
+            const rightClick = new Gtk.GestureClick({button: Gdk.BUTTON_SECONDARY});
+            rightClick.connect('pressed', () => this._copyColor(index));
             swatch.add_controller(rightClick);
-
-            return overlay;
         }
 
         _createLegend() {

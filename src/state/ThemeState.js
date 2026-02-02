@@ -90,6 +90,7 @@ const DEFAULT_ADJUSTMENTS = {
  * @fires ThemeState#app-overrides-changed - When per-app overrides change
  * @fires ThemeState#neovim-theme-changed - When Neovim theme selection changes
  * @fires ThemeState#state-reset - When state is fully reset
+ * @fires ThemeState#blueprint-loaded - When a blueprint is loaded (forces UI resync)
  */
 export const ThemeState = GObject.registerClass(
     {
@@ -103,6 +104,7 @@ export const ThemeState = GObject.registerClass(
             'neovim-theme-changed': {param_types: [GObject.TYPE_STRING]},
             'state-reset': {},
             'history-changed': {},
+            'blueprint-loaded': {},
         },
     },
     class ThemeState extends GObject.Object {
@@ -364,49 +366,39 @@ export const ThemeState = GObject.registerClass(
         }
 
         /**
+         * Semantic color names mapping to ANSI indices 0-15
+         * @private
+         * @type {string[]}
+         */
+        static SEMANTIC_NAMES = [
+            'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+            'bright_black', 'bright_red', 'bright_green', 'bright_yellow',
+            'bright_blue', 'bright_magenta', 'bright_cyan', 'bright_white',
+        ];
+
+        /**
          * Build color roles object from a palette array
          * @private
          * @param {string[]} palette - 16-color palette array
+         * @param {Object} [extendedOverrides={}] - Extended color overrides
          * @returns {ColorRoles} Color role mappings
          */
         _buildColorRoles(palette, extendedOverrides = {}) {
-            const semanticNames = [
-                'black',
-                'red',
-                'green',
-                'yellow',
-                'blue',
-                'magenta',
-                'cyan',
-                'white',
-                'bright_black',
-                'bright_red',
-                'bright_green',
-                'bright_yellow',
-                'bright_blue',
-                'bright_magenta',
-                'bright_cyan',
-                'bright_white',
-            ];
-
             const roles = {
                 background: palette[0],
                 foreground: palette[15],
             };
 
-            // Map semantic names and color0-15 aliases
-            semanticNames.forEach((name, i) => {
+            ThemeState.SEMANTIC_NAMES.forEach((name, i) => {
                 roles[name] = palette[i];
                 roles[`color${i}`] = palette[i];
             });
 
-            // Add extended colors with auto-derivation (or use overrides if present)
-            roles.accent = extendedOverrides.accent || palette[4]; // blue
-            roles.cursor = extendedOverrides.cursor || palette[15]; // foreground
-            roles.selection_foreground =
-                extendedOverrides.selection_foreground || palette[0]; // background
-            roles.selection_background =
-                extendedOverrides.selection_background || palette[15]; // foreground
+            // Extended colors: use overrides or auto-derive from palette
+            roles.accent = extendedOverrides.accent || palette[4];
+            roles.cursor = extendedOverrides.cursor || palette[15];
+            roles.selection_foreground = extendedOverrides.selection_foreground || palette[0];
+            roles.selection_background = extendedOverrides.selection_background || palette[15];
 
             return roles;
         }
@@ -632,49 +624,85 @@ export const ThemeState = GObject.registerClass(
          */
         fromBlueprint(blueprint) {
             if (blueprint.palette) {
-                const {palette} = blueprint;
-
-                // Restore extended colors first (before setPalette triggers rebuild)
-                if (palette.extendedColors) {
-                    this._extendedColors = {...palette.extendedColors};
-                } else {
-                    this._extendedColors = {};
-                }
-
-                if (palette.colors) {
-                    this.setPalette(palette.colors, {silent: true});
-                }
-
-                if (palette.wallpaper) {
-                    this._wallpaper = palette.wallpaper;
-                    this._wallpaperMetadata = {
-                        url: palette.wallpaperUrl,
-                        source: palette.wallpaperSource,
-                    };
-                }
-
-                if (palette.lightMode !== undefined) {
-                    this._lightMode = palette.lightMode;
-                }
-
-                // Note: lockedColors not restored per CLAUDE.md
+                this._loadPaletteFromBlueprint(blueprint.palette);
             }
 
-            // Restore adjustments (or reset to defaults if not present)
             this._adjustments = blueprint.adjustments
                 ? {...blueprint.adjustments}
                 : {...DEFAULT_ADJUSTMENTS};
 
-            // Restore app overrides (or reset if not present)
-            this._appOverrides = blueprint.appOverrides
-                ? {...blueprint.appOverrides}
-                : {};
+            // App overrides can be at top level or inside palette (aethr.no format)
+            const appOverrides = blueprint.appOverrides || blueprint.palette?.appOverrides;
+            this._appOverrides = appOverrides ? {...appOverrides} : {};
 
             if (blueprint.settings?.selectedNeovimConfig) {
                 this._neovimTheme = blueprint.settings.selectedNeovimConfig;
             }
 
-            // Emit all signals for components to sync
+            this._emitAllSignals();
+        }
+
+        /**
+         * Loads palette data from a blueprint palette object
+         * @private
+         * @param {Object} palette - Blueprint palette object
+         */
+        _loadPaletteFromBlueprint(palette) {
+            this._extendedColors = palette.extendedColors ? {...palette.extendedColors} : {};
+
+            if (palette.colors && Array.isArray(palette.colors)) {
+                this._palette = this._normalizePalette(palette.colors);
+                this._updateColorRolesFromPalette();
+            }
+
+            this._loadWallpaperFromBlueprint(palette);
+
+            if (palette.lightMode !== undefined) {
+                this._lightMode = palette.lightMode;
+            }
+        }
+
+        /**
+         * Normalizes a palette to exactly 16 colors
+         * @private
+         * @param {string[]} colors - Input colors
+         * @returns {string[]} Normalized 16-color palette
+         */
+        _normalizePalette(colors) {
+            const normalized = [...colors];
+            while (normalized.length < 16) {
+                normalized.push(DEFAULT_PALETTE[normalized.length]);
+            }
+            return normalized.slice(0, 16);
+        }
+
+        /**
+         * Loads wallpaper data from a blueprint palette
+         * @private
+         * @param {Object} palette - Blueprint palette object
+         */
+        _loadWallpaperFromBlueprint(palette) {
+            if (palette.wallpaper) {
+                this._wallpaper = palette.wallpaper;
+                this._wallpaperMetadata = {
+                    url: palette.wallpaperUrl,
+                    source: palette.wallpaperSource,
+                };
+            } else if (palette.wallpaperUrl) {
+                this._wallpaper = null;
+                this._wallpaperMetadata = {
+                    url: palette.wallpaperUrl,
+                    source: 'aethr.no',
+                };
+            }
+        }
+
+        /**
+         * Emits all state-related signals for UI synchronization
+         * @private
+         */
+        _emitAllSignals() {
+            this.emit('blueprint-loaded');
             this.emit('palette-changed', this._palette);
             this.emit('wallpaper-changed', this._wallpaper || '');
             this.emit('light-mode-changed', this._lightMode);
@@ -809,41 +837,27 @@ export const ThemeState = GObject.registerClass(
             return true;
         }
 
-        /**
-         * Undo last change
-         * @returns {boolean} Whether undo was performed
-         */
+        /** Undo last change */
         undo() {
             return this._performHistoryNavigation(this._historyManager.undo);
         }
 
-        /**
-         * Redo previously undone change
-         * @returns {boolean} Whether redo was performed
-         */
+        /** Redo previously undone change */
         redo() {
             return this._performHistoryNavigation(this._historyManager.redo);
         }
 
-        /**
-         * Check if undo is available
-         * @returns {boolean} Whether undo is possible
-         */
+        /** Check if undo is available */
         canUndo() {
             return this._historyManager.canUndo();
         }
 
-        /**
-         * Check if redo is available
-         * @returns {boolean} Whether redo is possible
-         */
+        /** Check if redo is available */
         canRedo() {
             return this._historyManager.canRedo();
         }
 
-        /**
-         * Clear history (e.g., when loading a new wallpaper)
-         */
+        /** Clear history (e.g., when loading a new wallpaper) */
         clearHistory() {
             this._historyManager.clear();
         }
