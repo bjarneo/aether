@@ -415,7 +415,7 @@ export class DialogManager {
     showThemeNameDialog(callback) {
         this.showTextInput({
             heading: 'Export Omarchy Theme',
-            body: 'Enter a name for your theme (lowercase letters and hyphens only)',
+            body: 'Creates an Omarchy theme package with your colors, wallpaper, and configs.\nTo install, copy the exported folder to ~/.config/omarchy/themes/.\n\nTheme name (lowercase letters and hyphens only):',
             placeholder: 'my-theme',
             validationPattern: /^[a-z]([a-z-]*[a-z])?$/,
             validationMessage:
@@ -432,9 +432,10 @@ export class DialogManager {
     }
 
     showSuccessDialog(fullPath) {
+        const themeDirName = GLib.path_get_basename(fullPath);
         this.showMessage({
-            heading: 'Theme Exported',
-            body: `Theme exported successfully to:\n${fullPath}`,
+            heading: 'Omarchy Theme Exported',
+            body: `Your theme "${themeDirName}" has been exported to:\n${fullPath}\n\nTo install, copy the folder to ~/.config/omarchy/themes/ and select it with omarchy-theme-set.`,
         });
     }
 
