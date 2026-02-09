@@ -40,11 +40,11 @@
 @define-color sidebar_backdrop_color @black;
 @define-color sidebar_shade_color @black;
 
-@define-color headerbar_bg_color alpha(@foreground, 0.1);
+@define-color headerbar_bg_color @background;
 @define-color headerbar_fg_color @foreground;
 @define-color headerbar_backdrop_color @black;
 @define-color headerbar_shade_color @black;
-@define-color card_bg_color alpha(@foreground, 0.1);
+@define-color card_bg_color @background;
 @define-color card_fg_color @foreground;
 
 @define-color popover_bg_color @black;
