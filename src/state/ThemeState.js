@@ -386,7 +386,7 @@ export const ThemeState = GObject.registerClass(
         _buildColorRoles(palette, extendedOverrides = {}) {
             const roles = {
                 background: palette[0],
-                foreground: palette[15],
+                foreground: palette[7],
             };
 
             ThemeState.SEMANTIC_NAMES.forEach((name, i) => {
@@ -396,9 +396,9 @@ export const ThemeState = GObject.registerClass(
 
             // Extended colors: use overrides or auto-derive from palette
             roles.accent = extendedOverrides.accent || palette[4];
-            roles.cursor = extendedOverrides.cursor || palette[15];
+            roles.cursor = extendedOverrides.cursor || palette[7];
             roles.selection_foreground = extendedOverrides.selection_foreground || palette[0];
-            roles.selection_background = extendedOverrides.selection_background || palette[15];
+            roles.selection_background = extendedOverrides.selection_background || palette[7];
 
             return roles;
         }
