@@ -108,9 +108,9 @@ When importing a Base16 scheme, Aether automatically derives extended colors fro
 | Extended Color | Derived From |
 |----------------|--------------|
 | `accent` | color4 (Blue) |
-| `cursor` | color15 (Bright White) |
+| `cursor` | color7 (White / Default Foreground) |
 | `selection_foreground` | color0 (Black/Background) |
-| `selection_background` | color15 (Bright White) |
+| `selection_background` | color7 (White / Default Foreground) |
 
 These extended colors can be manually adjusted after import in the Extended Colors section.
 
