@@ -217,11 +217,11 @@ export const ColorSynthesizer = GObject.registerClass(
 
             const assignments = {
                 background: this._palette[0],
-                foreground: this._palette[15],
+                foreground: this._palette[7],
                 accent: this._palette[4],
-                cursor: this._palette[15],
+                cursor: this._palette[7],
                 selection_foreground: this._palette[0],
-                selection_background: this._palette[15],
+                selection_background: this._palette[7],
             };
 
             semanticNames.forEach((name, i) => {
