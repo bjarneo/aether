@@ -842,6 +842,7 @@ export const AetherWindow = GObject.registerClass(
             const wallpaperPath = themeState.getWallpaper();
             const lightMode = themeState.getLightMode();
             const appOverrides = themeState.getAppOverrides();
+            const additionalImages = themeState.getAdditionalImages();
             // Settings still from component
             const settings = this.settingsSidebar.getSettings();
 
@@ -850,7 +851,8 @@ export const AetherWindow = GObject.registerClass(
                 wallpaperPath,
                 settings,
                 lightMode,
-                appOverrides
+                appOverrides,
+                additionalImages
             );
             this.themeExporter.startExport();
         }
