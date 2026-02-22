@@ -101,7 +101,7 @@ export const COLOR_NAME_TO_INDEX = {
 // Uses semantic names (black, red, etc.) as primary keys
 export const DEFAULT_COLORS = {
     background: '#1a1b26',
-    foreground: '#c0caf5',
+    foreground: '#a9b1d6',
     black: '#15161e',
     red: '#f7768e',
     green: '#9ece6a',
@@ -120,9 +120,9 @@ export const DEFAULT_COLORS = {
     bright_white: '#c0caf5',
     // Extended colors (derived from palette by default)
     accent: '#7aa2f7', // blue
-    cursor: '#c0caf5', // foreground
+    cursor: '#a9b1d6', // foreground
     selection_foreground: '#1a1b26', // background (inverted)
-    selection_background: '#c0caf5', // foreground (inverted)
+    selection_background: '#a9b1d6', // foreground (inverted)
 };
 
 // ANSI color names for tooltips with descriptions
@@ -189,7 +189,7 @@ export const DEFAULT_PALETTE = [
     '#89b4fa', // 12: Bright Blue
     '#cba6f7', // 13: Bright Magenta
     '#94e2d5', // 14: Bright Cyan
-    '#ffffff', // 15: Bright White/Foreground
+    '#ffffff', // 15: Bright White
 ];
 
 // Palette configuration

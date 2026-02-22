@@ -26,7 +26,7 @@ export class ColorMapper {
 
         return {
             background: palette[0],
-            foreground: palette[15],
+            foreground: palette[7],
             black: palette[0],
             red: palette[1],
             green: palette[2],
@@ -45,11 +45,11 @@ export class ColorMapper {
             bright_white: palette[15],
             // Extended colors with defaults (or use overrides if present)
             accent: extendedColors.accent || palette[4], // blue
-            cursor: extendedColors.cursor || palette[15], // foreground
+            cursor: extendedColors.cursor || palette[7], // foreground
             selection_foreground:
                 extendedColors.selection_foreground || palette[0], // background
             selection_background:
-                extendedColors.selection_background || palette[15], // foreground
+                extendedColors.selection_background || palette[7], // foreground
         };
     }
 }

@@ -39,7 +39,7 @@ Extracted colors are mapped to the 16-color ANSI palette:
 | 6 | Cyan | Hue ~180° |
 | 7 | White | Light gray |
 | 8-14 | Bright variants | Boosted lightness (+18%) and saturation |
-| 15 | Foreground | Brightest color (light mode: darkest) |
+| 15 | Bright White | Brightest color (light mode: darkest) |
 
 ### 4. Readability Normalization
 
@@ -51,7 +51,7 @@ Colors are adjusted to ensure readability:
 
 ## Light vs Dark Mode
 
-Toggle light mode to swap background/foreground logic:
+Toggle light mode to swap darkest/lightest anchors:
 
 - **Dark mode**: color0 = darkest, color15 = lightest
 - **Light mode**: color0 = lightest, color15 = darkest
