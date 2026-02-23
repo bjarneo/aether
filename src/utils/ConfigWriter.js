@@ -553,7 +553,8 @@ export class ConfigWriter {
         themeName,
         settings = {},
         lightMode = false,
-        appOverrides = {}
+        appOverrides = {},
+        additionalImages = []
     ) {
         try {
             ensureDirectoryExists(exportPath);
@@ -566,6 +567,24 @@ export class ConfigWriter {
                 const destPath = GLib.build_filenamev([bgDir, fileName]);
                 copyFile(wallpaperPath, destPath);
                 console.log(`Copied wallpaper to: ${destPath}`);
+            }
+
+            if (additionalImages && additionalImages.length > 0) {
+                additionalImages.forEach((sourcePath, index) => {
+                    const fileName = GLib.path_get_basename(sourcePath);
+                    const destPath = GLib.build_filenamev([bgDir, fileName]);
+                    const success = copyFile(sourcePath, destPath);
+
+                    if (success) {
+                        console.log(
+                            `Copied additional image ${index + 1}: ${fileName}`
+                        );
+                    } else {
+                        console.error(
+                            `Failed to copy additional image: ${fileName}`
+                        );
+                    }
+                });
             }
 
             const variables = this._buildVariables(colorRoles, lightMode);

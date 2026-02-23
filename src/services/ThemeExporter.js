@@ -32,7 +32,8 @@ export class ThemeExporter {
                 themeName,
                 this.settings,
                 this.lightMode,
-                this.appOverrides
+                this.appOverrides,
+                this.additionalImages
             );
 
             this.dialogManager.showSuccessDialog(fullPath);
@@ -41,11 +42,19 @@ export class ThemeExporter {
         }
     }
 
-    setThemeData(colors, wallpaper, settings, lightMode, appOverrides = {}) {
+    setThemeData(
+        colors,
+        wallpaper,
+        settings,
+        lightMode,
+        appOverrides = {},
+        additionalImages = []
+    ) {
         this.colors = colors;
         this.wallpaper = wallpaper;
         this.settings = settings;
         this.lightMode = lightMode;
         this.appOverrides = appOverrides;
+        this.additionalImages = additionalImages;
     }
 }
