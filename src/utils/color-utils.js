@@ -300,7 +300,10 @@ export function adjustColor(
     if (highlights !== 0 && hsl.l > 70) {
         // Smooth falloff: no effect at L=70, full effect at L=100
         const highlightStrength = (hsl.l - 70) / 30;
-        hsl.l = Math.max(0, Math.min(100, hsl.l + highlights * highlightStrength));
+        hsl.l = Math.max(
+            0,
+            Math.min(100, hsl.l + highlights * highlightStrength)
+        );
     }
 
     // Apply black point (crush or lift blacks)
@@ -308,7 +311,8 @@ export function adjustColor(
         // Remap lightness: positive crushes blacks, negative lifts them
         const minL = blackPoint > 0 ? blackPoint : 0;
         const adjustedMinL = blackPoint < 0 ? -blackPoint : 0;
-        hsl.l = adjustedMinL + (hsl.l * (100 - adjustedMinL - minL)) / 100 + minL;
+        hsl.l =
+            adjustedMinL + (hsl.l * (100 - adjustedMinL - minL)) / 100 + minL;
         hsl.l = Math.max(0, Math.min(100, hsl.l));
     }
 
@@ -319,7 +323,10 @@ export function adjustColor(
         hsl.l = Math.min(maxL, hsl.l);
         if (whitePoint < 0) {
             // Negative expands toward white
-            hsl.l = Math.max(0, Math.min(100, hsl.l - whitePoint * (1 - hsl.l / 100)));
+            hsl.l = Math.max(
+                0,
+                Math.min(100, hsl.l - whitePoint * (1 - hsl.l / 100))
+            );
         }
         hsl.l = Math.max(0, Math.min(100, hsl.l));
     }
@@ -408,6 +415,38 @@ export function findClosestShade(currentColor, shades) {
     });
 
     return closestIndex;
+}
+
+/**
+ * Darkens a hex color by multiplying each RGB channel by a percentage
+ * Matches omarchy's darken_color: 0 = black, 100 = unchanged
+ * @param {string} hexColor - Hex color string
+ * @param {number} percent - Percentage to keep (0-100)
+ * @returns {string} Darkened hex color
+ */
+export function darkenColorRgb(hexColor, percent) {
+    const rgb = hexToRgb(hexColor);
+    return rgbToHex(
+        Math.round((rgb.r * percent) / 100),
+        Math.round((rgb.g * percent) / 100),
+        Math.round((rgb.b * percent) / 100)
+    );
+}
+
+/**
+ * Lightens a hex color by blending each RGB channel toward white
+ * Matches omarchy's lighten_color: 0 = unchanged, 100 = white
+ * @param {string} hexColor - Hex color string
+ * @param {number} percent - Percentage to blend toward white (0-100)
+ * @returns {string} Lightened hex color
+ */
+export function lightenColorRgb(hexColor, percent) {
+    const rgb = hexToRgb(hexColor);
+    return rgbToHex(
+        Math.round(rgb.r + ((255 - rgb.r) * percent) / 100),
+        Math.round(rgb.g + ((255 - rgb.g) * percent) / 100),
+        Math.round(rgb.b + ((255 - rgb.b) * percent) / 100)
+    );
 }
 
 /**

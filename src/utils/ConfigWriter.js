@@ -14,7 +14,13 @@ import {
 } from './file-utils.js';
 import {getTemplateMap, resolveTemplatePath} from './template-utils.js';
 import {loadJsonFile} from './file-utils.js';
-import {hexToRgbString, hexToRgba, hexToYaruTheme} from './color-utils.js';
+import {
+    hexToRgbString,
+    hexToRgba,
+    hexToYaruTheme,
+    darkenColorRgb,
+    lightenColorRgb,
+} from './color-utils.js';
 import {restartSwaybg, isOmarchyInstalled} from './service-manager.js';
 import {DEFAULT_COLORS} from '../constants/colors.js';
 import {getAppNameFromFileName} from '../constants/templates.js';
@@ -374,6 +380,22 @@ export class ConfigWriter {
 
         // Add theme type for VSCode and other templates
         variables.theme_type = lightMode ? 'light' : 'dark';
+
+        // Generate derived shade variables (matches omarchy-theme-set-templates)
+        variables.bg = variables.background;
+        variables.fg = variables.foreground;
+        variables.dark_bg = darkenColorRgb(variables.background, 75);
+        variables.darker_bg = darkenColorRgb(variables.background, 50);
+        variables.lighter_bg = lightenColorRgb(variables.background, 10);
+        variables.dark_fg = darkenColorRgb(variables.foreground, 75);
+        variables.light_fg = lightenColorRgb(variables.foreground, 15);
+        variables.bright_fg = lightenColorRgb(variables.foreground, 25);
+        variables.muted = variables.bright_black;
+        variables.purple = variables.magenta;
+        variables.bright_purple = variables.bright_magenta;
+        variables.orange = lightenColorRgb(variables.red, 15);
+        variables.brown = darkenColorRgb(variables.orange, 60);
+        variables.selection = variables.selection_background;
 
         return variables;
     }
