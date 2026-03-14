@@ -8,10 +8,9 @@
 import {DOMINANT_COLORS_TO_EXTRACT} from './constants.js';
 import {getCacheKey, loadCachedPalette, savePaletteToCache} from './cache.js';
 import {extractDominantColors} from './median-cut.js';
-import {isMonochromeImage, hasLowColorDiversity} from './color-analysis.js';
+import {isMonochromeImage} from './color-analysis.js';
 import {
     generateChromaticPalette,
-    generateSubtleBalancedPalette,
     generateMonochromePalette,
     generateMonochromaticPalette,
     generatePastelPalette,
@@ -117,16 +116,8 @@ export async function extractColorsWithImageMagick(
                     'Detected monochrome image - generating grayscale palette'
                 );
                 palette = generateMonochromePalette(dominantColors, lightMode);
-            } else if (hasLowColorDiversity(dominantColors)) {
-                log.info('Detected low diversity - generating subtle palette');
-                palette = generateSubtleBalancedPalette(
-                    dominantColors,
-                    lightMode
-                );
             } else {
-                log.info(
-                    'Detected diverse image - generating chromatic palette'
-                );
+                log.info('Generating chromatic palette');
                 palette = generateChromaticPalette(dominantColors, lightMode);
             }
         }

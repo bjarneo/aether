@@ -13,10 +13,10 @@
 export const ANSI_PALETTE_SIZE = 16;
 
 /** Number of dominant colors to extract from image for analysis */
-export const DOMINANT_COLORS_TO_EXTRACT = 32;
+export const DOMINANT_COLORS_TO_EXTRACT = 48;
 
 /** Cache version number - increment when cache format changes */
-export const CACHE_VERSION = 1;
+export const CACHE_VERSION = 2;
 
 // ============================================================================
 // COLOR DETECTION THRESHOLDS
@@ -97,8 +97,17 @@ export const DARK_COLOR_THRESHOLD = 50;
 /** Base saturation for subtle balanced palettes (0-100) */
 export const SUBTLE_PALETTE_SATURATION = 28;
 
-/** Saturation for monochrome palette colors (0-100) */
+/** Saturation for monochrome palette neutral colors like color8/15 (0-100) */
 export const MONOCHROME_SATURATION = 5;
+
+/** Saturation for ANSI colors 1-6 in monochrome palettes - enough to distinguish hues (0-100) */
+export const MONOCHROME_ANSI_SATURATION = 30;
+
+/** Saturation for bright ANSI colors 9-14 in monochrome palettes (0-100) */
+export const MONOCHROME_ANSI_BRIGHT_SATURATION = 40;
+
+/** How much the image's tonal tint influences monochrome ANSI hues (0-1) */
+export const MONOCHROME_TINT_STRENGTH = 0.15;
 
 /** Saturation multiplier for color8 in monochrome (0-1) */
 export const MONOCHROME_COLOR8_SATURATION_FACTOR = 0.5;
@@ -108,6 +117,16 @@ export const BRIGHT_COLOR_LIGHTNESS_BOOST = 18;
 
 /** Saturation multiplier for bright ANSI colors (9-14) */
 export const BRIGHT_COLOR_SATURATION_BOOST = 1.1;
+
+// ============================================================================
+// ANSI COLOR MATCHING
+// ============================================================================
+
+/** Score threshold above which a synthesized color is used instead of a poor match */
+export const SYNTHESIS_SCORE_THRESHOLD = 180;
+
+/** Minimum saturation for a color to be considered a valid ANSI match */
+export const ANSI_MIN_SATURATION_FOR_MATCH = 12;
 
 // ============================================================================
 // STANDARD ANSI COLOR HUES
@@ -138,7 +157,7 @@ export const ANSI_HUE_ARRAY = [
 // ============================================================================
 
 /** Maximum image dimension for fast processing (pixels) */
-export const IMAGE_SCALE_SIZE = 200;
+export const IMAGE_SCALE_SIZE = 300;
 
 /** Minimum pixels to sample for reliable color extraction */
 export const MIN_PIXELS_TO_SAMPLE = 1000;
