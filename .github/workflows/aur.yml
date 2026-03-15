@@ -1,0 +1,96 @@
+name: Publish to AUR
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+
+jobs:
+  aur:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: Extract version
+        id: version
+        env:
+          TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          echo "pkgver=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate PKGBUILD
+        env:
+          PKGVER: ${{ steps.version.outputs.pkgver }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Download the source tarball and compute its checksum
+          SOURCE_URL="https://github.com/${REPO}/archive/refs/tags/v${PKGVER}.tar.gz"
+          SHA256=$(curl -sL "$SOURCE_URL" | sha256sum | cut -d' ' -f1)
+
+          cat > PKGBUILD <<'HEREDOC'
+          # Maintainer: Bjarne Øverli <bjarne@oever.li>
+          pkgname=aether
+          pkgver=PKGVER_PLACEHOLDER
+          pkgrel=1
+          pkgdesc='Omarchy theming application'
+          arch=('any')
+          url='https://github.com/bjarneo/aether'
+          license=('MIT')
+          depends=('gjs' 'gtk4' 'libadwaita' 'libsoup3' 'imagemagick' 'gtk4-layer-shell')
+          optdepends=('omarchy: Theme application backend')
+          source=("${pkgname}-${pkgver}.tar.gz::https://github.com/bjarneo/aether/archive/refs/tags/v${pkgver}.tar.gz")
+          sha256sums=('SHA256_PLACEHOLDER')
+
+          package() {
+              cd "${srcdir}/${pkgname}-${pkgver}"
+
+              # Install source files
+              install -dm755 "${pkgdir}/usr/share/${pkgname}"
+              cp -r src templates "${pkgdir}/usr/share/${pkgname}/"
+
+              # Create launcher script
+              install -dm755 "${pkgdir}/usr/bin"
+              cat >"${pkgdir}/usr/bin/aether" <<'LAUNCHER'
+          #!/bin/bash
+          cd /usr/share/aether || exit
+
+          # Preload GTK4 Layer Shell to fix linking order issue with libwayland
+          # See: https://github.com/wmww/gtk4-layer-shell/blob/main/linking.md
+          export LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so
+
+          exec gjs -m src/main.js "$@"
+          LAUNCHER
+              chmod 755 "${pkgdir}/usr/bin/aether"
+
+              # Install desktop entry
+              install -Dm644 li.oever.aether.desktop "${pkgdir}/usr/share/applications/li.oever.aether.desktop"
+
+              # Install icon
+              install -Dm644 icon.png "${pkgdir}/usr/share/pixmaps/aether.png"
+
+              # Install license
+              install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+          }
+          HEREDOC
+
+          # Remove leading whitespace from heredoc
+          sed -i 's/^          //' PKGBUILD
+          # Replace placeholders with actual values
+          sed -i "s|PKGVER_PLACEHOLDER|${PKGVER}|" PKGBUILD
+          sed -i "s|SHA256_PLACEHOLDER|${SHA256}|" PKGBUILD
+
+          cat PKGBUILD
+
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
+        with:
+          pkgname: aether
+          pkgbuild: ./PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to v${{ steps.version.outputs.pkgver }}"
