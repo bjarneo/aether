@@ -37,9 +37,9 @@ return {
         cursor               = "{cursor}",
         foreground           = "{foreground}",
         background           = "{background}",
-        selection             = "{selection}",
-        selection_foreground = "{selection_foreground}",
-        selection_background = "{selection_background}",
+        selection             = "{lighter_bg}",
+        selection_foreground = "{foreground}",
+        selection_background = "{lighter_bg}",
       },
     },
     -- set up hot reload
