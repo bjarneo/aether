@@ -8,7 +8,8 @@
     "start": "gjs -m src/main.js",
     "dev": "gjs -m src/main.js",
     "format": "prettier --write \"src/**/*.js\"",
-    "format:check": "prettier --check \"src/**/*.js\""
+    "format:check": "prettier --check \"src/**/*.js\"",
+    "prepare": "husky"
   },
   "keywords": [
     "gtk",
@@ -19,7 +20,12 @@
   ],
   "author": "",
   "license": "MIT",
+  "lint-staged": {
+    "src/**/*.js": "prettier --write"
+  },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.6.2"
   }
 }
