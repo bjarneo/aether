@@ -12,14 +12,14 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 
 ## Features
 
-- **Color Extraction** — Intelligent palette generation from any wallpaper
-- **Wallpaper Browser** — Search wallhaven.cc or browse local files
-- **Image Filters** — Edit wallpapers before extraction (blur, exposure, presets)
-- **Color Presets** — Dracula, Nord, Gruvbox, Catppuccin, and more
-- **Base16 Import** — Import 250+ community color schemes
-- **Blueprints** — Save and share themes as JSON
-- **Multi-App Support** — Hyprland, Waybar, Kitty, Neovim, and 15+ more
-- **Theme Scheduler** — Auto-switch themes at scheduled times
+- **Color Extraction** - Intelligent palette generation from any wallpaper
+- **Wallpaper Browser** - Search wallhaven.cc or browse local files
+- **Image Filters** - Edit wallpapers before extraction (blur, exposure, presets)
+- **Color Presets** - Dracula, Nord, Gruvbox, Catppuccin, and more
+- **Base16 Import** - Import 250+ community color schemes
+- **Blueprints** - Save and share themes as JSON
+- **Multi-App Support** - Hyprland, Waybar, Kitty, Neovim, and 15+ more
+- **Theme Scheduler** - Auto-switch themes at scheduled times
 
 ## Quick Start
 
@@ -84,7 +84,7 @@ See `aether --help` for all options.
 
 ## Complementary Projects
 
-- [omarchy-theme-hook](https://github.com/imbypass/omarchy-theme-hook/) — A clean solution to extend your Omarchy theme to other apps.
+- [omarchy-theme-hook](https://github.com/imbypass/omarchy-theme-hook/) - A clean solution to extend your Omarchy theme to other apps.
 
 ## Contributing
 
@@ -96,4 +96,4 @@ See [CLAUDE.md](CLAUDE.md) for architecture details.
 
 ## License
 
-MIT — Created by [Bjarne Øverli](https://x.com/iamdothash)
+MIT - Created by [Bjarne Øverli](https://x.com/iamdothash)

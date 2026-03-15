@@ -215,4 +215,4 @@ cp -r examples/custom/apps/* ~/.config/aether/custom/
 
 ## See Also
 
-- [omarchy-theme-hook](https://github.com/imbypass/omarchy-theme-hook/) — A clean solution to extend your Omarchy theme to other apps.
+- [omarchy-theme-hook](https://github.com/imbypass/omarchy-theme-hook/) - A clean solution to extend your Omarchy theme to other apps.

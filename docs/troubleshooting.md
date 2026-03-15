@@ -28,7 +28,7 @@ magick --version
 
 When using `--widget-blueprint`, Aether runs with layer-shell which can conflict with Waybar.
 
-**Solution:** Already fixed in Aether — it clears `LD_PRELOAD` when applying themes.
+**Solution:** Already fixed in Aether - it clears `LD_PRELOAD` when applying themes.
 
 ## Theme Not Applying
 
