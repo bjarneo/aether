@@ -202,9 +202,17 @@ export function applyCssToWidget(
     css,
     priority = Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
 ) {
-    const cssProvider = new Gtk.CssProvider();
-    cssProvider.load_from_string(css);
-    widget.get_style_context().add_provider(cssProvider, priority);
+    const apply = () => {
+        const cssProvider = new Gtk.CssProvider();
+        cssProvider.load_from_string(css);
+        widget.get_style_context().add_provider(cssProvider, priority);
+    };
+
+    if (widget.get_realized()) {
+        apply();
+    } else {
+        widget.connect('realize', apply);
+    }
 }
 
 /**
