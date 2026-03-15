@@ -157,9 +157,6 @@ print_post_install() {
     echo -e "${BOLD}Documentation:${NC}"
     echo -e "  ${CYAN}https://github.com/bjarneo/aether${NC}"
     echo ""
-    echo -e "${BOLD}Community:${NC}"
-    echo -e "  ${CYAN}https://aethr.no${NC}"
-    echo ""
 }
 
 main() {

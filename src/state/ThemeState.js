@@ -631,7 +631,7 @@ export const ThemeState = GObject.registerClass(
                 ? {...blueprint.adjustments}
                 : {...DEFAULT_ADJUSTMENTS};
 
-            // App overrides can be at top level or inside palette (aethr.no format)
+            // App overrides can be at top level or inside palette
             const appOverrides = blueprint.appOverrides || blueprint.palette?.appOverrides;
             this._appOverrides = appOverrides ? {...appOverrides} : {};
 
@@ -692,7 +692,7 @@ export const ThemeState = GObject.registerClass(
                 this._wallpaper = null;
                 this._wallpaperMetadata = {
                     url: palette.wallpaperUrl,
-                    source: 'aethr.no',
+                    source: palette.wallpaperSource || 'unknown',
                 };
             }
         }

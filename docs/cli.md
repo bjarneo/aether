@@ -98,7 +98,7 @@ aether --generate ~/wallpaper.jpg --no-apply --output ~/my-themes/generated
 Import a theme from URL or local file:
 
 ```bash
-aether --import-blueprint "https://aethr.no/api/blueprint/abc123"
+aether --import-blueprint "https://example.com/blueprint.json"
 aether -i "/path/to/theme.json"
 ```
 
@@ -112,7 +112,7 @@ aether -i "/path/to/theme.json"
 
 ```bash
 # Import and apply in one command
-aether --import-blueprint "https://aethr.no/api/blueprint/abc123" --auto-apply
+aether --import-blueprint "https://example.com/blueprint.json" --auto-apply
 ```
 
 ### Import Base16 Scheme
@@ -249,16 +249,6 @@ bind = $mainMod SHIFT, T, exec, aether --widget-blueprint
 # Generate theme from current wallpaper
 bind = $mainMod ALT, T, exec, aether --generate $(hyprctl hyprpaper listactive | head -1 | cut -d' ' -f2)
 ```
-
-## Protocol Handler
-
-Aether registers the `aether://` protocol for one-click theme imports:
-
-```
-aether://import?url=https://aethr.no/api/blueprint/abc123
-```
-
-This is used by the [Aether Community](https://aethr.no) for sharing themes.
 
 ## Exit Codes
 

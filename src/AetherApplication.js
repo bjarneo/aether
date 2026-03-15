@@ -6,7 +6,6 @@
  * - Command-line argument processing
  * - CLI commands (list-blueprints, apply-blueprint, generate, import)
  * - Theme manager initialization
- * - Protocol handler registration
  *
  * @module AetherApplication
  */
@@ -31,7 +30,6 @@ import {themeState} from './state/ThemeState.js';
 import {blueprintService} from './services/BlueprintService.js';
 import {BlueprintWidget} from './components/BlueprintWidget.js';
 import {runMigrations} from './utils/migrations.js';
-import {ProtocolHandlerInstaller} from './utils/protocol-handler-installer.js';
 import {AboutDialog} from './components/AboutDialog.js';
 
 // Theme manager singleton (initialized only when GUI is needed)
@@ -280,13 +278,6 @@ export const AetherApplication = GObject.registerClass(
             if (!options.contains('import-blueprint')) return false;
 
             let source = this._getStringOption(options, 'import-blueprint');
-
-            // Parse aether:// protocol URLs
-            if (source.startsWith('aether://import?url=')) {
-                const urlParam = source.substring('aether://import?url='.length);
-                source = decodeURIComponent(urlParam);
-                print(`Parsed protocol URL: ${source}`);
-            }
 
             const autoApply = options.contains('auto-apply');
 
@@ -597,9 +588,6 @@ export const AetherApplication = GObject.registerClass(
                 );
             }
             this.themeManager = themeManager;
-
-            // Install protocol handler on first run
-            ProtocolHandlerInstaller.ensureInstalled();
 
             let window = this.active_window;
             if (!window) {
