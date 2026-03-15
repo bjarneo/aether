@@ -417,7 +417,9 @@ export const ThemeEditor = GObject.registerClass(
             }
 
             if (palette.appOverrides) {
-                this._appOverridesWidget.loadFromBlueprint(palette.appOverrides);
+                this._appOverridesWidget.loadFromBlueprint(
+                    palette.appOverrides
+                );
             }
 
             this._colorPalette.setLockedColors(new Array(16).fill(false));
@@ -430,7 +432,9 @@ export const ThemeEditor = GObject.registerClass(
          */
         async _loadBlueprintWallpaper(palette) {
             if (palette.wallpaperUrl && !palette.wallpaper) {
-                const wallpaperPath = await this._downloadWallpaper(palette.wallpaperUrl);
+                const wallpaperPath = await this._downloadWallpaper(
+                    palette.wallpaperUrl
+                );
                 if (wallpaperPath) {
                     this.loadWallpaperWithoutExtraction(wallpaperPath);
                     this._wallpaperMetadata = {
@@ -468,15 +472,21 @@ export const ThemeEditor = GObject.registerClass(
                 ensureDirectoryExists(wallpapersDir);
 
                 const urlParts = url.split('/');
-                const filename = urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
-                const wallpaperPath = GLib.build_filenamev([wallpapersDir, filename]);
+                const filename =
+                    urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
+                const wallpaperPath = GLib.build_filenamev([
+                    wallpapersDir,
+                    filename,
+                ]);
 
                 const file = Gio.File.new_for_path(wallpaperPath);
                 if (file.query_exists(null)) {
                     return wallpaperPath;
                 }
 
-                const {wallhavenService} = await import('../services/wallhaven-service.js');
+                const {wallhavenService} = await import(
+                    '../services/wallhaven-service.js'
+                );
                 await wallhavenService.downloadWallpaper(url, wallpaperPath);
                 return wallpaperPath;
             } catch (error) {
@@ -572,7 +582,9 @@ export const ThemeEditor = GObject.registerClass(
 
             const filter = new Gtk.FileFilter();
             filter.set_name(filterConfig.name);
-            filterConfig.patterns.forEach(pattern => filter.add_pattern(pattern));
+            filterConfig.patterns.forEach(pattern =>
+                filter.add_pattern(pattern)
+            );
 
             const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
             filterList.append(filter);
@@ -626,7 +638,10 @@ export const ThemeEditor = GObject.registerClass(
 
                 this._applyImportedPalette(result.colors);
 
-                if (result.extendedColors && Object.keys(result.extendedColors).length > 0) {
+                if (
+                    result.extendedColors &&
+                    Object.keys(result.extendedColors).length > 0
+                ) {
                     themeState.setExtendedColors(result.extendedColors);
                 }
 

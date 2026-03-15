@@ -186,7 +186,9 @@ export const ColorPaletteDisplay = GObject.registerClass(
                 ? '2px solid @accent_bg_color'
                 : '1px solid alpha(@borders, 0.2)';
 
-            applyCssToWidget(swatch, `
+            applyCssToWidget(
+                swatch,
+                `
                 box {
                     background-color: ${color};
                     border-radius: 0;
@@ -195,7 +197,8 @@ export const ColorPaletteDisplay = GObject.registerClass(
                 box:hover {
                     border: 2px solid alpha(white, 0.8);
                 }
-            `);
+            `
+            );
             swatch.set_cursor(Gdk.Cursor.new_from_name('pointer', null));
             swatch._colorIndex = index;
             overlay.set_child(swatch);
@@ -217,7 +220,9 @@ export const ColorPaletteDisplay = GObject.registerClass(
          */
         _createLockButton(index, isLocked) {
             const lockBtn = new Gtk.Button({
-                icon_name: isLocked ? 'changes-prevent-symbolic' : 'changes-allow-symbolic',
+                icon_name: isLocked
+                    ? 'changes-prevent-symbolic'
+                    : 'changes-allow-symbolic',
                 halign: Gtk.Align.END,
                 valign: Gtk.Align.START,
                 margin_top: 2,
@@ -227,7 +232,9 @@ export const ColorPaletteDisplay = GObject.registerClass(
                 tooltip_text: isLocked ? 'Unlock color' : 'Lock color',
             });
 
-            applyCssToWidget(lockBtn, `
+            applyCssToWidget(
+                lockBtn,
+                `
                 button {
                     background-color: alpha(@window_bg_color, 0.95);
                     min-width: 20px;
@@ -235,7 +242,8 @@ export const ColorPaletteDisplay = GObject.registerClass(
                     padding: 2px;
                     border-radius: 0;
                 }
-            `);
+            `
+            );
 
             lockBtn.connect('clicked', () => this._toggleLock(index));
             return lockBtn;
@@ -261,7 +269,9 @@ export const ColorPaletteDisplay = GObject.registerClass(
             });
             swatch.add_controller(clickGesture);
 
-            const rightClick = new Gtk.GestureClick({button: Gdk.BUTTON_SECONDARY});
+            const rightClick = new Gtk.GestureClick({
+                button: Gdk.BUTTON_SECONDARY,
+            });
             rightClick.connect('pressed', () => this._copyColor(index));
             swatch.add_controller(rightClick);
         }

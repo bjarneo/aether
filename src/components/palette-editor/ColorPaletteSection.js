@@ -407,7 +407,9 @@ export const ColorPaletteSection = GObject.registerClass(
 
             const filter = new Gtk.FileFilter();
             filter.set_name(filterConfig.name);
-            filterConfig.patterns.forEach(pattern => filter.add_pattern(pattern));
+            filterConfig.patterns.forEach(pattern =>
+                filter.add_pattern(pattern)
+            );
 
             const filterList = Gio.ListStore.new(Gtk.FileFilter.$gtype);
             filterList.append(filter);
@@ -466,7 +468,10 @@ export const ColorPaletteSection = GObject.registerClass(
 
                 this._applyImportedPalette(result.colors);
 
-                if (result.extendedColors && Object.keys(result.extendedColors).length > 0) {
+                if (
+                    result.extendedColors &&
+                    Object.keys(result.extendedColors).length > 0
+                ) {
                     themeState.setExtendedColors(result.extendedColors);
                 }
 

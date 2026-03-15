@@ -152,7 +152,9 @@ export const ThemeActionBar = GObject.registerClass(
                 'document-save-symbolic',
                 'Export Omarchy Theme'
             );
-            exportBtn.set_tooltip_text('Export as a shareable Omarchy theme package');
+            exportBtn.set_tooltip_text(
+                'Export as a shareable Omarchy theme package'
+            );
             exportBtn.connect('clicked', () => this.emit('export-theme'));
             leftGroup.append(exportBtn);
 

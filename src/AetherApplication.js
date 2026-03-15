@@ -255,14 +255,21 @@ export const AetherApplication = GObject.registerClass(
             if (!options.contains('generate')) return false;
 
             const wallpaperPath = this._getStringOption(options, 'generate');
-            const extractionMode = this._getStringOption(options, 'extract-mode') || 'normal';
+            const extractionMode =
+                this._getStringOption(options, 'extract-mode') || 'normal';
             const lightMode = options.contains('light-mode');
             // GLib normalizes hyphens to underscores in option names
-            const noApply = options.contains('no-apply') || options.contains('no_apply');
+            const noApply =
+                options.contains('no-apply') || options.contains('no_apply');
             const outputPath = this._getStringOption(options, 'output');
 
             this._runAsyncCommand(
-                GenerateThemeCommand.execute(wallpaperPath, extractionMode, lightMode, {noApply, outputPath})
+                GenerateThemeCommand.execute(
+                    wallpaperPath,
+                    extractionMode,
+                    lightMode,
+                    {noApply, outputPath}
+                )
             );
 
             return true;
@@ -282,12 +289,14 @@ export const AetherApplication = GObject.registerClass(
             const autoApply = options.contains('auto-apply');
 
             this._runAsyncCommand(
-                ImportBlueprintCommand.execute(source, autoApply).then(async success => {
-                    if (success) {
-                        await this._updateGuiAfterImport();
+                ImportBlueprintCommand.execute(source, autoApply).then(
+                    async success => {
+                        if (success) {
+                            await this._updateGuiAfterImport();
+                        }
+                        return success;
                     }
-                    return success;
-                })
+                )
             );
 
             return true;
@@ -307,7 +316,10 @@ export const AetherApplication = GObject.registerClass(
             const lightMode = options.contains('light-mode');
 
             this._runAsyncCommand(
-                ImportBase16Command.execute(filePath, {wallpaperPath, lightMode})
+                ImportBase16Command.execute(filePath, {
+                    wallpaperPath,
+                    lightMode,
+                })
             );
 
             return true;
@@ -322,12 +334,18 @@ export const AetherApplication = GObject.registerClass(
         _handleImportColorsToml(options) {
             if (!options.contains('import-colors-toml')) return false;
 
-            const filePath = this._getStringOption(options, 'import-colors-toml');
+            const filePath = this._getStringOption(
+                options,
+                'import-colors-toml'
+            );
             const wallpaperPath = this._getStringOption(options, 'wallpaper');
             const lightMode = options.contains('light-mode');
 
             this._runAsyncCommand(
-                ImportColorsTomlCommand.execute(filePath, {wallpaperPath, lightMode})
+                ImportColorsTomlCommand.execute(filePath, {
+                    wallpaperPath,
+                    lightMode,
+                })
             );
 
             return true;
@@ -452,10 +470,14 @@ export const AetherApplication = GObject.registerClass(
                 const blueprint = allBlueprints[0];
 
                 // Handle wallpaper URL - download if not already local
-                if (blueprint.palette?.wallpaperUrl && !blueprint.palette?.wallpaper) {
-                    const wallpaperPath = await this._downloadWallpaperForBlueprint(
-                        blueprint.palette.wallpaperUrl
-                    );
+                if (
+                    blueprint.palette?.wallpaperUrl &&
+                    !blueprint.palette?.wallpaper
+                ) {
+                    const wallpaperPath =
+                        await this._downloadWallpaperForBlueprint(
+                            blueprint.palette.wallpaperUrl
+                        );
                     if (wallpaperPath) {
                         blueprint.palette.wallpaper = wallpaperPath;
                     }
@@ -494,7 +516,9 @@ export const AetherApplication = GObject.registerClass(
          */
         async _downloadWallpaperForBlueprint(url) {
             try {
-                const {ensureDirectoryExists} = await import('./utils/file-utils.js');
+                const {ensureDirectoryExists} = await import(
+                    './utils/file-utils.js'
+                );
                 const Soup = (await import('gi://Soup?version=3.0')).default;
 
                 const wallpapersDir = GLib.build_filenamev([
@@ -506,8 +530,12 @@ export const AetherApplication = GObject.registerClass(
 
                 // Extract filename from URL
                 const urlParts = url.split('/');
-                const filename = urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
-                const wallpaperPath = GLib.build_filenamev([wallpapersDir, filename]);
+                const filename =
+                    urlParts[urlParts.length - 1] || 'imported-wallpaper.jpg';
+                const wallpaperPath = GLib.build_filenamev([
+                    wallpapersDir,
+                    filename,
+                ]);
 
                 // Check if already downloaded
                 if (GLib.file_test(wallpaperPath, GLib.FileTest.EXISTS)) {
@@ -532,32 +560,47 @@ export const AetherApplication = GObject.registerClass(
                         null,
                         (session, result) => {
                             try {
-                                const bytes = session.send_and_read_finish(result);
+                                const bytes =
+                                    session.send_and_read_finish(result);
                                 const status = message.get_status();
 
                                 if (status !== 200) {
-                                    console.error(`Failed to download wallpaper: HTTP ${status}`);
+                                    console.error(
+                                        `Failed to download wallpaper: HTTP ${status}`
+                                    );
                                     resolve(null);
                                     return;
                                 }
 
                                 const data = bytes.get_data();
                                 if (!data || data.length === 0) {
-                                    console.error('Empty response when downloading wallpaper');
+                                    console.error(
+                                        'Empty response when downloading wallpaper'
+                                    );
                                     resolve(null);
                                     return;
                                 }
 
                                 // Write to file
-                                const file = Gio.File.new_for_path(wallpaperPath);
-                                const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null);
+                                const file =
+                                    Gio.File.new_for_path(wallpaperPath);
+                                const stream = file.replace(
+                                    null,
+                                    false,
+                                    Gio.FileCreateFlags.NONE,
+                                    null
+                                );
                                 stream.write_bytes(bytes, null);
                                 stream.close(null);
 
-                                console.log(`Wallpaper saved to: ${wallpaperPath}`);
+                                console.log(
+                                    `Wallpaper saved to: ${wallpaperPath}`
+                                );
                                 resolve(wallpaperPath);
                             } catch (error) {
-                                console.error(`Error saving wallpaper: ${error.message}`);
+                                console.error(
+                                    `Error saving wallpaper: ${error.message}`
+                                );
                                 resolve(null);
                             }
                         }

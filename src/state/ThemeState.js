@@ -371,9 +371,22 @@ export const ThemeState = GObject.registerClass(
          * @type {string[]}
          */
         static SEMANTIC_NAMES = [
-            'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
-            'bright_black', 'bright_red', 'bright_green', 'bright_yellow',
-            'bright_blue', 'bright_magenta', 'bright_cyan', 'bright_white',
+            'black',
+            'red',
+            'green',
+            'yellow',
+            'blue',
+            'magenta',
+            'cyan',
+            'white',
+            'bright_black',
+            'bright_red',
+            'bright_green',
+            'bright_yellow',
+            'bright_blue',
+            'bright_magenta',
+            'bright_cyan',
+            'bright_white',
         ];
 
         /**
@@ -397,8 +410,10 @@ export const ThemeState = GObject.registerClass(
             // Extended colors: use overrides or auto-derive from palette
             roles.accent = extendedOverrides.accent || palette[4];
             roles.cursor = extendedOverrides.cursor || palette[7];
-            roles.selection_foreground = extendedOverrides.selection_foreground || palette[0];
-            roles.selection_background = extendedOverrides.selection_background || palette[7];
+            roles.selection_foreground =
+                extendedOverrides.selection_foreground || palette[0];
+            roles.selection_background =
+                extendedOverrides.selection_background || palette[7];
 
             return roles;
         }
@@ -632,7 +647,8 @@ export const ThemeState = GObject.registerClass(
                 : {...DEFAULT_ADJUSTMENTS};
 
             // App overrides can be at top level or inside palette
-            const appOverrides = blueprint.appOverrides || blueprint.palette?.appOverrides;
+            const appOverrides =
+                blueprint.appOverrides || blueprint.palette?.appOverrides;
             this._appOverrides = appOverrides ? {...appOverrides} : {};
 
             if (blueprint.settings?.selectedNeovimConfig) {
@@ -648,7 +664,9 @@ export const ThemeState = GObject.registerClass(
          * @param {Object} palette - Blueprint palette object
          */
         _loadPaletteFromBlueprint(palette) {
-            this._extendedColors = palette.extendedColors ? {...palette.extendedColors} : {};
+            this._extendedColors = palette.extendedColors
+                ? {...palette.extendedColors}
+                : {};
 
             if (palette.colors && Array.isArray(palette.colors)) {
                 this._palette = this._normalizePalette(palette.colors);
