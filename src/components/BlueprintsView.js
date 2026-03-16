@@ -54,12 +54,13 @@ export const BlueprintsView = GObject.registerClass(
         },
     },
     class BlueprintsView extends Gtk.Box {
-        _init() {
+        _init(ohmydebnMode = false) {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 0,
             });
 
+            this._ohmydebnMode = ohmydebnMode;
             this._blueprints = [];
             this._blueprintsDir = GLib.build_filenamev([
                 GLib.get_user_config_dir(),
@@ -96,7 +97,7 @@ export const BlueprintsView = GObject.registerClass(
                 active: true,
             });
             this._themesToggle = new Gtk.ToggleButton({
-                label: 'Omarchy Themes',
+                label: this._ohmydebnMode ? 'System Themes' : 'Omarchy Themes',
                 active: false,
             });
 
@@ -145,7 +146,7 @@ export const BlueprintsView = GObject.registerClass(
             this._contentStack.add_named(blueprintsContent, 'blueprints');
 
             // Omarchy themes browser
-            this._omarchyBrowser = new OmarchyThemesBrowser();
+            this._omarchyBrowser = new OmarchyThemesBrowser(this._ohmydebnMode);
             this._omarchyBrowser.connect('theme-imported', (_, theme) => {
                 this.emit('theme-imported', theme);
             });
@@ -154,7 +155,18 @@ export const BlueprintsView = GObject.registerClass(
             });
             this._contentStack.add_named(this._omarchyBrowser, 'themes');
 
-            this._contentStack.set_visible_child_name('blueprints');
+            const initialView = this._ohmydebnMode ? 'themes' : 'blueprints';
+            this._contentStack.set_visible_child_name(initialView);
+
+            // Set toggle button state to match initial view
+            if (this._ohmydebnMode) {
+                this._themesToggle.set_active(true);
+                this._blueprintsToggle.set_active(false);
+            } else {
+                this._blueprintsToggle.set_active(true);
+                this._themesToggle.set_active(false);
+            }
+
             this.append(this._contentStack);
         }
 

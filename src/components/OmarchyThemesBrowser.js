@@ -35,14 +35,18 @@ export const OmarchyThemesBrowser = GObject.registerClass(
         },
     },
     class OmarchyThemesBrowser extends Gtk.Box {
-        _init() {
+        _init(ohmydebnMode = false) {
             super._init({
                 orientation: Gtk.Orientation.VERTICAL,
                 spacing: 0,
             });
 
+            this._ohmydebnMode = ohmydebnMode;
             this._themes = [];
             this._searchQuery = '';
+
+            // Set the mode on the service so applyTheme uses correct command
+            omarchyThemeService.setOhMyDebnMode(ohmydebnMode);
 
             this._buildUI();
             this._loadThemesAsync();
@@ -61,8 +65,8 @@ export const OmarchyThemesBrowser = GObject.registerClass(
             });
 
             const clamp = new Adw.Clamp({
-                maximum_size: 900,
-                tightening_threshold: 700,
+                maximum_size: this._ohmydebnMode ? 1600 : 900,
+                tightening_threshold: this._ohmydebnMode ? 1200 : 700,
             });
 
             const mainBox = new Gtk.Box({
@@ -122,7 +126,7 @@ export const OmarchyThemesBrowser = GObject.registerClass(
             });
 
             const title = new Gtk.Label({
-                label: 'Omarchy Themes',
+                label: this._ohmydebnMode ? 'System Themes' : 'Omarchy Themes',
                 halign: Gtk.Align.START,
                 css_classes: ['title-2'],
             });
@@ -262,7 +266,7 @@ export const OmarchyThemesBrowser = GObject.registerClass(
         _createContentView() {
             this._flowBox = new Gtk.FlowBox({
                 valign: Gtk.Align.START,
-                max_children_per_line: 6,
+                max_children_per_line: 20,
                 min_children_per_line: 2,
                 selection_mode: Gtk.SelectionMode.NONE,
                 homogeneous: false,
@@ -270,7 +274,56 @@ export const OmarchyThemesBrowser = GObject.registerClass(
                 column_spacing: GRID.COLUMN_SPACING,
             });
 
+            // Set up responsive columns
+            this._setupResponsiveColumns();
+
             return this._flowBox;
+        }
+
+        /**
+         * Set up responsive column management
+         * @private
+         */
+        _setupResponsiveColumns() {
+            let lastWidth = 0;
+
+            const updateColumns = () => {
+                const width = this._flowBox.get_allocated_width();
+                if (width === lastWidth || width === 0) return;
+                lastWidth = width;
+
+                // Calculate columns based on width (each theme card is ~200px)
+                let columns = Math.max(2, Math.floor(width / 200));
+                // Cap at 12 columns max
+                columns = Math.min(12, columns);
+                this._flowBox.set_property('max_children_per_line', columns);
+            };
+
+            // Initial calculation
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                updateColumns();
+                return GLib.SOURCE_REMOVE;
+            });
+
+            // Poll for size changes (similar to ResponsiveGridManager)
+            this._columnTimeout = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT_IDLE,
+                500,
+                () => {
+                    updateColumns();
+                    return GLib.SOURCE_CONTINUE;
+                }
+            );
+        }
+
+        /**
+         * Clean up resources
+         * @private
+         */
+        _cleanup() {
+            if (this._columnTimeout) {
+                GLib.source_remove(this._columnTimeout);
+            }
         }
 
         /**
@@ -281,7 +334,9 @@ export const OmarchyThemesBrowser = GObject.registerClass(
             this._contentStack.set_visible_child_name('loading');
 
             try {
-                this._themes = await omarchyThemeService.loadAllThemes();
+                this._themes = await omarchyThemeService.loadAllThemes({
+                    ohmydebnMode: this._ohmydebnMode,
+                });
                 this._updateCurrentThemeLabel();
 
                 if (this._themes.length === 0) {

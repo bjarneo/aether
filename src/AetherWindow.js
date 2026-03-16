@@ -60,10 +60,14 @@ export const AetherWindow = GObject.registerClass(
                 default_height: 700,
             });
 
+            this._ohmydebnMode = application._ohmydebnMode || false;
             this.configWriter = new ConfigWriter();
             this._initializeUI();
-            this._connectSignals();
-            this._connectThemeState();
+
+            // Set initial tab based on OhMyDebn mode
+            if (this._ohmydebnMode) {
+                this._viewStack.set_visible_child_name('blueprints');
+            }
         }
 
         /**
@@ -346,7 +350,7 @@ export const AetherWindow = GObject.registerClass(
             );
 
             // Blueprints page
-            this._blueprintsView = new BlueprintsView();
+            this._blueprintsView = new BlueprintsView(this._ohmydebnMode);
             this._blueprintsView.connect(
                 'blueprint-applied',
                 (_, blueprint) => {
@@ -362,6 +366,11 @@ export const AetherWindow = GObject.registerClass(
                 this._importOmarchyTheme(theme);
             });
             this._blueprintsView.connect('theme-applied', (_, theme) => {
+                // Reload OhMyDebn theme if in OhMyDebn mode
+                if (this._ohmydebnMode && this.application.themeManager) {
+                    this.application.themeManager.reloadOhMyDebnTheme();
+                }
+
                 const toast = new Adw.Toast({
                     title: `Applied theme: ${theme.name}`,
                     timeout: 3,
@@ -404,8 +413,9 @@ export const AetherWindow = GObject.registerClass(
          * @param {Object} [metadata] - Optional wallpaper metadata
          */
         _onBrowserWallpaperSelected(path, metadata = null) {
-            // Switch to editor tab
-            this._viewStack.set_visible_child_name('editor');
+            // Switch to editor tab (or themes tab in OhMyDebn mode)
+            const defaultTab = this._ohmydebnMode ? 'blueprints' : 'editor';
+            this._viewStack.set_visible_child_name(defaultTab);
 
             // Reset adjustments and app overrides when changing wallpaper
             this.settingsSidebar.resetAdjustments();
@@ -743,6 +753,11 @@ export const AetherWindow = GObject.registerClass(
                 });
 
                 if (result.success) {
+                    // Reload OhMyDebn theme if in OhMyDebn mode
+                    if (this._ohmydebnMode && this.application.themeManager) {
+                        this.application.themeManager.reloadOhMyDebnTheme();
+                    }
+
                     const message = result.isOmarchy
                         ? 'Theme applied successfully'
                         : `Theme created at ${result.themePath}`;

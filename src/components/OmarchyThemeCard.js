@@ -46,6 +46,30 @@ export const OmarchyThemeCard = GObject.registerClass(
             });
 
             this._theme = theme;
+            this._currentImageIndex = 0;
+
+            // Build list of available preview images
+            this._availableImages = [];
+            if (theme.previewImage) {
+                this._availableImages.push(theme.previewImage);
+            }
+            if (theme.wallpapers) {
+                for (const wp of theme.wallpapers) {
+                    if (wp !== theme.previewImage) {
+                        this._availableImages.push(wp);
+                    }
+                }
+            }
+            this._hasMultipleImages = this._availableImages.length > 1;
+
+            // For current theme, show first wallpaper instead of preview.png
+            if (
+                theme.isCurrentTheme &&
+                theme.wallpapers &&
+                theme.wallpapers.length > 0
+            ) {
+                this._availableImages = [...theme.wallpapers];
+            }
 
             // Sharp card styling
             applyCssToWidget(
@@ -67,19 +91,54 @@ export const OmarchyThemeCard = GObject.registerClass(
          * @private
          */
         _buildUI() {
+            // Content area that expands to push buttons to bottom
+            this._contentBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                vexpand: true,
+            });
+
             // Thumbnail/preview
-            const thumbnail = this._createThumbnail();
-            this.append(thumbnail);
+            this._thumbnailWidget = this._createThumbnail(
+                this._availableImages[0]
+            );
+            // Enforce fixed size for thumbnail
+            applyCssToWidget(
+                this._thumbnailWidget,
+                'picture { min-height: 120px; max-height: 120px; }'
+            );
+            this._contentBox.append(this._thumbnailWidget);
+
+            // Add method to update thumbnail for external callers
+            this.updateThumbnail = imageIndex => {
+                if (imageIndex < this._availableImages.length) {
+                    this._currentImageIndex = imageIndex;
+                    const newThumbnail = this._createThumbnail(
+                        this._availableImages[imageIndex]
+                    );
+                    applyCssToWidget(
+                        newThumbnail,
+                        'picture { min-height: 120px; max-height: 120px; }'
+                    );
+                    const child = this._contentBox.get_first_child();
+                    if (child) {
+                        this._contentBox.remove(child);
+                    }
+                    this._contentBox.prepend(newThumbnail);
+                    this._thumbnailWidget = newThumbnail;
+                }
+            };
 
             // Color grid
             const colorGrid = this._createColorGrid();
-            this.append(colorGrid);
+            this._contentBox.append(colorGrid);
 
             // Name and badges row
             const nameRow = this._createNameRow();
-            this.append(nameRow);
+            this._contentBox.append(nameRow);
 
-            // Action buttons
+            this.append(this._contentBox);
+
+            // Action buttons - always at bottom
             const buttonBox = this._createButtons();
             this.append(buttonBox);
         }
@@ -89,19 +148,16 @@ export const OmarchyThemeCard = GObject.registerClass(
          * @private
          * @returns {Gtk.Widget} Thumbnail widget
          */
-        _createThumbnail() {
+        _createThumbnail(imagePath = null) {
             const theme = this._theme;
+            const useImage = imagePath || theme.previewImage;
 
-            // If we have a preview image, try to load it
-            if (
-                theme.previewImage &&
-                GLib.file_test(theme.previewImage, GLib.FileTest.EXISTS)
-            ) {
+            // If we have an image, try to load it
+            if (useImage && GLib.file_test(useImage, GLib.FileTest.EXISTS)) {
                 try {
-                    const file = Gio.File.new_for_path(theme.previewImage);
-                    const thumbPath = thumbnailService.getThumbnailPath(
-                        theme.previewImage
-                    );
+                    const file = Gio.File.new_for_path(useImage);
+                    const thumbPath =
+                        thumbnailService.getThumbnailPath(useImage);
                     const thumbFile = Gio.File.new_for_path(thumbPath);
 
                     let pixbuf;
@@ -115,7 +171,7 @@ export const OmarchyThemeCard = GObject.registerClass(
                     } else {
                         // Generate thumbnail
                         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                            theme.previewImage,
+                            useImage,
                             300,
                             300,
                             true
@@ -343,10 +399,15 @@ export const OmarchyThemeCard = GObject.registerClass(
                 margin_bottom: 12,
             });
 
-            // Import button
+            // Import button - disable if theme has no colors.toml
+            const hasColors = this._theme.hasColors !== false;
             const importButton = this._createButton('Import', false, () => {
                 this.emit('theme-import', this._theme);
             });
+            importButton.set_sensitive(hasColors);
+            if (!hasColors) {
+                applyCssToWidget(importButton, 'button { opacity: 0.5; }');
+            }
             buttonBox.append(importButton);
 
             // Apply button
@@ -358,6 +419,63 @@ export const OmarchyThemeCard = GObject.registerClass(
             );
             applyButton.set_sensitive(!isCurrentTheme);
             buttonBox.append(applyButton);
+
+            // Next Image button - for non-current themes with multiple images
+            if (!isCurrentTheme && this._hasMultipleImages) {
+                const nextImageButton = this._createButton(
+                    'Next Image',
+                    false,
+                    () => {
+                        this._currentImageIndex =
+                            (this._currentImageIndex + 1) %
+                            this._availableImages.length;
+                        const newImagePath =
+                            this._availableImages[this._currentImageIndex];
+                        const newThumbnail =
+                            this._createThumbnail(newImagePath);
+                        // Enforce fixed size for new thumbnail
+                        applyCssToWidget(
+                            newThumbnail,
+                            'picture { min-height: 120px; max-height: 120px; }'
+                        );
+
+                        // Replace old thumbnail with new one
+                        const child = this._contentBox.get_first_child();
+                        if (child) {
+                            this._contentBox.remove(child);
+                        }
+                        this._contentBox.prepend(newThumbnail);
+                    }
+                );
+                buttonBox.append(nextImageButton);
+            }
+
+            // Next Background button - only for current theme with multiple backgrounds
+            if (isCurrentTheme && this._theme.hasMultipleBackgrounds) {
+                const nextBgButton = this._createButton(
+                    'Next BG',
+                    false,
+                    () => {
+                        // Cycle to next background image in thumbnail
+                        this._currentImageIndex =
+                            (this._currentImageIndex + 1) %
+                            this._availableImages.length;
+                        this.updateThumbnail(this._currentImageIndex);
+
+                        try {
+                            GLib.spawn_command_line_async(
+                                '/usr/share/ohmydebn/bin/ohmydebn-theme-bg-next'
+                            );
+                        } catch (e) {
+                            console.error(
+                                'Failed to run ohmydebn-theme-bg-next:',
+                                e.message
+                            );
+                        }
+                    }
+                );
+                buttonBox.append(nextBgButton);
+            }
 
             return buttonBox;
         }
