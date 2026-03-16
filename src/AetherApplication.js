@@ -52,6 +52,7 @@ export const AetherApplication = GObject.registerClass(
                 flags: Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
             });
             this._wallpaperPath = null;
+            this._ohmydebnMode = false;
 
             // Ensure ~/Wallpapers directory exists
             const wallpapersDir = GLib.build_filenamev([
@@ -184,6 +185,15 @@ export const AetherApplication = GObject.registerClass(
                 'Output directory for generated theme files (use with --generate --no-apply)',
                 'PATH'
             );
+
+            this.add_main_option(
+                'ohmydebn',
+                0,
+                GLib.OptionFlags.NONE,
+                GLib.OptionArg.NONE,
+                'Enable OhMyDebn-specific behavior (start on Themes tab)',
+                null
+            );
         }
 
         /**
@@ -194,6 +204,9 @@ export const AetherApplication = GObject.registerClass(
          */
         vfunc_command_line(commandLine) {
             const options = commandLine.get_options_dict();
+
+            // Handle --ohmydebn flag
+            this._ohmydebnMode = options.contains('ohmydebn');
 
             // Run migrations before any command execution
             runMigrations();
@@ -429,7 +442,7 @@ export const AetherApplication = GObject.registerClass(
         _launchWidget() {
             // Initialize theme manager for consistent styling
             if (!themeManager) {
-                themeManager = new ThemeManager();
+                themeManager = new ThemeManager(this._ohmydebnMode);
             }
             this.themeManager = themeManager;
 
@@ -516,9 +529,8 @@ export const AetherApplication = GObject.registerClass(
          */
         async _downloadWallpaperForBlueprint(url) {
             try {
-                const {ensureDirectoryExists} = await import(
-                    './utils/file-utils.js'
-                );
+                const {ensureDirectoryExists} =
+                    await import('./utils/file-utils.js');
                 const Soup = (await import('gi://Soup?version=3.0')).default;
 
                 const wallpapersDir = GLib.build_filenamev([
@@ -624,11 +636,13 @@ export const AetherApplication = GObject.registerClass(
 
             // Initialize theme manager only when GUI is activated
             if (!themeManager) {
-                themeManager = new ThemeManager();
-                console.log(`Base theme: ${themeManager.getThemePath()}`);
-                console.log(
-                    `Override theme: ${themeManager.getOverridePath()} (edit this file)`
-                );
+                themeManager = new ThemeManager(this._ohmydebnMode);
+                if (!this._ohmydebnMode) {
+                    console.log(`Base theme: ${themeManager.getThemePath()}`);
+                    console.log(
+                        `Override theme: ${themeManager.getOverridePath()} (edit this file)`
+                    );
+                }
             }
             this.themeManager = themeManager;
 

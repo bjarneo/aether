@@ -59,6 +59,23 @@ const SYSTEM_THEMES_DIR = GLib.build_filenamev([
 ]);
 
 /**
+ * OhMyDebn system themes directory path (/usr/share/ohmydebn-themes)
+ * @constant {string}
+ */
+const OHMYDEBN_SYSTEM_THEMES_DIR = '/usr/share/ohmydebn-themes';
+
+/**
+ * OhMyDebn user themes directory path (~/.config/ohmydebn/themes)
+ * @constant {string}
+ */
+const OHMYDEBN_USER_THEMES_DIR = GLib.build_filenamev([
+    GLib.get_home_dir(),
+    '.config',
+    'ohmydebn',
+    'themes',
+]);
+
+/**
  * Current theme file path
  * @constant {string}
  */
@@ -66,6 +83,18 @@ const CURRENT_THEME_FILE = GLib.build_filenamev([
     GLib.get_home_dir(),
     '.config',
     'omarchy',
+    'current',
+    'theme.name',
+]);
+
+/**
+ * OhMyDebn current theme file path
+ * @constant {string}
+ */
+const OHMYDEBN_CURRENT_THEME_FILE = GLib.build_filenamev([
+    GLib.get_home_dir(),
+    '.config',
+    'ohmydebn',
     'current',
     'theme.name',
 ]);
@@ -91,13 +120,37 @@ export class OmarchyThemeService {
 
         /** @private @type {string|null} */
         this._currentThemeName = null;
+
+        /** @private @type {boolean} */
+        this._ohmydebnMode = false;
+    }
+
+    /**
+     * Set the OhMyDebn mode
+     * @param {boolean} mode - Whether to use OhMyDebn paths/commands
+     */
+    setOhMyDebnMode(mode) {
+        this._ohmydebnMode = mode;
     }
 
     /**
      * Load all installed Omarchy themes from both user and system directories
+     * @param {Object} [options] - Options object
+     * @param {boolean} [options.ohmydebnMode] - If true, load from OhMyDebn directories instead
      * @returns {Promise<OmarchyTheme[]>} Array of theme objects
      */
-    async loadAllThemes() {
+    async loadAllThemes(options = {}) {
+        const {ohmydebnMode = false} = options;
+        this._ohmydebnMode = ohmydebnMode;
+
+        // Use OhMyDebn directories if in ohmydebn mode
+        const userThemesDir = ohmydebnMode
+            ? OHMYDEBN_USER_THEMES_DIR
+            : USER_THEMES_DIR;
+        const systemThemesDir = ohmydebnMode
+            ? OHMYDEBN_SYSTEM_THEMES_DIR
+            : SYSTEM_THEMES_DIR;
+
         this._themes = [];
         this._currentThemeName = this.getCurrentThemeName();
 
@@ -105,12 +158,8 @@ export class OmarchyThemeService {
         const loadedThemeNames = new Set();
 
         // Load user themes first (they take priority), then system themes
-        this._loadThemesFromDirectory(USER_THEMES_DIR, false, loadedThemeNames);
-        this._loadThemesFromDirectory(
-            SYSTEM_THEMES_DIR,
-            true,
-            loadedThemeNames
-        );
+        this._loadThemesFromDirectory(userThemesDir, false, loadedThemeNames);
+        this._loadThemesFromDirectory(systemThemesDir, true, loadedThemeNames);
 
         // Sort themes alphabetically, with current theme first
         this._themes.sort((a, b) => {
@@ -174,11 +223,15 @@ export class OmarchyThemeService {
      * @returns {string|null} Current theme name or null
      */
     getCurrentThemeName() {
+        const currentThemeFile = this._ohmydebnMode
+            ? OHMYDEBN_CURRENT_THEME_FILE
+            : CURRENT_THEME_FILE;
+
         try {
-            if (!fileExists(CURRENT_THEME_FILE)) {
+            if (!fileExists(currentThemeFile)) {
                 return null;
             }
-            const content = readFileAsText(CURRENT_THEME_FILE);
+            const content = readFileAsText(currentThemeFile);
             return content.trim();
         } catch (e) {
             console.error('Error reading current theme:', e.message);
@@ -192,9 +245,13 @@ export class OmarchyThemeService {
      * @returns {Promise<boolean>} Success status
      */
     async applyTheme(themeName) {
+        const themeCommand = this._ohmydebnMode
+            ? 'ohmydebn-theme-set'
+            : 'omarchy-theme-set';
+
         try {
             const subprocess = Gio.Subprocess.new(
-                ['omarchy-theme-set', themeName],
+                [themeCommand, themeName],
                 Gio.SubprocessFlags.NONE
             );
             const success = await new Promise(resolve => {
@@ -204,7 +261,7 @@ export class OmarchyThemeService {
                         resolve(proc.get_successful());
                     } catch (e) {
                         console.error(
-                            'Error running omarchy-theme-set:',
+                            `Error running ${themeCommand}:`,
                             e.message
                         );
                         resolve(false);
@@ -270,6 +327,33 @@ export class OmarchyThemeService {
             // Extract colors
             const colorResult = this._extractColors(resolvedPath);
             if (!colorResult) {
+                // In OhMyDebn mode, still load theme but mark as having no colors
+                if (this._ohmydebnMode) {
+                    const metadata = this._getThemeMetadata(
+                        resolvedPath,
+                        themeName
+                    );
+                    return {
+                        name: themeName,
+                        path: themePath,
+                        colors: null,
+                        background: null,
+                        foreground: null,
+                        extendedColors: {},
+                        description: metadata.description,
+                        previewImage: metadata.previewImage,
+                        wallpapers: metadata.wallpapers,
+                        isSymlink,
+                        symlinkTarget,
+                        isCurrentTheme: themeName === this._currentThemeName,
+                        isAetherGenerated,
+                        isSystemTheme,
+                        hasColors: false,
+                        hasMultipleBackgrounds:
+                            metadata.wallpapers &&
+                            metadata.wallpapers.length > 1,
+                    };
+                }
                 // Skip themes without colors.toml
                 return null;
             }
@@ -292,6 +376,9 @@ export class OmarchyThemeService {
                 isCurrentTheme: themeName === this._currentThemeName,
                 isAetherGenerated,
                 isSystemTheme,
+                hasColors: true,
+                hasMultipleBackgrounds:
+                    metadata.wallpapers && metadata.wallpapers.length > 1,
             };
         } catch (e) {
             console.error(`Error loading theme ${themeName}:`, e.message);

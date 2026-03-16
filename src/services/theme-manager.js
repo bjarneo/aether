@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
 
-import {ensureDirectoryExists} from '../utils/file-utils.js';
+import {ensureDirectoryExists, readFileAsText} from '../utils/file-utils.js';
 
 /**
  * ThemeManager - Manages Aether's custom theming system with live reload
@@ -42,19 +42,307 @@ export class ThemeManager {
      * Creates base theme if missing, sets up file monitors, applies CSS
      * @constructor
      */
-    constructor() {
+    constructor(ohmydebnMode = false) {
         this.cssProvider = null;
         this.sharpCornersCssProvider = null;
+        this._ohmydebnCssProvider = null;
+        this._ohmydebnThemeMonitor = null;
         this.fileMonitor = null;
         this.overrideFileMonitor = null;
         this.omarchyThemeMonitor = null;
         this.themeFile = null;
         this.overrideFile = null;
+        this._ohmydebnMode = ohmydebnMode;
 
         this._initializeThemeFiles();
-        this._applyGlobalSharpCorners();
-        this._applyTheme();
+
+        if (this._ohmydebnMode) {
+            // In OhMyDebn mode, try to use the system GTK theme
+            const settings = Gtk.Settings.get_default();
+
+            // Get the theme from dconf
+            let themeName = null;
+            try {
+                const [ok, stdout] = GLib.spawn_command_line_sync(
+                    'dconf read /org/gnome/desktop/interface/gtk-theme'
+                );
+                if (ok) {
+                    themeName = new TextDecoder().decode(stdout).trim();
+                    themeName = themeName.replace(/^'|'$/g, '');
+                }
+            } catch (e) {
+                // Use system default if dconf fails
+            }
+
+            console.log(`OhMyDebn theme: ${themeName}`);
+
+            // Try to load GTK4 theme from ~/.themes/ (where OhMyDebn generates cinnamon themes)
+            if (themeName) {
+                const userThemePath = GLib.build_filenamev([
+                    GLib.get_home_dir(),
+                    '.themes',
+                    themeName,
+                    'gtk-4.0',
+                    'gtk.css',
+                ]);
+
+                if (GLib.file_test(userThemePath, GLib.FileTest.EXISTS)) {
+                    try {
+                        const provider = new Gtk.CssProvider();
+                        provider.load_from_path(userThemePath);
+                        Gtk.StyleContext.add_provider_for_display(
+                            Gdk.Display.get_default(),
+                            provider,
+                            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                        );
+                        this._ohmydebnCssProvider = provider;
+                        console.log(`Loaded GTK4 theme from: ${userThemePath}`);
+                    } catch (e) {
+                        console.error(`Failed to load theme: ${e.message}`);
+                    }
+                } else {
+                    console.log(`Theme not found at: ${userThemePath}`);
+                }
+
+                // Set up file monitor for theme changes
+                this._setupOhMyDebnThemeMonitor(userThemePath);
+            }
+        } else {
+            // Normal (non-OhMyDebn) mode: apply Aether's custom theme with sharp corners
+            this._applyGlobalSharpCorners();
+            this._applyTheme();
+        }
+
         this._setupFileMonitors();
+    }
+
+    /**
+     * Reload the OhMyDebn GTK4 theme (called when a theme is applied)
+     * @public
+     */
+    reloadOhMyDebnTheme() {
+        if (!this._ohmydebnMode) return;
+
+        // Add a small delay to allow theme regeneration to complete
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+            this._doReloadOhMyDebnTheme();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _doReloadOhMyDebnTheme() {
+        // Get the current theme from dconf
+        let themeName = null;
+        try {
+            const [ok, stdout] = GLib.spawn_command_line_sync(
+                'dconf read /org/gnome/desktop/interface/gtk-theme'
+            );
+            if (ok) {
+                themeName = new TextDecoder().decode(stdout).trim();
+                themeName = themeName.replace(/^'|'$/g, '');
+            }
+        } catch (e) {
+            return;
+        }
+
+        if (!themeName) return;
+
+        console.log(`Reloading OhMyDebn theme: ${themeName}`);
+
+        // Remove old provider if exists
+        if (this._ohmydebnCssProvider) {
+            try {
+                Gtk.StyleContext.remove_provider_for_display(
+                    Gdk.Display.get_default(),
+                    this._ohmydebnCssProvider
+                );
+            } catch (e) {
+                // Provider may already be removed
+            }
+        }
+
+        // Load GTK4 theme from ~/.themes/
+        const userThemePath = GLib.build_filenamev([
+            GLib.get_home_dir(),
+            '.themes',
+            themeName,
+            'gtk-4.0',
+            'gtk.css',
+        ]);
+
+        if (GLib.file_test(userThemePath, GLib.FileTest.EXISTS)) {
+            try {
+                // Always create a new provider for each reload
+                const provider = new Gtk.CssProvider();
+                provider.load_from_path(userThemePath);
+
+                // Use THEME priority which is higher than APPLICATION
+                Gtk.StyleContext.add_provider_for_display(
+                    Gdk.Display.get_default(),
+                    provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_THEME
+                );
+
+                // Keep track of the new provider
+                this._ohmydebnCssProvider = provider;
+                console.log(`Reloaded GTK4 theme from: ${userThemePath}`);
+
+                // Update file monitor for new theme
+                this._setupOhMyDebnThemeMonitor(userThemePath);
+            } catch (e) {
+                console.error(`Failed to reload theme: ${e.message}`);
+            }
+        }
+    }
+
+    _setupOhMyDebnThemeMonitor(themeCssPath) {
+        // Remove old monitor if exists
+        if (this._ohmydebnThemeMonitor) {
+            this._ohmydebnThemeMonitor.cancel();
+        }
+
+        try {
+            const themeFile = Gio.File.new_for_path(themeCssPath);
+            this._ohmydebnThemeMonitor = themeFile.monitor_file(
+                Gio.FileMonitorFlags.NONE,
+                null
+            );
+
+            this._ohmydebnThemeMonitor.connect(
+                'changed',
+                (monitor, file, otherFile, eventType) => {
+                    if (
+                        eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT ||
+                        eventType === Gio.FileMonitorEvent.CHANGED
+                    ) {
+                        console.log(
+                            'OhMyDebn theme file changed, reloading...'
+                        );
+                        this._doReloadOhMyDebnTheme();
+                    }
+                }
+            );
+
+            console.log('File monitor setup for OhMyDebn theme');
+        } catch (e) {
+            console.error(`Failed to setup theme monitor: ${e.message}`);
+        }
+    }
+
+    _applyOhMyDebnColors(themeName) {
+        if (!themeName) return;
+
+        // Look for colors.toml in ohmydebn-themes directories
+        const themePaths = [
+            `/usr/share/ohmydebn-themes/${themeName}/colors.toml`,
+            `${GLib.get_home_dir()}/.local/share/ohmydebn/themes/${themeName}/colors.toml`,
+        ];
+
+        let colorsTomlPath = null;
+        for (const path of themePaths) {
+            if (GLib.file_test(path, GLib.FileTest.EXISTS)) {
+                colorsTomlPath = path;
+                break;
+            }
+        }
+
+        if (!colorsTomlPath) {
+            console.log(`Could not find colors.toml for theme: ${themeName}`);
+            return;
+        }
+
+        try {
+            const content = readFileAsText(colorsTomlPath);
+            const colors = this._parseColorsToml(content);
+
+            // Build CSS with @define-color
+            const css = this._buildOhMyDebnCss(colors);
+            this._applyOhMyDebnCss(css, colorsTomlPath);
+        } catch (e) {
+            console.error(`Error applying OhMyDebn colors: ${e.message}`);
+        }
+    }
+
+    _parseColorsToml(content) {
+        const colors = {};
+        const lines = content.split('\n');
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#')) {
+                const match = trimmed.match(/^(\w+)\s*=\s*"([^"]+)"$/);
+                if (match) {
+                    colors[match[1]] = match[2];
+                }
+            }
+        }
+        return colors;
+    }
+
+    _buildOhMyDebnCss(colors) {
+        let css = '/* OhMyDebn colors */\n';
+
+        // First define the colors as variables
+        css += `@define-color window_bg_color ${colors.background || '#000000'};\n`;
+        css += `@define-color window_fg_color ${colors.foreground || '#ffffff'};\n`;
+        css += `@define-color accent_bg_color ${colors.accent || '#000000'};\n`;
+        css += `@define-color accent_fg_color ${colors.background || '#000000'};\n`;
+        css += `@define-color view_bg_color ${colors.background || '#000000'};\n`;
+        css += `@define-color view_fg_color ${colors.foreground || '#ffffff'};\n`;
+        css += `@define-color headerbar_bg_color ${colors.background || '#000000'};\n`;
+        css += `@define-color headerbar_fg_color ${colors.foreground || '#ffffff'};\n`;
+        css += `@define-color card_bg_color ${colors.color0 || '#000000'};\n`;
+        css += `@define-color card_fg_color ${colors.foreground || '#ffffff'};\n`;
+
+        // Add color palette
+        for (let i = 0; i <= 15; i++) {
+            const color = colors[`color${i}`];
+            if (color) {
+                css += `@define-color color${i} ${color};\n`;
+            }
+        }
+
+        // Also add direct CSS overrides to ensure they take effect
+        css += `
+window, .window {
+    background-color: ${colors.background || '#000000'};
+    color: ${colors.foreground || '#ffffff'};
+}
+.view, .content {
+    background-color: ${colors.background || '#000000'};
+    color: ${colors.foreground || '#ffffff'};
+}
+headerbar, .headerbar {
+    background-color: ${colors.background || '#000000'};
+    color: ${colors.foreground || '#ffffff'};
+}
+button, .button {
+    background-color: ${colors.color0 || '#000000'};
+}
+button.suggested-action, .suggested-action {
+    background-color: ${colors.accent || '#000000'};
+    color: ${colors.background || '#ffffff'};
+}
+`;
+
+        return css;
+    }
+
+    _applyOhMyDebnCss(css, sourcePath) {
+        try {
+            const provider = new Gtk.CssProvider();
+            provider.load_from_string(css);
+
+            // Apply to display with high priority
+            Gtk.StyleContext.add_provider_for_display(
+                Gdk.Display.get_default(),
+                provider,
+                800
+            );
+
+            console.log(`Applied OhMyDebn colors from: ${sourcePath}`);
+        } catch (e) {
+            console.error(`Error applying OhMyDebn CSS: ${e.message}`);
+        }
     }
 
     _initializeThemeFiles() {
@@ -355,6 +643,8 @@ export class ThemeManager {
     }
 
     _applyTheme() {
+        if (this._ohmydebnMode) return;
+
         try {
             // Remove old provider if exists
             if (this.cssProvider) {
@@ -382,6 +672,7 @@ export class ThemeManager {
     }
 
     _reloadTheme() {
+        if (this._ohmydebnMode) return;
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
             this._applyTheme();
             return GLib.SOURCE_REMOVE;
@@ -389,6 +680,7 @@ export class ThemeManager {
     }
 
     _revalidateAndReloadTheme() {
+        if (this._ohmydebnMode) return;
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
             this._handleOverrideFile();
             this._applyTheme();
