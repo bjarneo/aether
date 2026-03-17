@@ -361,6 +361,49 @@ export class OmarchyThemeService {
             // Get metadata
             const metadata = this._getThemeMetadata(resolvedPath, themeName);
 
+            // For the current theme, get wallpapers from ohmydebn current directory (if available)
+            // This ensures wallpaper paths match the ohmydebn symlink
+            let wallpaperList = metadata.wallpapers;
+            if (themeName === this._currentThemeName) {
+                const ohmydebnCurrentThemeDir = GLib.build_filenamev([
+                    GLib.get_home_dir(),
+                    '.config',
+                    'ohmydebn',
+                    'current',
+                    'theme',
+                ]);
+                const ohmydebnBackgroundsDir = GLib.build_filenamev([
+                    ohmydebnCurrentThemeDir,
+                    'backgrounds',
+                ]);
+                if (fileExists(ohmydebnBackgroundsDir)) {
+                    try {
+                        const ohmydebnWallpapers = [];
+                        enumerateDirectory(
+                            ohmydebnBackgroundsDir,
+                            (fileInfo, filePath, fileName) => {
+                                const contentType = fileInfo.get_content_type();
+                                if (
+                                    contentType &&
+                                    contentType.startsWith('image/')
+                                ) {
+                                    ohmydebnWallpapers.push(filePath);
+                                }
+                            },
+                            'standard::name,standard::content-type'
+                        );
+                        if (ohmydebnWallpapers.length > 0) {
+                            wallpaperList = ohmydebnWallpapers;
+                        }
+                    } catch (e) {
+                        console.warn(
+                            `Failed to read ohmydebn current theme backgrounds:`,
+                            e.message
+                        );
+                    }
+                }
+            }
+
             return {
                 name: themeName,
                 path: themePath,
@@ -370,7 +413,7 @@ export class OmarchyThemeService {
                 extendedColors: colorResult.extendedColors || {},
                 description: metadata.description,
                 previewImage: metadata.previewImage,
-                wallpapers: metadata.wallpapers,
+                wallpapers: wallpaperList,
                 isSymlink,
                 symlinkTarget,
                 isCurrentTheme: themeName === this._currentThemeName,

@@ -69,6 +69,45 @@ export const OmarchyThemeCard = GObject.registerClass(
                 theme.wallpapers.length > 0
             ) {
                 this._availableImages = [...theme.wallpapers];
+
+                // Try to find the currently active background from symlink
+                const bgSymlink = GLib.build_filenamev([
+                    GLib.get_home_dir(),
+                    '.config',
+                    'ohmydebn',
+                    'current',
+                    'background',
+                ]);
+                try {
+                    const target = GLib.file_read_link(bgSymlink);
+                    if (target) {
+                        const targetBasename = GLib.path_get_basename(target);
+                        const idx = this._availableImages.findIndex(img => {
+                            return (
+                                GLib.path_get_basename(img) === targetBasename
+                            );
+                        });
+                        if (idx >= 0) {
+                            this._currentImageIndex = idx;
+                            console.log(
+                                `Found current background: ${targetBasename} at index ${idx}`
+                            );
+                        } else {
+                            console.log(
+                                `Could not find current background: ${targetBasename} in available images:`,
+                                this._availableImages.map(p =>
+                                    GLib.path_get_basename(p)
+                                )
+                            );
+                        }
+                    }
+                } catch (e) {
+                    // Symlink doesn't exist or can't be read, use default index 0
+                    console.log(
+                        `Failed to read symlink ${bgSymlink}:`,
+                        e.message
+                    );
+                }
             }
 
             // Sharp card styling
@@ -99,7 +138,7 @@ export const OmarchyThemeCard = GObject.registerClass(
 
             // Thumbnail/preview
             this._thumbnailWidget = this._createThumbnail(
-                this._availableImages[0]
+                this._availableImages[this._currentImageIndex]
             );
             // Enforce fixed size for thumbnail
             applyCssToWidget(
@@ -399,69 +438,33 @@ export const OmarchyThemeCard = GObject.registerClass(
                 margin_bottom: 12,
             });
 
-            // Import button - disable if theme has no colors.toml
-            const hasColors = this._theme.hasColors !== false;
-            const importButton = this._createButton('Import', false, () => {
-                this.emit('theme-import', this._theme);
-            });
-            importButton.set_sensitive(hasColors);
-            if (!hasColors) {
-                applyCssToWidget(importButton, 'button { opacity: 0.5; }');
-            }
-            buttonBox.append(importButton);
-
-            // Apply button
+            // Next Image button - always visible but disabled for single image
             const isCurrentTheme = this._theme.isCurrentTheme;
-            const applyButton = this._createButton(
-                isCurrentTheme ? 'Current' : 'Apply',
-                true,
-                () => this.emit('theme-apply', this._theme)
-            );
-            applyButton.set_sensitive(!isCurrentTheme);
-            buttonBox.append(applyButton);
+            const nextImageButton = this._createButton(
+                'Next Image',
+                false,
+                () => {
+                    this._currentImageIndex =
+                        (this._currentImageIndex + 1) %
+                        this._availableImages.length;
+                    const newImagePath =
+                        this._availableImages[this._currentImageIndex];
+                    const newThumbnail = this._createThumbnail(newImagePath);
+                    // Enforce fixed size for new thumbnail
+                    applyCssToWidget(
+                        newThumbnail,
+                        'picture { min-height: 120px; }'
+                    );
 
-            // Next Image button - for non-current themes with multiple images
-            if (!isCurrentTheme && this._hasMultipleImages) {
-                const nextImageButton = this._createButton(
-                    'Next Image',
-                    false,
-                    () => {
-                        this._currentImageIndex =
-                            (this._currentImageIndex + 1) %
-                            this._availableImages.length;
-                        const newImagePath =
-                            this._availableImages[this._currentImageIndex];
-                        const newThumbnail =
-                            this._createThumbnail(newImagePath);
-                        // Enforce fixed size for new thumbnail
-                        applyCssToWidget(
-                            newThumbnail,
-                            'picture { min-height: 120px; }'
-                        );
-
-                        // Replace old thumbnail with new one
-                        const child = this._contentBox.get_first_child();
-                        if (child) {
-                            this._contentBox.remove(child);
-                        }
-                        this._contentBox.prepend(newThumbnail);
+                    // Replace old thumbnail with new one
+                    const child = this._contentBox.get_first_child();
+                    if (child) {
+                        this._contentBox.remove(child);
                     }
-                );
-                buttonBox.append(nextImageButton);
-            }
+                    this._contentBox.prepend(newThumbnail);
 
-            // Next Background button - only for current theme with multiple backgrounds
-            if (isCurrentTheme && this._theme.hasMultipleBackgrounds) {
-                const nextBgButton = this._createButton(
-                    'Next BG',
-                    false,
-                    () => {
-                        // Cycle to next background image in thumbnail
-                        this._currentImageIndex =
-                            (this._currentImageIndex + 1) %
-                            this._availableImages.length;
-                        this.updateThumbnail(this._currentImageIndex);
-
+                    // For active theme, also cycle the system background
+                    if (isCurrentTheme) {
                         try {
                             GLib.spawn_command_line_async(
                                 '/usr/share/ohmydebn/bin/ohmydebn-theme-bg-next'
@@ -473,9 +476,31 @@ export const OmarchyThemeCard = GObject.registerClass(
                             );
                         }
                     }
-                );
-                buttonBox.append(nextBgButton);
+                }
+            );
+            // Disable button if only one image
+            nextImageButton.set_sensitive(this._hasMultipleImages);
+            buttonBox.append(nextImageButton);
+
+            // Apply button
+            const applyButton = this._createButton(
+                isCurrentTheme ? 'Current' : 'Apply',
+                true,
+                () => this.emit('theme-apply', this._theme)
+            );
+            applyButton.set_sensitive(!isCurrentTheme);
+            buttonBox.append(applyButton);
+
+            // Edit button - disable if theme has no colors.toml
+            const hasColors = this._theme.hasColors !== false;
+            const editButton = this._createButton('Edit', false, () => {
+                this.emit('theme-import', this._theme);
+            });
+            editButton.set_sensitive(hasColors);
+            if (!hasColors) {
+                applyCssToWidget(editButton, 'button { opacity: 0.5; }');
             }
+            buttonBox.append(editButton);
 
             return buttonBox;
         }
