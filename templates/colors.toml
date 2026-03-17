@@ -1,52 +1,16 @@
-# Aether Color Scheme
-# Compatible with omarchy flat-format themes
-
-# UI Colors
+# UI Colors (extended)
 accent = "{accent}"
 cursor = "{cursor}"
-theme_type = "{theme_type}"
 
 # Primary colors
 foreground = "{foreground}"
 background = "{background}"
 
 # Selection colors
-selection = "{selection}"
 selection_foreground = "{selection_foreground}"
 selection_background = "{selection_background}"
 
-# Background shades
-bg = "{bg}"
-dark_bg = "{dark_bg}"
-darker_bg = "{darker_bg}"
-lighter_bg = "{lighter_bg}"
-
-# Foreground shades
-fg = "{fg}"
-dark_fg = "{dark_fg}"
-light_fg = "{light_fg}"
-bright_fg = "{bright_fg}"
-muted = "{muted}"
-
-# Normal colors
-red = "{red}"
-yellow = "{yellow}"
-orange = "{orange}"
-green = "{green}"
-cyan = "{cyan}"
-blue = "{blue}"
-purple = "{purple}"
-brown = "{brown}"
-
-# Bright colors
-bright_red = "{bright_red}"
-bright_yellow = "{bright_yellow}"
-bright_green = "{bright_green}"
-bright_cyan = "{bright_cyan}"
-bright_blue = "{bright_blue}"
-bright_purple = "{bright_purple}"
-
-# ANSI colors (0-15)
+# Normal colors (ANSI 0-7)
 color0 = "{color0}"
 color1 = "{color1}"
 color2 = "{color2}"
@@ -55,6 +19,8 @@ color4 = "{color4}"
 color5 = "{color5}"
 color6 = "{color6}"
 color7 = "{color7}"
+
+# Bright colors (ANSI 8-15)
 color8 = "{color8}"
 color9 = "{color9}"
 color10 = "{color10}"
