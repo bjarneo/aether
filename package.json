@@ -1,31 +1,21 @@
 {
-  "name": "aether",
-  "version": "1.0.0",
-  "description": "Universal Desktop Synthesizer for Hyprland environments",
-  "type": "module",
-  "main": "src/main.js",
+  "private": true,
   "scripts": {
-    "start": "gjs -m src/main.js",
-    "dev": "gjs -m src/main.js",
-    "format": "prettier --write \"src/**/*.js\"",
-    "format:check": "prettier --check \"src/**/*.js\"",
     "prepare": "husky"
   },
-  "keywords": [
-    "gtk",
-    "libadwaita",
-    "hyprland",
-    "theming",
-    "desktop"
-  ],
-  "author": "",
-  "license": "MIT",
-  "lint-staged": {
-    "src/**/*.js": "prettier --write"
-  },
   "devDependencies": {
-    "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
-    "prettier": "^3.6.2"
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.4.2",
+    "prettier-plugin-svelte": "^3.5.0",
+    "prettier-plugin-tailwindcss": "^0.6.0"
+  },
+  "lint-staged": {
+    "frontend/**/*.{ts,js,svelte,css,html}": [
+      "prettier --write"
+    ],
+    "*.go": [
+      "gofmt -w"
+    ]
   }
 }

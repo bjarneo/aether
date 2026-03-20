@@ -8,19 +8,18 @@ User settings and persistent data.
 
 ```
 ~/.config/aether/
-├── blueprints/           # Saved theme blueprints
-│   └── *.json           # Individual blueprint files
-├── custom/              # Custom app templates
-│   └── appname/         # One folder per app
-│       └── template.ext # Template files with color variables
-├── theme/               # Generated theme output
-│   ├── backgrounds/     # Wallpaper copies
-│   └── *.conf           # Processed config files
-├── favorites.json       # Favorited wallpapers list
-├── settings.json        # App preferences
-├── wallhaven.json       # Wallhaven API key & settings
-├── theme.css            # Base GTK theme (auto-generated)
-└── theme.override.css   # Theme overrides (symlink)
+├── blueprints/              # Saved theme blueprints
+│   └── *.json               # Individual blueprint files
+├── custom/                  # Custom app templates
+│   └── appname/             # One folder per app
+│       └── template.ext     # Template files with color variables
+├── theme/                   # Generated theme output
+│   ├── backgrounds/         # Wallpaper copies
+│   └── *.conf               # Processed config files
+├── favorites.json           # Favorited wallpapers list
+├── settings.json            # App preferences
+├── wallhaven.json           # Wallhaven API key and settings
+└── theme.override.css       # Symlink to theme/aether.override.css
 ```
 
 ### Key Files
@@ -62,7 +61,7 @@ Downloaded wallpapers are kept permanently for offline access.
 When running with Omarchy, a symlink connects Aether's output:
 
 ```
-~/.config/omarchy/themes/aether/ → ~/.config/aether/theme/
+~/.config/omarchy/themes/aether/ -> ~/.config/aether/theme/
 ```
 
 This allows `omarchy-theme-set aether` to find the generated theme.

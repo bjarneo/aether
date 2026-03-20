@@ -12,14 +12,36 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 
 ## Features
 
-- **Color Extraction** - Intelligent palette generation from any wallpaper
-- **Wallpaper Browser** - Search wallhaven.cc or browse local files
-- **Image Filters** - Edit wallpapers before extraction (blur, exposure, presets)
-- **Color Presets** - Dracula, Nord, Gruvbox, Catppuccin, and more
-- **Base16 Import** - Import 250+ community color schemes
-- **Blueprints** - Save and share themes as JSON
-- **Multi-App Support** - Hyprland, Waybar, Kitty, Neovim, and 15+ more
-- **Theme Scheduler** - Auto-switch themes at scheduled times
+### Color Extraction
+- Pure Go median-cut algorithm that generates a full 16-color ANSI palette from any wallpaper
+- 8 extraction modes: Normal, Monochromatic, Analogous, Pastel, Material, Colorful, Muted, and Bright
+- 12 fine-tuning sliders (vibrance, contrast, temperature, shadows, highlights, and more)
+- Light and dark mode toggle with automatic color anchor swapping
+- Batch processing for up to 10 wallpapers at once
+
+### Wallpaper Tools
+- Search and download wallpapers from wallhaven.cc directly in the app
+- Full wallpaper editor with blur, exposure, sharpen, vignette, grain, and color toning
+- 12 one-click image presets: Cinematic, Vintage, Film, Dramatic, and more
+- Drag-and-drop, file picker, and local directory scanning
+
+### Theme Library
+- 24 built-in color presets including Dracula, Nord, Gruvbox, Catppuccin, and Sakura
+- Import 250+ community Base16 color schemes
+- Save and restore complete themes as blueprint files
+- Export themes as shareable packages with selective app inclusion
+
+### Application Support
+- 20+ pre-configured apps: Hyprland, Waybar, Kitty, Alacritty, Ghostty, Neovim, VS Code, Zed, btop, and more
+- Template system with hex, RGB, RGBA, and stripped format modifiers
+- Per-app overrides, reload hooks, and post-apply scripts
+- Add your own apps with custom templates
+
+### Extras
+- WCAG contrast ratio checker with AAA/AA accessibility grading
+- Gradient generator and single-color palette builder
+- 50-step undo/redo history
+- Headless CLI for scripting, keybinds, and automation
 
 ## Quick Start
 
@@ -29,12 +51,12 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 yay -S aether
 ```
 
-Or install manually:
+Or build from source:
 
 ```bash
-sudo pacman -S gjs gtk4 libadwaita libsoup3 imagemagick
+sudo pacman -S go webkit2gtk
 git clone https://github.com/bjarneo/aether.git
-cd aether && ./aether
+cd aether && make build
 ```
 
 ### Basic Usage
@@ -44,40 +66,47 @@ cd aether && ./aether
 3. Adjust colors as needed
 4. Click **Apply Theme**
 
-That's it! Your theme is now applied across all configured applications.
-
 ## CLI
 
 ```bash
-# Generate theme from wallpaper (no GUI)
-aether -g ~/wallpaper.jpg
-
-# Apply saved blueprint
-aether -a "My Theme"
-
-# List blueprints
-aether -l
-
-# Open with wallpaper
-aether -w ~/wallpaper.jpg
+aether --generate ~/wallpaper.jpg
+aether --apply-blueprint "My Theme"
+aether --list-blueprints
 ```
 
 See `aether --help` for all options.
+
+## Local Development
+
+```bash
+git clone https://github.com/bjarneo/aether.git
+cd aether
+
+# Install frontend dependencies
+cd frontend && npm install && cd ..
+
+# Run in development mode (hot reload)
+wails dev
+
+# Build production binary
+wails build
+```
+
+**Prerequisites:** Go 1.23+, Node.js 18+, [Wails v2](https://wails.io), webkit2gtk
 
 ## Documentation
 
 | Guide | Description |
 |-------|-------------|
 | [Installation](docs/installation.md) | Detailed setup instructions |
+| [CLI Reference](docs/cli.md) | Command-line options |
 | [Color Extraction](docs/color-extraction.md) | How the algorithm works |
 | [Base16 Schemes](docs/base16.md) | Import community color schemes |
-| [Wallpaper Editor](docs/wallpaper-editor.md) | Image filters & presets |
+| [Wallpaper Editor](docs/wallpaper-editor.md) | Image filters and presets |
 | [Wallhaven](docs/wallhaven.md) | Browse online wallpapers |
-| [Blueprints](docs/blueprints.md) | Save & restore themes |
+| [Blueprints](docs/blueprints.md) | Save and restore themes |
 | [Custom Templates](docs/custom-templates.md) | Add support for your apps |
-| [Scheduler](docs/scheduler.md) | Automatic theme switching |
-| [Sharing](docs/sharing.md) | Community sharing & protocol links |
-| [CLI Reference](docs/cli.md) | Command-line options |
+| [Custom Apps](docs/custom-apps.md) | Per-app template system |
 | [File System](docs/filesystem.md) | Where Aether stores files |
 | [Standalone](docs/standalone.md) | Using Aether without Omarchy |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues |
@@ -88,12 +117,8 @@ See `aether --help` for all options.
 
 ## Contributing
 
-- **Templates**: Add apps in `templates/`
-- **Presets**: Add themes to `src/constants/presets.js`
-- **Components**: Extend `src/components/`
-
 See [CLAUDE.md](CLAUDE.md) for architecture details.
 
 ## License
 
-MIT - Created by [Bjarne Øverli](https://x.com/iamdothash)
+MIT - Created by [Bjarne Overli](https://x.com/iamdothash)

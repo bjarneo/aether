@@ -1,6 +1,6 @@
 # Standalone Usage (Non-Omarchy Systems)
 
-Aether can be used on any Linux system with GTK4/Libadwaita, not just Omarchy. When running outside of Omarchy, theme files are generated but not automatically applied system-wide.
+Aether can be used on any Linux system, not just Omarchy. When running outside of Omarchy, theme files are generated but not automatically applied system-wide.
 
 ## Theme Output Location
 
@@ -19,12 +19,11 @@ When you click "Apply Theme", Aether generates all theme files to:
 ├── hyprland.conf         # Hyprland color config
 ├── kitty.conf            # Kitty terminal theme
 ├── waybar.css            # Waybar stylesheet
-├── rofi.rasi             # Rofi launcher theme
 ├── gtk.css               # GTK theme (if enabled)
 ├── aether.override.css   # Aether app theme
-├── neovim.lua            # Neovim colorscheme
-├── vscode.json           # VSCode color theme
-├── aether.zed.json       # Zed editor theme
+├── neovim.lua            # Neovim colorscheme (if enabled)
+├── vscode.json           # VSCode color theme (if enabled)
+├── aether.zed.json       # Zed editor theme (if enabled)
 └── ...                   # Other app configs
 ```
 
@@ -100,7 +99,7 @@ This applies the color scheme to GTK applications system-wide.
 
 ## Automatic Reload
 
-For applications that support live reload, changes will apply immediately. Others may require:
+For applications that support live reload, changes apply immediately. Others may require:
 - Restarting the application
 - Reloading the config (e.g., `hyprctl reload` for Hyprland)
 
@@ -112,4 +111,4 @@ You can add custom application templates in:
 ~/.config/aether/custom/
 ```
 
-See [CUSTOM_APPS.md](CUSTOM_APPS.md) for details on creating custom templates.
+See [Custom Apps](custom-apps.md) for details on creating custom templates.

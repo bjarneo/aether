@@ -17,31 +17,50 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+
+      - name: Build
+        run: wails build -tags webkit2_41
+
+      - name: Prepare release artifact
+        run: |
+          mv build/bin/aether build/bin/aether-linux-amd64
+          chmod +x build/bin/aether-linux-amd64
+
       - name: Generate Changelog
         id: changelog
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+          GITHUB_REPO: ${{ github.repository }}
         run: |
-          # Get the previous tag
-          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n 1)
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "^${TAG_NAME}$" | head -n 1)
 
           if [ -z "$PREVIOUS_TAG" ]; then
-            echo "No previous tag found, showing all commits"
             PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
           fi
 
-          echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
-
-          # Generate changelog with commits and PRs
           CHANGELOG=""
 
-          # First, collect all commits (including merge commits for PRs)
           while IFS='|' read -r hash title author email; do
-            # Shorten hash to first 7 characters
             short_hash="${hash:0:7}"
-
-            # Try to get GitHub username from commit
-            username=$(gh api "repos/${{ github.repository }}/commits/$hash" --jq '.author.login' 2>/dev/null || echo "")
+            username=$(gh api "repos/${GITHUB_REPO}/commits/$hash" --jq '.author.login' 2>/dev/null || echo "")
 
             if [ -n "$username" ]; then
               author_info="$author (@$username)"
@@ -49,28 +68,35 @@ jobs:
               author_info="$author"
             fi
 
-            # Check if this is a PR merge commit
             if [[ "$title" =~ ^Merge\ pull\ request\ \#([0-9]+) ]]; then
               pr_number="${BASH_REMATCH[1]}"
-              # Get PR title
               pr_title=$(gh pr view "$pr_number" --json title --jq '.title' 2>/dev/null || echo "$title")
-              CHANGELOG="${CHANGELOG}- $pr_title (#$pr_number) by $author_info ([\`$short_hash\`](https://github.com/${{ github.repository }}/commit/$hash))"$'\n'
+              CHANGELOG="${CHANGELOG}- $pr_title (#$pr_number) by $author_info ([\`$short_hash\`](https://github.com/${GITHUB_REPO}/commit/$hash))"$'\n'
             else
-              CHANGELOG="${CHANGELOG}- $title by $author_info ([\`$short_hash\`](https://github.com/${{ github.repository }}/commit/$hash))"$'\n'
+              CHANGELOG="${CHANGELOG}- $title by $author_info ([\`$short_hash\`](https://github.com/${GITHUB_REPO}/commit/$hash))"$'\n'
             fi
-          done < <(git log $PREVIOUS_TAG..${{ github.ref_name }} --pretty=format:"%H|%s|%an|%ae")
+          done < <(git log "$PREVIOUS_TAG".."$TAG_NAME" --pretty=format:"%H|%s|%an|%ae")
 
-          # Save to file and environment variable
           echo "$CHANGELOG" > changelog.md
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate SHA256 of source archive
+        id: archive
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: |
+          wget -q "https://github.com/${GITHUB_REPO}/archive/${TAG_NAME}.tar.gz"
+          SHA256=$(sha256sum "${TAG_NAME}.tar.gz" | awk '{print $1}')
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
-        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: false
+          files: build/bin/aether-linux-amd64
           body: |
             ## What's Changed
 
@@ -85,40 +111,24 @@ jobs:
             paru -S aether
             ```
 
-            ### Manual Installation
-            1. Download the source archive below
-            2. Extract and run `./aether`
-
-            ## For AUR Maintainers
-
-            **SHA256 will be calculated after release is created.**
-
-            Download and verify:
+            ### Pre-built Binary
             ```bash
-            wget https://github.com/bjarneo/aether/archive/${{ github.ref_name }}.tar.gz
-            sha256sum ${{ github.ref_name }}.tar.gz
+            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-linux-amd64
+            chmod +x aether-linux-amd64
+            sudo mv aether-linux-amd64 /usr/local/bin/aether
             ```
 
-      - name: Calculate SHA256 of GitHub archive
-        id: archive
-        run: |
-          # Download the archive that GitHub automatically created
-          wget https://github.com/${{ github.repository }}/archive/${{ github.ref_name }}.tar.gz
-
-          # Calculate SHA256
-          SHA256=$(sha256sum ${{ github.ref_name }}.tar.gz | awk '{print $1}')
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
-          echo "Archive SHA256: $SHA256"
-
-      - name: Update Release with SHA256
-        uses: softprops/action-gh-release@v1
-        with:
-          append_body: true
-          body: |
+            ### Build from Source
+            Requires Go 1.23+, Node.js 22+, and [Wails](https://wails.io/docs/gettingstarted/installation).
+            ```bash
+            git clone https://github.com/bjarneo/aether.git
+            cd aether
+            wails build
+            ```
 
             ---
 
-            **SHA256 Hash (for PKGBUILD):**
+            **SHA256 (source archive, for PKGBUILD):**
             ```
             ${{ steps.archive.outputs.sha256 }}
             ```

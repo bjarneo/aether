@@ -1,0 +1,237 @@
+<script lang="ts">
+    import {onMount} from 'svelte';
+    import HeaderBar from '$lib/components/layout/HeaderBar.svelte';
+    import ActionBar from '$lib/components/layout/ActionBar.svelte';
+    import ThemeEditor from '$lib/components/editor/ThemeEditor.svelte';
+    import WallhavenBrowser from '$lib/components/wallhaven/WallhavenBrowser.svelte';
+    import LocalBrowser from '$lib/components/local/LocalBrowser.svelte';
+    import FavoritesView from '$lib/components/favorites/FavoritesView.svelte';
+    import BlueprintsView from '$lib/components/blueprints/BlueprintsView.svelte';
+    import BlueprintWidget from '$lib/components/blueprints/BlueprintWidget.svelte';
+    import OmarchyThemes from '$lib/components/blueprints/OmarchyThemes.svelte';
+    import {
+        getActiveTab,
+        setActiveTab,
+        showToast,
+        closeColorPicker,
+        getColorPickerOpen,
+    } from '$lib/stores/ui.svelte';
+    import {
+        getIsApplying,
+        setIsApplying,
+        setWallpaperPath,
+        getPalette,
+        getWallpaperPath,
+        getLightMode,
+        getAdditionalImages,
+        getExtendedColors,
+        getAdjustments,
+        setAdjustments,
+        setPalette,
+        setAdjustedExtendedColors,
+    } from '$lib/stores/theme.svelte';
+    import {getSettings} from '$lib/stores/settings.svelte';
+    import {
+        undo as historyUndo,
+        redo as historyRedo,
+        pushRedo,
+        pushState,
+        pushUndo,
+    } from '$lib/stores/history.svelte';
+    import Toast from '$lib/components/shared/Toast.svelte';
+    import ColorPickerDialog from '$lib/components/color-picker/ColorPickerDialog.svelte';
+    import AboutDialog from '$lib/components/shared/AboutDialog.svelte';
+    import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
+
+    let showAbout = $state(false);
+    let activeTab = $derived(getActiveTab());
+    let widgetMode = $state(false);
+
+    onMount(async () => {
+        try {
+            const {IsWidgetMode} = await import('../wailsjs/go/main/App');
+            widgetMode = await IsWidgetMode();
+        } catch {}
+        if (widgetMode) return; // Skip full app setup in widget mode
+
+        // Focus a specific tab if requested via --tab flag
+        try {
+            const {GetFocusTab} = await import('../wailsjs/go/main/App');
+            const tab = await GetFocusTab();
+            if (tab) setActiveTab(tab as any);
+        } catch {}
+
+        initKeyboardShortcuts();
+
+        // Ctrl+Z - Undo
+        registerShortcut('ctrl+z', () => {
+            const snapshot = historyUndo();
+            if (snapshot) {
+                pushRedo(getPalette(), getExtendedColors(), getAdjustments());
+                setPalette(snapshot.palette, true);
+                setAdjustedExtendedColors(snapshot.extendedColors);
+                setAdjustments(snapshot.adjustments);
+            }
+        });
+
+        // Ctrl+Shift+Z - Redo
+        registerShortcut('ctrl+shift+z', () => {
+            const snapshot = historyRedo();
+            if (snapshot) {
+                pushUndo(getPalette(), getExtendedColors(), getAdjustments());
+                setPalette(snapshot.palette, true);
+                setAdjustedExtendedColors(snapshot.extendedColors);
+                setAdjustments(snapshot.adjustments);
+            }
+        });
+
+        // Ctrl+Enter - Apply theme
+        registerShortcut('ctrl+enter', async () => {
+            if (getIsApplying()) return;
+            setIsApplying(true);
+            try {
+                const {ApplyTheme} = await import('../wailsjs/go/main/App');
+                const result = await ApplyTheme({
+                    palette: getPalette(),
+                    wallpaperPath: getWallpaperPath(),
+                    lightMode: getLightMode(),
+                    additionalImages: getAdditionalImages(),
+                    extendedColors: getExtendedColors(),
+                    settings: getSettings(),
+                });
+                if (result.success) showToast('Theme applied');
+            } catch {
+                showToast('Failed to apply theme');
+            } finally {
+                setIsApplying(false);
+            }
+        });
+
+        // Ctrl+S - Save blueprint
+        registerShortcut('ctrl+s', () => {
+            showToast('Use the Blueprints tab to save');
+        });
+
+        // Escape - Close modals
+        registerShortcut('escape', () => {
+            if (getColorPickerOpen()) closeColorPicker();
+            else if (showAbout) showAbout = false;
+        });
+
+        // Listen for events from Go
+        (async () => {
+            try {
+                const {EventsOn} = await import('../wailsjs/runtime/runtime');
+
+                // Apply theme colors from aether.override.css as CSS custom properties
+                EventsOn(
+                    'theme-colors-changed',
+                    (colors: Record<string, string>) => {
+                        const root = document.documentElement;
+                        for (const [name, value] of Object.entries(colors)) {
+                            root.style.setProperty(`--aether-${name}`, value);
+                        }
+                        // Map key GTK colors to our Tailwind theme tokens
+                        if (colors.background) {
+                            root.style.setProperty(
+                                '--color-bg-primary',
+                                colors.background
+                            );
+                            root.style.setProperty(
+                                '--color-bg-secondary',
+                                colors.background
+                            );
+                            document.body.style.background = colors.background;
+                        }
+                        if (colors.foreground) {
+                            root.style.setProperty(
+                                '--color-fg-primary',
+                                colors.foreground
+                            );
+                            document.body.style.color = colors.foreground;
+                        }
+                        if (colors.blue) {
+                            root.style.setProperty(
+                                '--color-accent',
+                                colors.blue
+                            );
+                        }
+                        if (colors.red) {
+                            root.style.setProperty(
+                                '--color-destructive',
+                                colors.red
+                            );
+                        }
+                        if (colors.green) {
+                            root.style.setProperty(
+                                '--color-success',
+                                colors.green
+                            );
+                        }
+                        if (colors.yellow) {
+                            root.style.setProperty(
+                                '--color-warning',
+                                colors.yellow
+                            );
+                        }
+                    }
+                );
+            } catch {}
+        })();
+
+        // Wails native file drop handler
+        (async () => {
+            try {
+                const {OnFileDrop} = await import('../wailsjs/runtime/runtime');
+                OnFileDrop(async (x: number, y: number, paths: string[]) => {
+                    try {
+                        const {HandleDroppedFiles} = await import(
+                            '../wailsjs/go/main/App'
+                        );
+                        const path = await HandleDroppedFiles(paths);
+                        if (path) {
+                            setWallpaperPath(path);
+                            setActiveTab('editor');
+                            showToast(
+                                'Wallpaper selected — click Extract to generate palette'
+                            );
+                        }
+                    } catch (e: any) {
+                        showToast(
+                            'Drop failed: ' + (e?.message || 'unknown error')
+                        );
+                    }
+                }, true);
+            } catch {}
+        })();
+    });
+</script>
+
+{#if widgetMode}
+    <BlueprintWidget />
+{:else}
+    <div class="bg-bg-primary flex h-screen flex-col">
+        <HeaderBar onabout={() => (showAbout = true)} />
+        <main class="flex-1 overflow-hidden">
+            {#if activeTab === 'editor'}
+                <ThemeEditor />
+            {:else if activeTab === 'wallhaven'}
+                <WallhavenBrowser />
+            {:else if activeTab === 'local'}
+                <LocalBrowser />
+            {:else if activeTab === 'favorites'}
+                <FavoritesView />
+            {:else if activeTab === 'blueprints'}
+                <BlueprintsView />
+            {:else if activeTab === 'system'}
+                <div class="h-full overflow-y-auto p-3">
+                    <OmarchyThemes />
+                </div>
+            {/if}
+        </main>
+        <ActionBar />
+        <Toast />
+        <ColorPickerDialog />
+        <AboutDialog open={showAbout} onclose={() => (showAbout = false)} />
+    </div>
+{/if}

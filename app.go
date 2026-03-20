@@ -1,0 +1,719 @@
+package main
+
+import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"aether/internal/batch"
+	"aether/internal/blueprint"
+	"aether/internal/color"
+	"aether/internal/extraction"
+	"aether/internal/favorites"
+	"aether/internal/omarchy"
+	"aether/internal/platform"
+	"aether/internal/template"
+	"aether/internal/theme"
+	"aether/internal/wallhaven"
+	"aether/internal/wallpaper"
+
+	wailsrt "github.com/wailsapp/wails/v2/pkg/runtime"
+)
+
+// App is the main Wails application struct.
+// All exported methods are automatically bound as frontend API.
+type App struct {
+	ctx          context.Context
+	state        *theme.ThemeState
+	history      *theme.HistoryManager
+	writer       *theme.Writer
+	blueprints   *blueprint.Service
+	favorites    *favorites.Service
+	wallhaven    *wallhaven.Client
+	batch        *batch.Processor
+	themeWatcher *theme.ThemeWatcher
+	widgetMode   bool
+	focusTab     string
+}
+
+// IsWidgetMode returns true when running in --widget-blueprint mode.
+func (a *App) IsWidgetMode() bool { return a.widgetMode }
+
+// GetFocusTab returns the tab to focus on startup (empty = default editor).
+func (a *App) GetFocusTab() string { return a.focusTab }
+
+// NewApp creates a new App instance.
+func NewApp() *App {
+	return &App{
+		state:        theme.NewThemeState(),
+		history:      theme.NewHistoryManager(),
+		writer:       theme.NewWriter(EmbeddedTemplates, "templates"),
+		blueprints:   blueprint.NewService(),
+		favorites:    favorites.NewService(),
+		wallhaven:    wallhaven.NewClient(),
+		batch:        batch.NewProcessor(),
+		themeWatcher: theme.NewThemeWatcher(),
+	}
+}
+
+// startup is called by Wails when the application starts.
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
+	_ = platform.EnsureAllDirs()
+	a.themeWatcher.Start(ctx)
+}
+
+// ---------------------------------------------------------------------------
+// Color Extraction
+// ---------------------------------------------------------------------------
+
+// ExtractColors extracts a 16-color ANSI palette from an image.
+func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]string, error) {
+	return extraction.ExtractColors(path, lightMode, mode)
+}
+
+// AdjustPaletteColors applies the adjustment pipeline to all palette colors.
+// Uses []string (slice) instead of [16]string for Wails JSON compatibility.
+func (a *App) AdjustPaletteColors(palette []string, adj color.Adjustments) []string {
+	result := make([]string, len(palette))
+	for i, hex := range palette {
+		if hex != "" {
+			result[i] = color.AdjustColor(hex, adj)
+		}
+	}
+	return result
+}
+
+// ---------------------------------------------------------------------------
+// Theme State
+// ---------------------------------------------------------------------------
+
+// SetExtractionMode sets the palette extraction mode.
+func (a *App) SetExtractionMode(mode string) {
+	a.state.ExtractionMode = mode
+}
+
+// ---------------------------------------------------------------------------
+// Theme Application
+// ---------------------------------------------------------------------------
+
+// ApplyThemeRequest is the payload from the frontend containing all current state.
+type ApplyThemeRequest struct {
+	Palette          []string          `json:"palette"`
+	WallpaperPath    string            `json:"wallpaperPath"`
+	LightMode        bool              `json:"lightMode"`
+	AdditionalImages []string          `json:"additionalImages"`
+	ExtendedColors   map[string]string `json:"extendedColors"`
+	Settings         theme.Settings    `json:"settings"`
+}
+
+// ApplyTheme processes all templates and applies the theme to the system.
+func (a *App) ApplyTheme(req ApplyThemeRequest) (*theme.ApplyResult, error) {
+	var palette [16]string
+	for i := 0; i < 16 && i < len(req.Palette); i++ {
+		palette[i] = req.Palette[i]
+	}
+
+	// Use extended colors if provided, otherwise derive from palette
+	accent := palette[4]
+	cursor := palette[7]
+	selFg := palette[0]
+	selBg := palette[7]
+	if v, ok := req.ExtendedColors["accent"]; ok && v != "" {
+		accent = v
+	}
+	if v, ok := req.ExtendedColors["cursor"]; ok && v != "" {
+		cursor = v
+	}
+	if v, ok := req.ExtendedColors["selection_foreground"]; ok && v != "" {
+		selFg = v
+	}
+	if v, ok := req.ExtendedColors["selection_background"]; ok && v != "" {
+		selBg = v
+	}
+
+	roles := template.ColorRoles{
+		Background: palette[0], Foreground: palette[7],
+		Black: palette[0], Red: palette[1], Green: palette[2], Yellow: palette[3],
+		Blue: palette[4], Magenta: palette[5], Cyan: palette[6], White: palette[7],
+		BrightBlack: palette[8], BrightRed: palette[9], BrightGreen: palette[10],
+		BrightYellow: palette[11], BrightBlue: palette[12], BrightMagenta: palette[13],
+		BrightCyan: palette[14], BrightWhite: palette[15],
+		Accent: accent, Cursor: cursor,
+		SelectionForeground: selFg, SelectionBackground: selBg,
+	}
+
+	state := &theme.ThemeState{
+		Palette:          palette,
+		WallpaperPath:    req.WallpaperPath,
+		LightMode:        req.LightMode,
+		ColorRoles:       roles,
+		AdditionalImages: req.AdditionalImages,
+	}
+
+	return a.writer.ApplyTheme(state, req.Settings)
+}
+
+// ClearTheme removes the Aether theme and reverts to the default.
+func (a *App) ClearTheme() error {
+	return theme.ClearTheme()
+}
+
+// ---------------------------------------------------------------------------
+// Blueprints
+// ---------------------------------------------------------------------------
+
+// ListBlueprints returns all saved blueprints.
+func (a *App) ListBlueprints() ([]map[string]interface{}, error) {
+	bps, err := a.blueprints.LoadAll()
+	if err != nil {
+		return nil, err
+	}
+	// Convert to raw maps to avoid Wails model conversion issues
+	result := make([]map[string]interface{}, len(bps))
+	for i, bp := range bps {
+		result[i] = map[string]interface{}{
+			"name":      bp.Name,
+			"timestamp": bp.Timestamp,
+			"palette": map[string]interface{}{
+				"colors":    bp.Palette.Colors,
+				"wallpaper": bp.Palette.Wallpaper,
+				"lightMode": bp.Palette.LightMode,
+			},
+		}
+	}
+	return result, nil
+}
+
+// SaveBlueprint saves the current state as a named blueprint.
+// SaveBlueprintRequest contains all state needed to save a blueprint.
+type SaveBlueprintRequest struct {
+	Name             string            `json:"name"`
+	Palette          []string          `json:"palette"`
+	WallpaperPath    string            `json:"wallpaperPath"`
+	LightMode        bool              `json:"lightMode"`
+	AdditionalImages []string          `json:"additionalImages"`
+	LockedColors     []int             `json:"lockedColors"`
+	ExtendedColors   map[string]string `json:"extendedColors"`
+}
+
+func (a *App) SaveBlueprint(req SaveBlueprintRequest) error {
+	bp := blueprint.Blueprint{
+		Palette: blueprint.PaletteData{
+			Colors:           req.Palette,
+			Wallpaper:        req.WallpaperPath,
+			LightMode:        req.LightMode,
+			AdditionalImages: req.AdditionalImages,
+			LockedColors:     req.LockedColors,
+			ExtendedColors:   req.ExtendedColors,
+		},
+	}
+	return a.blueprints.Save(req.Name, bp)
+}
+
+// LoadBlueprint loads a blueprint by name into the current state.
+func (a *App) LoadBlueprint(name string) error {
+	bp, err := a.blueprints.FindByName(name)
+	if err != nil {
+		return err
+	}
+	if bp == nil {
+		return fmt.Errorf("blueprint %q not found", name)
+	}
+
+	a.history.Push(*a.state)
+
+	var palette [16]string
+	for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
+		palette[i] = bp.Palette.Colors[i]
+	}
+	a.state.SetPalette(palette)
+	a.state.WallpaperPath = bp.Palette.Wallpaper
+	a.state.LightMode = bp.Palette.LightMode
+	return nil
+}
+
+// ApplyBlueprint loads a blueprint by name and applies it as the active theme.
+func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
+	bp, err := a.blueprints.FindByName(name)
+	if err != nil {
+		return nil, err
+	}
+	if bp == nil {
+		return nil, fmt.Errorf("blueprint %q not found", name)
+	}
+
+	var palette [16]string
+	for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
+		palette[i] = bp.Palette.Colors[i]
+	}
+
+	a.state.SetPalette(palette)
+	a.state.WallpaperPath = bp.Palette.Wallpaper
+	a.state.LightMode = bp.Palette.LightMode
+
+	return a.writer.ApplyTheme(a.state, theme.Settings{})
+}
+
+// DeleteBlueprint removes a blueprint by name.
+func (a *App) DeleteBlueprint(name string) error {
+	return a.blueprints.Delete(name)
+}
+
+// ---------------------------------------------------------------------------
+// Favorites
+// ---------------------------------------------------------------------------
+
+// GetFavorites returns all favorited wallpapers.
+func (a *App) GetFavorites() []favorites.Favorite {
+	return a.favorites.GetAll()
+}
+
+// ToggleFavorite adds or removes a favorite. Returns true if now favorited.
+func (a *App) ToggleFavorite(path, favType string, data map[string]interface{}) bool {
+	return a.favorites.Toggle(path, favType, data)
+}
+
+// IsFavorite checks if a path is favorited.
+func (a *App) IsFavorite(path string) bool {
+	return a.favorites.IsFavorite(path)
+}
+
+// ---------------------------------------------------------------------------
+// App Settings (template toggles, neovim config)
+// ---------------------------------------------------------------------------
+
+// GetSettings reads saved app settings from ~/.config/aether/settings.json.
+func (a *App) GetSettings() map[string]interface{} {
+	return readConfigJSON("settings.json")
+}
+
+// SaveSettings writes app settings to ~/.config/aether/settings.json.
+func (a *App) SaveSettings(config map[string]interface{}) error {
+	return writeConfigJSON("settings.json", config)
+}
+
+// ---------------------------------------------------------------------------
+// Wallpaper Tags
+// ---------------------------------------------------------------------------
+
+// GetWallpaperTags reads wallpaper tags from ~/.config/aether/tags.json.
+func (a *App) GetWallpaperTags() map[string]interface{} {
+	return readConfigJSON("tags.json")
+}
+
+// SaveWallpaperTags writes wallpaper tags to ~/.config/aether/tags.json.
+func (a *App) SaveWallpaperTags(tags map[string]interface{}) error {
+	return writeConfigJSON("tags.json", tags)
+}
+
+// ---------------------------------------------------------------------------
+// Color Utilities
+// ---------------------------------------------------------------------------
+
+// GenerateGradient generates a 16-step gradient between two colors.
+func (a *App) GenerateGradient(start, end string) [16]string {
+	return color.GenerateGradient(start, end)
+}
+
+// GeneratePaletteFromColor generates a full palette from a single color.
+func (a *App) GeneratePaletteFromColor(baseColor string) [16]string {
+	return color.GeneratePaletteFromColor(baseColor)
+}
+
+// ContrastRatio calculates the WCAG contrast ratio between two colors.
+func (a *App) ContrastRatio(hex1, hex2 string) float64 {
+	return color.ContrastRatio(hex1, hex2)
+}
+
+// ---------------------------------------------------------------------------
+// Wallhaven
+// ---------------------------------------------------------------------------
+
+// SetWallhavenAPIKey sets the wallhaven API key for authenticated requests.
+func (a *App) SetWallhavenAPIKey(key string) {
+	a.wallhaven.SetAPIKey(key)
+}
+
+// GetWallhavenConfig reads the saved wallhaven settings from ~/.config/aether/wallhaven.json.
+func (a *App) GetWallhavenConfig() map[string]interface{} {
+	return readConfigJSON("wallhaven.json")
+}
+
+// SaveWallhavenConfig writes wallhaven settings to ~/.config/aether/wallhaven.json.
+func (a *App) SaveWallhavenConfig(config map[string]interface{}) error {
+	return writeConfigJSON("wallhaven.json", config)
+}
+
+// SearchWallhaven searches wallhaven.cc for wallpapers.
+func (a *App) SearchWallhaven(params wallhaven.SearchParams) (*wallhaven.SearchResult, error) {
+	return a.wallhaven.Search(params)
+}
+
+// DownloadWallpaper downloads a wallpaper from a URL. Returns local path.
+func (a *App) DownloadWallpaper(imageURL string) (string, error) {
+	return a.wallhaven.Download(imageURL)
+}
+
+// ---------------------------------------------------------------------------
+// Local Wallpapers
+// ---------------------------------------------------------------------------
+
+// ScanLocalWallpapers scans default directories for local wallpaper images.
+func (a *App) ScanLocalWallpapers() ([]wallpaper.WallpaperInfo, error) {
+	return wallpaper.ScanDefaultDirs()
+}
+
+// GetThumbnail returns a thumbnail path for an image.
+func (a *App) GetThumbnail(path string) (string, error) {
+	return wallpaper.GetThumbnail(path)
+}
+
+// ---------------------------------------------------------------------------
+// Omarchy Themes
+// ---------------------------------------------------------------------------
+
+// LoadOmarchyThemes discovers all installed Omarchy themes.
+func (a *App) LoadOmarchyThemes() ([]omarchy.Theme, error) {
+	return omarchy.LoadAllThemes()
+}
+
+// ---------------------------------------------------------------------------
+// Batch Processing
+// ---------------------------------------------------------------------------
+
+// StartBatchProcessing begins batch color extraction.
+func (a *App) StartBatchProcessing(paths []string, lightMode bool) {
+	a.batch.Start(a.ctx, paths, lightMode)
+}
+
+// CancelBatchProcessing stops the current batch.
+func (a *App) CancelBatchProcessing() {
+	a.batch.Cancel()
+}
+
+// ---------------------------------------------------------------------------
+// File / Image Utilities
+// ---------------------------------------------------------------------------
+
+// ReadImageAsDataURL reads a local image file and returns it as a base64 data URL.
+// This is needed because webkit2gtk cannot load file:// paths directly.
+func (a *App) ReadImageAsDataURL(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("read image: %w", err)
+	}
+
+	// Detect MIME type from extension
+	ext := strings.ToLower(filepath.Ext(path))
+	mime := "image/jpeg"
+	switch ext {
+	case ".png":
+		mime = "image/png"
+	case ".gif":
+		mime = "image/gif"
+	case ".webp":
+		mime = "image/webp"
+	case ".bmp":
+		mime = "image/bmp"
+	case ".svg":
+		mime = "image/svg+xml"
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(data)
+	return fmt.Sprintf("data:%s;base64,%s", mime, encoded), nil
+}
+
+// SaveDataURLToFile saves a base64 data URL as a file.
+// Returns the saved file path.
+func (a *App) SaveDataURLToFile(dataURL string, originalPath string) (string, error) {
+	// Parse data URL: "data:image/jpeg;base64,/9j/4AAQ..."
+	parts := strings.SplitN(dataURL, ",", 2)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid data URL")
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", fmt.Errorf("base64 decode failed: %w", err)
+	}
+
+	// Determine extension from the data URL mime type
+	ext := ".jpg"
+	if strings.Contains(parts[0], "image/png") {
+		ext = ".png"
+	}
+
+	// Save to cache dir with a unique name based on original
+	cacheDir := filepath.Join(platform.CacheDir(), "filtered")
+	_ = platform.EnsureDir(cacheDir)
+
+	baseName := strings.TrimSuffix(filepath.Base(originalPath), filepath.Ext(originalPath))
+	outPath := filepath.Join(cacheDir, baseName+"_filtered"+ext)
+
+	if err := os.WriteFile(outPath, decoded, 0644); err != nil {
+		return "", fmt.Errorf("write file failed: %w", err)
+	}
+
+	log.Printf("[canvas-export] Saved filtered image: %s (%d bytes)", outPath, len(decoded))
+	return outPath, nil
+}
+
+// OpenFileDialog opens a native file dialog for selecting an image.
+// Returns the selected file path or empty string if cancelled.
+func (a *App) OpenFileDialog() (string, error) {
+	path, err := wailsrt.OpenFileDialog(a.ctx, wailsrt.OpenDialogOptions{
+		Title: "Select Wallpaper",
+		Filters: []wailsrt.FileFilter{
+			{
+				DisplayName: "Images",
+				Pattern:     "*.jpg;*.jpeg;*.png;*.gif;*.webp;*.bmp",
+			},
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// HandleDroppedFiles processes file paths from drag-and-drop.
+// Takes the first image file from the dropped list.
+// Returns the file path if valid, error otherwise.
+func (a *App) HandleDroppedFiles(paths []string) (string, error) {
+	validExts := map[string]bool{
+		".jpg": true, ".jpeg": true, ".png": true,
+		".gif": true, ".webp": true, ".bmp": true,
+	}
+
+	for _, path := range paths {
+		ext := strings.ToLower(filepath.Ext(path))
+		if validExts[ext] {
+			return path, nil
+		}
+	}
+	return "", fmt.Errorf("no valid image files in drop")
+}
+
+// ---------------------------------------------------------------------------
+// Export / Import via GUI dialogs
+// ---------------------------------------------------------------------------
+
+// ExportThemeRequest is the payload from the frontend for exporting a theme.
+type ExportThemeRequest struct {
+	Name             string            `json:"name"`
+	IncludedApps     []string          `json:"includedApps"`
+	Palette          []string          `json:"palette"`
+	WallpaperPath    string            `json:"wallpaperPath"`
+	LightMode        bool              `json:"lightMode"`
+	AdditionalImages []string          `json:"additionalImages"`
+	ExtendedColors   map[string]string `json:"extendedColors"`
+}
+
+// allExportableApps is the full set of app names that can be exported.
+var allExportableApps = map[string]bool{
+	"alacritty": true, "btop": true, "chromium": true, "colors": true,
+	"ghostty": true, "gtk": true, "hyprland": true, "hyprlock": true,
+	"icons": true, "kitty": true, "mako": true, "neovim": true,
+	"swayosd": true, "vencord": true, "vscode": true, "walker": true,
+	"warp": true, "waybar": true, "wofi": true, "zed": true,
+}
+
+// ExportTheme exports the current theme to a user-chosen directory.
+func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
+	dir, err := wailsrt.OpenDirectoryDialog(a.ctx, wailsrt.OpenDialogOptions{
+		Title: "Choose Export Directory",
+	})
+	if err != nil || dir == "" {
+		return "", fmt.Errorf("export cancelled")
+	}
+
+	// Build theme state from the frontend's current palette
+	var palette [16]string
+	for i := 0; i < 16 && i < len(req.Palette); i++ {
+		palette[i] = req.Palette[i]
+	}
+
+	accent := palette[4]
+	cursor := palette[7]
+	selFg := palette[0]
+	selBg := palette[7]
+	if v, ok := req.ExtendedColors["accent"]; ok && v != "" {
+		accent = v
+	}
+	if v, ok := req.ExtendedColors["cursor"]; ok && v != "" {
+		cursor = v
+	}
+	if v, ok := req.ExtendedColors["selection_foreground"]; ok && v != "" {
+		selFg = v
+	}
+	if v, ok := req.ExtendedColors["selection_background"]; ok && v != "" {
+		selBg = v
+	}
+
+	roles := template.ColorRoles{
+		Background: palette[0], Foreground: palette[7],
+		Black: palette[0], Red: palette[1], Green: palette[2], Yellow: palette[3],
+		Blue: palette[4], Magenta: palette[5], Cyan: palette[6], White: palette[7],
+		BrightBlack: palette[8], BrightRed: palette[9], BrightGreen: palette[10],
+		BrightYellow: palette[11], BrightBlue: palette[12], BrightMagenta: palette[13],
+		BrightCyan: palette[14], BrightWhite: palette[15],
+		Accent: accent, Cursor: cursor,
+		SelectionForeground: selFg, SelectionBackground: selBg,
+	}
+
+	state := &theme.ThemeState{
+		Palette:          palette,
+		WallpaperPath:    req.WallpaperPath,
+		LightMode:        req.LightMode,
+		ColorRoles:       roles,
+		AdditionalImages: req.AdditionalImages,
+	}
+
+	// Build included set from the request
+	included := make(map[string]bool, len(req.IncludedApps))
+	for _, app := range req.IncludedApps {
+		included[app] = true
+	}
+
+	// Derive excluded apps: everything in allExportableApps that is NOT included
+	excluded := make(map[string]bool)
+	for app := range allExportableApps {
+		if !included[app] {
+			excluded[app] = true
+		}
+	}
+
+	settings := theme.Settings{
+		IncludeGtk:    included["gtk"],
+		IncludeZed:    included["zed"],
+		IncludeVscode: included["vscode"],
+		IncludeNeovim: included["neovim"],
+		ExcludedApps:  excluded,
+	}
+
+	exportDir := filepath.Join(dir, "omarchy-"+req.Name+"-theme")
+	if err := a.writer.GenerateOnly(state, settings, exportDir); err != nil {
+		return "", fmt.Errorf("export failed: %w", err)
+	}
+	return exportDir, nil
+}
+
+// ImportResult is returned by ImportFileDialog with the imported colors.
+type ImportResult struct {
+	Colors []string `json:"colors"`
+	Name   string   `json:"name"`
+	Path   string   `json:"path"`
+}
+
+// ImportFileDialog opens a file dialog for importing a theme file.
+// fileType: "base16", "toml", or "blueprint"
+// Returns the imported colors so the frontend can update its store.
+func (a *App) ImportFileDialog(fileType string) (*ImportResult, error) {
+	var filters []wailsrt.FileFilter
+	var title string
+
+	switch fileType {
+	case "base16":
+		title = "Import Base16 Scheme"
+		filters = []wailsrt.FileFilter{
+			{DisplayName: "YAML Files", Pattern: "*.yaml"},
+			{DisplayName: "YML Files", Pattern: "*.yml"},
+			{DisplayName: "All Files", Pattern: "*"},
+		}
+	case "toml":
+		title = "Import Colors TOML"
+		filters = []wailsrt.FileFilter{
+			{DisplayName: "TOML Files", Pattern: "*.toml"},
+			{DisplayName: "All Files", Pattern: "*"},
+		}
+	case "blueprint":
+		title = "Import Blueprint"
+		filters = []wailsrt.FileFilter{
+			{DisplayName: "JSON Files", Pattern: "*.json"},
+			{DisplayName: "All Files", Pattern: "*"},
+		}
+	default:
+		return nil, fmt.Errorf("unknown file type: %s", fileType)
+	}
+
+	path, err := wailsrt.OpenFileDialog(a.ctx, wailsrt.OpenDialogOptions{
+		Title:   title,
+		Filters: filters,
+	})
+	if err != nil {
+		log.Printf("[import] dialog error: %v", err)
+		return nil, fmt.Errorf("dialog error: %w", err)
+	}
+	if path == "" {
+		return nil, fmt.Errorf("cancelled")
+	}
+
+	log.Printf("[import] selected file: %s (type=%s)", path, fileType)
+	return a.importFile(path, fileType)
+}
+
+func (a *App) importFile(path, fileType string) (*ImportResult, error) {
+	var bp *blueprint.Blueprint
+	var err error
+
+	switch fileType {
+	case "base16":
+		bp, err = blueprint.ImportBase16(path)
+	case "toml":
+		bp, err = blueprint.ImportColorsToml(path)
+	case "blueprint":
+		bp, err = blueprint.ImportJSON(path)
+	default:
+		return nil, fmt.Errorf("unknown type: %s", fileType)
+	}
+
+	if err != nil {
+		log.Printf("[import] parse error: %v", err)
+		return nil, fmt.Errorf("parse error: %w", err)
+	}
+
+	savedPath, err := blueprint.SaveImported(bp)
+	if err != nil {
+		log.Printf("[import] save error: %v", err)
+		return nil, fmt.Errorf("save error: %w", err)
+	}
+
+	var palette [16]string
+	for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
+		palette[i] = bp.Palette.Colors[i]
+	}
+	a.history.Push(*a.state)
+	a.state.SetPalette(palette)
+
+	log.Printf("[import] success: %s (%d colors)", bp.Name, len(bp.Palette.Colors))
+	return &ImportResult{
+		Colors: palette[:],
+		Name:   bp.Name,
+		Path:   savedPath,
+	}, nil
+}
+
+// ResetState resets the theme state to defaults.
+func (a *App) ResetState() {
+	a.history.Push(*a.state)
+	*a.state = *theme.NewThemeState()
+}
+
+// --- Config JSON helpers ---
+
+func readConfigJSON(filename string) map[string]interface{} {
+	v, err := platform.ReadJSON[map[string]interface{}](filepath.Join(platform.ConfigDir(), filename))
+	if err != nil {
+		return nil
+	}
+	return v
+}
+
+func writeConfigJSON(filename string, v interface{}) error {
+	return platform.WriteJSON(filepath.Join(platform.ConfigDir(), filename), v)
+}

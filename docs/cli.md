@@ -19,9 +19,6 @@ aether --import-base16 ~/themes/dracula.yaml
 
 # Import colors.toml (omarchy/ethereal format)
 aether --import-colors-toml ~/themes/colors.toml
-
-# Open GUI with specific wallpaper
-aether --wallpaper ~/Wallpapers/sunset.jpg
 ```
 
 ## Commands
@@ -32,7 +29,6 @@ List all saved blueprint themes:
 
 ```bash
 aether --list-blueprints
-aether -l
 ```
 
 Output shows theme names and timestamps.
@@ -43,7 +39,6 @@ Apply a saved theme by name:
 
 ```bash
 aether --apply-blueprint "theme-name"
-aether -a "theme-name"
 ```
 
 This loads the blueprint and applies all configurations without opening the GUI.
@@ -54,7 +49,6 @@ Extract colors from a wallpaper and apply as theme:
 
 ```bash
 aether --generate /path/to/wallpaper.jpg
-aether -g /path/to/wallpaper.jpg
 ```
 
 **Options:**
@@ -64,7 +58,7 @@ aether -g /path/to/wallpaper.jpg
 | `--light-mode` | Generate light theme instead of dark |
 | `--extract-mode MODE` | Color extraction algorithm (see below) |
 | `--no-apply` | Generate templates only, don't activate theme |
-| `--output PATH`, `-o PATH` | Custom output directory (use with `--no-apply`) |
+| `--output PATH` | Custom output directory (use with `--no-apply`) |
 
 **Extraction Modes:**
 
@@ -99,7 +93,7 @@ Import a theme from URL or local file:
 
 ```bash
 aether --import-blueprint "https://example.com/blueprint.json"
-aether -i "/path/to/theme.json"
+aether --import-blueprint "/path/to/theme.json"
 ```
 
 **Options:**
@@ -187,15 +181,6 @@ color1 = "#ff6188"
 color15 = "#ffcead"
 ```
 
-### Open with Wallpaper
-
-Launch GUI pre-loaded with a wallpaper:
-
-```bash
-aether --wallpaper /path/to/wallpaper.jpg
-aether -w /path/to/wallpaper.jpg
-```
-
 ### Blueprint Widget
 
 Show floating theme selector widget:
@@ -206,25 +191,33 @@ aether --widget-blueprint
 
 Useful for quick theme switching from a keybind.
 
+### Open with Tab
+
+Launch GUI with a specific tab focused:
+
+```bash
+aether --tab <name>
+```
+
 ## Scripting Examples
 
 ### Theme Rotation Script
 
 ```bash
 #!/bin/bash
-# Rotate through themes daily
+# Rotate through themes by time of day
 
 themes=("morning" "afternoon" "evening" "night")
 hour=$(date +%H)
 
 if [ $hour -lt 6 ]; then
-    aether -a "${themes[3]}"
+    aether --apply-blueprint "${themes[3]}"
 elif [ $hour -lt 12 ]; then
-    aether -a "${themes[0]}"
+    aether --apply-blueprint "${themes[0]}"
 elif [ $hour -lt 18 ]; then
-    aether -a "${themes[1]}"
+    aether --apply-blueprint "${themes[1]}"
 else
-    aether -a "${themes[2]}"
+    aether --apply-blueprint "${themes[2]}"
 fi
 ```
 

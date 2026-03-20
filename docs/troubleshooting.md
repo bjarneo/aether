@@ -3,18 +3,11 @@
 ## App Won't Start
 
 ```bash
-# Install dependencies
-sudo pacman -S gjs gtk4 libadwaita libsoup3
+# Ensure webkit2gtk is installed
+sudo pacman -S webkit2gtk
 
-# Check for errors
-gjs -m src/main.js
-```
-
-## ImageMagick Not Found
-
-```bash
-sudo pacman -S imagemagick
-magick --version
+# Run from terminal to see errors
+./aether
 ```
 
 ## Wallhaven Not Loading
@@ -28,7 +21,7 @@ magick --version
 
 When using `--widget-blueprint`, Aether runs with layer-shell which can conflict with Waybar.
 
-**Solution:** Already fixed in Aether - it clears `LD_PRELOAD` when applying themes.
+**Solution:** Already fixed in Aether. It clears `LD_PRELOAD` when applying themes.
 
 ## Theme Not Applying
 
@@ -38,6 +31,6 @@ When using `--widget-blueprint`, Aether runs with layer-shell which can conflict
 
 ## Colors Look Wrong
 
-- Try different extraction modes: `aether -g wallpaper.jpg --extract-mode=material`
+- Try different extraction modes: `aether --generate wallpaper.jpg --extract-mode material`
 - Check if image is too dark/bright for good extraction
-- Use color adjustments in Settings sidebar
+- Use color adjustments in the sidebar

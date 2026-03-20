@@ -2,10 +2,9 @@
 
 ## Requirements
 
-- GJS (GNOME JavaScript bindings)
-- GTK 4 + Libadwaita 1
-- libsoup3 (HTTP client)
-- ImageMagick (color extraction)
+- **Go** 1.23+
+- **webkit2gtk** (GUI runtime)
+- **Node.js** 18+ (build only)
 
 ## Arch Linux (AUR)
 
@@ -15,17 +14,16 @@ yay -S aether
 paru -S aether
 ```
 
-## Manual Installation
+## Build from Source
 
 ```bash
-# Install dependencies
-sudo pacman -S gjs gtk4 libadwaita libsoup3 imagemagick
+sudo pacman -S go webkit2gtk
 
-# Clone and run
 git clone https://github.com/bjarneo/aether.git
-cd aether
-./aether
+cd aether && make build
 ```
+
+The binary is output to `build/bin/aether`.
 
 ## Desktop Entry (Optional)
 
@@ -36,11 +34,5 @@ cp li.oever.aether.desktop ~/.local/share/applications/
 ## Verify Installation
 
 ```bash
-# Check ImageMagick
-magick --version
-
-# Run Aether
-./aether
-# or
-gjs -m src/main.js
+./build/bin/aether
 ```
