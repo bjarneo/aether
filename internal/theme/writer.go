@@ -143,8 +143,10 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 		return &ApplyResult{Success: false, IsOmarchy: isOmarchy, ThemePath: themeDir}, err
 	}
 
-	if err := CreateOmarchySymlink(themeDir); err != nil {
-		log.Printf("Warning: could not create omarchy symlink: %v", err)
+	if isOmarchy {
+		if err := CreateOmarchySymlink(themeDir); err != nil {
+			log.Printf("Warning: could not create omarchy symlink: %v", err)
+		}
 	}
 
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode)

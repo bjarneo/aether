@@ -97,9 +97,9 @@ func CreateOmarchySymlink(themeDir string) error {
 
 // ApplyWallpaper creates the background symlink at
 // ~/.config/omarchy/current/background pointing to wallpaperPath, then
-// restarts swaybg.
+// restarts swaybg. Only runs on Omarchy systems.
 func ApplyWallpaper(wallpaperPath string) error {
-	if wallpaperPath == "" {
+	if wallpaperPath == "" || !IsOmarchyInstalled() {
 		return nil
 	}
 
@@ -118,7 +118,6 @@ func ApplyWallpaper(wallpaperPath string) error {
 	}
 	log.Printf("Created wallpaper symlink: %s -> %s", symlinkPath, wallpaperPath)
 
-	// Kill existing swaybg and start a new one
 	_ = platform.RunAsync("pkill", "-x", "swaybg")
 	if err := platform.RunAsync("setsid", "uwsm-app", "--", "swaybg", "-i", symlinkPath, "-m", "fill"); err != nil {
 		log.Printf("Warning: could not restart swaybg: %v", err)
