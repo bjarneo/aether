@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Aether Installer
-# Installs Aether directly from AUR PKGBUILD
+# Installs Aether from the AUR
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/bjarneo/aether/main/install.sh | bash
@@ -33,7 +33,7 @@ print_header() {
     echo "║        ██║░░██║███████╗░░░██║░░░██║░░██║███████╗██║░░██║     ║"
     echo "║        ╚═╝░░╚═╝╚══════╝░░░╚═╝░░░╚═╝░░╚═╝╚══════╝╚═╝░░╚═╝     ║"
     echo "║                                                              ║"
-    echo "║              Universal Desktop Synthesizer                   ║"
+    echo "║              Desktop Theming Application                      ║"
     echo "║                                                              ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -145,13 +145,13 @@ print_post_install() {
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BOLD}Quick Start:${NC}"
-    echo -e "  ${CYAN}aether${NC}                           # Launch GUI"
-    echo -e "  ${CYAN}aether -w /path/to/wallpaper.jpg${NC} # Launch with wallpaper"
-    echo -e "  ${CYAN}aether -g wallpaper.jpg${NC}          # CLI theme generation"
-    echo -e "  ${CYAN}aether --widget-blueprint${NC}        # Floating widget mode"
+    echo -e "  ${CYAN}aether${NC}                                  # Launch GUI"
+    echo -e "  ${CYAN}aether --generate wallpaper.jpg${NC}         # CLI theme generation"
+    echo -e "  ${CYAN}aether --widget-blueprint${NC}               # Floating widget mode"
+    echo -e "  ${CYAN}aether --list-blueprints${NC}                # List saved themes"
+    echo -e "  ${CYAN}aether --help${NC}                           # Show all commands"
     echo ""
     echo -e "${BOLD}Desktop Entry:${NC}"
-    echo -e "  The desktop entry should be installed automatically."
     echo -e "  Search for 'Aether' in your application launcher."
     echo ""
     echo -e "${BOLD}Documentation:${NC}"
