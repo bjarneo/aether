@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Aether
+Comment=Desktop theming application
+Exec=aether
+Icon=aether
+Type=Application
+Categories=Utility;Settings;
+Keywords=theme;wallpaper;colors;
