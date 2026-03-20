@@ -27,8 +27,12 @@ jobs:
           PKGVER: ${{ steps.version.outputs.pkgver }}
           REPO: ${{ github.repository }}
         run: |
+          BINARY_URL="https://github.com/${REPO}/releases/download/v${PKGVER}/aether-linux-amd64"
+          SHA256=$(curl -sL "$BINARY_URL" | sha256sum | cut -d' ' -f1)
+
+          # Also get source tarball SHA for desktop/icon files
           SOURCE_URL="https://github.com/${REPO}/archive/refs/tags/v${PKGVER}.tar.gz"
-          SHA256=$(curl -sL "$SOURCE_URL" | sha256sum | cut -d' ' -f1)
+          SOURCE_SHA256=$(curl -sL "$SOURCE_URL" | sha256sum | cut -d' ' -f1)
 
           cat > PKGBUILD <<'HEREDOC'
           # Maintainer: Bjarne Øverli <bjarne@oever.li>
@@ -40,38 +44,26 @@ jobs:
           url='https://github.com/bjarneo/aether'
           license=('MIT')
           depends=('webkit2gtk-4.1' 'gtk3')
-          makedepends=('go' 'nodejs' 'npm')
-          source=("${pkgname}-${pkgver}.tar.gz::https://github.com/bjarneo/aether/archive/refs/tags/v${pkgver}.tar.gz")
-          sha256sums=('SHA256_PLACEHOLDER')
-
-          build() {
-              cd "${srcdir}/${pkgname}-${pkgver}"
-
-              export CGO_CFLAGS="${CFLAGS}"
-              export CGO_CXXFLAGS="${CXXFLAGS}"
-              export CGO_LDFLAGS="${LDFLAGS}"
-              export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
-              export GOPATH="${srcdir}/gopath"
-              export PATH="${GOPATH}/bin:${PATH}"
-
-              go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
-
-              wails build -tags webkit2_41
-          }
+          source=("aether-linux-amd64-${pkgver}::https://github.com/bjarneo/aether/releases/download/v${pkgver}/aether-linux-amd64"
+                  "aether-${pkgver}.tar.gz::https://github.com/bjarneo/aether/archive/refs/tags/v${pkgver}.tar.gz")
+          sha256sums=('BINARY_SHA256_PLACEHOLDER'
+                      'SOURCE_SHA256_PLACEHOLDER')
+          noextract=("aether-linux-amd64-${pkgver}")
 
           package() {
-              cd "${srcdir}/${pkgname}-${pkgver}"
+              install -Dm755 "${srcdir}/aether-linux-amd64-${pkgver}" "${pkgdir}/usr/bin/aether"
 
-              install -Dm755 build/bin/aether "${pkgdir}/usr/bin/aether"
+              cd "${srcdir}/aether-${pkgver}"
               install -Dm644 build/linux/aether.desktop "${pkgdir}/usr/share/applications/aether.desktop"
               install -Dm644 icon.png "${pkgdir}/usr/share/pixmaps/aether.png"
-              install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+              install -Dm644 README.md "${pkgdir}/usr/share/doc/aether/README.md"
           }
           HEREDOC
 
           sed -i 's/^          //' PKGBUILD
           sed -i "s|PKGVER_PLACEHOLDER|${PKGVER}|" PKGBUILD
-          sed -i "s|SHA256_PLACEHOLDER|${SHA256}|" PKGBUILD
+          sed -i "s|BINARY_SHA256_PLACEHOLDER|${SHA256}|" PKGBUILD
+          sed -i "s|SOURCE_SHA256_PLACEHOLDER|${SOURCE_SHA256}|" PKGBUILD
 
           cat PKGBUILD
 
