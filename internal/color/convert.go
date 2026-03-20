@@ -10,6 +10,17 @@ import (
 // clampL clamps lightness to [0, 100].
 func clampL(l float64) float64 { return math.Max(0, math.Min(100, l)) }
 
+// clampByte clamps a float64 to [0, 255] and converts to uint8.
+func clampByte(v float64) uint8 {
+	if v <= 0 {
+		return 0
+	}
+	if v >= 255 {
+		return 255
+	}
+	return uint8(math.Round(v))
+}
+
 var hexPattern = regexp.MustCompile(`(?i)^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$`)
 
 // HexToRGB parses a "#rrggbb" hex string into an RGB struct.
@@ -115,10 +126,7 @@ func HSLToRGB(h, s, l float64) RGB {
 
 // RGBToHex converts RGB values (0-255) to a hex color string "#rrggbb".
 func RGBToHex(r, g, b float64) string {
-	rr := int(math.Round(r))
-	gg := int(math.Round(g))
-	bb := int(math.Round(b))
-	return fmt.Sprintf("#%02x%02x%02x", rr, gg, bb)
+	return fmt.Sprintf("#%02x%02x%02x", clampByte(r), clampByte(g), clampByte(b))
 }
 
 // HSLToHex converts HSL values to a hex color string.
@@ -136,11 +144,11 @@ func HexToHSL(hex string) HSL {
 // HexToRGBString converts a hex color to an "r,g,b" decimal string.
 func HexToRGBString(hex string) string {
 	rgb := HexToRGB(hex)
-	return fmt.Sprintf("%d,%d,%d", int(rgb.R), int(rgb.G), int(rgb.B))
+	return fmt.Sprintf("%d,%d,%d", clampByte(rgb.R), clampByte(rgb.G), clampByte(rgb.B))
 }
 
 // HexToRGBA converts a hex color to an "rgba(r, g, b, a)" string.
 func HexToRGBA(hex string, alpha float64) string {
 	rgb := HexToRGB(hex)
-	return fmt.Sprintf("rgba(%d, %d, %d, %g)", int(rgb.R), int(rgb.G), int(rgb.B), alpha)
+	return fmt.Sprintf("rgba(%d, %d, %d, %g)", clampByte(rgb.R), clampByte(rgb.G), clampByte(rgb.B), alpha)
 }
