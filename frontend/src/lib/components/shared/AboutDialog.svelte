@@ -74,7 +74,8 @@
                     class="mx-auto mb-4 inline-block select-none text-left font-mono text-[13px] leading-[1.2]">{#each logoLines as line, i}{@const colors =
                             getLogoColors()}<span
                             style:color={colors[i % colors.length]}>{line}</span
-                        >{#if i < logoLines.length - 1}{/if}{/each}</pre>
+                        >
+                    {/each}</pre>
 
                 <h2 class="text-fg-primary mb-0.5 text-[15px] font-semibold">
                     Aether
