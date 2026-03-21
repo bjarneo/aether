@@ -19,13 +19,11 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 - 8 extraction modes: Normal, Monochromatic, Analogous, Pastel, Material, Colorful, Muted, and Bright
 - 12 fine-tuning sliders (vibrance, contrast, temperature, shadows, highlights, and more)
 - Light and dark mode toggle with automatic color anchor swapping
-- Batch processing for up to 10 wallpapers at once
 
 ### Wallpaper Tools
 - Search and download wallpapers from wallhaven.cc directly in the app
 - Full wallpaper editor with blur, exposure, sharpen, vignette, grain, and color toning
 - 12 one-click image presets: Cinematic, Vintage, Film, Dramatic, and more
-- Drag-and-drop, file picker, and local directory scanning
 
 ### Theme Library
 - 24 built-in color presets including Dracula, Nord, Gruvbox, Catppuccin, and Sakura
