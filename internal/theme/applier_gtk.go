@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"aether/internal/platform"
 )
@@ -11,7 +12,11 @@ import (
 // ApplyGTKTheme copies the generated gtk.css from gtkCSSPath to both
 // ~/.config/gtk-3.0/gtk.css and ~/.config/gtk-4.0/gtk.css, creating
 // backup files of any existing gtk.css before overwriting.
+// Only runs on Linux.
 func ApplyGTKTheme(gtkCSSPath string) error {
+	if runtime.GOOS != "linux" {
+		return nil
+	}
 	if !platform.FileExists(gtkCSSPath) {
 		log.Println("gtk.css not found in theme directory, skipping GTK theme application")
 		return nil

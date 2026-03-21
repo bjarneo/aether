@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"aether/internal/platform"
 )
@@ -11,7 +12,11 @@ import (
 // ApplyOmarchyTheme runs "omarchy-theme-set aether" to activate the theme.
 // If sync is true, it waits for the command to complete; otherwise it runs
 // asynchronously. It also attempts to restart xdg-desktop-portal-gtk.
+// Only runs on Linux.
 func ApplyOmarchyTheme(sync bool) error {
+	if runtime.GOOS != "linux" {
+		return nil
+	}
 	var err error
 	if sync {
 		_, err = platform.RunSync("omarchy-theme-set", "aether")
@@ -35,7 +40,11 @@ func ApplyOmarchyTheme(sync bool) error {
 }
 
 // IsOmarchyInstalled checks if omarchy-theme-set exists in PATH.
+// Always returns false on non-Linux platforms.
 func IsOmarchyInstalled() bool {
+	if runtime.GOOS != "linux" {
+		return false
+	}
 	_, err := platform.RunSync("which", "omarchy-theme-set")
 	return err == nil
 }
@@ -97,9 +106,9 @@ func CreateOmarchySymlink(themeDir string) error {
 
 // ApplyWallpaper creates the background symlink at
 // ~/.config/omarchy/current/background pointing to wallpaperPath, then
-// restarts swaybg. Only runs on Omarchy systems.
+// restarts swaybg. Only runs on Linux Omarchy systems.
 func ApplyWallpaper(wallpaperPath string) error {
-	if wallpaperPath == "" || !IsOmarchyInstalled() {
+	if runtime.GOOS != "linux" || wallpaperPath == "" || !IsOmarchyInstalled() {
 		return nil
 	}
 
@@ -131,6 +140,16 @@ func ApplyWallpaper(wallpaperPath string) error {
 // ClearTheme removes GTK CSS files, the theme override symlink and CSS,
 // and switches to the tokyo-night theme.
 func ClearTheme() error {
+	// Delete Aether override CSS file in theme dir (cross-platform)
+	overrideCss := filepath.Join(platform.ThemeDir(), "aether.override.css")
+	if err := platform.DeleteFile(overrideCss); err != nil {
+		log.Printf("Warning: could not delete theme override CSS: %v", err)
+	}
+
+	if runtime.GOOS != "linux" {
+		return nil
+	}
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -153,12 +172,6 @@ func ClearTheme() error {
 	overrideSymlink := filepath.Join(configDir, "aether", "theme.override.css")
 	if err := platform.DeleteFile(overrideSymlink); err != nil {
 		log.Printf("Warning: could not delete theme override symlink: %v", err)
-	}
-
-	// Delete Aether override CSS file in theme dir
-	overrideCss := filepath.Join(platform.ThemeDir(), "aether.override.css")
-	if err := platform.DeleteFile(overrideCss); err != nil {
-		log.Printf("Warning: could not delete theme override CSS: %v", err)
 	}
 
 	// Switch to tokyo-night theme

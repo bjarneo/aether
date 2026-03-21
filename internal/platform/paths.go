@@ -3,6 +3,7 @@ package platform
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 // ConfigDir returns ~/.config/aether.
@@ -23,10 +24,19 @@ func CacheDir() string {
 	return filepath.Join(dir, "aether")
 }
 
-// DataDir returns ~/.local/share/aether.
+// DataDir returns the platform-specific data directory for Aether.
+// Linux: ~/.local/share/aether (XDG)
+// macOS: ~/Library/Application Support/aether (via os.UserConfigDir)
 func DataDir() string {
 	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
 		return filepath.Join(xdg, "aether")
+	}
+	if runtime.GOOS == "darwin" {
+		// macOS: use ~/Library/Application Support
+		dir, err := os.UserConfigDir()
+		if err == nil {
+			return filepath.Join(dir, "aether", "data")
+		}
 	}
 	return filepath.Join(homeDir(), ".local", "share", "aether")
 }
@@ -95,10 +105,13 @@ func EnsureAllDirs() error {
 		ThemeDir(),
 		BlueprintDir(),
 		CustomDir(),
-		OmarchyThemeDir(),
 		DownloadDir(),
 		ThumbnailDir(),
 		ColorCacheDir(),
+	}
+	// Omarchy directories are Linux-only
+	if runtime.GOOS == "linux" {
+		dirs = append(dirs, OmarchyThemeDir())
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {
@@ -108,10 +121,13 @@ func EnsureAllDirs() error {
 	return nil
 }
 
-// homeDir returns the current user's home directory, falling back to /home/$USER.
+// homeDir returns the current user's home directory.
 func homeDir() string {
 	dir, err := os.UserHomeDir()
 	if err != nil {
+		if runtime.GOOS == "darwin" {
+			return filepath.Join("/Users", os.Getenv("USER"))
+		}
 		return filepath.Join("/home", os.Getenv("USER"))
 	}
 	return dir

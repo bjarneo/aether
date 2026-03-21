@@ -11,6 +11,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	wailslinux "github.com/wailsapp/wails/v2/pkg/options/linux"
+	wailsmac "github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //go:embed all:frontend/dist
@@ -76,6 +77,15 @@ func main() {
 		},
 		Linux: &wailslinux.Options{
 			ProgramName: "Aether",
+		},
+		Mac: &wailsmac.Options{
+			TitleBar:             wailsmac.TitleBarHiddenInset(),
+			WebviewIsTransparent: true,
+			WindowIsTranslucent:  true,
+			About: &wailsmac.AboutInfo{
+				Title:   "Aether",
+				Message: "Desktop Theming Application",
+			},
 		},
 	})
 
