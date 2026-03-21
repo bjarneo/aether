@@ -55,7 +55,7 @@
     }
 </script>
 
-<div class="mt-4">
+<div>
     <div class="mb-2 flex items-center justify-between">
         <h3
             class="text-fg-dimmed text-[10px] font-medium uppercase tracking-wider"

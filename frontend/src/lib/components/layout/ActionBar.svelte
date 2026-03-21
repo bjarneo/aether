@@ -8,6 +8,7 @@
         getLightMode,
         getAdditionalImages,
         getExtendedColors,
+        getAppOverrides,
         getAdjustments,
         setAdjustments,
         setAdjustedExtendedColors,
@@ -104,6 +105,7 @@
                 additionalImages: getAdditionalImages(),
                 extendedColors: getExtendedColors(),
                 settings: getSettings(),
+                appOverrides: getAppOverrides(),
             });
             if (result.success) {
                 // Apply light/dark mode to the app UI only after successful theme apply
@@ -188,6 +190,7 @@
                 additionalImages: getAdditionalImages(),
                 extendedColors: getExtendedColors(),
                 installToOmarchy,
+                appOverrides: getAppOverrides(),
             });
             showToast(
                 installToOmarchy
@@ -215,7 +218,8 @@
                 lightMode: getLightMode(),
                 additionalImages: getAdditionalImages(),
                 lockedColors: [],
-                extendedColors: {},
+                extendedColors: getExtendedColors(),
+                appOverrides: getAppOverrides(),
             });
             showToast(`Saved: ${saveName.trim()}`);
             showSaveDialog = false;

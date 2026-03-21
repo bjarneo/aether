@@ -14,6 +14,8 @@ let toastVisible = $state<boolean>(false);
 let colorPickerOpen = $state<boolean>(false);
 let colorPickerIndex = $state<number>(-1);
 let colorPickerExtKey = $state<string>(''); // non-empty = editing an extended color
+let colorPickerOverrideApp = $state<string>(''); // non-empty = editing an app override
+let colorPickerOverrideRole = $state<string>(''); // the color role being overridden
 
 // --- Getters ---
 export function getActiveTab(): Tab {
@@ -37,6 +39,12 @@ export function getColorPickerIndex(): number {
 export function getColorPickerExtKey(): string {
     return colorPickerExtKey;
 }
+export function getColorPickerOverrideApp(): string {
+    return colorPickerOverrideApp;
+}
+export function getColorPickerOverrideRole(): string {
+    return colorPickerOverrideRole;
+}
 
 // --- Actions ---
 export function setActiveTab(tab: Tab): void {
@@ -58,12 +66,24 @@ export function showToast(msg: string, duration = 3000): void {
 export function openColorPicker(index: number): void {
     colorPickerIndex = index;
     colorPickerExtKey = '';
+    colorPickerOverrideApp = '';
+    colorPickerOverrideRole = '';
     colorPickerOpen = true;
 }
 
 export function openExtendedColorPicker(key: string): void {
     colorPickerIndex = -1;
     colorPickerExtKey = key;
+    colorPickerOverrideApp = '';
+    colorPickerOverrideRole = '';
+    colorPickerOpen = true;
+}
+
+export function openOverrideColorPicker(app: string, role: string): void {
+    colorPickerIndex = -1;
+    colorPickerExtKey = '';
+    colorPickerOverrideApp = app;
+    colorPickerOverrideRole = role;
     colorPickerOpen = true;
 }
 
@@ -71,4 +91,6 @@ export function closeColorPicker(): void {
     colorPickerOpen = false;
     colorPickerIndex = -1;
     colorPickerExtKey = '';
+    colorPickerOverrideApp = '';
+    colorPickerOverrideRole = '';
 }

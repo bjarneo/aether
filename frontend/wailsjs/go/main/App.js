@@ -22,6 +22,10 @@ export function ClearTheme() {
     return window['go']['main']['App']['ClearTheme']();
 }
 
+export function ComputeVariables(arg1, arg2, arg3) {
+    return window['go']['main']['App']['ComputeVariables'](arg1, arg2, arg3);
+}
+
 export function ContrastRatio(arg1, arg2) {
     return window['go']['main']['App']['ContrastRatio'](arg1, arg2);
 }
@@ -60,6 +64,10 @@ export function GetFocusTab() {
 
 export function GetSettings() {
     return window['go']['main']['App']['GetSettings']();
+}
+
+export function GetTemplateColors() {
+    return window['go']['main']['App']['GetTemplateColors']();
 }
 
 export function GetThumbnail(arg1) {

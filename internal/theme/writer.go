@@ -43,6 +43,11 @@ func getAppNameFromFileName(fileName string) string {
 	return parts[0]
 }
 
+// GetAppNameFromFileName is the exported variant of getAppNameFromFileName.
+func GetAppNameFromFileName(fileName string) string {
+	return getAppNameFromFileName(fileName)
+}
+
 // Settings holds the toggles that control which optional templates are
 // processed and applied.
 type Settings struct {
@@ -303,6 +308,10 @@ func (w *Writer) processTemplate(
 		for k, v := range overrides {
 			mergedVars[k] = v
 		}
+		// Recompute derived/alias variables so overriding "background"
+		// also updates "bg", "dark_bg", etc. Pass the override keys
+		// so explicitly overridden derived vars are preserved.
+		template.RecomputeDerived(mergedVars, overrides)
 		log.Printf("Applied %d override(s) to %s", len(overrides), fileName)
 	}
 

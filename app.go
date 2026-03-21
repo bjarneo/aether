@@ -97,18 +97,55 @@ func (a *App) SetExtractionMode(mode string) {
 	a.state.ExtractionMode = mode
 }
 
+// ComputeVariables builds the full template variable map from the given
+// palette and extended colors. Returns all base + derived color values.
+func (a *App) ComputeVariables(paletteSlice []string, extendedColors map[string]string, lightMode bool) map[string]string {
+	var palette [16]string
+	for i := 0; i < 16 && i < len(paletteSlice); i++ {
+		palette[i] = paletteSlice[i]
+	}
+
+	accent, cursor, selFg, selBg := palette[4], palette[7], palette[0], palette[7]
+	if v := extendedColors["accent"]; v != "" {
+		accent = v
+	}
+	if v := extendedColors["cursor"]; v != "" {
+		cursor = v
+	}
+	if v := extendedColors["selection_foreground"]; v != "" {
+		selFg = v
+	}
+	if v := extendedColors["selection_background"]; v != "" {
+		selBg = v
+	}
+
+	roles := template.ColorRoles{
+		Background: palette[0], Foreground: palette[7],
+		Black: palette[0], Red: palette[1], Green: palette[2], Yellow: palette[3],
+		Blue: palette[4], Magenta: palette[5], Cyan: palette[6], White: palette[7],
+		BrightBlack: palette[8], BrightRed: palette[9], BrightGreen: palette[10],
+		BrightYellow: palette[11], BrightBlue: palette[12], BrightMagenta: palette[13],
+		BrightCyan: palette[14], BrightWhite: palette[15],
+		Accent: accent, Cursor: cursor,
+		SelectionForeground: selFg, SelectionBackground: selBg,
+	}
+
+	return template.BuildVariables(roles, lightMode)
+}
+
 // ---------------------------------------------------------------------------
 // Theme Application
 // ---------------------------------------------------------------------------
 
 // ApplyThemeRequest is the payload from the frontend containing all current state.
 type ApplyThemeRequest struct {
-	Palette          []string          `json:"palette"`
-	WallpaperPath    string            `json:"wallpaperPath"`
-	LightMode        bool              `json:"lightMode"`
-	AdditionalImages []string          `json:"additionalImages"`
-	ExtendedColors   map[string]string `json:"extendedColors"`
-	Settings         theme.Settings    `json:"settings"`
+	Palette          []string                     `json:"palette"`
+	WallpaperPath    string                       `json:"wallpaperPath"`
+	LightMode        bool                         `json:"lightMode"`
+	AdditionalImages []string                     `json:"additionalImages"`
+	ExtendedColors   map[string]string            `json:"extendedColors"`
+	Settings         theme.Settings               `json:"settings"`
+	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 }
 
 // ApplyTheme processes all templates and applies the theme to the system.
@@ -147,12 +184,18 @@ func (a *App) ApplyTheme(req ApplyThemeRequest) (*theme.ApplyResult, error) {
 		SelectionForeground: selFg, SelectionBackground: selBg,
 	}
 
+	appOverrides := req.AppOverrides
+	if appOverrides == nil {
+		appOverrides = make(map[string]map[string]string)
+	}
+
 	state := &theme.ThemeState{
 		Palette:          palette,
 		WallpaperPath:    req.WallpaperPath,
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
 		AdditionalImages: req.AdditionalImages,
+		AppOverrides:     appOverrides,
 	}
 
 	return a.writer.ApplyTheme(state, req.Settings)
@@ -192,13 +235,14 @@ func (a *App) ListBlueprints() ([]map[string]interface{}, error) {
 // SaveBlueprint saves the current state as a named blueprint.
 // SaveBlueprintRequest contains all state needed to save a blueprint.
 type SaveBlueprintRequest struct {
-	Name             string            `json:"name"`
-	Palette          []string          `json:"palette"`
-	WallpaperPath    string            `json:"wallpaperPath"`
-	LightMode        bool              `json:"lightMode"`
-	AdditionalImages []string          `json:"additionalImages"`
-	LockedColors     []int             `json:"lockedColors"`
-	ExtendedColors   map[string]string `json:"extendedColors"`
+	Name             string                       `json:"name"`
+	Palette          []string                     `json:"palette"`
+	WallpaperPath    string                       `json:"wallpaperPath"`
+	LightMode        bool                         `json:"lightMode"`
+	AdditionalImages []string                     `json:"additionalImages"`
+	LockedColors     []int                        `json:"lockedColors"`
+	ExtendedColors   map[string]string            `json:"extendedColors"`
+	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 }
 
 func (a *App) SaveBlueprint(req SaveBlueprintRequest) error {
@@ -211,6 +255,7 @@ func (a *App) SaveBlueprint(req SaveBlueprintRequest) error {
 			LockedColors:     req.LockedColors,
 			ExtendedColors:   req.ExtendedColors,
 		},
+		AppOverrides: req.AppOverrides,
 	}
 	return a.blueprints.Save(req.Name, bp)
 }
@@ -510,14 +555,15 @@ func (a *App) HandleDroppedFiles(paths []string) (string, error) {
 
 // ExportThemeRequest is the payload from the frontend for exporting a theme.
 type ExportThemeRequest struct {
-	Name             string            `json:"name"`
-	IncludedApps     []string          `json:"includedApps"`
-	Palette          []string          `json:"palette"`
-	WallpaperPath    string            `json:"wallpaperPath"`
-	LightMode        bool              `json:"lightMode"`
-	AdditionalImages []string          `json:"additionalImages"`
-	ExtendedColors   map[string]string `json:"extendedColors"`
-	InstallToOmarchy bool              `json:"installToOmarchy"`
+	Name             string                       `json:"name"`
+	IncludedApps     []string                     `json:"includedApps"`
+	Palette          []string                     `json:"palette"`
+	WallpaperPath    string                       `json:"wallpaperPath"`
+	LightMode        bool                         `json:"lightMode"`
+	AdditionalImages []string                     `json:"additionalImages"`
+	ExtendedColors   map[string]string            `json:"extendedColors"`
+	InstallToOmarchy bool                         `json:"installToOmarchy"`
+	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 }
 
 // allExportableApps is the full set of app names that can be exported.
@@ -572,12 +618,18 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 		SelectionForeground: selFg, SelectionBackground: selBg,
 	}
 
+	exportOverrides := req.AppOverrides
+	if exportOverrides == nil {
+		exportOverrides = make(map[string]map[string]string)
+	}
+
 	state := &theme.ThemeState{
 		Palette:          palette,
 		WallpaperPath:    req.WallpaperPath,
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
 		AdditionalImages: req.AdditionalImages,
+		AppOverrides:     exportOverrides,
 	}
 
 	// Build included set from the request
@@ -712,6 +764,65 @@ func (a *App) importFile(path, fileType string) (*ImportResult, error) {
 		Name:   bp.Name,
 		Path:   savedPath,
 	}, nil
+}
+
+// GetTemplateColors returns the color variable names used in each app template.
+// The result maps app name -> list of color variable names (only overridable color roles).
+func (a *App) GetTemplateColors() map[string][]string {
+	// The set of color variable names that are overridable.
+	// Includes base roles, aliases (bg/fg), and derived shades.
+	colorVars := map[string]bool{
+		"background": true, "foreground": true,
+		"bg": true, "fg": true,
+		"black": true, "red": true, "green": true, "yellow": true,
+		"blue": true, "magenta": true, "cyan": true, "white": true,
+		"bright_black": true, "bright_red": true, "bright_green": true, "bright_yellow": true,
+		"bright_blue": true, "bright_magenta": true, "bright_cyan": true, "bright_white": true,
+		"accent": true, "cursor": true, "selection_foreground": true, "selection_background": true,
+		"dark_bg": true, "darker_bg": true, "lighter_bg": true,
+		"dark_fg": true, "light_fg": true, "bright_fg": true,
+		"muted": true, "orange": true, "brown": true, "purple": true, "bright_purple": true,
+		"selection": true,
+	}
+
+	// Collect unique color vars per app (multiple files may map to the same app)
+	appColorSets := make(map[string]map[string]bool)
+	files, err := template.ListTemplates(EmbeddedTemplates, "templates")
+	if err != nil {
+		return make(map[string][]string)
+	}
+
+	for _, f := range files {
+		content, err := template.ReadTemplate(EmbeddedTemplates, "templates", f)
+		if err != nil {
+			continue
+		}
+		appName := theme.GetAppNameFromFileName(f)
+		vars := template.ExtractVariableNames(content)
+		if appColorSets[appName] == nil {
+			appColorSets[appName] = make(map[string]bool)
+		}
+		for _, v := range vars {
+			if colorVars[v] {
+				appColorSets[appName][v] = true
+			}
+		}
+	}
+
+	// Aether's own templates are internal and should not be user-overridable
+	delete(appColorSets, "aether")
+
+	result := make(map[string][]string, len(appColorSets))
+	for app, colorSet := range appColorSets {
+		colors := make([]string, 0, len(colorSet))
+		for v := range colorSet {
+			colors = append(colors, v)
+		}
+		if len(colors) > 0 {
+			result[app] = colors
+		}
+	}
+	return result
 }
 
 // ResetState resets the theme state to defaults.

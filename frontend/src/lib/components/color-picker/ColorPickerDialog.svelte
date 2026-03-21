@@ -3,6 +3,8 @@
         getColorPickerOpen,
         getColorPickerIndex,
         getColorPickerExtKey,
+        getColorPickerOverrideApp,
+        getColorPickerOverrideRole,
         closeColorPicker,
     } from '$lib/stores/ui.svelte';
     import {
@@ -12,6 +14,9 @@
         setLockedColor,
         getExtendedColors,
         setExtendedColor,
+        getAppOverrides,
+        setAppOverride,
+        removeAppOverride,
     } from '$lib/stores/theme.svelte';
     import {
         ANSI_COLOR_NAMES,
@@ -20,29 +25,108 @@
     import {hexToRgb, rgbToHex} from '$lib/utils/color';
     import ShadeGrid from './ShadeGrid.svelte';
 
+    // Color role label map for override mode
+    const ROLE_LABELS: Record<string, string> = {
+        background: 'Background',
+        foreground: 'Foreground',
+        bg: 'Background',
+        fg: 'Foreground',
+        black: 'Black',
+        red: 'Red',
+        green: 'Green',
+        yellow: 'Yellow',
+        blue: 'Blue',
+        magenta: 'Magenta',
+        cyan: 'Cyan',
+        white: 'White',
+        bright_black: 'Bright Black',
+        bright_red: 'Bright Red',
+        bright_green: 'Bright Green',
+        bright_yellow: 'Bright Yellow',
+        bright_blue: 'Bright Blue',
+        bright_magenta: 'Bright Magenta',
+        bright_cyan: 'Bright Cyan',
+        bright_white: 'Bright White',
+        accent: 'Accent',
+        cursor: 'Cursor',
+        selection_foreground: 'Selection FG',
+        selection_background: 'Selection BG',
+        dark_bg: 'Dark BG',
+        darker_bg: 'Darker BG',
+        lighter_bg: 'Lighter BG',
+        dark_fg: 'Dark FG',
+        light_fg: 'Light FG',
+        bright_fg: 'Bright FG',
+        muted: 'Muted',
+        orange: 'Orange',
+        brown: 'Brown',
+        purple: 'Purple',
+        bright_purple: 'Bright Purple',
+        selection: 'Selection',
+    };
+
     let open = $derived(getColorPickerOpen());
     let idx = $derived(getColorPickerIndex());
     let extKey = $derived(getColorPickerExtKey());
+    let overrideApp = $derived(getColorPickerOverrideApp());
+    let overrideRole = $derived(getColorPickerOverrideRole());
     let isExtended = $derived(extKey !== '');
+    let isOverride = $derived(overrideApp !== '' && overrideRole !== '');
+
+    // For override mode: get the override value and computed base color
+    let overrideValue = $derived(
+        isOverride ? getAppOverrides()[overrideApp]?.[overrideRole] || '' : ''
+    );
+
+    // Computed variables from the backend (includes derived colors)
+    let computedVars = $state<Record<string, string>>({});
+
+    $effect(() => {
+        if (open && isOverride) {
+            import('../../../../wailsjs/go/main/App')
+                .then(({ComputeVariables}) =>
+                    ComputeVariables(
+                        getPalette(),
+                        getExtendedColors(),
+                        false
+                    ).then(result => {
+                        computedVars = result || {};
+                    })
+                )
+                .catch(() => {});
+        }
+    });
+
+    function getOverrideBaseColor(): string {
+        return computedVars[overrideRole] || '#000000';
+    }
 
     let currentColor = $derived(
         open
-            ? isExtended
-                ? getExtendedColors()[extKey] || '#000000'
-                : getPalette()[idx] || '#000000'
+            ? isOverride
+                ? overrideValue || getOverrideBaseColor()
+                : isExtended
+                  ? getExtendedColors()[extKey] || '#000000'
+                  : getPalette()[idx] || '#000000'
             : '#000000'
     );
 
     let locked = $derived(
-        open && !isExtended ? getLockedColors()[idx] || false : false
+        open && !isExtended && !isOverride
+            ? getLockedColors()[idx] || false
+            : false
     );
 
     let title = $derived(
-        isExtended
-            ? EXTENDED_COLOR_LABELS[extKey] || extKey
-            : ANSI_COLOR_NAMES[idx] || ''
+        isOverride
+            ? ROLE_LABELS[overrideRole] || overrideRole
+            : isExtended
+              ? EXTENDED_COLOR_LABELS[extKey] || extKey
+              : ANSI_COLOR_NAMES[idx] || ''
     );
-    let subtitle = $derived(isExtended ? 'Extended' : `#${idx}`);
+    let subtitle = $derived(
+        isOverride ? overrideApp : isExtended ? 'Extended' : `#${idx}`
+    );
 
     let hexInput = $state('');
     let isValid = $state(true);
@@ -59,7 +143,8 @@
         if (locked) return;
         hexInput = hex;
         isValid = true;
-        if (isExtended) setExtendedColor(extKey, hex);
+        if (isOverride) setAppOverride(overrideApp, overrideRole, hex);
+        else if (isExtended) setExtendedColor(extKey, hex);
         else setColor(idx, hex);
     }
 
@@ -68,7 +153,9 @@
         if (/^#[0-9a-fA-F]{6}$/.test(value)) {
             isValid = true;
             if (!locked) {
-                if (isExtended) setExtendedColor(extKey, value);
+                if (isOverride)
+                    setAppOverride(overrideApp, overrideRole, value);
+                else if (isExtended) setExtendedColor(extKey, value);
                 else setColor(idx, value);
             }
         } else {
@@ -83,7 +170,14 @@
     }
 
     function toggleLock() {
-        if (!isExtended) setLockedColor(idx, !locked);
+        if (!isExtended && !isOverride) setLockedColor(idx, !locked);
+    }
+
+    function handleResetOverride() {
+        if (isOverride) {
+            removeAppOverride(overrideApp, overrideRole);
+            closeColorPicker();
+        }
     }
 
     $effect(() => {
@@ -129,21 +223,31 @@
                         >{subtitle}</span
                     >
                 </div>
-                <button
-                    class="text-fg-dimmed hover:text-fg-primary flex h-6 w-6 items-center justify-center transition-colors"
-                    onclick={closeColorPicker}
-                >
-                    <svg
-                        class="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
+                <div class="flex items-center gap-2">
+                    {#if isOverride && overrideValue}
+                        <button
+                            class="text-destructive/60 hover:text-destructive text-[10px] transition-colors"
+                            onclick={handleResetOverride}
+                        >
+                            Reset
+                        </button>
+                    {/if}
+                    <button
+                        class="text-fg-dimmed hover:text-fg-primary flex h-6 w-6 items-center justify-center transition-colors"
+                        onclick={closeColorPicker}
                     >
-                        <path d="M18 6L6 18M6 6l12 12"></path>
-                    </svg>
-                </button>
+                        <svg
+                            class="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        >
+                            <path d="M18 6L6 18M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <div class="space-y-4 p-4">
@@ -178,6 +282,7 @@
                   {isValid
                                     ? 'focus:border-accent border-[rgba(255,255,255,0.08)]'
                                     : 'border-destructive'}"
+                                data-color-hex-input
                                 value={hexInput}
                                 oninput={e =>
                                     handleHexInput(e.currentTarget.value)}
@@ -186,7 +291,7 @@
                                 disabled={locked}
                             />
                         </div>
-                        {#if !isExtended}
+                        {#if !isExtended && !isOverride}
                             <div class="mt-2 flex items-center justify-between">
                                 <span class="text-fg-dimmed text-[10px]"
                                     >Locked</span

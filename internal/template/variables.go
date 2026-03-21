@@ -133,3 +133,36 @@ func BuildVariables(roles ColorRoles, lightMode bool) map[string]string {
 
 	return vars
 }
+
+// RecomputeDerived recalculates alias and derived variables from the current
+// base values in vars. Call this after applying per-app overrides so that
+// overriding e.g. "background" also updates "bg", "dark_bg", etc.
+// Variables that are explicitly present in overrides are preserved as-is.
+func RecomputeDerived(vars map[string]string, overrides map[string]string) {
+	set := func(key, value string) {
+		if _, explicit := overrides[key]; !explicit {
+			vars[key] = value
+		}
+	}
+
+	set("bg", vars["background"])
+	set("fg", vars["foreground"])
+	set("dark_bg", color.DarkenRGB(vars["background"], 75))
+	set("darker_bg", color.DarkenRGB(vars["background"], 50))
+	set("lighter_bg", color.LightenRGB(vars["background"], 10))
+	set("dark_fg", color.DarkenRGB(vars["foreground"], 75))
+	set("light_fg", color.LightenRGB(vars["foreground"], 15))
+	set("bright_fg", color.LightenRGB(vars["foreground"], 25))
+	set("muted", vars["bright_black"])
+	set("purple", vars["magenta"])
+	set("bright_purple", vars["bright_magenta"])
+	orange := color.LightenRGB(vars["red"], 15)
+	set("orange", orange)
+	set("brown", color.DarkenRGB(orange, 60))
+	set("selection", vars["selection_background"])
+
+	for i, name := range semanticOrder {
+		key := fmt.Sprintf("color%d", i)
+		set(key, vars[name])
+	}
+}

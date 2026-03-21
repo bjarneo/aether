@@ -62,6 +62,7 @@ export namespace main {
         additionalImages: string[];
         extendedColors: Record<string, string>;
         settings: theme.Settings;
+        appOverrides: Record<string, any>;
 
         static createFrom(source: any = {}) {
             return new ApplyThemeRequest(source);
@@ -78,6 +79,7 @@ export namespace main {
                 source['settings'],
                 theme.Settings
             );
+            this.appOverrides = source['appOverrides'];
         }
 
         convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -109,6 +111,7 @@ export namespace main {
         additionalImages: string[];
         extendedColors: Record<string, string>;
         installToOmarchy: boolean;
+        appOverrides: Record<string, any>;
 
         static createFrom(source: any = {}) {
             return new ExportThemeRequest(source);
@@ -124,6 +127,7 @@ export namespace main {
             this.additionalImages = source['additionalImages'];
             this.extendedColors = source['extendedColors'];
             this.installToOmarchy = source['installToOmarchy'];
+            this.appOverrides = source['appOverrides'];
         }
     }
     export class ImportResult {
@@ -150,6 +154,7 @@ export namespace main {
         additionalImages: string[];
         lockedColors: number[];
         extendedColors: Record<string, string>;
+        appOverrides: Record<string, any>;
 
         static createFrom(source: any = {}) {
             return new SaveBlueprintRequest(source);
@@ -164,6 +169,7 @@ export namespace main {
             this.additionalImages = source['additionalImages'];
             this.lockedColors = source['lockedColors'];
             this.extendedColors = source['extendedColors'];
+            this.appOverrides = source['appOverrides'];
         }
     }
 }

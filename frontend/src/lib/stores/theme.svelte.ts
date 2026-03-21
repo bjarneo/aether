@@ -19,6 +19,7 @@ let extractionMode = $state<string>('normal');
 let isExtracting = $state<boolean>(false);
 let isApplying = $state<boolean>(false);
 let additionalImages = $state<string[]>([]);
+let appOverrides = $state<Record<string, Record<string, string>>>({});
 
 // Extended colors — independent from palette, initialized from palette on extract/load
 let extendedColors = $state<Record<string, string>>({
@@ -125,6 +126,27 @@ export function getExtendedColors(): Record<string, string> {
 }
 export function getBaseExtendedColors(): Record<string, string> {
     return baseExtendedColors;
+}
+export function getAppOverrides(): Record<string, Record<string, string>> {
+    return appOverrides;
+}
+export function setAppOverride(app: string, role: string, hex: string): void {
+    const current = appOverrides[app] || {};
+    appOverrides = {...appOverrides, [app]: {...current, [role]: hex}};
+}
+export function removeAppOverride(app: string, role: string): void {
+    if (!appOverrides[app]) return;
+    const {[role]: _, ...rest} = appOverrides[app];
+    if (Object.keys(rest).length === 0) {
+        const {[app]: __, ...remaining} = appOverrides;
+        appOverrides = remaining;
+    } else {
+        appOverrides = {...appOverrides, [app]: rest};
+    }
+}
+export function clearAppOverridesForApp(app: string): void {
+    const {[app]: _, ...remaining} = appOverrides;
+    appOverrides = remaining;
 }
 
 // --- Setters ---
@@ -284,4 +306,5 @@ export function reset(): void {
     };
     extendedColors = {...ext};
     baseExtendedColors = {...ext};
+    appOverrides = {};
 }

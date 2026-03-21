@@ -23,6 +23,12 @@ export function CancelBatchProcessing(): Promise<void>;
 
 export function ClearTheme(): Promise<void>;
 
+export function ComputeVariables(
+    arg1: Array<string>,
+    arg2: Record<string, string>,
+    arg3: boolean
+): Promise<Record<string, string>>;
+
 export function ContrastRatio(arg1: string, arg2: string): Promise<number>;
 
 export function DeleteBlueprint(arg1: string): Promise<void>;
@@ -46,6 +52,8 @@ export function GetFavorites(): Promise<Array<favorites.Favorite>>;
 export function GetFocusTab(): Promise<string>;
 
 export function GetSettings(): Promise<Record<string, any>>;
+
+export function GetTemplateColors(): Promise<Record<string, Array<string>>>;
 
 export function GetThumbnail(arg1: string): Promise<string>;
 

@@ -5,6 +5,8 @@
         getWallpaperPath,
         getLightMode,
         getAdditionalImages,
+        getExtendedColors,
+        getAppOverrides,
     } from '$lib/stores/theme.svelte';
 
     let {onclose, onsave}: {onclose: () => void; onsave: () => void} = $props();
@@ -25,7 +27,8 @@
                 lightMode: getLightMode(),
                 additionalImages: getAdditionalImages(),
                 lockedColors: [],
-                extendedColors: {},
+                extendedColors: getExtendedColors(),
+                appOverrides: getAppOverrides(),
             });
             showToast(`Saved: ${name.trim()}`);
             onsave();

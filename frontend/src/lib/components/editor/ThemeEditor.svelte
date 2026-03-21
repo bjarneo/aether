@@ -4,6 +4,7 @@
     import ColorPaletteGrid from './ColorPaletteGrid.svelte';
     import HeroEmptyState from './HeroEmptyState.svelte';
     import ExtendedColors from './ExtendedColors.svelte';
+    import AppColorOverrides from './AppColorOverrides.svelte';
     import AdditionalImages from './AdditionalImages.svelte';
     import SettingsSidebar from '../sidebar/SettingsSidebar.svelte';
     import WallpaperEditor from '../wallpaper-editor/WallpaperEditor.svelte';
@@ -34,7 +35,14 @@
                 <ColorPaletteGrid />
             </div>
             <ExtendedColors />
-            <AdditionalImages />
+            <div class="mt-4 flex flex-col gap-4 sm:flex-row">
+                <div class="min-w-0 flex-1">
+                    <AppColorOverrides />
+                </div>
+                <div class="min-w-0 flex-1">
+                    <AdditionalImages />
+                </div>
+            </div>
         {:else}
             <HeroEmptyState />
         {/if}

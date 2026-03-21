@@ -67,3 +67,22 @@ func ProcessTemplate(templateContent string, variables map[string]string) string
 	}
 	return result
 }
+
+// variablePattern matches {key}, {key.strip}, {key.rgb}, {key.rgba}, {key.rgba:N}, and {key.yaru}.
+var variablePattern = regexp.MustCompile(`\{(\w+)(?:\.\w+(?::[^}]*)?)?\}`)
+
+// ExtractVariableNames returns the deduplicated set of base variable names
+// referenced in a template string (e.g., "background", "red", "accent").
+func ExtractVariableNames(templateContent string) []string {
+	matches := variablePattern.FindAllStringSubmatch(templateContent, -1)
+	seen := make(map[string]bool, len(matches))
+	var names []string
+	for _, m := range matches {
+		name := m[1]
+		if !seen[name] {
+			seen[name] = true
+			names = append(names, name)
+		}
+	}
+	return names
+}

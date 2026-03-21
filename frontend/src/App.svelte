@@ -17,6 +17,8 @@
         getColorPickerOpen,
         getColorPickerIndex,
         getColorPickerExtKey,
+        getColorPickerOverrideApp,
+        getColorPickerOverrideRole,
     } from '$lib/stores/ui.svelte';
     import {
         getIsApplying,
@@ -27,12 +29,14 @@
         getLightMode,
         getAdditionalImages,
         getExtendedColors,
+        getAppOverrides,
         getAdjustments,
         setAdjustments,
         setPalette,
         setAdjustedExtendedColors,
         setColor,
         setExtendedColor,
+        setAppOverride,
     } from '$lib/stores/theme.svelte';
     import {getSettings} from '$lib/stores/settings.svelte';
     import {
@@ -104,6 +108,7 @@
                     additionalImages: getAdditionalImages(),
                     extendedColors: getExtendedColors(),
                     settings: getSettings(),
+                    appOverrides: getAppOverrides(),
                 });
                 if (result.success) showToast('Theme applied');
             } catch {
@@ -118,13 +123,14 @@
             showToast('Use the Blueprints tab to save');
         });
 
-        // Shift+C - Copy hex from active swatch
+        // Shift+C - Copy hex from active color picker
         registerShortcut('shift+c', () => {
             if (!getColorPickerOpen()) return;
-            const extKey = getColorPickerExtKey();
-            const hex = extKey
-                ? getExtendedColors()[extKey] || ''
-                : getPalette()[getColorPickerIndex()] || '';
+            // Read the hex value straight from the picker's input field
+            const input = document.querySelector<HTMLInputElement>(
+                '[data-color-hex-input]'
+            );
+            const hex = input?.value || '';
             if (hex) {
                 navigator.clipboard.writeText(hex).then(() => {
                     showToast(`Copied ${hex}`);
@@ -136,13 +142,21 @@
         registerShortcut('shift+v', () => {
             if (!getColorPickerOpen()) return;
             navigator.clipboard.readText().then(text => {
-                const hex = text.trim();
+                let hex = text.trim();
+                // Accept with or without # prefix
+                if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+                    hex = '#' + hex;
+                }
                 if (!/^#[0-9a-fA-F]{6}$/.test(hex)) {
                     showToast('Clipboard is not a valid hex color');
                     return;
                 }
+                const overrideApp = getColorPickerOverrideApp();
+                const overrideRole = getColorPickerOverrideRole();
                 const extKey = getColorPickerExtKey();
-                if (extKey) {
+                if (overrideApp && overrideRole) {
+                    setAppOverride(overrideApp, overrideRole, hex);
+                } else if (extKey) {
                     setExtendedColor(extKey, hex);
                 } else {
                     setColor(getColorPickerIndex(), hex);
