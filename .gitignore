@@ -4,3 +4,4 @@ node_modules/
 /blueprints/
 temp/
 build/bin/
+frontend/dist/

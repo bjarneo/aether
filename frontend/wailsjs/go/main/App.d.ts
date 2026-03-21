@@ -59,6 +59,8 @@ export function ImportFileDialog(arg1: string): Promise<main.ImportResult>;
 
 export function IsFavorite(arg1: string): Promise<boolean>;
 
+export function IsOmarchyInstalled(): Promise<boolean>;
+
 export function IsWidgetMode(): Promise<boolean>;
 
 export function ListBlueprints(): Promise<Array<Record<string, any>>>;

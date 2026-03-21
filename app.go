@@ -382,6 +382,11 @@ func (a *App) LoadOmarchyThemes() ([]omarchy.Theme, error) {
 	return omarchy.LoadAllThemes()
 }
 
+// IsOmarchyInstalled returns true if the current system has Omarchy.
+func (a *App) IsOmarchyInstalled() bool {
+	return theme.IsOmarchyInstalled()
+}
+
 // ---------------------------------------------------------------------------
 // Batch Processing
 // ---------------------------------------------------------------------------
@@ -512,6 +517,7 @@ type ExportThemeRequest struct {
 	LightMode        bool              `json:"lightMode"`
 	AdditionalImages []string          `json:"additionalImages"`
 	ExtendedColors   map[string]string `json:"extendedColors"`
+	InstallToOmarchy bool              `json:"installToOmarchy"`
 }
 
 // allExportableApps is the full set of app names that can be exported.
@@ -600,6 +606,16 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	if err := a.writer.GenerateOnly(state, settings, exportDir); err != nil {
 		return "", fmt.Errorf("export failed: %w", err)
 	}
+
+	if req.InstallToOmarchy && theme.IsOmarchyInstalled() {
+		linkPath := filepath.Join(platform.OmarchyThemesDir(), req.Name)
+		if err := platform.CreateSymlink(exportDir, linkPath); err != nil {
+			log.Printf("Warning: could not symlink to omarchy themes: %v", err)
+		} else {
+			log.Printf("Installed as omarchy theme: %s -> %s", linkPath, exportDir)
+		}
+	}
+
 	return exportDir, nil
 }
 

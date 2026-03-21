@@ -108,6 +108,7 @@ export namespace main {
         lightMode: boolean;
         additionalImages: string[];
         extendedColors: Record<string, string>;
+        installToOmarchy: boolean;
 
         static createFrom(source: any = {}) {
             return new ExportThemeRequest(source);
@@ -122,6 +123,7 @@ export namespace main {
             this.lightMode = source['lightMode'];
             this.additionalImages = source['additionalImages'];
             this.extendedColors = source['extendedColors'];
+            this.installToOmarchy = source['installToOmarchy'];
         }
     }
     export class ImportResult {

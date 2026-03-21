@@ -30,6 +30,8 @@
     let showSaveDialog = $state(false);
     let exportName = $state('');
     let saveName = $state('');
+    let installToOmarchy = $state(false);
+    let isOmarchy = $state(false);
 
     const exportAppGroups = [
         {
@@ -185,10 +187,16 @@
                 lightMode: getLightMode(),
                 additionalImages: getAdditionalImages(),
                 extendedColors: getExtendedColors(),
+                installToOmarchy,
             });
-            showToast(`Exported to ${path}`);
+            showToast(
+                installToOmarchy
+                    ? `Exported and installed as Omarchy theme`
+                    : `Exported to ${path}`
+            );
             showExportDialog = false;
             exportName = '';
+            installToOmarchy = false;
         } catch (e: any) {
             showToast(e?.message || 'Export failed');
         }
@@ -246,7 +254,17 @@
     <div class="flex items-center gap-1">
         <button
             class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-            onclick={() => (showExportDialog = true)}>Export</button
+            onclick={async () => {
+                showExportDialog = true;
+                try {
+                    const {IsOmarchyInstalled} = await import(
+                        '../../../../wailsjs/go/main/App'
+                    );
+                    isOmarchy = await IsOmarchyInstalled();
+                } catch {
+                    isOmarchy = false;
+                }
+            }}>Export</button
         >
 
         <button
@@ -376,6 +394,18 @@
                     </div>
                 {/each}
             </div>
+            {#if isOmarchy}
+                <label
+                    class="text-fg-secondary mb-3 flex cursor-pointer items-center gap-1.5 text-[11px]"
+                >
+                    <input
+                        type="checkbox"
+                        bind:checked={installToOmarchy}
+                        class="accent-accent"
+                    />
+                    Install as Omarchy theme
+                </label>
+            {/if}
             <div class="flex justify-end gap-2">
                 <button
                     class="text-fg-dimmed hover:text-fg-secondary px-3 py-1 text-[11px]"

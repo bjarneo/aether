@@ -86,6 +86,10 @@ export function IsFavorite(arg1) {
     return window['go']['main']['App']['IsFavorite'](arg1);
 }
 
+export function IsOmarchyInstalled() {
+    return window['go']['main']['App']['IsOmarchyInstalled']();
+}
+
 export function IsWidgetMode() {
     return window['go']['main']['App']['IsWidgetMode']();
 }
