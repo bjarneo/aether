@@ -54,7 +54,7 @@
           : 'hover:border-accent cursor-pointer border-[rgba(255,255,255,0.06)] hover:z-10 hover:scale-[1.04] hover:shadow-lg'}"
     style:background-color={color}
     onclick={handleClick}
-    title={`${label}\n${color}\nCtrl+click to copy · Shift+click to select`}
+    title={`${label}\n${color}\nCtrl+click to copy · Shift+click to select\nShift+C copy · Shift+V paste (when open)`}
 >
     {#if selected}
         <span

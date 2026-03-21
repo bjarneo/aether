@@ -15,6 +15,8 @@
         showToast,
         closeColorPicker,
         getColorPickerOpen,
+        getColorPickerIndex,
+        getColorPickerExtKey,
     } from '$lib/stores/ui.svelte';
     import {
         getIsApplying,
@@ -29,6 +31,8 @@
         setAdjustments,
         setPalette,
         setAdjustedExtendedColors,
+        setColor,
+        setExtendedColor,
     } from '$lib/stores/theme.svelte';
     import {getSettings} from '$lib/stores/settings.svelte';
     import {
@@ -41,9 +45,11 @@
     import Toast from '$lib/components/shared/Toast.svelte';
     import ColorPickerDialog from '$lib/components/color-picker/ColorPickerDialog.svelte';
     import AboutDialog from '$lib/components/shared/AboutDialog.svelte';
+    import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
 
     let showAbout = $state(false);
+    let showKeymap = $state(false);
     let activeTab = $derived(getActiveTab());
     let widgetMode = $state(false);
 
@@ -112,9 +118,48 @@
             showToast('Use the Blueprints tab to save');
         });
 
+        // Shift+C - Copy hex from active swatch
+        registerShortcut('shift+c', () => {
+            if (!getColorPickerOpen()) return;
+            const extKey = getColorPickerExtKey();
+            const hex = extKey
+                ? getExtendedColors()[extKey] || ''
+                : getPalette()[getColorPickerIndex()] || '';
+            if (hex) {
+                navigator.clipboard.writeText(hex).then(() => {
+                    showToast(`Copied ${hex}`);
+                });
+            }
+        });
+
+        // Shift+V - Paste hex into active swatch
+        registerShortcut('shift+v', () => {
+            if (!getColorPickerOpen()) return;
+            navigator.clipboard.readText().then(text => {
+                const hex = text.trim();
+                if (!/^#[0-9a-fA-F]{6}$/.test(hex)) {
+                    showToast('Clipboard is not a valid hex color');
+                    return;
+                }
+                const extKey = getColorPickerExtKey();
+                if (extKey) {
+                    setExtendedColor(extKey, hex);
+                } else {
+                    setColor(getColorPickerIndex(), hex);
+                }
+                showToast(`Pasted ${hex}`);
+            });
+        });
+
+        // Ctrl+K - Show keymap
+        registerShortcut('ctrl+k', () => {
+            showKeymap = !showKeymap;
+        });
+
         // Escape - Close modals
         registerShortcut('escape', () => {
             if (getColorPickerOpen()) closeColorPicker();
+            else if (showKeymap) showKeymap = false;
             else if (showAbout) showAbout = false;
         });
 
@@ -233,5 +278,6 @@
         <Toast />
         <ColorPickerDialog />
         <AboutDialog open={showAbout} onclose={() => (showAbout = false)} />
+        <KeymapDialog open={showKeymap} onclose={() => (showKeymap = false)} />
     </div>
 {/if}
