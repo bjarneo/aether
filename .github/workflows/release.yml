@@ -54,48 +54,8 @@ jobs:
           name: aether-linux-${{ matrix.arch }}
           path: build/bin/aether-linux-${{ matrix.arch }}
 
-  build-macos:
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-            arch: arm64
-          - os: macos-15-large
-            arch: amd64
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
-
-      - name: Build
-        run: wails build
-
-      - name: Prepare release artifact
-        run: |
-          cd build/bin
-          zip -r aether-macos-${{ matrix.arch }}.zip Aether.app
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: aether-macos-${{ matrix.arch }}
-          path: build/bin/aether-macos-${{ matrix.arch }}.zip
-
   release:
-    needs: [build-linux, build-macos]
+    needs: build-linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -164,8 +124,6 @@ jobs:
           files: |
             artifacts/aether-linux-amd64/aether-linux-amd64
             artifacts/aether-linux-arm64/aether-linux-arm64
-            artifacts/aether-macos-arm64/aether-macos-arm64.zip
-            artifacts/aether-macos-amd64/aether-macos-amd64.zip
           body: |
             ## What's Changed
 
@@ -190,20 +148,6 @@ jobs:
             wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-linux-arm64
             chmod +x aether-linux-arm64
             sudo mv aether-linux-arm64 /usr/local/bin/aether
-            ```
-
-            ### macOS (Apple Silicon)
-            ```bash
-            curl -LO https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-macos-arm64.zip
-            unzip aether-macos-arm64.zip
-            mv Aether.app /Applications/
-            ```
-
-            ### macOS (Intel)
-            ```bash
-            curl -LO https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-macos-amd64.zip
-            unzip aether-macos-amd64.zip
-            mv Aether.app /Applications/
             ```
 
             ### Build from Source
