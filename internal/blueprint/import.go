@@ -67,6 +67,19 @@ func ImportFromURL(url string) (*Blueprint, error) {
 
 // ImportBase16 parses a Base16 YAML file into a blueprint.
 // Base16 YAML format: base00-base0F keys with hex values.
+//
+// Base16 colour mapping to ANSI 16-colour palette:
+//
+//	base00 → 0  (black / background)
+//	base03 → 8  (bright black / comments)
+//	base05 → 7  (white / foreground)
+//	base07 → 15 (bright white)
+//	base08 → 1  (red)          + 9  (bright red)
+//	base0B → 2  (green)        + 10 (bright green)
+//	base0A → 3  (yellow)       + 11 (bright yellow)
+//	base0D → 4  (blue)         + 12 (bright blue)
+//	base0E → 5  (magenta)      + 13 (bright magenta)
+//	base0C → 6  (cyan)         + 14 (bright cyan)
 func ImportBase16(filePath string) (*Blueprint, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -74,7 +87,7 @@ func ImportBase16(filePath string) (*Blueprint, error) {
 	}
 
 	content := string(data)
-	colors := make([]string, 16)
+	base := make(map[int]string, 16)
 	var scheme, author string
 
 	for _, line := range strings.Split(content, "\n") {
@@ -97,31 +110,43 @@ func ImportBase16(filePath string) (*Blueprint, error) {
 				val := parseYAMLValue(strings.TrimPrefix(line, key))
 				// Strip inline comments: "090300" #  ---- → 090300
 				if idx := strings.Index(val, "#"); idx > 0 {
-					// Only strip if # is preceded by whitespace (inline comment)
 					before := val[:idx]
 					if strings.TrimSpace(before) != "" {
 						val = strings.TrimSpace(before)
 					}
 				}
-				// Remove any remaining quotes
 				val = strings.Trim(val, `"' `)
 				if val != "" && !strings.HasPrefix(val, "#") {
 					val = "#" + val
 				}
-				colors[i] = val
+				base[i] = val
 			}
 		}
 	}
 
-	// Validate we got colors
-	empty := 0
-	for _, c := range colors {
-		if c == "" {
-			empty++
-		}
+	// Validate we got enough base colours
+	if len(base) < 8 {
+		return nil, fmt.Errorf("not enough colors found (got %d)", len(base))
 	}
-	if empty > 8 {
-		return nil, fmt.Errorf("not enough colors found (got %d)", 16-empty)
+
+	// Map base16 to ANSI 16-colour palette
+	colors := [16]string{
+		base[0x00], // 0  black / background
+		base[0x08], // 1  red
+		base[0x0B], // 2  green
+		base[0x0A], // 3  yellow
+		base[0x0D], // 4  blue
+		base[0x0E], // 5  magenta
+		base[0x0C], // 6  cyan
+		base[0x05], // 7  white / foreground
+		base[0x03], // 8  bright black
+		base[0x08], // 9  bright red
+		base[0x0B], // 10 bright green
+		base[0x0A], // 11 bright yellow
+		base[0x0D], // 12 bright blue
+		base[0x0E], // 13 bright magenta
+		base[0x0C], // 14 bright cyan
+		base[0x07], // 15 bright white
 	}
 
 	name := scheme
