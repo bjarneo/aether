@@ -60,7 +60,7 @@ jobs:
         include:
           - os: macos-latest
             arch: arm64
-          - os: macos-13
+          - os: macos-15-large
             arch: amd64
     runs-on: ${{ matrix.os }}
     steps:
