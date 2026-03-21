@@ -9,13 +9,18 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -40,8 +45,28 @@ jobs:
 
       - name: Prepare release artifact
         run: |
-          mv build/bin/aether build/bin/aether-linux-amd64
-          chmod +x build/bin/aether-linux-amd64
+          mv build/bin/aether build/bin/aether-linux-${{ matrix.arch }}
+          chmod +x build/bin/aether-linux-${{ matrix.arch }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aether-linux-${{ matrix.arch }}
+          path: build/bin/aether-linux-${{ matrix.arch }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
       - name: Generate Changelog
         id: changelog
@@ -96,7 +121,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: false
-          files: build/bin/aether-linux-amd64
+          files: |
+            artifacts/aether-linux-amd64/aether-linux-amd64
+            artifacts/aether-linux-arm64/aether-linux-arm64
           body: |
             ## What's Changed
 
@@ -107,15 +134,20 @@ jobs:
             ### From AUR
             ```bash
             yay -S aether
-            # or
-            paru -S aether
             ```
 
-            ### Pre-built Binary
+            ### Pre-built Binary (x86_64)
             ```bash
             wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-linux-amd64
             chmod +x aether-linux-amd64
             sudo mv aether-linux-amd64 /usr/local/bin/aether
+            ```
+
+            ### Pre-built Binary (aarch64)
+            ```bash
+            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-linux-arm64
+            chmod +x aether-linux-arm64
+            sudo mv aether-linux-arm64 /usr/local/bin/aether
             ```
 
             ### Build from Source
