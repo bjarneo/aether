@@ -9,7 +9,7 @@ function getExtension(path: string): string {
 }
 
 /** True when the file path points to a video. */
-export function isVideoPath(path: string): boolean {
+function isVideoPath(path: string): boolean {
     return VIDEO_EXTENSIONS.has(getExtension(path));
 }
 

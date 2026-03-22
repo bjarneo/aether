@@ -1,7 +1,7 @@
 // Custom wallpaper label system with persistence
 // Labels are user-created with custom names and colors
 
-export interface Label {
+interface Label {
     id: string;
     name: string;
     color: string;

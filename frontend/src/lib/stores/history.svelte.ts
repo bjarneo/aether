@@ -4,7 +4,7 @@ import type {Adjustments} from '$lib/types/theme';
 
 const MAX_HISTORY = 50;
 
-export interface Snapshot {
+interface Snapshot {
     palette: string[];
     extendedColors: Record<string, string>;
     adjustments: Adjustments;
