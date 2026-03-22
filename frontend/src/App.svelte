@@ -165,6 +165,46 @@
             });
         });
 
+        // Ctrl+= / Ctrl+- / Ctrl+0 - Zoom controls
+        const ZOOM_STEP = 0.1;
+        const ZOOM_MIN = 0.5;
+        const ZOOM_MAX = 2.0;
+        const ZOOM_DEFAULT = 1.0;
+
+        function getZoom(): number {
+            return parseFloat(localStorage.getItem('aether-zoom') || '1');
+        }
+
+        function applyZoom(level: number) {
+            const clamped = Math.min(
+                ZOOM_MAX,
+                Math.max(ZOOM_MIN, Math.round(level * 100) / 100)
+            );
+            document.documentElement.style.zoom = String(clamped);
+            localStorage.setItem('aether-zoom', String(clamped));
+        }
+
+        // Restore saved zoom level
+        applyZoom(getZoom());
+
+        // Ctrl++ (on standard keyboards, + is Shift+=, so e.key is "+")
+        registerShortcut('ctrl+shift++', () => {
+            applyZoom(getZoom() + ZOOM_STEP);
+        });
+
+        // Ctrl++ via numpad (no shift needed)
+        registerShortcut('ctrl++', () => {
+            applyZoom(getZoom() + ZOOM_STEP);
+        });
+
+        registerShortcut('ctrl+-', () => {
+            applyZoom(getZoom() - ZOOM_STEP);
+        });
+
+        registerShortcut('ctrl+0', () => {
+            applyZoom(ZOOM_DEFAULT);
+        });
+
         // Ctrl+K - Show keymap
         registerShortcut('ctrl+k', () => {
             showKeymap = !showKeymap;
