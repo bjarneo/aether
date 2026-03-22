@@ -200,6 +200,37 @@ Launch GUI with a specific tab focused:
 aether --tab <name>
 ```
 
+## aether-wp
+
+`aether-wp` is a standalone binary for animated (live) wallpapers. It uses GStreamer and GTK Layer Shell to render video or GIF files directly on the Wayland desktop background layer.
+
+```bash
+aether-wp /path/to/video.mp4
+```
+
+Aether launches `aether-wp` automatically when you apply a theme with an animated wallpaper (`.mp4`, `.webm`, `.gif`). You can also run it standalone.
+
+**How it works:**
+
+- Renders on the background layer via `gtk-layer-shell` (replaces `swaybg`)
+- GPU-accelerated playback using `gtkglsink` (OpenGL), falls back to `gtksink` (CPU)
+- Loops automatically on end-of-stream
+- Muted audio by default
+- Handles `SIGTERM`/`SIGINT` for clean shutdown
+
+**Requirements:**
+
+- Wayland compositor with layer-shell support (Hyprland, Sway, etc.)
+- `gtk-layer-shell`
+- GStreamer with GTK sink (`gst-plugins-good` or `gst-plugin-gtk`)
+
+**Binary lookup order:**
+
+1. Same directory as the `aether` binary
+2. `$PATH`
+
+When applying a static wallpaper, Aether automatically kills any running `aether-wp` process and falls back to `swaybg`.
+
 ## Scripting Examples
 
 ### Theme Rotation Script
