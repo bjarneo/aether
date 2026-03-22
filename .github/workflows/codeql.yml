@@ -60,7 +60,8 @@ jobs:
         if: matrix.language == 'go'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config \
+            libgtk-layer-shell-dev libgstreamer1.0-dev
           go build -tags webkit2_41 -v ./...
 
       - name: Perform CodeQL Analysis
