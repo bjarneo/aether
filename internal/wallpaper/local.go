@@ -23,6 +23,8 @@ var imageExtensions = map[string]bool{
 	".gif":  true,
 	".webp": true,
 	".bmp":  true,
+	".mp4":  true,
+	".webm": true,
 }
 
 // ScanDirectory scans a directory for image files and returns their info.

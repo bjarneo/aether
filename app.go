@@ -71,8 +71,16 @@ func (a *App) startup(ctx context.Context) {
 // Color Extraction
 // ---------------------------------------------------------------------------
 
-// ExtractColors extracts a 16-color ANSI palette from an image.
+// ExtractColors extracts a 16-color ANSI palette from an image or video.
+// For video files, a frame is extracted first via ffmpeg.
 func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]string, error) {
+	if theme.IsVideoFile(path) {
+		framePath, err := wallpaper.ExtractVideoFrame(path)
+		if err != nil {
+			return [16]string{}, fmt.Errorf("video frame extraction failed: %w", err)
+		}
+		path = framePath
+	}
 	return extraction.ExtractColors(path, lightMode, mode)
 }
 
@@ -432,6 +440,11 @@ func (a *App) IsOmarchyInstalled() bool {
 	return theme.IsOmarchyInstalled()
 }
 
+// IsAetherWpAvailable returns true if the aether-wp binary is available for animated wallpapers.
+func (a *App) IsAetherWpAvailable() bool {
+	return theme.IsAetherWpAvailable()
+}
+
 // ---------------------------------------------------------------------------
 // Batch Processing
 // ---------------------------------------------------------------------------
@@ -450,12 +463,12 @@ func (a *App) CancelBatchProcessing() {
 // File / Image Utilities
 // ---------------------------------------------------------------------------
 
-// ReadImageAsDataURL reads a local image file and returns it as a base64 data URL.
+// ReadImageAsDataURL reads a local image or video file and returns it as a base64 data URL.
 // This is needed because webkit2gtk cannot load file:// paths directly.
 func (a *App) ReadImageAsDataURL(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", fmt.Errorf("read image: %w", err)
+		return "", fmt.Errorf("read file: %w", err)
 	}
 
 	// Detect MIME type from extension
@@ -472,6 +485,10 @@ func (a *App) ReadImageAsDataURL(path string) (string, error) {
 		mime = "image/bmp"
 	case ".svg":
 		mime = "image/svg+xml"
+	case ".mp4":
+		mime = "video/mp4"
+	case ".webm":
+		mime = "video/webm"
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(data)
@@ -520,8 +537,8 @@ func (a *App) OpenFileDialog() (string, error) {
 		Title: "Select Wallpaper",
 		Filters: []wailsrt.FileFilter{
 			{
-				DisplayName: "Images",
-				Pattern:     "*.jpg;*.jpeg;*.png;*.gif;*.webp;*.bmp",
+				DisplayName: "Images & Videos",
+				Pattern:     "*.jpg;*.jpeg;*.png;*.gif;*.webp;*.bmp;*.mp4;*.webm",
 			},
 		},
 	})
@@ -538,6 +555,7 @@ func (a *App) HandleDroppedFiles(paths []string) (string, error) {
 	validExts := map[string]bool{
 		".jpg": true, ".jpeg": true, ".png": true,
 		".gif": true, ".webp": true, ".bmp": true,
+		".mp4": true, ".webm": true,
 	}
 
 	for _, path := range paths {

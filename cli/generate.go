@@ -18,7 +18,6 @@ func runGenerate(args []string, templatesFS embed.FS) int {
 	lightMode, args := hasFlag(args, "--light-mode")
 	noApply, args := hasFlag(args, "--no-apply")
 	outputPath, args := parseFlag(args, "--output")
-
 	if len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "Error: Wallpaper path is required")
 		fmt.Fprintln(os.Stderr, "Usage: aether --generate <wallpaper> [--extract-mode <mode>] [--light-mode] [--no-apply] [--output <path>]")

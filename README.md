@@ -21,6 +21,7 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 - Light and dark mode toggle with automatic color anchor swapping
 
 ### Wallpaper Tools
+- Animated wallpaper support: `.gif`, `.mp4`, and `.webm` via the built-in `aether-wp` service
 - Search and download wallpapers from wallhaven.cc directly in the app
 - Full wallpaper editor with blur, exposure, sharpen, vignette, grain, and color toning
 - 12 one-click image presets: Cinematic, Vintage, Film, Dramatic, and more
@@ -54,7 +55,7 @@ yay -S aether
 Or build from source:
 
 ```bash
-sudo pacman -S go webkit2gtk
+sudo pacman -S go webkit2gtk gtk-layer-shell gstreamer gst-plugins-good
 git clone https://github.com/bjarneo/aether.git
 cd aether && make build
 ```
@@ -92,7 +93,7 @@ wails dev
 wails build
 ```
 
-**Prerequisites:** Go 1.23+, Node.js 18+, [Wails v2](https://wails.io), webkit2gtk
+**Prerequisites:** Go 1.23+, Node.js 18+, [Wails v2](https://wails.io), webkit2gtk, gtk-layer-shell, gstreamer, gst-plugins-good
 
 ## Documentation
 

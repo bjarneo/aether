@@ -11,8 +11,9 @@ aether --list-blueprints
 # Apply a saved theme
 aether --apply-blueprint "my-theme"
 
-# Generate theme from wallpaper
+# Generate theme from wallpaper (images and videos)
 aether --generate ~/Wallpapers/sunset.jpg
+aether --generate ~/Wallpapers/animated.mp4
 
 # Import Base16 color scheme
 aether --import-base16 ~/themes/dracula.yaml

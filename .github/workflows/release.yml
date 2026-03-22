@@ -35,7 +35,8 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config \
+            libgtk-layer-shell-dev libgstreamer1.0-dev
 
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
@@ -45,6 +46,9 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           cd frontend && npm version "$VERSION" --no-git-tag-version
 
+      - name: Build aether-wp
+        run: go build -o build/bin/aether-wp ./cmd/aether-wp/
+
       - name: Build
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -53,13 +57,17 @@ jobs:
       - name: Prepare release artifact
         run: |
           mv build/bin/aether build/bin/aether-linux-${{ matrix.arch }}
+          mv build/bin/aether-wp build/bin/aether-wp-linux-${{ matrix.arch }}
           chmod +x build/bin/aether-linux-${{ matrix.arch }}
+          chmod +x build/bin/aether-wp-linux-${{ matrix.arch }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: aether-linux-${{ matrix.arch }}
-          path: build/bin/aether-linux-${{ matrix.arch }}
+          path: |
+            build/bin/aether-linux-${{ matrix.arch }}
+            build/bin/aether-wp-linux-${{ matrix.arch }}
 
   release:
     needs: build-linux
@@ -130,7 +138,9 @@ jobs:
           generate_release_notes: false
           files: |
             artifacts/aether-linux-amd64/aether-linux-amd64
+            artifacts/aether-linux-amd64/aether-wp-linux-amd64
             artifacts/aether-linux-arm64/aether-linux-arm64
+            artifacts/aether-linux-arm64/aether-wp-linux-arm64
           body: |
             ## What's Changed
 

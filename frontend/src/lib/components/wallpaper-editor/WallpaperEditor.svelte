@@ -32,7 +32,8 @@
     let previewUrl = $state('');
 
     let originalUrl = $derived(getCachedFullImage(getWallpaperPath()) || '');
-    let hasChanges = $derived(hasActiveFilters(filters));
+    let isVideo = $derived(originalUrl.startsWith('data:video/'));
+    let hasChanges = $derived(!isVideo && hasActiveFilters(filters));
 
     // Load image when editor opens
     $effect(() => {
@@ -154,7 +155,18 @@
                 <div
                     class="relative flex flex-1 items-center justify-center p-6"
                 >
-                    {#if originalUrl}
+                    {#if originalUrl && isVideo}
+                        <!-- svelte-ignore a11y_media_has_caption -->
+                        <video
+                            src={originalUrl}
+                            autoplay
+                            loop
+                            muted
+                            playsinline
+                            class="max-h-full max-w-full object-contain"
+                            style="filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5))"
+                        ></video>
+                    {:else if originalUrl}
                         <!-- Hidden image for canvas source — must be in DOM to trigger onload -->
                         <img
                             src={originalUrl}

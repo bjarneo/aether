@@ -72,6 +72,7 @@ Generate options:
   --no-apply               Generate files only, don't apply theme
   --output <path>          Custom output directory
 
+
 Import options:
   --auto-apply             Apply theme after import (--import-blueprint)
   --wallpaper <path>       Include wallpaper with import

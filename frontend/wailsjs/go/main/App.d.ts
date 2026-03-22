@@ -65,6 +65,8 @@ export function HandleDroppedFiles(arg1: Array<string>): Promise<string>;
 
 export function ImportFileDialog(arg1: string): Promise<main.ImportResult>;
 
+export function IsAetherWpAvailable(): Promise<boolean>;
+
 export function IsFavorite(arg1: string): Promise<boolean>;
 
 export function IsOmarchyInstalled(): Promise<boolean>;

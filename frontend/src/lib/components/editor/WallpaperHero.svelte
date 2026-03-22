@@ -21,6 +21,7 @@
 
     let wallpaperImage = $derived(getCachedFullImage(getWallpaperPath()) || '');
     let loading = $derived(isPending(getWallpaperPath()));
+    let isVideo = $derived(wallpaperImage.startsWith('data:video/'));
 
     $effect(() => {
         const path = getWallpaperPath();
@@ -76,6 +77,16 @@
     >
         {#if loading}
             <span class="text-fg-dimmed text-[11px]">Loading preview...</span>
+        {:else if wallpaperImage && isVideo}
+            <!-- svelte-ignore a11y_media_has_caption -->
+            <video
+                src={wallpaperImage}
+                autoplay
+                loop
+                muted
+                playsinline
+                class="h-full w-full object-cover"
+            ></video>
         {:else if wallpaperImage}
             <img
                 src={wallpaperImage}

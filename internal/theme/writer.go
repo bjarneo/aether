@@ -165,14 +165,18 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 	if err := template.ProcessCustomApps(themeDir, variables); err != nil {
 		log.Printf("Warning: custom app processing failed: %v", err)
 	}
-	if wallpaperDest != "" {
-		if err := ApplyWallpaper(wallpaperDest); err != nil {
-			log.Printf("Warning: wallpaper application failed: %v", err)
+	// Apply omarchy theme before wallpaper so that omarchy-theme-set's
+	// swaybg restart doesn't override aether-wp. For animated wallpapers,
+	// run synchronously so swaybg is fully started before we replace it.
+	if isOmarchy {
+		sync := wallpaperDest != "" && IsAnimatedWallpaper(wallpaperDest)
+		if err := ApplyOmarchyTheme(sync); err != nil {
+			log.Printf("Warning: omarchy theme application failed: %v", err)
 		}
 	}
-	if isOmarchy {
-		if err := ApplyOmarchyTheme(false); err != nil {
-			log.Printf("Warning: omarchy theme application failed: %v", err)
+	if wallpaperDest != "" {
+		if err := ApplyWallpaper(wallpaperDest, settings); err != nil {
+			log.Printf("Warning: wallpaper application failed: %v", err)
 		}
 	}
 

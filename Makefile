@@ -1,6 +1,9 @@
-.PHONY: build dev test clean
+.PHONY: build dev test clean aether-wp
 
-build:
+aether-wp:
+	go build -o build/bin/aether-wp ./cmd/aether-wp/
+
+build: aether-wp
 	wails build
 
 dev:

@@ -7,6 +7,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 
 	// Register decoders for common image formats.
 	_ "image/gif"
@@ -43,6 +44,12 @@ func GetThumbnail(imagePath string) (string, error) {
 	// Generate the thumbnail.
 	if err := platform.EnsureDir(thumbDir); err != nil {
 		return "", fmt.Errorf("failed to create thumbnail directory: %w", err)
+	}
+
+	// For video files, extract a frame with ffmpeg first
+	ext := strings.ToLower(filepath.Ext(imagePath))
+	if ext == ".mp4" || ext == ".webm" {
+		return getVideoThumbnail(imagePath, thumbDir, thumbPath)
 	}
 
 	src, err := loadImage(imagePath)
@@ -109,4 +116,54 @@ func scaleThumbnail(src image.Image, size int) image.Image {
 	draw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, bounds, draw.Over, nil)
 
 	return dst
+}
+
+// getVideoThumbnail extracts a frame from a video file using ffmpeg.
+func getVideoThumbnail(videoPath, thumbDir, thumbPath string) (string, error) {
+	_, err := platform.RunSync("ffmpeg",
+		"-ss", "1", "-i", videoPath,
+		"-vframes", "1", "-vf", "scale=300:-1",
+		"-y", thumbPath)
+	if err != nil {
+		// Fallback: try first frame (video might be shorter than 1s)
+		_, err = platform.RunSync("ffmpeg",
+			"-i", videoPath,
+			"-vframes", "1", "-vf", "scale=300:-1",
+			"-y", thumbPath)
+		if err != nil {
+			return "", fmt.Errorf("ffmpeg thumbnail failed: %w", err)
+		}
+	}
+	return thumbPath, nil
+}
+
+// ExtractVideoFrame extracts a single frame from a video for color extraction.
+// Returns the path to a cached PNG in the thumbnail directory.
+func ExtractVideoFrame(videoPath string) (string, error) {
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(videoPath+"-frame")))
+	framePath := filepath.Join(platform.ThumbnailDir(), hash+".png")
+
+	if info, err := os.Stat(framePath); err == nil {
+		srcInfo, _ := os.Stat(videoPath)
+		if srcInfo != nil && info.ModTime().After(srcInfo.ModTime()) {
+			return framePath, nil
+		}
+	}
+
+	if err := platform.EnsureDir(platform.ThumbnailDir()); err != nil {
+		return "", err
+	}
+
+	_, err := platform.RunSync("ffmpeg",
+		"-ss", "1", "-i", videoPath,
+		"-vframes", "1", "-y", framePath)
+	if err != nil {
+		_, err = platform.RunSync("ffmpeg",
+			"-i", videoPath,
+			"-vframes", "1", "-y", framePath)
+	}
+	if err != nil {
+		return "", fmt.Errorf("ffmpeg frame extraction failed: %w", err)
+	}
+	return framePath, nil
 }

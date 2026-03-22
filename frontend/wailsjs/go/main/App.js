@@ -90,6 +90,10 @@ export function ImportFileDialog(arg1) {
     return window['go']['main']['App']['ImportFileDialog'](arg1);
 }
 
+export function IsAetherWpAvailable() {
+    return window['go']['main']['App']['IsAetherWpAvailable']();
+}
+
 export function IsFavorite(arg1) {
     return window['go']['main']['App']['IsFavorite'](arg1);
 }
