@@ -9,6 +9,28 @@ package main
 #include <stdlib.h>
 
 static GstElement *pipeline = NULL;
+static GtkWindow *window = NULL;
+
+// Tear down pipeline + window inside the running main loop so the
+// Wayland compositor receives the surface-destroy before the loop exits.
+static gboolean cleanup_and_quit(gpointer data) {
+	if (pipeline) {
+		gst_element_set_state(pipeline, GST_STATE_NULL);
+		gst_object_unref(pipeline);
+		pipeline = NULL;
+	}
+	if (window) {
+		gtk_widget_destroy(GTK_WIDGET(window));
+		window = NULL;
+	}
+	gtk_main_quit();
+	return FALSE;
+}
+
+// Thread-safe: can be called from a Go goroutine.
+static void request_shutdown(void) {
+	g_idle_add(cleanup_and_quit, NULL);
+}
 
 static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
 	switch (GST_MESSAGE_TYPE(msg)) {
@@ -22,7 +44,7 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
 		gst_message_parse_error(msg, &err, NULL);
 		g_printerr("aether-wp: %s\n", err->message);
 		g_error_free(err);
-		gtk_main_quit();
+		cleanup_and_quit(NULL);
 		break;
 	}
 	default:
@@ -31,13 +53,13 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
 	return TRUE;
 }
 
-static int run_wallpaper(const char *path) {
+static int run_wallpaper(const char *path, int force_cpu) {
 	int argc = 0;
 	gtk_init(&argc, NULL);
 	gst_init(&argc, NULL);
 
 	// Create window on the background layer
-	GtkWindow *window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+	window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
 	gtk_window_set_decorated(window, FALSE);
 	gtk_layer_init_for_window(window);
 	gtk_layer_set_layer(window, GTK_LAYER_SHELL_LAYER_BACKGROUND);
@@ -54,22 +76,31 @@ static int run_wallpaper(const char *path) {
 		return 1;
 	}
 
-	// Try gtkglsink (OpenGL, hardware-accelerated) first, fall back to gtksink (CPU)
-	GstElement *sink = gst_element_factory_make("gtkglsink", "sink");
+	// Select video sink: try GPU-accelerated gtkglsink, fall back to CPU gtksink
+	GstElement *sink = NULL;
 	GstElement *video_sink = NULL;
-	if (sink) {
-		// Wrap gtkglsink in glsinkbin for proper GL pipeline
-		video_sink = gst_element_factory_make("glsinkbin", "glbin");
-		if (video_sink) {
-			g_object_set(video_sink, "sink", sink, NULL);
-		} else {
-			gst_object_unref(sink);
-			sink = NULL;
+	int using_gpu = 0;
+
+	if (!force_cpu) {
+		sink = gst_element_factory_make("gtkglsink", "sink");
+		if (sink) {
+			video_sink = gst_element_factory_make("glsinkbin", "glbin");
+			if (video_sink) {
+				g_object_set(video_sink, "sink", sink, NULL);
+				using_gpu = 1;
+			} else {
+				gst_object_unref(sink);
+				sink = NULL;
+			}
 		}
 	}
+
+	// CPU fallback
 	if (!sink) {
 		sink = gst_element_factory_make("gtksink", "sink");
-		video_sink = GST_ELEMENT(gst_object_ref(sink));
+		if (sink) {
+			video_sink = GST_ELEMENT(gst_object_ref(sink));
+		}
 	}
 	if (!sink) {
 		g_printerr("aether-wp: no GTK video sink available (install gst-plugins-good or gst-plugin-gtk)\n");
@@ -77,11 +108,20 @@ static int run_wallpaper(const char *path) {
 		return 1;
 	}
 
+	g_printerr("aether-wp: using %s rendering\n", using_gpu ? "GPU" : "CPU");
+
 	g_object_set(pipeline, "video-sink", video_sink, NULL);
 	g_object_set(pipeline, "volume", 0.0, NULL);
 
-	// Enable hardware decoding flags
-	g_object_set(pipeline, "flags", 0x63, NULL); // video + audio + native-video + deinterlace
+	// Enable hardware decoding flags (video + native-video + deinterlace, no audio)
+	g_object_set(pipeline, "flags", 0x61, NULL);
+
+	// Cap frame rate to 30fps to reduce GPU load
+	GstElement *rate = gst_element_factory_make("videorate", "rate");
+	if (rate) {
+		g_object_set(rate, "max-rate", 30, NULL);
+		g_object_set(pipeline, "video-filter", rate, NULL);
+	}
 
 	// Get the GTK widget from the sink and add to window
 	GtkWidget *video_widget = NULL;
@@ -115,8 +155,6 @@ static int run_wallpaper(const char *path) {
 	gtk_widget_show_all(GTK_WIDGET(window));
 	gtk_main();
 
-	gst_element_set_state(pipeline, GST_STATE_NULL);
-	gst_object_unref(pipeline);
 	return 0;
 }
 */
@@ -125,33 +163,129 @@ import "C"
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
+func pidFilePath() string {
+	if dir := os.Getenv("XDG_RUNTIME_DIR"); dir != "" {
+		return filepath.Join(dir, "aether-wp.pid")
+	}
+	return "/tmp/aether-wp.pid"
+}
+
+func writePidFile() {
+	_ = os.WriteFile(pidFilePath(), []byte(strconv.Itoa(os.Getpid())), 0644)
+}
+
+func removePidFile() {
+	_ = os.Remove(pidFilePath())
+}
+
+func isProcessAlive(pid int) bool {
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	return proc.Signal(syscall.Signal(0)) == nil
+}
+
+// stopViaPidFile sends SIGTERM to the process in the PID file and waits for it to exit.
+func stopViaPidFile() bool {
+	data, err := os.ReadFile(pidFilePath())
+	if err != nil {
+		return false
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		removePidFile()
+		return false
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		removePidFile()
+		return false
+	}
+	if proc.Signal(syscall.SIGTERM) != nil {
+		removePidFile()
+		return false
+	}
+	// Wait up to 2 seconds for graceful shutdown
+	for i := 0; i < 20; i++ {
+		time.Sleep(100 * time.Millisecond)
+		if !isProcessAlive(pid) {
+			removePidFile()
+			return true
+		}
+	}
+	// Force kill if still alive
+	_ = proc.Signal(syscall.SIGKILL)
+	removePidFile()
+	return true
+}
+
+// stopAll stops any running instance using PID file first, then pkill as fallback.
+// Only safe to call from --stop (not from a new instance, since pkill would kill itself).
+func stopAll() {
+	if !stopViaPidFile() {
+		_ = exec.Command("pkill", "-x", "aether-wp").Run()
+	}
+	fmt.Fprintln(os.Stderr, "aether-wp: stopped")
+}
+
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "Usage: aether-wp <media-file>")
+		fmt.Fprintln(os.Stderr, "Usage: aether-wp [--cpu] <media-file>")
+		fmt.Fprintln(os.Stderr, "       aether-wp --stop")
 		os.Exit(1)
 	}
 
+	if os.Args[1] == "--stop" {
+		stopAll()
+		os.Exit(0)
+	}
+
+	forceCPU := false
 	path := os.Args[1]
+	if path == "--cpu" {
+		forceCPU = true
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "Usage: aether-wp [--cpu] <media-file>")
+			os.Exit(1)
+		}
+		path = os.Args[2]
+	}
+
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "aether-wp: file not found: %s\n", path)
 		os.Exit(1)
 	}
+
+	// Stop any previous instance via PID file (pkill not safe here — would kill us)
+	stopViaPidFile()
+	writePidFile()
 
 	// Clean shutdown on SIGTERM/SIGINT
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-sig
-		C.gtk_main_quit()
+		C.request_shutdown()
 	}()
 
+	cpu := C.int(0)
+	if forceCPU {
+		cpu = 1
+	}
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
-	rc := C.run_wallpaper(cpath)
+	rc := C.run_wallpaper(cpath, cpu)
+	removePidFile()
 	os.Exit(int(rc))
 }

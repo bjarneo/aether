@@ -206,17 +206,26 @@ aether --tab <name>
 
 ```bash
 aether-wp /path/to/video.mp4
+aether-wp --cpu /path/to/video.mp4
+aether-wp --stop
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--stop` | Stop any running aether-wp instance and clean up the layer surface |
+| `--cpu` | Force CPU rendering (skip GPU-accelerated OpenGL sink) |
 
 Aether launches `aether-wp` automatically when you apply a theme with an animated wallpaper (`.mp4`, `.webm`, `.gif`). You can also run it standalone.
 
 **How it works:**
 
 - Renders on the background layer via `gtk-layer-shell` (replaces `swaybg`)
-- GPU-accelerated playback using `gtkglsink` (OpenGL), falls back to `gtksink` (CPU)
+- GPU-accelerated playback using `gtkglsink` (OpenGL), auto-falls back to `gtksink` (CPU)
+- Frame rate capped at 30fps to reduce GPU load
 - Loops automatically on end-of-stream
-- Muted audio by default
-- Handles `SIGTERM`/`SIGINT` for clean shutdown
+- Muted audio (audio decoding disabled entirely)
+- PID file at `$XDG_RUNTIME_DIR/aether-wp.pid` for reliable process management
+- Handles `SIGTERM`/`SIGINT` for clean shutdown (tears down layer surface properly)
 
 **Requirements:**
 

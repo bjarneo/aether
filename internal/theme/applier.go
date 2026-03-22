@@ -152,10 +152,20 @@ func IsAetherWpAvailable() bool {
 	return runtime.GOOS == "linux" && aetherWpPath() != ""
 }
 
+// stopAetherWp stops any running aether-wp instance using its --stop flag,
+// falling back to pkill if the binary is not available.
+func stopAetherWp() {
+	if wpBin := aetherWpPath(); wpBin != "" {
+		_ = platform.RunAsync(wpBin, "--stop")
+	} else {
+		_ = platform.RunAsync("pkill", "-x", "aether-wp")
+	}
+}
+
 // applyWallpaperAetherWp starts aether-wp for animated wallpapers.
 func applyWallpaperAetherWp(mediaPath string) error {
 	_ = platform.RunAsync("pkill", "-x", "swaybg")
-	_ = platform.RunAsync("pkill", "-x", "aether-wp")
+	stopAetherWp()
 	time.Sleep(100 * time.Millisecond)
 
 	wpBin := aetherWpPath()
@@ -173,7 +183,7 @@ func applyWallpaperAetherWp(mediaPath string) error {
 // applyWallpaperSwaybg sets the wallpaper using swaybg (static images).
 func applyWallpaperSwaybg(symlinkPath string) error {
 	_ = platform.RunAsync("pkill", "-x", "swaybg")
-	_ = platform.RunAsync("pkill", "-x", "aether-wp")
+	stopAetherWp()
 	if err := platform.RunAsync("setsid", "uwsm-app", "--", "swaybg", "-i", symlinkPath, "-m", "fill"); err != nil {
 		log.Printf("Warning: could not restart swaybg: %v", err)
 		return err
@@ -215,6 +225,9 @@ func ApplyWallpaper(wallpaperPath string, settings Settings) error {
 // ClearTheme removes GTK CSS files, the theme override symlink and CSS,
 // and switches to the tokyo-night theme.
 func ClearTheme() error {
+	// Stop any running animated wallpaper
+	stopAetherWp()
+
 	// Delete Aether override CSS file in theme dir (cross-platform)
 	overrideCss := filepath.Join(platform.ThemeDir(), "aether.override.css")
 	if err := platform.DeleteFile(overrideCss); err != nil {
