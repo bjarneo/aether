@@ -52,10 +52,25 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 yay -S aether
 ```
 
-Or build from source:
+### Install (Debian / Ubuntu)
+
+Download the `.deb` from the [latest release](https://github.com/bjarneo/aether/releases/latest):
 
 ```bash
+sudo dpkg -i aether_*.deb
+sudo apt-get install -f
+```
+
+### Build from Source
+
+```bash
+# Arch
 sudo pacman -S go webkit2gtk gtk-layer-shell gstreamer gst-plugins-good
+
+# Debian/Ubuntu
+sudo apt install golang libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-layer-shell-dev \
+  libgstreamer1.0-dev gstreamer1.0-plugins-good ffmpeg
+
 git clone https://github.com/bjarneo/aether.git
 cd aether && make build
 ```

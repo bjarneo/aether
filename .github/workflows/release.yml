@@ -61,6 +61,44 @@ jobs:
           chmod +x build/bin/aether-linux-${{ matrix.arch }}
           chmod +x build/bin/aether-wp-linux-${{ matrix.arch }}
 
+      - name: Build .deb package
+        env:
+          VERSION: ${{ github.ref_name }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          DEB_ARCH="${ARCH}"
+          if [ "${ARCH}" = "amd64" ]; then DEB_ARCH="amd64"; fi
+          if [ "${ARCH}" = "arm64" ]; then DEB_ARCH="arm64"; fi
+          PKG_VERSION="${VERSION#v}"
+
+          PKG_DIR="aether_${PKG_VERSION}_${DEB_ARCH}"
+          mkdir -p "${PKG_DIR}/DEBIAN"
+          mkdir -p "${PKG_DIR}/usr/bin"
+          mkdir -p "${PKG_DIR}/usr/share/applications"
+          mkdir -p "${PKG_DIR}/usr/share/pixmaps"
+
+          cp "build/bin/aether-linux-${ARCH}" "${PKG_DIR}/usr/bin/aether"
+          cp "build/bin/aether-wp-linux-${ARCH}" "${PKG_DIR}/usr/bin/aether-wp"
+          chmod 755 "${PKG_DIR}/usr/bin/aether" "${PKG_DIR}/usr/bin/aether-wp"
+          cp build/linux/aether.desktop "${PKG_DIR}/usr/share/applications/"
+          cp icon.png "${PKG_DIR}/usr/share/pixmaps/aether.png"
+
+          cat > "${PKG_DIR}/DEBIAN/control" <<EOF
+          Package: aether
+          Version: ${PKG_VERSION}
+          Architecture: ${DEB_ARCH}
+          Maintainer: Bjarne Øverli <bjarne.oeverli@gmail.com>
+          Depends: libwebkit2gtk-4.1-0, libgtk-3-0, libgtk-layer-shell0, gstreamer1.0-plugins-good, ffmpeg
+          Description: Desktop theming application
+           Extract colors from wallpapers and apply cohesive themes across your
+           desktop. Supports animated wallpapers (GIF, MP4, WebM).
+          Homepage: https://github.com/bjarneo/aether
+          EOF
+          sed -i 's/^          //' "${PKG_DIR}/DEBIAN/control"
+
+          dpkg-deb --build "${PKG_DIR}"
+          mv "${PKG_DIR}.deb" "build/bin/"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -68,6 +106,7 @@ jobs:
           path: |
             build/bin/aether-linux-${{ matrix.arch }}
             build/bin/aether-wp-linux-${{ matrix.arch }}
+            build/bin/aether_*_${{ matrix.arch }}.deb
 
   release:
     needs: build-linux
@@ -139,8 +178,10 @@ jobs:
           files: |
             artifacts/aether-linux-amd64/aether-linux-amd64
             artifacts/aether-linux-amd64/aether-wp-linux-amd64
+            artifacts/aether-linux-amd64/*.deb
             artifacts/aether-linux-arm64/aether-linux-arm64
             artifacts/aether-linux-arm64/aether-wp-linux-arm64
+            artifacts/aether-linux-arm64/*.deb
           body: |
             ## What's Changed
 
@@ -148,23 +189,41 @@ jobs:
 
             ## Installation
 
-            ### From AUR
+            ### Arch Linux (AUR)
             ```bash
             yay -S aether
+            ```
+
+            ### Debian / Ubuntu (x86_64)
+            ```bash
+            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether_${{ github.ref_name }}_amd64.deb
+            sudo dpkg -i aether_${{ github.ref_name }}_amd64.deb
+            sudo apt-get install -f
+            ```
+
+            ### Debian / Ubuntu (aarch64)
+            ```bash
+            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether_${{ github.ref_name }}_arm64.deb
+            sudo dpkg -i aether_${{ github.ref_name }}_arm64.deb
+            sudo apt-get install -f
             ```
 
             ### Pre-built Binary (x86_64)
             ```bash
             wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-linux-amd64
-            chmod +x aether-linux-amd64
+            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-wp-linux-amd64
+            chmod +x aether-linux-amd64 aether-wp-linux-amd64
             sudo mv aether-linux-amd64 /usr/local/bin/aether
+            sudo mv aether-wp-linux-amd64 /usr/local/bin/aether-wp
             ```
 
             ### Pre-built Binary (aarch64)
             ```bash
             wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-linux-arm64
-            chmod +x aether-linux-arm64
+            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether-wp-linux-arm64
+            chmod +x aether-linux-arm64 aether-wp-linux-arm64
             sudo mv aether-linux-arm64 /usr/local/bin/aether
+            sudo mv aether-wp-linux-arm64 /usr/local/bin/aether-wp
             ```
 
             ### Build from Source
@@ -172,7 +231,7 @@ jobs:
             ```bash
             git clone https://github.com/bjarneo/aether.git
             cd aether
-            wails build
+            make build
             ```
 
             ---
