@@ -273,6 +273,13 @@
                                 colors.yellow
                             );
                         }
+                        // Cache for instant restore on next launch
+                        try {
+                            localStorage.setItem(
+                                'aether-theme-colors',
+                                JSON.stringify(colors)
+                            );
+                        } catch {}
                     }
                 );
             } catch {}

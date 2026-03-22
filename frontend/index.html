@@ -6,6 +6,58 @@
         <title>Aether</title>
     </head>
     <body>
+        <script>
+            // Apply cached theme colors synchronously to prevent flash
+            try {
+                var cached = localStorage.getItem('aether-theme-colors');
+                if (cached) {
+                    var colors = JSON.parse(cached);
+                    var root = document.documentElement;
+                    for (var name in colors) {
+                        root.style.setProperty(
+                            '--aether-' + name,
+                            colors[name]
+                        );
+                    }
+                    if (colors.background) {
+                        root.style.setProperty(
+                            '--color-bg-primary',
+                            colors.background
+                        );
+                        root.style.setProperty(
+                            '--color-bg-secondary',
+                            colors.background
+                        );
+                        document.body.style.background = colors.background;
+                    }
+                    if (colors.foreground) {
+                        root.style.setProperty(
+                            '--color-fg-primary',
+                            colors.foreground
+                        );
+                        document.body.style.color = colors.foreground;
+                    }
+                    if (colors.blue) {
+                        root.style.setProperty('--color-accent', colors.blue);
+                    }
+                    if (colors.red) {
+                        root.style.setProperty(
+                            '--color-destructive',
+                            colors.red
+                        );
+                    }
+                    if (colors.green) {
+                        root.style.setProperty('--color-success', colors.green);
+                    }
+                    if (colors.yellow) {
+                        root.style.setProperty(
+                            '--color-warning',
+                            colors.yellow
+                        );
+                    }
+                }
+            } catch (e) {}
+        </script>
         <div id="app"></div>
         <script src="./src/main.ts" type="module"></script>
     </body>
