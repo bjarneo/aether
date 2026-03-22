@@ -66,12 +66,9 @@ jobs:
           VERSION: ${{ github.ref_name }}
           ARCH: ${{ matrix.arch }}
         run: |
-          DEB_ARCH="${ARCH}"
-          if [ "${ARCH}" = "amd64" ]; then DEB_ARCH="amd64"; fi
-          if [ "${ARCH}" = "arm64" ]; then DEB_ARCH="arm64"; fi
           PKG_VERSION="${VERSION#v}"
+          PKG_DIR="aether_${PKG_VERSION}_${ARCH}"
 
-          PKG_DIR="aether_${PKG_VERSION}_${DEB_ARCH}"
           mkdir -p "${PKG_DIR}/DEBIAN"
           mkdir -p "${PKG_DIR}/usr/bin"
           mkdir -p "${PKG_DIR}/usr/share/applications"
@@ -83,18 +80,20 @@ jobs:
           cp build/linux/aether.desktop "${PKG_DIR}/usr/share/applications/"
           cp icon.png "${PKG_DIR}/usr/share/pixmaps/aether.png"
 
-          cat > "${PKG_DIR}/DEBIAN/control" <<EOF
+          cat > "${PKG_DIR}/DEBIAN/control" <<'CTRL'
           Package: aether
-          Version: ${PKG_VERSION}
-          Architecture: ${DEB_ARCH}
+          Version: PKGVER
+          Architecture: PKGARCH
           Maintainer: Bjarne Øverli <bjarne.oeverli@gmail.com>
           Depends: libwebkit2gtk-4.1-0, libgtk-3-0, libgtk-layer-shell0, gstreamer1.0-plugins-good, ffmpeg
           Description: Desktop theming application
            Extract colors from wallpapers and apply cohesive themes across your
            desktop. Supports animated wallpapers (GIF, MP4, WebM).
           Homepage: https://github.com/bjarneo/aether
-          EOF
+          CTRL
           sed -i 's/^          //' "${PKG_DIR}/DEBIAN/control"
+          sed -i "s/PKGVER/${PKG_VERSION}/" "${PKG_DIR}/DEBIAN/control"
+          sed -i "s/PKGARCH/${ARCH}/" "${PKG_DIR}/DEBIAN/control"
 
           dpkg-deb --build "${PKG_DIR}"
           mv "${PKG_DIR}.deb" "build/bin/"
@@ -106,7 +105,7 @@ jobs:
           path: |
             build/bin/aether-linux-${{ matrix.arch }}
             build/bin/aether-wp-linux-${{ matrix.arch }}
-            build/bin/aether_*_${{ matrix.arch }}.deb
+            build/bin/aether_*.deb
 
   release:
     needs: build-linux
@@ -170,6 +169,7 @@ jobs:
           wget -q "https://github.com/${GITHUB_REPO}/archive/${TAG_NAME}.tar.gz"
           SHA256=$(sha256sum "${TAG_NAME}.tar.gz" | awk '{print $1}')
           echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "pkgver=${TAG_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -196,15 +196,15 @@ jobs:
 
             ### Debian / Ubuntu (x86_64)
             ```bash
-            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether_${{ github.ref_name }}_amd64.deb
-            sudo dpkg -i aether_${{ github.ref_name }}_amd64.deb
+            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether_${{ steps.archive.outputs.pkgver }}_amd64.deb
+            sudo dpkg -i aether_${{ steps.archive.outputs.pkgver }}_amd64.deb
             sudo apt-get install -f
             ```
 
             ### Debian / Ubuntu (aarch64)
             ```bash
-            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether_${{ github.ref_name }}_arm64.deb
-            sudo dpkg -i aether_${{ github.ref_name }}_arm64.deb
+            wget https://github.com/bjarneo/aether/releases/download/${{ github.ref_name }}/aether_${{ steps.archive.outputs.pkgver }}_arm64.deb
+            sudo dpkg -i aether_${{ steps.archive.outputs.pkgver }}_arm64.deb
             sudo apt-get install -f
             ```
 
