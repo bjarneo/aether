@@ -136,7 +136,7 @@ jobs:
 
           CHANGELOG=""
 
-          while IFS='|' read -r hash title author email; do
+          while IFS='|' read -r hash title author email || [ -n "$hash" ]; do
             short_hash="${hash:0:7}"
             username=$(gh api "repos/${GITHUB_REPO}/commits/$hash" --jq '.author.login' 2>/dev/null || echo "")
 
