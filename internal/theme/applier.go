@@ -151,13 +151,13 @@ func IsAetherWpAvailable() bool {
 	return runtime.GOOS == "linux" && aetherWpPath() != ""
 }
 
-// stopAetherWp stops any running aether-wp instance using its --stop flag,
-// falling back to pkill if the binary is not available.
+// stopAetherWp stops any running aether-wp instance using its --stop flag.
+// Runs synchronously so the old instance is fully gone before a new one starts.
 func stopAetherWp() {
 	if wpBin := aetherWpPath(); wpBin != "" {
-		_ = platform.RunAsync(wpBin, "--stop")
+		_, _ = platform.RunSync(wpBin, "--stop")
 	} else {
-		_ = platform.RunAsync("pkill", "-x", "aether-wp")
+		_, _ = platform.RunSync("pkill", "-x", "aether-wp")
 	}
 }
 
