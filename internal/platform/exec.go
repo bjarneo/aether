@@ -37,6 +37,17 @@ func RunAsync(name string, args ...string) error {
 	return cmd.Start()
 }
 
+// IsNvidiaWayland returns true if running on Wayland with an NVIDIA GPU.
+// Checks XDG_SESSION_TYPE and /proc/driver/nvidia/version.
+func IsNvidiaWayland() bool {
+	if os.Getenv("XDG_SESSION_TYPE") != "wayland" &&
+		os.Getenv("WAYLAND_DISPLAY") == "" {
+		return false
+	}
+	_, err := os.Stat("/proc/driver/nvidia/version")
+	return err == nil
+}
+
 // filteredEnv returns a copy of the current environment with LD_PRELOAD removed.
 func filteredEnv() []string {
 	env := os.Environ()

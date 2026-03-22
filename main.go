@@ -3,9 +3,11 @@ package main
 import (
 	"embed"
 	"os"
+	"runtime"
 	"strings"
 
 	"aether/cli"
+	"aether/internal/platform"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -24,6 +26,15 @@ func main() {
 	// CLI mode: if first arg starts with -- and isn't a GUI flag, dispatch to CLI
 	if len(os.Args) > 1 && strings.HasPrefix(os.Args[1], "--") && !guiFlags[os.Args[1]] {
 		os.Exit(cli.Run(os.Args[1:], EmbeddedTemplates))
+	}
+
+	// Work around WebKitGTK + NVIDIA Wayland protocol error (Protocol error 71).
+	// NVIDIA's DMA-BUF/drm_syncobj implementation can crash WebKitGTK's
+	// compositor on Wayland. Disabling compositing mode prevents the crash.
+	if runtime.GOOS == "linux" && platform.IsNvidiaWayland() {
+		if os.Getenv("WEBKIT_DISABLE_COMPOSITING_MODE") == "" {
+			os.Setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+		}
 	}
 
 	// Parse GUI-specific flags
