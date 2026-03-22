@@ -40,8 +40,15 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
+      - name: Update version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cd frontend && npm version "$VERSION" --no-git-tag-version
+
       - name: Build
-        run: wails build -tags webkit2_41
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          wails build -tags webkit2_41 -ldflags "-X aether/cli.Version=$VERSION"
 
       - name: Prepare release artifact
         run: |

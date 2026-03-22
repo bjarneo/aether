@@ -92,7 +92,7 @@
 
                 <div class="text-fg-dimmed mb-4 space-y-1 text-[10px]">
                     <p>Built with Wails + Go + Svelte 5</p>
-                    <p>Version 3.0.0</p>
+                    <p>Version {__APP_VERSION__}</p>
                     <p>by Bjarne Øverli</p>
                 </div>
 

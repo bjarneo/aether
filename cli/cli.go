@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// Version is set at build time via ldflags.
+var Version = "dev"
+
 // Run dispatches CLI commands. Returns exit code.
 func Run(args []string, templatesFS embed.FS) int {
 	if len(args) == 0 {
@@ -32,7 +35,7 @@ func Run(args []string, templatesFS embed.FS) int {
 		printUsage()
 		return 0
 	case "--version", "-v":
-		fmt.Println("aether 3.0.0")
+		fmt.Printf("aether %s\n", Version)
 		return 0
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", cmd)
