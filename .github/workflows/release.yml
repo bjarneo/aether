@@ -85,7 +85,7 @@ jobs:
           Version: PKGVER
           Architecture: PKGARCH
           Maintainer: Bjarne Øverli <bjarne.oeverli@gmail.com>
-          Depends: libwebkit2gtk-4.1-0, libgtk-3-0, libgtk-layer-shell0, gstreamer1.0-plugins-good, ffmpeg
+          Depends: libwebkit2gtk-4.1-0, libgtk-3-0, libgtk-layer-shell0, gstreamer1.0-plugins-good, gstreamer1.0-libav, ffmpeg
           Description: Desktop theming application
            Extract colors from wallpapers and apply cohesive themes across your
            desktop. Supports animated wallpapers (GIF, MP4, WebM).

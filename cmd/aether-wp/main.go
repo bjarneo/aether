@@ -139,17 +139,9 @@ static int run_wallpaper(const char *path, int force_cpu) {
 	g_object_set(pipeline, "video-sink", video_sink, NULL);
 	g_object_set(pipeline, "volume", 0.0, NULL);
 
-	// Flags: video + deinterlace, no audio, no native-video.
-	// native-video forces GPU-memory frames that block CPU-based filters like videorate.
-	// GStreamer still auto-selects hardware decoders via element ranking.
-	g_object_set(pipeline, "flags", 0x41, NULL);
-
-	// Cap frame rate to 24fps to reduce GPU rendering load
-	GstElement *rate = gst_element_factory_make("videorate", "rate");
-	if (rate) {
-		g_object_set(rate, "max-rate", 24, NULL);
-		g_object_set(pipeline, "video-filter", rate, NULL);
-	}
+	// Flags: video + native-video + deinterlace, no audio.
+	// native-video is required for 10-bit H.264/AV1 (only hardware decoders support it).
+	g_object_set(pipeline, "flags", 0x61, NULL);
 
 	// Get the GTK widget from the sink and add to window
 	GtkWidget *video_widget = NULL;
