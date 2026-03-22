@@ -53,12 +53,7 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
 	return TRUE;
 }
 
-static int run_wallpaper(const char *path, int force_cpu) {
-	int argc = 0;
-	gtk_init(&argc, NULL);
-	gst_init(&argc, NULL);
-
-	// Create window on the background layer
+static void init_layer_window(void) {
 	window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
 	gtk_window_set_decorated(window, FALSE);
 	gtk_layer_init_for_window(window);
@@ -68,6 +63,37 @@ static int run_wallpaper(const char *path, int force_cpu) {
 	gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
 	gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
 	gtk_layer_set_exclusive_zone(window, -1);
+}
+
+static int run_gif(const char *path) {
+	int argc = 0;
+	gtk_init(&argc, NULL);
+
+	init_layer_window();
+
+	GdkPixbufAnimation *anim = gdk_pixbuf_animation_new_from_file(path, NULL);
+	if (!anim) {
+		g_printerr("aether-wp: failed to load GIF: %s\n", path);
+		return 1;
+	}
+
+	GtkWidget *image = gtk_image_new_from_animation(anim);
+	g_object_unref(anim);
+	gtk_container_add(GTK_CONTAINER(window), image);
+
+	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	gtk_widget_show_all(GTK_WIDGET(window));
+	gtk_main();
+
+	return 0;
+}
+
+static int run_wallpaper(const char *path, int force_cpu) {
+	int argc = 0;
+	gtk_init(&argc, NULL);
+	gst_init(&argc, NULL);
+
+	init_layer_window();
 
 	// GStreamer pipeline: playbin + gtkglsink (GPU-accelerated)
 	pipeline = gst_element_factory_make("playbin", "player");
@@ -116,10 +142,12 @@ static int run_wallpaper(const char *path, int force_cpu) {
 	// Enable hardware decoding flags (video + native-video + deinterlace, no audio)
 	g_object_set(pipeline, "flags", 0x61, NULL);
 
-	// Cap frame rate to 30fps to reduce GPU load
+	// Cap frame rate to 24fps to reduce GPU load.
+	// Note: videoscale can't be used here because hardware decode (native-video)
+	// outputs frames in GPU memory which CPU-based filters can't handle.
 	GstElement *rate = gst_element_factory_make("videorate", "rate");
 	if (rate) {
-		g_object_set(rate, "max-rate", 30, NULL);
+		g_object_set(rate, "max-rate", 24, NULL);
 		g_object_set(pipeline, "video-filter", rate, NULL);
 	}
 
@@ -279,13 +307,19 @@ func main() {
 		C.request_shutdown()
 	}()
 
-	cpu := C.int(0)
-	if forceCPU {
-		cpu = 1
-	}
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
-	rc := C.run_wallpaper(cpath, cpu)
+
+	var rc C.int
+	if strings.ToLower(filepath.Ext(path)) == ".gif" {
+		rc = C.run_gif(cpath)
+	} else {
+		cpu := C.int(0)
+		if forceCPU {
+			cpu = 1
+		}
+		rc = C.run_wallpaper(cpath, cpu)
+	}
 	removePidFile()
 	os.Exit(int(rc))
 }

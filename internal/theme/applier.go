@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"aether/internal/platform"
 )
@@ -164,14 +163,13 @@ func stopAetherWp() {
 
 // applyWallpaperAetherWp starts aether-wp for animated wallpapers.
 func applyWallpaperAetherWp(mediaPath string) error {
-	_ = platform.RunAsync("pkill", "-x", "swaybg")
-	stopAetherWp()
-	time.Sleep(100 * time.Millisecond)
-
 	wpBin := aetherWpPath()
 	if wpBin == "" {
 		return fmt.Errorf("aether-wp binary not found")
 	}
+
+	_ = platform.RunAsync("pkill", "-x", "swaybg")
+	stopAetherWp()
 
 	if err := platform.RunAsync("setsid", wpBin, mediaPath); err != nil {
 		return fmt.Errorf("failed to start aether-wp: %w", err)
