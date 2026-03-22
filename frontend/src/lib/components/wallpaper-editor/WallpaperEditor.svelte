@@ -13,6 +13,7 @@
         getCachedFullImage,
         loadFullImage,
         setCachedImage,
+        isVideoSource,
     } from '$lib/stores/imagecache.svelte';
     import {
         applyFilters,
@@ -32,7 +33,7 @@
     let previewUrl = $state('');
 
     let originalUrl = $derived(getCachedFullImage(getWallpaperPath()) || '');
-    let isVideo = $derived(originalUrl.startsWith('data:video/'));
+    let isVideo = $derived(isVideoSource(originalUrl));
     let hasChanges = $derived(!isVideo && hasActiveFilters(filters));
 
     // Load image when editor opens

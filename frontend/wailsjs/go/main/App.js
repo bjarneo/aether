@@ -62,6 +62,10 @@ export function GetFocusTab() {
     return window['go']['main']['App']['GetFocusTab']();
 }
 
+export function GetMediaURL(arg1) {
+    return window['go']['main']['App']['GetMediaURL'](arg1);
+}
+
 export function GetSettings() {
     return window['go']['main']['App']['GetSettings']();
 }

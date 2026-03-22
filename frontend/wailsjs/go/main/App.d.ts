@@ -51,6 +51,8 @@ export function GetFavorites(): Promise<Array<favorites.Favorite>>;
 
 export function GetFocusTab(): Promise<string>;
 
+export function GetMediaURL(arg1: string): Promise<string>;
+
 export function GetSettings(): Promise<Record<string, any>>;
 
 export function GetTemplateColors(): Promise<Record<string, Array<string>>>;

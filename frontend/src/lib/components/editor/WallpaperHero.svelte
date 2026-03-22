@@ -15,13 +15,14 @@
         getCachedFullImage,
         loadFullImage,
         isPending,
+        isVideoSource,
     } from '$lib/stores/imagecache.svelte';
 
     let {onedit}: {onedit?: () => void} = $props();
 
     let wallpaperImage = $derived(getCachedFullImage(getWallpaperPath()) || '');
     let loading = $derived(isPending(getWallpaperPath()));
-    let isVideo = $derived(wallpaperImage.startsWith('data:video/'));
+    let isVideo = $derived(isVideoSource(wallpaperImage));
 
     $effect(() => {
         const path = getWallpaperPath();

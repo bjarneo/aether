@@ -36,6 +36,7 @@ type App struct {
 	wallhaven    *wallhaven.Client
 	batch        *batch.Processor
 	themeWatcher *theme.ThemeWatcher
+	media        *MediaServer
 	widgetMode   bool
 	focusTab     string
 }
@@ -65,6 +66,18 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	_ = platform.EnsureAllDirs()
 	a.themeWatcher.Start(ctx)
+
+	a.media = &MediaServer{}
+	if err := a.media.Start(); err != nil {
+		log.Printf("media server: %v", err)
+	}
+}
+
+// GetMediaURL returns an http://localhost URL for streaming a local media file.
+// Used by the frontend for <video> elements since webkit2gtk's GStreamer backend
+// cannot fetch from the custom wails:// scheme.
+func (a *App) GetMediaURL(path string) string {
+	return a.media.URL(path)
 }
 
 // ---------------------------------------------------------------------------

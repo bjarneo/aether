@@ -1,6 +1,29 @@
 // Global image cache — persists across tab switches
 // Thumbnails keyed as "thumb:{path}", full images as raw path
 
+const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm']);
+
+function getExtension(path: string): string {
+    const dot = path.lastIndexOf('.');
+    return dot >= 0 ? path.slice(dot).toLowerCase() : '';
+}
+
+/** True when the file path points to a video. */
+export function isVideoPath(path: string): boolean {
+    return VIDEO_EXTENSIONS.has(getExtension(path));
+}
+
+/** True when a src string (data URL or HTTP URL) represents video content. */
+export function isVideoSource(src: string): boolean {
+    if (src.startsWith('data:video/')) return true;
+    // Localhost media server URLs contain the original path in the query string
+    if (src.startsWith('http://127.0.0.1:')) {
+        const match = src.match(/path=([^&]+)/);
+        if (match) return isVideoPath(decodeURIComponent(match[1]));
+    }
+    return false;
+}
+
 let cache = $state<Record<string, string>>({});
 let pending = $state<Record<string, boolean>>({});
 
@@ -35,10 +58,26 @@ export function setCachedImage(key: string, dataUrl: string): void {
 
 // --- Loaders ---
 
-// Load full-res image (for editor hero)
+// Load full-res media (for editor hero / preview)
+// Videos are served via the local file handler (HTTP streaming with Range
+// support) instead of base64 data URLs to avoid loading huge files into memory.
 export async function loadFullImage(path: string): Promise<string> {
     if (cache[path]) return cache[path];
     if (pending[path]) return '';
+
+    // Videos: get a real http://localhost URL from the Go media server.
+    // webkit2gtk uses GStreamer for <video> playback which can't fetch from
+    // the custom wails:// scheme — only http/https/file work.
+    if (isVideoPath(path)) {
+        try {
+            const {GetMediaURL} = await import('../../../wailsjs/go/main/App');
+            const url = await GetMediaURL(path);
+            setCachedImage(path, url);
+            return url;
+        } catch {
+            return '';
+        }
+    }
 
     pending = {...pending, [path]: true};
     try {
