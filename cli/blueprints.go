@@ -3,11 +3,14 @@ package cli
 import (
 	"embed"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 
 	"aether/internal/blueprint"
+	"aether/internal/platform"
 	"aether/internal/theme"
+	"aether/internal/wallhaven"
 )
 
 func runListBlueprints() int {
@@ -77,11 +80,12 @@ func runApplyBlueprint(args []string, templatesFS embed.FS) int {
 
 	colorRoles := MapColorsToRoles(palette)
 	lightMode := bp.Palette.LightMode
+	wallpaperPath := resolveWallpaperCLI(bp.Palette)
 
 	writer := theme.NewWriter(templatesFS, "templates")
 	state := &theme.ThemeState{
 		Palette:       palette,
-		WallpaperPath: bp.Palette.Wallpaper,
+		WallpaperPath: wallpaperPath,
 		LightMode:     lightMode,
 		ColorRoles:    colorRoles,
 		AppOverrides:  bp.AppOverrides,
@@ -99,4 +103,24 @@ func runApplyBlueprint(args []string, templatesFS embed.FS) int {
 		fmt.Printf("Applied blueprint: %s\n", bp.Name)
 	}
 	return 0
+}
+
+// resolveWallpaperCLI returns a local wallpaper path from palette data. If the
+// local path exists it is returned directly. Otherwise, if a URL is available,
+// the wallpaper is downloaded.
+func resolveWallpaperCLI(palette blueprint.PaletteData) string {
+	if palette.Wallpaper != "" && platform.FileExists(palette.Wallpaper) {
+		return palette.Wallpaper
+	}
+	if palette.WallpaperURL != "" {
+		client := wallhaven.NewClient()
+		localPath, err := client.DownloadFromURL(palette.WallpaperURL)
+		if err != nil {
+			log.Printf("Warning: could not download wallpaper from %s: %v", palette.WallpaperURL, err)
+			return ""
+		}
+		fmt.Printf("Downloaded wallpaper: %s\n", localPath)
+		return localPath
+	}
+	return ""
 }

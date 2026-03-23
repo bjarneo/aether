@@ -281,6 +281,29 @@ func (a *App) SaveBlueprint(req SaveBlueprintRequest) error {
 	return a.blueprints.Save(req.Name, bp)
 }
 
+// resolveWallpaper returns a local wallpaper path from a blueprint. If the local
+// path exists it is returned directly. Otherwise, if a URL is available, the
+// wallpaper is downloaded first.
+func (a *App) resolveWallpaper(palette blueprint.PaletteData) string {
+	// Use local path if it exists.
+	if palette.Wallpaper != "" && platform.FileExists(palette.Wallpaper) {
+		return palette.Wallpaper
+	}
+
+	// Try downloading from URL.
+	if palette.WallpaperURL != "" {
+		localPath, err := a.wallhaven.DownloadFromURL(palette.WallpaperURL)
+		if err != nil {
+			log.Printf("Warning: could not download wallpaper from %s: %v", palette.WallpaperURL, err)
+			return ""
+		}
+		log.Printf("Downloaded wallpaper: %s", localPath)
+		return localPath
+	}
+
+	return ""
+}
+
 // LoadBlueprint loads a blueprint by name into the current state.
 func (a *App) LoadBlueprint(name string) error {
 	bp, err := a.blueprints.FindByName(name)
@@ -298,7 +321,7 @@ func (a *App) LoadBlueprint(name string) error {
 		palette[i] = bp.Palette.Colors[i]
 	}
 	a.state.SetPalette(palette)
-	a.state.WallpaperPath = bp.Palette.Wallpaper
+	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
 	return nil
 }
@@ -319,7 +342,7 @@ func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
 	}
 
 	a.state.SetPalette(palette)
-	a.state.WallpaperPath = bp.Palette.Wallpaper
+	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
 
 	return a.writer.ApplyTheme(a.state, theme.Settings{})
@@ -704,9 +727,11 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 
 // ImportResult is returned by ImportFileDialog with the imported colors.
 type ImportResult struct {
-	Colors []string `json:"colors"`
-	Name   string   `json:"name"`
-	Path   string   `json:"path"`
+	Colors        []string `json:"colors"`
+	Name          string   `json:"name"`
+	Path          string   `json:"path"`
+	WallpaperPath string   `json:"wallpaperPath"`
+	LightMode     bool     `json:"lightMode"`
 }
 
 // ImportFileDialog opens a file dialog for importing a theme file.
@@ -788,12 +813,16 @@ func (a *App) importFile(path, fileType string) (*ImportResult, error) {
 	}
 	a.history.Push(*a.state)
 	a.state.SetPalette(palette)
+	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
+	a.state.LightMode = bp.Palette.LightMode
 
 	log.Printf("[import] success: %s (%d colors)", bp.Name, len(bp.Palette.Colors))
 	return &ImportResult{
-		Colors: palette[:],
-		Name:   bp.Name,
-		Path:   savedPath,
+		Colors:        palette[:],
+		Name:          bp.Name,
+		Path:          savedPath,
+		WallpaperPath: a.state.WallpaperPath,
+		LightMode:     a.state.LightMode,
 	}, nil
 }
 

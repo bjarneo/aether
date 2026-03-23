@@ -90,6 +90,116 @@ func TestImportColorsTomlFromThemeDir(t *testing.T) {
 	}
 }
 
+func TestImportJSON_BoolLockedColors(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.json")
+
+	// This is the format that was failing: lockedColors as []bool
+	content := `{
+		"palette": {
+			"colors": ["#040C13","#3268f6","#5cdb86","#60e6a5","#638df2","#709ef5","#6FFCFD","#89F3DB",
+			            "#5581a7","#85a6ff","#a4efbd","#acf6d2","#b4cafc","#c3d7fe","#c9ffff","#dbfdf5"],
+			"lockedColors": [false, true, false, false, false, false, false, false,
+			                 false, false, false, false, false, false, true, false]
+		},
+		"name": "Test Bool Locked"
+	}`
+	os.WriteFile(path, []byte(content), 0644)
+
+	bp, err := ImportJSON(path)
+	if err != nil {
+		t.Fatalf("ImportJSON failed: %v", err)
+	}
+
+	if bp.Name != "Test Bool Locked" {
+		t.Errorf("name = %q, want %q", bp.Name, "Test Bool Locked")
+	}
+
+	// Booleans at indices 1 and 14 are true, so LockedColors should be [1, 14]
+	if len(bp.Palette.LockedColors) != 2 {
+		t.Fatalf("LockedColors length = %d, want 2, got %v", len(bp.Palette.LockedColors), bp.Palette.LockedColors)
+	}
+	if bp.Palette.LockedColors[0] != 1 || bp.Palette.LockedColors[1] != 14 {
+		t.Errorf("LockedColors = %v, want [1, 14]", bp.Palette.LockedColors)
+	}
+}
+
+func TestImportJSON_IntLockedColors(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.json")
+
+	content := `{
+		"palette": {
+			"colors": ["#000","#111","#222","#333","#444","#555","#666","#777",
+			            "#888","#999","#aaa","#bbb","#ccc","#ddd","#eee","#fff"],
+			"lockedColors": [0, 15]
+		},
+		"name": "Test Int Locked"
+	}`
+	os.WriteFile(path, []byte(content), 0644)
+
+	bp, err := ImportJSON(path)
+	if err != nil {
+		t.Fatalf("ImportJSON failed: %v", err)
+	}
+
+	if len(bp.Palette.LockedColors) != 2 {
+		t.Fatalf("LockedColors length = %d, want 2", len(bp.Palette.LockedColors))
+	}
+	if bp.Palette.LockedColors[0] != 0 || bp.Palette.LockedColors[1] != 15 {
+		t.Errorf("LockedColors = %v, want [0, 15]", bp.Palette.LockedColors)
+	}
+}
+
+func TestImportJSON_AllFalseLockedColors(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.json")
+
+	content := `{
+		"palette": {
+			"colors": ["#000","#111","#222","#333","#444","#555","#666","#777",
+			            "#888","#999","#aaa","#bbb","#ccc","#ddd","#eee","#fff"],
+			"lockedColors": [false, false, false, false, false, false, false, false,
+			                 false, false, false, false, false, false, false, false]
+		},
+		"name": "All Unlocked"
+	}`
+	os.WriteFile(path, []byte(content), 0644)
+
+	bp, err := ImportJSON(path)
+	if err != nil {
+		t.Fatalf("ImportJSON failed: %v", err)
+	}
+
+	if len(bp.Palette.LockedColors) != 0 {
+		t.Errorf("LockedColors = %v, want empty (all false)", bp.Palette.LockedColors)
+	}
+}
+
+func TestImportJSON_NullLockedColors(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.json")
+
+	content := `{
+		"palette": {
+			"colors": ["#000","#111","#222","#333","#444","#555","#666","#777",
+			            "#888","#999","#aaa","#bbb","#ccc","#ddd","#eee","#fff"],
+			"lockedColors": null
+		},
+		"name": "Null Locked"
+	}`
+	os.WriteFile(path, []byte(content), 0644)
+
+	bp, err := ImportJSON(path)
+	if err != nil {
+		t.Fatalf("ImportJSON failed: %v", err)
+	}
+
+	if len(bp.Palette.LockedColors) != 0 {
+		t.Errorf("LockedColors = %v, want empty/nil", bp.Palette.LockedColors)
+	}
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a

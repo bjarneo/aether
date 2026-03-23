@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -99,6 +100,64 @@ func (c *Client) Search(params SearchParams) (*SearchResult, error) {
 	}
 
 	return &result, nil
+}
+
+// wallhavenPagePattern matches wallhaven.cc page URLs and extracts the ID.
+var wallhavenPagePattern = regexp.MustCompile(`wallhaven\.cc/w/([a-zA-Z0-9]+)`)
+
+// ResolveImageURL resolves a wallhaven page URL (e.g. https://wallhaven.cc/w/j3qv85)
+// to the direct image URL by querying the wallhaven API. If the URL is already a
+// direct image URL it is returned as-is.
+func (c *Client) ResolveImageURL(wallpaperURL string) (string, error) {
+	// If it's already a direct image URL, return it.
+	if !wallhavenPagePattern.MatchString(wallpaperURL) {
+		return wallpaperURL, nil
+	}
+
+	matches := wallhavenPagePattern.FindStringSubmatch(wallpaperURL)
+	if len(matches) < 2 {
+		return "", fmt.Errorf("cannot extract wallpaper ID from URL: %s", wallpaperURL)
+	}
+	id := matches[1]
+
+	reqURL := baseURL + "/w/" + id
+	if c.apiKey != "" {
+		reqURL += "?apikey=" + url.QueryEscape(c.apiKey)
+	}
+
+	resp, err := c.http.Get(reqURL)
+	if err != nil {
+		return "", fmt.Errorf("wallhaven API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("wallhaven API returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Data WallpaperInfo `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode wallhaven response: %w", err)
+	}
+
+	if result.Data.Path == "" {
+		return "", fmt.Errorf("wallhaven API returned no image path for %s", id)
+	}
+
+	return result.Data.Path, nil
+}
+
+// DownloadFromURL resolves a wallhaven URL (page or direct) and downloads the
+// wallpaper. Returns the local file path.
+func (c *Client) DownloadFromURL(wallpaperURL string) (string, error) {
+	imageURL, err := c.ResolveImageURL(wallpaperURL)
+	if err != nil {
+		return "", err
+	}
+	return c.Download(imageURL)
 }
 
 // Download downloads a wallpaper image to the local downloads directory.

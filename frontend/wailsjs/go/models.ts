@@ -134,6 +134,8 @@ export namespace main {
         colors: string[];
         name: string;
         path: string;
+        wallpaperPath: string;
+        lightMode: boolean;
 
         static createFrom(source: any = {}) {
             return new ImportResult(source);
@@ -144,6 +146,8 @@ export namespace main {
             this.colors = source['colors'];
             this.name = source['name'];
             this.path = source['path'];
+            this.wallpaperPath = source['wallpaperPath'];
+            this.lightMode = source['lightMode'];
         }
     }
     export class SaveBlueprintRequest {

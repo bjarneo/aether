@@ -5,7 +5,9 @@
         setPalette,
         getPalette,
         getWallpaperPath,
+        setWallpaperPath,
         getLightMode,
+        setLightMode,
         getAdditionalImages,
         getExtendedColors,
         getAppOverrides,
@@ -239,6 +241,12 @@
             console.log('Import result:', result);
             if (result?.colors?.length >= 16) {
                 setPalette(result.colors);
+                if (result.wallpaperPath) {
+                    setWallpaperPath(result.wallpaperPath);
+                }
+                if (result.lightMode !== undefined) {
+                    setLightMode(result.lightMode);
+                }
                 showToast(`Imported: ${result.name || fileType}`);
             } else {
                 showToast('Import returned no colors');
