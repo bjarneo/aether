@@ -1,6 +1,10 @@
 <script lang="ts">
     import {onMount} from 'svelte';
-    import {setWallpaperPath} from '$lib/stores/theme.svelte';
+    import {
+        setWallpaperPath,
+        addAdditionalImage,
+        getAdditionalImages,
+    } from '$lib/stores/theme.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
     import {
         getLabels,
@@ -68,6 +72,15 @@
         setWallpaperPath(wp.path);
         setActiveTab('editor');
         showToast('Wallpaper selected — click Extract to generate palette');
+    }
+
+    function handleAddExtra(path: string) {
+        if (getAdditionalImages().includes(path)) {
+            showToast('Already in additional images');
+            return;
+        }
+        addAdditionalImage(path);
+        showToast('Added to additional images');
     }
 
     async function handlePreview(index: number) {
@@ -171,6 +184,42 @@
                             >
                                 <LazyImage path={wp.path} alt={wp.name} />
                             </div>
+                        </button>
+                        <button
+                            class="absolute left-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center transition-all duration-150
+                          {getAdditionalImages().includes(wp.path)
+                                ? 'opacity-100'
+                                : 'opacity-0 hover:!opacity-100 group-hover:opacity-60'}"
+                            onclick={e => {
+                                e.stopPropagation();
+                                handleAddExtra(wp.path);
+                            }}
+                            aria-label="Add to additional images"
+                        >
+                            <svg
+                                class="h-4 w-4 {getAdditionalImages().includes(
+                                    wp.path
+                                )
+                                    ? 'text-accent'
+                                    : 'text-white'}"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                    ry="2"
+                                ></rect>
+                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
                         </button>
                         <div
                             class="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity duration-150 group-hover:opacity-100"

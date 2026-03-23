@@ -1,5 +1,9 @@
 <script lang="ts">
-    import {setWallpaperPath} from '$lib/stores/theme.svelte';
+    import {
+        setWallpaperPath,
+        addAdditionalImage,
+        getAdditionalImages,
+    } from '$lib/stores/theme.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
 
     let {wallpaper, onpreview}: {wallpaper: any; onpreview: () => void} =
@@ -57,6 +61,25 @@
         } catch {}
     }
 
+    async function handleAddExtra(event: MouseEvent) {
+        event.stopPropagation();
+        try {
+            showToast('Downloading wallpaper...');
+            const {DownloadWallpaper} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
+            const localPath = await DownloadWallpaper(wallpaper.path);
+            if (getAdditionalImages().includes(localPath)) {
+                showToast('Already in additional images');
+                return;
+            }
+            addAdditionalImage(localPath);
+            showToast('Added to additional images');
+        } catch {
+            showToast('Failed to download wallpaper');
+        }
+    }
+
     async function handleVisit() {
         try {
             const {BrowserOpenURL} = await import(
@@ -85,6 +108,28 @@
             loading="lazy"
         />
     </div>
+
+    <!-- Add to additional images -->
+    <button
+        class="absolute left-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-0 transition-all
+      duration-150 hover:!opacity-100 group-hover:opacity-60"
+        onclick={handleAddExtra}
+        aria-label="Add to additional images"
+    >
+        <svg
+            class="h-4 w-4 text-white"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+    </button>
 
     <!-- Favorite heart — always visible in corner -->
     <button
