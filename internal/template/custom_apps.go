@@ -127,6 +127,23 @@ func processCustomApp(appPath, appName, themeDir string, variables map[string]st
 	return nil
 }
 
+// ReadCustomOverride checks if a custom override template exists for the given
+// file name in ~/.config/aether/custom/. If found, returns its content and true.
+// If not found, returns empty string and false.
+func ReadCustomOverride(fileName string) (string, bool) {
+	customPath := filepath.Join(platform.CustomDir(), fileName)
+	if !platform.FileExists(customPath) {
+		return "", false
+	}
+	content, err := platform.ReadText(customPath)
+	if err != nil {
+		log.Printf("Error reading custom override %s: %v", fileName, err)
+		return "", false
+	}
+	log.Printf("Using custom override for %s", fileName)
+	return content, true
+}
+
 // expandHome replaces a leading "~/" with the user's home directory.
 func expandHome(path string) string {
 	if strings.HasPrefix(path, "~/") {

@@ -294,10 +294,15 @@ func (w *Writer) processTemplate(
 	variables map[string]string,
 	appOverrides map[string]map[string]string,
 ) {
-	content, err := template.ReadTemplate(w.templatesFS, w.templatesDir, fileName)
-	if err != nil {
-		log.Printf("Error reading template %s: %v", fileName, err)
-		return
+	// Check for custom override in ~/.config/aether/custom/ first
+	content, isCustom := template.ReadCustomOverride(fileName)
+	if !isCustom {
+		var err error
+		content, err = template.ReadTemplate(w.templatesFS, w.templatesDir, fileName)
+		if err != nil {
+			log.Printf("Error reading template %s: %v", fileName, err)
+			return
+		}
 	}
 
 	// Check for app-specific overrides
