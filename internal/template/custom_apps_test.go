@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -354,20 +355,7 @@ func TestExpandHome(t *testing.T) {
 
 func assertContains(t *testing.T, s, substr string) {
 	t.Helper()
-	if !containsString(s, substr) {
+	if !strings.Contains(s, substr) {
 		t.Errorf("expected output to contain %q, got:\n%s", substr, s)
 	}
-}
-
-func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || findSubstring(s, substr))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

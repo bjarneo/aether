@@ -199,10 +199,3 @@ func TestImportJSON_NullLockedColors(t *testing.T) {
 		t.Errorf("LockedColors = %v, want empty/nil", bp.Palette.LockedColors)
 	}
 }
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
