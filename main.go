@@ -92,7 +92,7 @@ func main() {
 		Mac: &wailsmac.Options{
 			TitleBar:             wailsmac.TitleBarHiddenInset(),
 			WebviewIsTransparent: true,
-			WindowIsTranslucent:  true,
+			WindowIsTranslucent:  false,
 			About: &wailsmac.AboutInfo{
 				Title:   "Aether",
 				Message: "Desktop Theming Application",

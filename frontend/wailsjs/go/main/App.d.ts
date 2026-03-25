@@ -71,6 +71,8 @@ export function IsAetherWpAvailable(): Promise<boolean>;
 
 export function IsFavorite(arg1: string): Promise<boolean>;
 
+export function IsMacOS(): Promise<boolean>;
+
 export function IsOmarchyInstalled(): Promise<boolean>;
 
 export function IsWidgetMode(): Promise<boolean>;

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"aether/internal/batch"
@@ -43,6 +44,9 @@ type App struct {
 
 // IsWidgetMode returns true when running in --widget-blueprint mode.
 func (a *App) IsWidgetMode() bool { return a.widgetMode }
+
+// IsMacOS returns true when running on macOS.
+func (a *App) IsMacOS() bool { return runtime.GOOS == "darwin" }
 
 // GetFocusTab returns the tab to focus on startup (empty = default editor).
 func (a *App) GetFocusTab() string { return a.focusTab }

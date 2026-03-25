@@ -102,6 +102,10 @@ export function IsFavorite(arg1) {
     return window['go']['main']['App']['IsFavorite'](arg1);
 }
 
+export function IsMacOS() {
+    return window['go']['main']['App']['IsMacOS']();
+}
+
 export function IsOmarchyInstalled() {
     return window['go']['main']['App']['IsOmarchyInstalled']();
 }
