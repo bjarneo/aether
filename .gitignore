@@ -5,3 +5,4 @@ node_modules/
 temp/
 build/bin/
 frontend/dist/
+build/darwin/

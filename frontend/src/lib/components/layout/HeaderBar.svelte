@@ -1,4 +1,5 @@
 <script lang="ts">
+    import {onMount} from 'svelte';
     import {
         getActiveTab,
         setActiveTab,
@@ -9,6 +10,14 @@
 
     let {onabout}: {onabout?: () => void} = $props();
     let sidebarVisible = $derived(getSidebarVisible());
+    let isMac = $state(false);
+
+    onMount(async () => {
+        try {
+            const {IsMacOS} = await import('../../../../wailsjs/go/main/App');
+            isMac = await IsMacOS();
+        } catch {}
+    });
 
     async function openGitHub() {
         const {BrowserOpenURL} = await import(
@@ -58,19 +67,24 @@
 </script>
 
 <header
-    class="bg-bg-secondary border-border flex h-9 shrink-0 items-center border-b px-4"
+    class="bg-bg-secondary border-border flex shrink-0 border-b px-4"
+    class:items-end={isMac}
+    class:items-center={!isMac}
+    class:pb-1.5={isMac}
+    class:pl-[84px]={isMac}
+    class:h-9={!isMac}
+    class:h-[46px]={isMac}
     style="--wails-draggable:drag"
 >
     <button
         class="text-fg-primary hover:text-accent mr-6 text-[11px] font-semibold tracking-wide transition-colors duration-100"
+        class:pb-1.5={isMac}
+        class:ml-2={isMac}
         style="letter-spacing: 0.08em; --wails-draggable:no-drag"
         onclick={openGitHub}
         title="Open GitHub repository">AETHER</button
     >
-    <nav
-        class="flex flex-1 justify-center gap-0.5"
-        style="--wails-draggable:no-drag"
-    >
+    <nav class="flex flex-1 justify-center gap-0.5">
         {#each tabs as tab}
             <button
                 class="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-all duration-100
@@ -96,7 +110,8 @@
     </nav>
     {#if onabout}
         <button
-            class="text-fg-dimmed hover:text-fg-secondary px-2 py-1 text-[10px] transition-colors duration-100"
+            class="text-fg-dimmed hover:text-fg-secondary px-2 text-[10px] transition-colors duration-100"
+            class:pb-1.5={isMac}
             onclick={onabout}
             aria-label="About Aether"
             style="--wails-draggable:no-drag">About</button
@@ -104,6 +119,7 @@
     {/if}
     <button
         class="text-fg-dimmed hover:text-fg-primary ml-1 flex h-6 w-6 items-center justify-center transition-colors duration-100"
+        class:mb-0.5={isMac}
         onclick={toggleSidebar}
         title={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
         aria-label="Toggle sidebar"

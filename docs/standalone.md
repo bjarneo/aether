@@ -1,6 +1,8 @@
 # Standalone Usage (Non-Omarchy Systems)
 
-Aether can be used on any Linux system, not just Omarchy. When running outside of Omarchy, theme files are generated but not automatically applied system-wide.
+Aether can be used on any Linux or macOS system, not just Omarchy. When running outside of Omarchy, theme files are generated but not automatically applied system-wide.
+
+On macOS, theme files are generated to `~/Library/Application Support/aether/theme/`.
 
 ## Theme Output Location
 

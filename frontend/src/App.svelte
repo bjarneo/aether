@@ -51,6 +51,7 @@
     import AboutDialog from '$lib/components/shared/AboutDialog.svelte';
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
+    import {hexToRgb} from '$lib/utils/color';
 
     let showAbout = $state(false);
     let showKeymap = $state(false);
@@ -220,7 +221,9 @@
         // Listen for events from Go
         (async () => {
             try {
-                const {EventsOn} = await import('../wailsjs/runtime/runtime');
+                const {EventsOn, WindowSetBackgroundColour} = await import(
+                    '../wailsjs/runtime/runtime'
+                );
 
                 // Apply theme colors from aether.override.css as CSS custom properties
                 EventsOn(
@@ -241,6 +244,9 @@
                                 colors.background
                             );
                             document.body.style.background = colors.background;
+                            // Update native window/titlebar color to match theme
+                            const rgb = hexToRgb(colors.background);
+                            WindowSetBackgroundColour(rgb.r, rgb.g, rgb.b, 255);
                         }
                         if (colors.foreground) {
                             root.style.setProperty(

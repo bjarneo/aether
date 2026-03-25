@@ -28,6 +28,35 @@ sudo apt-get install -f
 
 The `.deb` package includes both `aether` and `aether-wp` binaries and pulls in all required dependencies automatically.
 
+## macOS
+
+### Requirements
+
+- **Go** 1.23+
+- **Wails CLI** (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
+- **Node.js** 18+
+- **ffmpeg** (for video thumbnail and color extraction): `brew install ffmpeg`
+- **Xcode Command Line Tools**: `xcode-select --install`
+
+### Build
+
+```bash
+git clone https://github.com/bjarneo/aether.git
+cd aether && make build
+```
+
+This builds `aether` as a macOS app in `build/bin/`. The animated wallpaper service (`aether-wp`) is Linux-only and is skipped on macOS.
+
+### Install
+
+```bash
+make install
+```
+
+This copies the app to `/Applications/Aether.app` or the binary to `/usr/local/bin/aether`.
+
+Aether runs in **standalone mode** on macOS — theme files are generated but not applied system-wide. See [Standalone Usage](standalone.md) for integration details.
+
 ## Build from Source
 
 ### Arch Linux
