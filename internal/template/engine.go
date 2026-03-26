@@ -12,6 +12,7 @@ import (
 //   - {key}          -> value
 //   - {key.strip}    -> value without '#' prefix
 //   - {key.rgb}      -> "r,g,b" decimal
+//   - {key.rgbs}     -> "r g b" space-separated decimal
 //   - {key.rgba}     -> "rgba(r, g, b, 1.0)"
 //   - {key.rgba:0.5} -> "rgba(r, g, b, 0.5)"
 //   - {key.yaru}     -> Yaru icon theme name based on hue
@@ -29,6 +30,14 @@ func ReplaceVariable(content, key, value string) string {
 		content = strings.ReplaceAll(content, "{"+key+".rgb}", rgbValue)
 	} else {
 		content = strings.ReplaceAll(content, "{"+key+".rgb}", value)
+	}
+
+	// Replace {key.rgbs} (converts hex to space-separated decimal RGB: r g b)
+	if strings.HasPrefix(value, "#") {
+		rgbsValue := color.HexToRGBSpaceString(value)
+		content = strings.ReplaceAll(content, "{"+key+".rgbs}", rgbsValue)
+	} else {
+		content = strings.ReplaceAll(content, "{"+key+".rgbs}", value)
 	}
 
 	// Replace {key.rgba} and {key.rgba:N} (converts hex to rgba format)
@@ -59,7 +68,7 @@ func ReplaceVariable(content, key, value string) string {
 
 // ProcessTemplate replaces all variables in template content and returns the
 // processed result. Each variable is substituted using ReplaceVariable which
-// handles {key}, {key.strip}, {key.rgb}, {key.rgba}, and {key.yaru} variants.
+// handles {key}, {key.strip}, {key.rgb}, {key.rgbs}, {key.rgba}, and {key.yaru} variants.
 func ProcessTemplate(templateContent string, variables map[string]string) string {
 	result := templateContent
 	for key, value := range variables {
@@ -68,7 +77,7 @@ func ProcessTemplate(templateContent string, variables map[string]string) string
 	return result
 }
 
-// variablePattern matches {key}, {key.strip}, {key.rgb}, {key.rgba}, {key.rgba:N}, and {key.yaru}.
+// variablePattern matches {key}, {key.strip}, {key.rgb}, {key.rgbs}, {key.rgba}, {key.rgba:N}, and {key.yaru}.
 var variablePattern = regexp.MustCompile(`\{(\w+)(?:\.\w+(?::[^}]*)?)?\}`)
 
 // ExtractVariableNames returns the deduplicated set of base variable names

@@ -1,0 +1,120 @@
+themes {
+    current {
+        text_unselected {
+            base {foreground.rgbs}
+            background {bright_black.rgbs}
+            emphasis_0 {orange.rgbs}
+            emphasis_1 {bright_cyan.rgbs}
+            emphasis_2 {bright_green.rgbs}
+            emphasis_3 {bright_magenta.rgbs}
+        }
+        text_selected {
+            base {foreground.rgbs}
+            background {bright_black.rgbs}
+            emphasis_0 {orange.rgbs}
+            emphasis_1 {bright_cyan.rgbs}
+            emphasis_2 {bright_green.rgbs}
+            emphasis_3 {bright_magenta.rgbs}
+        }
+        ribbon_selected {
+            base {bright_black.rgbs}
+            background {bright_green.rgbs}
+            emphasis_0 {bright_red.rgbs}
+            emphasis_1 {orange.rgbs}
+            emphasis_2 {bright_magenta.rgbs}
+            emphasis_3 {bright_blue.rgbs}
+        }
+        ribbon_unselected {
+            base {bright_black.rgbs}
+            background {foreground.rgbs}
+            emphasis_0 {bright_red.rgbs}
+            emphasis_1 {foreground.rgbs}
+            emphasis_2 {bright_blue.rgbs}
+            emphasis_3 {bright_magenta.rgbs}
+        }
+        table_title {
+            base {bright_green.rgbs}
+            background 0
+            emphasis_0 {orange.rgbs}
+            emphasis_1 {bright_cyan.rgbs}
+            emphasis_2 {bright_green.rgbs}
+            emphasis_3 {bright_magenta.rgbs}
+        }
+        table_cell_selected {
+            base {foreground.rgbs}
+            background {bright_black.rgbs}
+            emphasis_0 {orange.rgbs}
+            emphasis_1 {bright_cyan.rgbs}
+            emphasis_2 {bright_green.rgbs}
+            emphasis_3 {bright_magenta.rgbs}
+        }
+        table_cell_unselected {
+            base {foreground.rgbs}
+            background {bright_black.rgbs}
+            emphasis_0 {orange.rgbs}
+            emphasis_1 {bright_cyan.rgbs}
+            emphasis_2 {bright_green.rgbs}
+            emphasis_3 {bright_magenta.rgbs}
+        }
+        list_selected {
+            base {foreground.rgbs}
+            background {bright_black.rgbs}
+            emphasis_0 {orange.rgbs}
+            emphasis_1 {bright_cyan.rgbs}
+            emphasis_2 {bright_green.rgbs}
+            emphasis_3 {bright_magenta.rgbs}
+        }
+        list_unselected {
+            base {foreground.rgbs}
+            background {bright_black.rgbs}
+            emphasis_0 {orange.rgbs}
+            emphasis_1 {bright_cyan.rgbs}
+            emphasis_2 {bright_green.rgbs}
+            emphasis_3 {bright_magenta.rgbs}
+        }
+        frame_selected {
+            base {bright_green.rgbs}
+            background 0
+            emphasis_0 {orange.rgbs}
+            emphasis_1 {bright_cyan.rgbs}
+            emphasis_2 {bright_magenta.rgbs}
+            emphasis_3 0
+        }
+        frame_highlight {
+            base {orange.rgbs}
+            background 0
+            emphasis_0 {bright_magenta.rgbs}
+            emphasis_1 {orange.rgbs}
+            emphasis_2 {orange.rgbs}
+            emphasis_3 {orange.rgbs}
+        }
+        exit_code_success {
+            base {bright_green.rgbs}
+            background 0
+            emphasis_0 {bright_cyan.rgbs}
+            emphasis_1 {bright_black.rgbs}
+            emphasis_2 {bright_magenta.rgbs}
+            emphasis_3 {bright_blue.rgbs}
+        }
+        exit_code_error {
+            base {bright_red.rgbs}
+            background 0
+            emphasis_0 {yellow.rgbs}
+            emphasis_1 0
+            emphasis_2 0
+            emphasis_3 0
+        }
+        multiplayer_user_colors {
+            player_1 {bright_magenta.rgbs}
+            player_2 {bright_blue.rgbs}
+            player_3 0
+            player_4 {yellow.rgbs}
+            player_5 {bright_cyan.rgbs}
+            player_6 0
+            player_7 {bright_red.rgbs}
+            player_8 0
+            player_9 0
+            player_10 0
+        }
+    }
+}

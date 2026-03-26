@@ -147,6 +147,13 @@ func HexToRGBString(hex string) string {
 	return fmt.Sprintf("%d,%d,%d", clampByte(rgb.R), clampByte(rgb.G), clampByte(rgb.B))
 }
 
+// HexToRGBSpaceString converts a hex color to an "r g b" space-separated decimal string.
+// Used by KDL-based configs like Zellij.
+func HexToRGBSpaceString(hex string) string {
+	rgb := HexToRGB(hex)
+	return fmt.Sprintf("%d %d %d", clampByte(rgb.R), clampByte(rgb.G), clampByte(rgb.B))
+}
+
 // HexToRGBA converts a hex color to an "rgba(r, g, b, a)" string.
 func HexToRGBA(hex string, alpha float64) string {
 	rgb := HexToRGB(hex)
