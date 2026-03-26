@@ -177,8 +177,8 @@ toast button.circular.flat.image-button:hover {
     background-color: @red;
 }
 
-/* Sharp corners, Hyprland-inspired */
+/* Configurable border radius (set via Settings.GtkBorderRadius) */
 * {
-    border-radius: 0;
+    border-radius: {gtk_border_radius};
 }
 

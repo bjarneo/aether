@@ -2,6 +2,7 @@ package theme
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"log"
 	"path"
@@ -57,6 +58,9 @@ type Settings struct {
 	IncludeNeovim        bool            `json:"includeNeovim"`
 	SelectedNeovimConfig string          `json:"selectedNeovimConfig"`
 	ExcludedApps         map[string]bool `json:"excludedApps,omitempty"`
+	// GTK CSS customisation: border-radius in pixels.
+	// 0 means sharp corners (default, Hyprland-style).
+	GtkBorderRadius int `json:"gtkBorderRadius"`
 }
 
 // ApplyResult is returned by ApplyTheme with the outcome of theme application.
@@ -155,6 +159,7 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 	}
 
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode)
+	variables["gtk_border_radius"] = fmt.Sprintf("%dpx", settings.GtkBorderRadius)
 	w.processTemplates(variables, themeDir, settings, state.AppOverrides)
 	w.applyAetherThemeOverride(variables, themeDir)
 	w.applyEditorThemes(themeDir, settings, variables)
@@ -199,6 +204,7 @@ func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath s
 	}
 
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode)
+	variables["gtk_border_radius"] = fmt.Sprintf("%dpx", settings.GtkBorderRadius)
 	w.processTemplates(variables, targetDir, settings, state.AppOverrides)
 
 	// Generate VSCode extension into the export directory

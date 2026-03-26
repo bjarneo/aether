@@ -44,6 +44,7 @@ export interface Settings {
     includeVscode: boolean;
     includeNeovim: boolean;
     selectedNeovimConfig: string;
+    gtkBorderRadius: number;
 }
 
 export const DEFAULT_ADJUSTMENTS: Adjustments = {

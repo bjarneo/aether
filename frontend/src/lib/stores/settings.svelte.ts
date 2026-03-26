@@ -6,6 +6,7 @@ const defaults: Settings = {
     includeVscode: false,
     includeNeovim: true,
     selectedNeovimConfig: '',
+    gtkBorderRadius: 0,
 };
 
 let settings = $state<Settings>({...defaults});

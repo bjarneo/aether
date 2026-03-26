@@ -41,4 +41,26 @@
             </label>
         {/each}
     </div>
+    <div class="mt-3">
+        <label class="flex flex-col gap-0.5">
+            <span class="text-fg-secondary text-[11px]">GTK Border Radius</span
+            >
+            <select
+                class="bg-bg-surface border-border text-fg-primary w-full border px-1.5 py-1 text-[11px]"
+                value={getSettings().gtkBorderRadius}
+                onchange={(e) =>
+                    updateSettings({
+                        gtkBorderRadius: Number(
+                            (e.target as HTMLSelectElement).value,
+                        ),
+                    })}
+            >
+                <option value={0}>Sharp (0px)</option>
+                <option value={6}>Subtle (6px)</option>
+                <option value={12}>Rounded (12px)</option>
+                <option value={18}>More (18px)</option>
+                <option value={24}>Extra (24px)</option>
+            </select>
+        </label>
+    </div>
 </div>
