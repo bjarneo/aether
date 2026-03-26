@@ -1,6 +1,7 @@
 .PHONY: build dev test clean aether-wp install
 
 UNAME_S := $(shell uname -s)
+WEBKIT_TAGS := $(shell pkg-config --exists webkit2gtk-4.0 2>/dev/null || echo "-tags webkit2_41")
 
 aether-wp:
 ifeq ($(UNAME_S),Linux)
@@ -13,7 +14,7 @@ build:
 ifeq ($(UNAME_S),Linux)
 	$(MAKE) aether-wp
 endif
-	wails build
+	wails build $(WEBKIT_TAGS)
 
 install: build
 ifeq ($(UNAME_S),Darwin)
@@ -25,7 +26,7 @@ else
 endif
 
 dev:
-	wails dev
+	wails dev $(WEBKIT_TAGS)
 
 test:
 	go test ./internal/... ./cli/...
