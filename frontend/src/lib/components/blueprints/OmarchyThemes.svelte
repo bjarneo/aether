@@ -1,6 +1,14 @@
 <script lang="ts">
     import {onMount} from 'svelte';
-    import {setPalette, setWallpaperPath} from '$lib/stores/theme.svelte';
+    import {
+        setPalette,
+        setWallpaperPath,
+        getLightMode,
+        getAdditionalImages,
+        getExtendedColors,
+        getAppOverrides,
+    } from '$lib/stores/theme.svelte';
+    import {getSettings} from '$lib/stores/settings.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
     import {
         getCachedThumbnail,
@@ -38,14 +46,47 @@
         }
     }
 
-    function handleUse(theme: any) {
-        if (theme.colors?.length >= 16) {
-            setPalette(theme.colors);
-            if (theme.wallpapers?.length > 0) {
-                setWallpaperPath(theme.wallpapers[0]);
-            }
+    function loadThemeIntoState(theme: any): boolean {
+        if (theme.colors?.length < 16) return false;
+        setPalette(theme.colors);
+        if (theme.wallpapers?.length > 0) {
+            setWallpaperPath(theme.wallpapers[0]);
+        }
+        return true;
+    }
+
+    function handleEdit(theme: any) {
+        if (loadThemeIntoState(theme)) {
             setActiveTab('editor');
             showToast(`Loaded theme: ${theme.name}`);
+        }
+    }
+
+    async function handleApply(theme: any) {
+        const palette = theme.colors;
+        const wallpaper = theme.wallpapers?.[0] ?? '';
+        if (palette?.length < 16) return;
+        loadThemeIntoState(theme);
+        try {
+            const {ApplyTheme} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
+            const result = await ApplyTheme({
+                palette,
+                wallpaperPath: wallpaper,
+                lightMode: getLightMode(),
+                additionalImages: getAdditionalImages(),
+                extendedColors: getExtendedColors(),
+                settings: getSettings(),
+                appOverrides: getAppOverrides(),
+            });
+            if (result.success) {
+                showToast(`Applied theme: ${theme.name}`);
+            } else {
+                showToast('Theme files generated');
+            }
+        } catch {
+            showToast('Failed to apply theme');
         }
     }
 </script>
@@ -112,10 +153,18 @@
                             >
                         {/if}
                     </div>
-                    <button
-                        class="bg-accent hover:bg-accent-hover px-2 py-1 text-[10px] font-medium text-[#111116] opacity-0 transition-opacity group-hover:opacity-100"
-                        onclick={() => handleUse(theme)}>Use</button
+                    <div
+                        class="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
                     >
+                        <button
+                            class="text-fg-dimmed border-border hover:bg-bg-elevated border px-2 py-1 text-[10px]"
+                            onclick={() => handleEdit(theme)}>Edit</button
+                        >
+                        <button
+                            class="bg-accent hover:bg-accent-hover px-2 py-1 text-[10px] font-medium text-[#111116]"
+                            onclick={() => handleApply(theme)}>Apply</button
+                        >
+                    </div>
                 </div>
             </div>
         {/each}
