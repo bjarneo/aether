@@ -7,6 +7,7 @@
         getAdditionalImages,
         getExtendedColors,
         getAppOverrides,
+        getAdjustments,
     } from '$lib/stores/theme.svelte';
 
     let {onclose, onsave}: {onclose: () => void; onsave: () => void} = $props();
@@ -29,6 +30,7 @@
                 lockedColors: [],
                 extendedColors: getExtendedColors(),
                 appOverrides: getAppOverrides(),
+                adjustments: getAdjustments(),
             });
             showToast(`Saved: ${name.trim()}`);
             onsave();

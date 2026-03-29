@@ -268,6 +268,7 @@ type SaveBlueprintRequest struct {
 	LockedColors     []int                        `json:"lockedColors"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	Adjustments      map[string]float64           `json:"adjustments"`
 }
 
 func (a *App) SaveBlueprint(req SaveBlueprintRequest) error {
@@ -280,6 +281,7 @@ func (a *App) SaveBlueprint(req SaveBlueprintRequest) error {
 			LockedColors:     req.LockedColors,
 			ExtendedColors:   req.ExtendedColors,
 		},
+		Adjustments:  req.Adjustments,
 		AppOverrides: req.AppOverrides,
 	}
 	return a.blueprints.Save(req.Name, bp)
@@ -327,6 +329,8 @@ func (a *App) LoadBlueprint(name string) error {
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
+	a.state.Adjustments = a.adjustmentsFromBlueprint(bp)
+	a.state.AppOverrides = a.appOverridesFromBlueprint(bp)
 	return nil
 }
 
@@ -348,6 +352,8 @@ func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
+	a.state.Adjustments = a.adjustmentsFromBlueprint(bp)
+	a.state.AppOverrides = a.appOverridesFromBlueprint(bp)
 
 	return a.writer.ApplyTheme(a.state, theme.Settings{})
 }
