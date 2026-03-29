@@ -19,6 +19,8 @@ export function ApplyTheme(
     arg1: main.ApplyThemeRequest
 ): Promise<theme.ApplyResult>;
 
+export function BlueprintExists(arg1: string): Promise<boolean>;
+
 export function CancelBatchProcessing(): Promise<void>;
 
 export function ClearTheme(): Promise<void>;

@@ -13,10 +13,29 @@
     let {onclose, onsave}: {onclose: () => void; onsave: () => void} = $props();
     let name = $state('');
     let isSaving = $state(false);
+    let showOverrideConfirm = $state(false);
 
     async function handleSave() {
         if (!name.trim()) return;
         isSaving = true;
+        try {
+            const {BlueprintExists} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
+            const exists = await BlueprintExists(name.trim());
+            if (exists && !showOverrideConfirm) {
+                showOverrideConfirm = true;
+                isSaving = false;
+                return;
+            }
+            await doSave();
+        } catch {
+            showToast('Failed to save');
+            isSaving = false;
+        }
+    }
+
+    async function doSave() {
         try {
             const {SaveBlueprint} = await import(
                 '../../../../wailsjs/go/main/App'
@@ -42,8 +61,14 @@
     }
 
     function handleKeydown(e: KeyboardEvent) {
-        if (e.key === 'Enter') handleSave();
-        if (e.key === 'Escape') onclose();
+        if (e.key === 'Enter' && !showOverrideConfirm) handleSave();
+        if (e.key === 'Escape') {
+            if (showOverrideConfirm) {
+                showOverrideConfirm = false;
+            } else {
+                onclose();
+            }
+        }
     }
 </script>
 
@@ -59,24 +84,47 @@
         class="bg-bg-secondary border-border w-80 border p-4 shadow-xl"
         onkeydown={handleKeydown}
     >
-        <h3 class="text-fg-primary mb-3 text-[12px] font-medium">Save Theme</h3>
-        <input
-            type="text"
-            class="bg-bg-surface border-border text-fg-primary focus:border-border-focus mb-3 w-full border px-2 py-1.5 text-[12px] outline-none"
-            placeholder="Theme name..."
-            bind:value={name}
-        />
-        <div class="flex justify-end gap-2">
-            <button
-                class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px]"
-                onclick={onclose}>Cancel</button
-            >
-            <button
-                class="bg-accent hover:bg-accent-hover px-3 py-1.5 text-[11px] font-medium text-[#111116] disabled:opacity-50"
-                onclick={handleSave}
-                disabled={!name.trim() || isSaving}
-                >{isSaving ? 'Saving...' : 'Save'}</button
-            >
-        </div>
+        {#if showOverrideConfirm}
+            <h3 class="text-fg-primary mb-3 text-[12px] font-medium">
+                Override existing theme?
+            </h3>
+            <p class="text-fg-dimmed mb-3 text-[11px]">
+                A theme named "{name.trim()}" already exists.
+            </p>
+            <div class="flex justify-end gap-2">
+                <button
+                    class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px]"
+                    onclick={() => (showOverrideConfirm = false)}>Cancel</button
+                >
+                <button
+                    class="bg-accent hover:bg-accent-hover px-3 py-1.5 text-[11px] font-medium text-[#111116] disabled:opacity-50"
+                    onclick={doSave}
+                    disabled={isSaving}
+                    >{isSaving ? 'Saving...' : 'Override'}</button
+                >
+            </div>
+        {:else}
+            <h3 class="text-fg-primary mb-3 text-[12px] font-medium">
+                Save Theme
+            </h3>
+            <input
+                type="text"
+                class="bg-bg-surface border-border text-fg-primary focus:border-border-focus mb-3 w-full border px-2 py-1.5 text-[12px] outline-none"
+                placeholder="Theme name..."
+                bind:value={name}
+            />
+            <div class="flex justify-end gap-2">
+                <button
+                    class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px]"
+                    onclick={onclose}>Cancel</button
+                >
+                <button
+                    class="bg-accent hover:bg-accent-hover px-3 py-1.5 text-[11px] font-medium text-[#111116] disabled:opacity-50"
+                    onclick={handleSave}
+                    disabled={!name.trim() || isSaving}
+                    >{isSaving ? 'Saving...' : 'Save'}</button
+                >
+            </div>
+        {/if}
     </div>
 </div>

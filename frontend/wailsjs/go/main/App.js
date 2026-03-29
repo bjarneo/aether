@@ -14,6 +14,10 @@ export function ApplyTheme(arg1) {
     return window['go']['main']['App']['ApplyTheme'](arg1);
 }
 
+export function BlueprintExists(arg1) {
+    return window['go']['main']['App']['BlueprintExists'](arg1);
+}
+
 export function CancelBatchProcessing() {
     return window['go']['main']['App']['CancelBatchProcessing']();
 }

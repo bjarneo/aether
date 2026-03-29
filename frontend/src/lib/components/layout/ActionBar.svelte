@@ -27,12 +27,12 @@
     } from '$lib/stores/history.svelte';
     import {getSettings} from '$lib/stores/settings.svelte';
     import {showToast} from '$lib/stores/ui.svelte';
+    import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
 
     let showImportMenu = $state(false);
     let showExportDialog = $state(false);
     let showSaveDialog = $state(false);
     let exportName = $state('');
-    let saveName = $state('');
     let installToOmarchy = $state(false);
     let isOmarchy = $state(false);
 
@@ -204,31 +204,6 @@
             installToOmarchy = false;
         } catch (e: any) {
             showToast(e?.message || 'Export failed');
-        }
-    }
-
-    async function handleSave() {
-        if (!saveName.trim()) return;
-        try {
-            const {SaveBlueprint} = await import(
-                '../../../../wailsjs/go/main/App'
-            );
-            await SaveBlueprint({
-                name: saveName.trim(),
-                palette: getPalette(),
-                wallpaperPath: getWallpaperPath(),
-                lightMode: getLightMode(),
-                additionalImages: getAdditionalImages(),
-                lockedColors: [],
-                extendedColors: getExtendedColors(),
-                appOverrides: getAppOverrides(),
-                adjustments: getAdjustments(),
-            });
-            showToast(`Saved: ${saveName.trim()}`);
-            showSaveDialog = false;
-            saveName = '';
-        } catch {
-            showToast('Failed to save');
         }
     }
 
@@ -436,40 +411,8 @@
 
 <!-- Save Blueprint Dialog -->
 {#if showSaveDialog}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-        onclick={e => {
-            if (e.target === e.currentTarget) showSaveDialog = false;
-        }}
-    >
-        <div
-            class="bg-bg-secondary border-border w-72 border p-4 shadow-xl"
-            onkeydown={e => {
-                if (e.key === 'Enter') handleSave();
-                if (e.key === 'Escape') showSaveDialog = false;
-            }}
-        >
-            <h3 class="text-fg-primary mb-3 text-[12px] font-medium">
-                Save Blueprint
-            </h3>
-            <input
-                type="text"
-                class="bg-bg-surface border-border text-fg-primary focus:border-border-focus mb-3 w-full border px-2 py-1.5 text-[11px] outline-none"
-                placeholder="Blueprint name..."
-                bind:value={saveName}
-            />
-            <div class="flex justify-end gap-2">
-                <button
-                    class="text-fg-dimmed hover:text-fg-secondary px-3 py-1 text-[11px]"
-                    onclick={() => (showSaveDialog = false)}>Cancel</button
-                >
-                <button
-                    class="bg-accent text-bg-primary hover:bg-accent-hover px-3 py-1 text-[11px] font-medium disabled:opacity-50"
-                    onclick={handleSave}
-                    disabled={!saveName.trim()}>Save</button
-                >
-            </div>
-        </div>
-    </div>
+    <SaveDialog
+        onclose={() => (showSaveDialog = false)}
+        onsave={() => (showSaveDialog = false)}
+    />
 {/if}

@@ -361,6 +361,12 @@ func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
 	return a.writer.ApplyTheme(a.state, theme.Settings{})
 }
 
+// BlueprintExists checks whether a blueprint with the given name already exists.
+func (a *App) BlueprintExists(name string) bool {
+	bp, _ := a.blueprints.FindByName(name)
+	return bp != nil
+}
+
 // DeleteBlueprint removes a blueprint by name.
 func (a *App) DeleteBlueprint(name string) error {
 	return a.blueprints.Delete(name)
