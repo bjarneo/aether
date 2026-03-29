@@ -72,6 +72,8 @@ sudo apt install golang libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-layer-shell-de
   libgstreamer1.0-dev gstreamer1.0-plugins-good ffmpeg nodejs npm pkg-config
 ```
 
+> **Note:** Debian Bookworm and Ubuntu 22.04+ ship only `webkit2gtk-4.1`. The build system handles this automatically via the `-tags webkit2_41` flag, so no manual workaround is needed.
+
 ### Build
 
 ```bash
