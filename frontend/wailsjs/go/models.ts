@@ -159,6 +159,7 @@ export namespace main {
         lockedColors: number[];
         extendedColors: Record<string, string>;
         appOverrides: Record<string, any>;
+        adjustments: Record<string, number>;
 
         static createFrom(source: any = {}) {
             return new SaveBlueprintRequest(source);
@@ -174,6 +175,7 @@ export namespace main {
             this.lockedColors = source['lockedColors'];
             this.extendedColors = source['extendedColors'];
             this.appOverrides = source['appOverrides'];
+            this.adjustments = source['adjustments'];
         }
     }
 }

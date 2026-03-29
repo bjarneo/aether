@@ -66,7 +66,6 @@
                 );
                 await LoadBlueprint(bp.name);
             }
-            // Restore per-blueprint adjustments and app overrides
             setAdjustments(bp.adjustments ?? {...DEFAULT_ADJUSTMENTS});
             setAppOverrides(bp.appOverrides ?? {});
             setActiveTab('editor');

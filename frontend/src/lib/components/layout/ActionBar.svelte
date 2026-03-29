@@ -222,6 +222,7 @@
                 lockedColors: [],
                 extendedColors: getExtendedColors(),
                 appOverrides: getAppOverrides(),
+                adjustments: getAdjustments(),
             });
             showToast(`Saved: ${saveName.trim()}`);
             showSaveDialog = false;

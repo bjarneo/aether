@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -368,55 +369,30 @@ func (a *App) DeleteBlueprint(name string) error {
 // adjustmentsFromBlueprint converts a blueprint's stored adjustments map to a
 // typed Adjustments struct, falling back to defaults when the blueprint has none.
 func (a *App) adjustmentsFromBlueprint(bp *blueprint.Blueprint) color.Adjustments {
-	if len(bp.Adjustments) == 0 {
-		return color.DefaultAdjustments()
-	}
 	adj := color.DefaultAdjustments()
-	if v, ok := bp.Adjustments["vibrance"]; ok {
-		adj.Vibrance = v
+	if len(bp.Adjustments) == 0 {
+		return adj
 	}
-	if v, ok := bp.Adjustments["saturation"]; ok {
-		adj.Saturation = v
+	data, err := json.Marshal(bp.Adjustments)
+	if err != nil {
+		return adj
 	}
-	if v, ok := bp.Adjustments["contrast"]; ok {
-		adj.Contrast = v
-	}
-	if v, ok := bp.Adjustments["brightness"]; ok {
-		adj.Brightness = v
-	}
-	if v, ok := bp.Adjustments["shadows"]; ok {
-		adj.Shadows = v
-	}
-	if v, ok := bp.Adjustments["highlights"]; ok {
-		adj.Highlights = v
-	}
-	if v, ok := bp.Adjustments["hueShift"]; ok {
-		adj.HueShift = v
-	}
-	if v, ok := bp.Adjustments["temperature"]; ok {
-		adj.Temperature = v
-	}
-	if v, ok := bp.Adjustments["tint"]; ok {
-		adj.Tint = v
-	}
-	if v, ok := bp.Adjustments["gamma"]; ok {
-		adj.Gamma = v
-	}
-	if v, ok := bp.Adjustments["blackPoint"]; ok {
-		adj.BlackPoint = v
-	}
-	if v, ok := bp.Adjustments["whitePoint"]; ok {
-		adj.WhitePoint = v
-	}
+	_ = json.Unmarshal(data, &adj)
 	return adj
 }
 
-// appOverridesFromBlueprint returns the blueprint's app overrides or an empty map.
+// appOverridesFromBlueprint returns a deep copy of the blueprint's app overrides
+// or an empty map. A copy is needed to avoid aliasing the blueprint's data.
 func (a *App) appOverridesFromBlueprint(bp *blueprint.Blueprint) map[string]map[string]string {
-	if bp.AppOverrides != nil {
-		return bp.AppOverrides
+	result := make(map[string]map[string]string, len(bp.AppOverrides))
+	for app, roles := range bp.AppOverrides {
+		m := make(map[string]string, len(roles))
+		for k, v := range roles {
+			m[k] = v
+		}
+		result[app] = m
 	}
-	return make(map[string]map[string]string)
+	return result
 }
 
 // ---------------------------------------------------------------------------
