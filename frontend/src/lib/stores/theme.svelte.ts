@@ -148,6 +148,11 @@ export function clearAppOverridesForApp(app: string): void {
     const {[app]: _, ...remaining} = appOverrides;
     appOverrides = remaining;
 }
+export function setAppOverrides(
+    overrides: Record<string, Record<string, string>>
+): void {
+    appOverrides = overrides ? {...overrides} : {};
+}
 
 // --- Setters ---
 

@@ -252,6 +252,8 @@ func (a *App) ListBlueprints() ([]map[string]interface{}, error) {
 				"wallpaper": bp.Palette.Wallpaper,
 				"lightMode": bp.Palette.LightMode,
 			},
+			"adjustments":  bp.Adjustments,
+			"appOverrides": bp.AppOverrides,
 		}
 	}
 	return result, nil
@@ -361,6 +363,60 @@ func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
 // DeleteBlueprint removes a blueprint by name.
 func (a *App) DeleteBlueprint(name string) error {
 	return a.blueprints.Delete(name)
+}
+
+// adjustmentsFromBlueprint converts a blueprint's stored adjustments map to a
+// typed Adjustments struct, falling back to defaults when the blueprint has none.
+func (a *App) adjustmentsFromBlueprint(bp *blueprint.Blueprint) color.Adjustments {
+	if len(bp.Adjustments) == 0 {
+		return color.DefaultAdjustments()
+	}
+	adj := color.DefaultAdjustments()
+	if v, ok := bp.Adjustments["vibrance"]; ok {
+		adj.Vibrance = v
+	}
+	if v, ok := bp.Adjustments["saturation"]; ok {
+		adj.Saturation = v
+	}
+	if v, ok := bp.Adjustments["contrast"]; ok {
+		adj.Contrast = v
+	}
+	if v, ok := bp.Adjustments["brightness"]; ok {
+		adj.Brightness = v
+	}
+	if v, ok := bp.Adjustments["shadows"]; ok {
+		adj.Shadows = v
+	}
+	if v, ok := bp.Adjustments["highlights"]; ok {
+		adj.Highlights = v
+	}
+	if v, ok := bp.Adjustments["hueShift"]; ok {
+		adj.HueShift = v
+	}
+	if v, ok := bp.Adjustments["temperature"]; ok {
+		adj.Temperature = v
+	}
+	if v, ok := bp.Adjustments["tint"]; ok {
+		adj.Tint = v
+	}
+	if v, ok := bp.Adjustments["gamma"]; ok {
+		adj.Gamma = v
+	}
+	if v, ok := bp.Adjustments["blackPoint"]; ok {
+		adj.BlackPoint = v
+	}
+	if v, ok := bp.Adjustments["whitePoint"]; ok {
+		adj.WhitePoint = v
+	}
+	return adj
+}
+
+// appOverridesFromBlueprint returns the blueprint's app overrides or an empty map.
+func (a *App) appOverridesFromBlueprint(bp *blueprint.Blueprint) map[string]map[string]string {
+	if bp.AppOverrides != nil {
+		return bp.AppOverrides
+	}
+	return make(map[string]map[string]string)
 }
 
 // ---------------------------------------------------------------------------

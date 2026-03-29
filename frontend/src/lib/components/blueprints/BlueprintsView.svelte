@@ -3,7 +3,13 @@
     import BlueprintCard from './BlueprintCard.svelte';
     import SaveDialog from './SaveDialog.svelte';
     import {showToast, setActiveTab} from '$lib/stores/ui.svelte';
-    import {setPalette, setWallpaperPath} from '$lib/stores/theme.svelte';
+    import {
+        setPalette,
+        setWallpaperPath,
+        setAdjustments,
+        setAppOverrides,
+    } from '$lib/stores/theme.svelte';
+    import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
 
     let blueprints = $state<any[]>([]);
     let isLoading = $state(true);
@@ -60,6 +66,9 @@
                 );
                 await LoadBlueprint(bp.name);
             }
+            // Restore per-blueprint adjustments and app overrides
+            setAdjustments(bp.adjustments ?? {...DEFAULT_ADJUSTMENTS});
+            setAppOverrides(bp.appOverrides ?? {});
             setActiveTab('editor');
             showToast(`Loaded: ${bp.name}`);
         } catch {
