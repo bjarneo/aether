@@ -22,11 +22,11 @@
         undo,
         redo,
         pushRedo,
-        pushState,
         pushUndo,
     } from '$lib/stores/history.svelte';
     import {getSettings} from '$lib/stores/settings.svelte';
-    import {showToast} from '$lib/stores/ui.svelte';
+    import {getActiveTab, setActiveTab, showToast} from '$lib/stores/ui.svelte';
+    import {getApiKey, getTotalResults} from '$lib/stores/wallhaven.svelte';
     import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
 
     let showImportMenu = $state(false);
@@ -35,6 +35,11 @@
     let exportName = $state('');
     let installToOmarchy = $state(false);
     let isOmarchy = $state(false);
+
+    let activeTab = $derived(getActiveTab());
+    let wallpaperSelected = $derived(getWallpaperPath() !== '');
+    let apiKeySet = $derived(getApiKey() !== '');
+    let totalResults = $derived(getTotalResults());
 
     const exportAppGroups = [
         {
@@ -94,6 +99,8 @@
     let undoEnabled = $derived(getCanUndo());
     let redoEnabled = $derived(getCanRedo());
 
+    // --- Editor actions ---
+
     async function handleApply() {
         setIsApplying(true);
         try {
@@ -110,7 +117,7 @@
                 appOverrides: getAppOverrides(),
             });
             if (result.success) {
-                // Apply light/dark mode to the app UI only after successful theme apply
+                // Only sync light/dark mode to UI after backend confirms apply
                 if (getLightMode()) {
                     document.documentElement.classList.add('light-mode');
                 } else {
@@ -235,102 +242,181 @@
     }
 </script>
 
+{#snippet goToEditor()}
+    {#if wallpaperSelected}
+        <button
+            class="bg-accent text-bg-primary hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
+            onclick={() => setActiveTab('editor')}>Go to Editor</button
+        >
+    {/if}
+{/snippet}
+
 <footer
     class="bg-bg-secondary border-border flex h-10 shrink-0 items-center justify-between border-t px-3"
 >
-    <!-- Left side: Export, Save, Import -->
-    <div class="flex items-center gap-1">
-        <button
-            class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-            onclick={async () => {
-                showExportDialog = true;
-                try {
-                    const {IsOmarchyInstalled} = await import(
-                        '../../../../wailsjs/go/main/App'
-                    );
-                    isOmarchy = await IsOmarchyInstalled();
-                } catch {
-                    isOmarchy = false;
-                }
-            }}>Export</button
-        >
-
-        <button
-            class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-            onclick={() => (showSaveDialog = true)}>Save</button
-        >
-
-        <!-- Import dropdown -->
-        <div class="relative">
+    {#if activeTab === 'editor'}
+        <div class="flex items-center gap-1">
             <button
                 class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={() => (showImportMenu = !showImportMenu)}
-                >Import</button
+                onclick={async () => {
+                    showExportDialog = true;
+                    try {
+                        const {IsOmarchyInstalled} = await import(
+                            '../../../../wailsjs/go/main/App'
+                        );
+                        isOmarchy = await IsOmarchyInstalled();
+                    } catch {
+                        isOmarchy = false;
+                    }
+                }}>Export</button
             >
 
-            {#if showImportMenu}
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                    class="fixed inset-0 z-30"
-                    onclick={() => (showImportMenu = false)}
-                ></div>
-                <div
-                    class="bg-bg-secondary border-border absolute bottom-full left-0 z-40 mb-1 min-w-[140px] border shadow-lg"
+            <button
+                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                onclick={() => (showSaveDialog = true)}>Save</button
+            >
+
+            <div class="relative">
+                <button
+                    class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                    onclick={() => (showImportMenu = !showImportMenu)}
+                    >Import</button
                 >
-                    <button
-                        class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
-                        onclick={() => handleImport('base16')}
-                        >Base16 (.yaml)</button
+
+                {#if showImportMenu}
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div
+                        class="fixed inset-0 z-30"
+                        onclick={() => (showImportMenu = false)}
+                    ></div>
+                    <div
+                        class="bg-bg-secondary border-border absolute bottom-full left-0 z-40 mb-1 min-w-[140px] border shadow-lg"
                     >
-                    <button
-                        class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
-                        onclick={() => handleImport('toml')}
-                        >Colors (.toml)</button
-                    >
-                    <button
-                        class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
-                        onclick={() => handleImport('blueprint')}
-                        >Blueprint (.json)</button
-                    >
-                </div>
-            {/if}
+                        <button
+                            class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
+                            onclick={() => handleImport('base16')}
+                            >Base16 (.yaml)</button
+                        >
+                        <button
+                            class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
+                            onclick={() => handleImport('toml')}
+                            >Colors (.toml)</button
+                        >
+                        <button
+                            class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
+                            onclick={() => handleImport('blueprint')}
+                            >Blueprint (.json)</button
+                        >
+                    </div>
+                {/if}
+            </div>
+
+            <div class="bg-border mx-1 h-4 w-px"></div>
+
+            <button
+                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
+                onclick={handleUndo}
+                disabled={!undoEnabled}>Undo</button
+            >
+            <button
+                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
+                onclick={handleRedo}
+                disabled={!redoEnabled}>Redo</button
+            >
         </div>
 
-        <div class="bg-border mx-1 h-4 w-px"></div>
+        <div class="flex items-center gap-1">
+            <button
+                class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                onclick={handleClear}>Clear</button
+            >
+            <button
+                class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                onclick={handleReset}>Reset</button
+            >
 
-        <button
-            class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
-            onclick={handleUndo}
-            disabled={!undoEnabled}>Undo</button
-        >
-        <button
-            class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
-            onclick={handleRedo}
-            disabled={!redoEnabled}>Redo</button
-        >
-    </div>
+            <div class="bg-border mx-1 h-4 w-px"></div>
 
-    <!-- Right side: Clear, Reset, Apply -->
-    <div class="flex items-center gap-1">
-        <button
-            class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-            onclick={handleClear}>Clear</button
-        >
-        <button
-            class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-            onclick={handleReset}>Reset</button
-        >
-
-        <div class="bg-border mx-1 h-4 w-px"></div>
-
-        <button
-            class="bg-accent text-bg-primary hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
-            onclick={handleApply}
-            disabled={getIsApplying()}
-        >
-            {getIsApplying() ? 'Applying...' : 'Apply Theme'}
-        </button>
-    </div>
+            <button
+                class="bg-accent text-bg-primary hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
+                onclick={handleApply}
+                disabled={getIsApplying()}
+            >
+                {getIsApplying() ? 'Applying...' : 'Apply Theme'}
+            </button>
+        </div>
+    {:else if activeTab === 'wallhaven'}
+        <div class="flex items-center gap-2">
+            {#if apiKeySet}
+                <span class="text-success text-[11px]">API key set</span>
+            {:else}
+                <span class="text-fg-dimmed text-[11px]"
+                    >No API key (set in filters)</span
+                >
+            {/if}
+            {#if totalResults > 0}
+                <div class="bg-border mx-1 h-4 w-px"></div>
+                <span class="text-fg-dimmed text-[11px]"
+                    >{totalResults.toLocaleString()} results</span
+                >
+            {/if}
+        </div>
+        <div class="flex items-center gap-1">
+            {@render goToEditor()}
+        </div>
+    {:else if activeTab === 'local'}
+        <div class="flex items-center gap-1">
+            <button
+                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                onclick={async () => {
+                    try {
+                        const {ScanLocalWallpapers} = await import(
+                            '../../../../wailsjs/go/main/App'
+                        );
+                        await ScanLocalWallpapers();
+                        showToast('Wallpapers rescanned');
+                        // Force LocalBrowser to remount so it re-reads the file list
+                        setActiveTab('editor');
+                        setTimeout(() => setActiveTab('local'), 0);
+                    } catch {
+                        showToast('Failed to rescan');
+                    }
+                }}>Rescan</button
+            >
+        </div>
+        <div class="flex items-center gap-1">
+            {@render goToEditor()}
+        </div>
+    {:else if activeTab === 'favorites'}
+        <div class="flex items-center gap-1">
+            <span class="text-fg-dimmed text-[11px]">Favorited wallpapers</span>
+        </div>
+        <div class="flex items-center gap-1">
+            {@render goToEditor()}
+        </div>
+    {:else if activeTab === 'blueprints'}
+        <div class="flex items-center gap-1">
+            <button
+                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                onclick={() => (showSaveDialog = true)}>Save Current</button
+            >
+            <button
+                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                onclick={() => handleImport('blueprint')}
+                >Import Blueprint</button
+            >
+        </div>
+        <div class="flex items-center gap-1">
+            {@render goToEditor()}
+        </div>
+    {:else if activeTab === 'system'}
+        <div class="flex items-center gap-1">
+            <span class="text-fg-dimmed text-[11px]">System themes</span>
+        </div>
+        <div class="flex items-center gap-1">
+            {@render goToEditor()}
+        </div>
+    {/if}
 </footer>
 
 <!-- Export Dialog -->
