@@ -192,6 +192,54 @@ aether --widget-blueprint
 
 Useful for quick theme switching from a keybind.
 
+### Wallpaper Slider Widget
+
+Full-screen overlay slider for browsing and applying wallpapers with material color extraction:
+
+```bash
+aether --widget-wallpaper-slider
+```
+
+### Themes Slider Widget
+
+Full-screen overlay slider for browsing and applying system themes:
+
+```bash
+aether --widget-themes-slider
+```
+
+**Controls:**
+
+| Key | Action |
+|-----|--------|
+| Tab / Arrow Right | Next slide |
+| Shift+Tab / Arrow Left | Previous slide |
+| Hold Tab | Fast scroll (accelerates the longer you hold) |
+| Enter | Apply current theme |
+| Escape | Close |
+| Type characters | Search by filename/theme name |
+
+**Hyprland configuration:**
+
+For the slider widgets to display as transparent overlays, add to your Hyprland config (adjust `size` to your monitor resolution):
+
+```conf
+# Aether slider widgets (wallpaper + themes)
+windowrule = match:class aether-slider, float 1
+windowrule = match:class aether-slider, pin 1
+windowrule = match:class aether-slider, no_shadow 1
+windowrule = match:class aether-slider, decorate 0
+windowrule = match:class aether-slider, size 2880 1800  # replace with your monitor resolution
+windowrule = match:class aether-slider, center 1
+```
+
+**Keybind examples:**
+
+```conf
+bind = SUPER ALT, W, exec, aether --widget-wallpaper-slider
+bind = SUPER ALT, T, exec, aether --widget-themes-slider
+```
+
 ### Open with Tab
 
 Launch GUI with a specific tab focused:
@@ -277,8 +325,12 @@ aether --generate "$wallpaper"
 Add to `~/.config/hypr/hyprland.conf`:
 
 ```conf
+# Slider widgets
+bind = SUPER ALT, W, exec, aether --widget-wallpaper-slider
+bind = SUPER ALT, T, exec, aether --widget-themes-slider
+
 # Quick theme selector widget
-bind = $mainMod SHIFT, T, exec, aether --widget-blueprint
+bind = SUPER ALT, B, exec, aether --widget-blueprint
 
 # Generate theme from current wallpaper
 bind = $mainMod ALT, T, exec, aether --generate $(hyprctl hyprpaper listactive | head -1 | cut -d' ' -f2)
