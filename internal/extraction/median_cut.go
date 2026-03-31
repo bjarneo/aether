@@ -218,7 +218,7 @@ func ExtractDominantColors(imagePath string, numColors int) ([]string, error) {
 // more influence in median-cut. This ensures colorful image regions are properly
 // represented even when dominated by large uniform backgrounds.
 func boostChromaticPixels(pixels []color.OKLab) []color.OKLab {
-	result := make([]color.OKLab, 0, len(pixels)*2)
+	result := make([]color.OKLab, 0, len(pixels)*ChromaBoostFactor)
 
 	for _, px := range pixels {
 		result = append(result, px)

@@ -27,6 +27,10 @@ func CalculateHueDistance(hue1, hue2 float64) float64 {
 // using OKLCH chroma (perceptually accurate colorfulness metric).
 // Returns true if more than 70% of colors have chroma below the threshold.
 func IsMonochromeImage(colors []string) bool {
+	if len(colors) == 0 {
+		return false
+	}
+
 	lowChromaCount := 0
 
 	for _, c := range colors {
@@ -136,7 +140,7 @@ func CalculateColorScore(lch color.OKLCH, targetHue float64) float64 {
 	var chromaScore float64
 	if lch.C < MinChromaForAnsiMatch {
 		chromaScore = 80 // Heavy penalty for near-gray
-	} else if lch.C < 0.05 {
+	} else if lch.C < LowChromaThreshold {
 		chromaScore = 40
 	} else if lch.C < IdealChromaMin {
 		chromaScore = 15
@@ -209,12 +213,6 @@ func AdjustColorLightness(hex string, targetLightness float64) string {
 	lab := color.HexToOKLab(hex)
 	lab.L = targetLightness
 	return color.OKLabToHex(lab)
-}
-
-// AdjustColorLightnessHSL adjusts a color using HSL lightness (0-100) for legacy compatibility.
-func AdjustColorLightnessHSL(hex string, targetLightness float64) string {
-	hsl := color.HexToHSL(hex)
-	return color.HSLToHex(hsl.H, hsl.S, targetLightness)
 }
 
 // ColorLightnessInfo holds a color with its perceptual lightness and hue.
