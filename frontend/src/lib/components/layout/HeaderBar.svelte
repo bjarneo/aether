@@ -63,12 +63,6 @@
             // Paintbrush / Brush
             icon: '<path d="M18.37 2.63a2.12 2.12 0 0 1 3 3L14 13l-4 1 1-4z"/><path d="M9 14.5A3.5 3.5 0 0 0 5.5 18c-1.2 0-2.5.7-2.5 2 2 0 4.5-1 5.5-3.5"/>',
         },
-        {
-            id: 'slider',
-            label: 'Slider',
-            // Two parallel panels (/ /)
-            icon: '<rect x="2" y="3" width="8" height="18" transform="skewX(-6)"/><rect x="14" y="3" width="8" height="18" transform="skewX(-6)"/>',
-        },
     ];
 </script>
 

@@ -70,6 +70,15 @@
             sliderWidget = await IsSliderWidget();
             themesSlider = await IsThemesSlider();
         } catch {}
+
+        // Show window now that the DOM is ready (started hidden to avoid white flash)
+        if (!sliderWidget && !themesSlider) {
+            try {
+                const {WindowShow} = await import('../wailsjs/runtime/runtime');
+                WindowShow();
+            } catch {}
+        }
+
         if (widgetMode || sliderWidget || themesSlider) return;
 
         // Focus a specific tab if requested via --tab flag
@@ -362,8 +371,6 @@
                 <div class="h-full overflow-y-auto p-3">
                     <OmarchyThemes />
                 </div>
-            {:else if activeTab === 'slider'}
-                <WallpaperSlider />
             {/if}
         </main>
         <ActionBar />

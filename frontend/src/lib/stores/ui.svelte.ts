@@ -4,8 +4,7 @@ export type Tab =
     | 'local'
     | 'favorites'
     | 'blueprints'
-    | 'system'
-    | 'slider';
+    | 'system';
 
 // --- Reactive state ---
 let activeTab = $state<Tab>('editor');
