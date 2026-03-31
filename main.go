@@ -91,6 +91,7 @@ func main() {
 		Title:       title,
 		Width:       width,
 		Height:      height,
+		StartHidden: sliderWidget,
 		Frameless:   frameless,
 		AlwaysOnTop: alwaysOnTop,
 		AssetServer: &assetserver.Options{

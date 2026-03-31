@@ -137,6 +137,14 @@
     onMount(async () => {
         document.documentElement.classList.add('transparent-widget');
 
+        // Show the window now that background is transparent (started hidden to avoid white flash)
+        try {
+            const {WindowShow} = await import(
+                '../../../../wailsjs/runtime/runtime'
+            );
+            WindowShow();
+        } catch {}
+
         try {
             const app = await getApp();
             wallpapers = await app.ScanLocalWallpapers();
