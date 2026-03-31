@@ -126,6 +126,10 @@ export function IsSliderWidget() {
     return window['go']['main']['App']['IsSliderWidget']();
 }
 
+export function IsThemesSlider() {
+    return window['go']['main']['App']['IsThemesSlider']();
+}
+
 export function IsWidgetMode() {
     return window['go']['main']['App']['IsWidgetMode']();
 }

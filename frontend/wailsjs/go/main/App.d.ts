@@ -83,6 +83,8 @@ export function IsPreviewCached(arg1: string): Promise<boolean>;
 
 export function IsSliderWidget(): Promise<boolean>;
 
+export function IsThemesSlider(): Promise<boolean>;
+
 export function IsWidgetMode(): Promise<boolean>;
 
 export function ListBlueprints(): Promise<Array<Record<string, any>>>;

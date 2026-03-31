@@ -59,16 +59,18 @@
     let activeTab = $derived(getActiveTab());
     let widgetMode = $state(false);
     let sliderWidget = $state(false);
+    let themesSlider = $state(false);
 
     onMount(async () => {
         try {
-            const {IsWidgetMode, IsSliderWidget} = await import(
+            const {IsWidgetMode, IsSliderWidget, IsThemesSlider} = await import(
                 '../wailsjs/go/main/App'
             );
             widgetMode = await IsWidgetMode();
             sliderWidget = await IsSliderWidget();
+            themesSlider = await IsThemesSlider();
         } catch {}
-        if (widgetMode || sliderWidget) return; // Skip full app setup in widget mode
+        if (widgetMode || sliderWidget || themesSlider) return;
 
         // Focus a specific tab if requested via --tab flag
         try {
@@ -328,6 +330,15 @@
     <BlueprintWidget />
 {:else if sliderWidget}
     <WallpaperSlider
+        mode="wallpapers"
+        onclose={async () => {
+            const {Quit} = await import('../wailsjs/runtime/runtime');
+            Quit();
+        }}
+    />
+{:else if themesSlider}
+    <WallpaperSlider
+        mode="themes"
         onclose={async () => {
             const {Quit} = await import('../wailsjs/runtime/runtime');
             Quit();

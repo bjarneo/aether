@@ -21,7 +21,7 @@ var assets embed.FS
 
 func main() {
 	// GUI flags that need the full Wails runtime (not CLI-only)
-	guiFlags := map[string]bool{"--widget-blueprint": true, "--widget-wallpaper-slider": true, "--tab": true}
+	guiFlags := map[string]bool{"--widget-blueprint": true, "--widget-wallpaper-slider": true, "--widget-themes-slider": true, "--tab": true}
 
 	// CLI mode: if first arg starts with -- and isn't a GUI flag, dispatch to CLI
 	if len(os.Args) > 1 && strings.HasPrefix(os.Args[1], "--") && !guiFlags[os.Args[1]] {
@@ -40,6 +40,7 @@ func main() {
 	// Parse GUI-specific flags
 	widgetMode := false
 	sliderWidget := false
+	themesSlider := false
 	focusTab := ""
 	for i := 1; i < len(os.Args); i++ {
 		switch os.Args[i] {
@@ -47,6 +48,8 @@ func main() {
 			widgetMode = true
 		case "--widget-wallpaper-slider":
 			sliderWidget = true
+		case "--widget-themes-slider":
+			themesSlider = true
 		case "--tab":
 			if i+1 < len(os.Args) {
 				focusTab = os.Args[i+1]
@@ -59,6 +62,7 @@ func main() {
 	app := NewApp()
 	app.widgetMode = widgetMode
 	app.sliderWidget = sliderWidget
+	app.themesSlider = themesSlider
 	app.focusTab = focusTab
 
 	width, height := 900, 700
@@ -70,28 +74,29 @@ func main() {
 		title = "Aether Blueprints"
 		frameless = true
 		alwaysOnTop = true
-	} else if sliderWidget {
-		title = "Aether Wallpaper Slider"
+	} else if sliderWidget || themesSlider {
+		title = "Aether Slider"
 		frameless = true
 		alwaysOnTop = true
 	}
 
+	isSliderMode := sliderWidget || themesSlider
 	bgColour := &options.RGBA{R: 30, G: 30, B: 46, A: 1}
 	programName := "Aether"
-	if sliderWidget {
-		programName = "aether-wallpaper-slider"
+	if isSliderMode {
+		programName = "aether-slider"
 		bgColour = &options.RGBA{R: 0, G: 0, B: 0, A: 0}
 	}
 	linuxOpts := &wailslinux.Options{
 		ProgramName:         programName,
-		WindowIsTranslucent: sliderWidget,
+		WindowIsTranslucent: isSliderMode,
 	}
 
 	err := wails.Run(&options.App{
 		Title:       title,
 		Width:       width,
 		Height:      height,
-		StartHidden: sliderWidget,
+		StartHidden: isSliderMode,
 		Frameless:   frameless,
 		AlwaysOnTop: alwaysOnTop,
 		AssetServer: &assetserver.Options{

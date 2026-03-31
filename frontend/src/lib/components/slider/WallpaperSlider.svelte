@@ -16,6 +16,7 @@
     import {getSettings} from '$lib/stores/settings.svelte';
     import {showToast} from '$lib/stores/ui.svelte';
     import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
+
     let previewDataUrls = $state<Record<string, string>>({});
     let previewPending = new Set<string>();
 
@@ -31,7 +32,6 @@
         previewPending.delete(path);
     }
 
-    // Cache the dynamic import to avoid repeated async overhead
     let _appModule: Awaited<
         typeof import('../../../../wailsjs/go/main/App')
     > | null = null;
@@ -42,16 +42,19 @@
         return _appModule;
     }
 
-    interface WallpaperEntry {
+    interface SlideItem {
         path: string;
         name: string;
-        size: number;
-        modTime: number;
+        imagePath: string;
+        colors?: string[];
     }
 
-    let {onclose}: {onclose?: () => void} = $props();
+    let {
+        onclose,
+        mode = 'wallpapers',
+    }: {onclose?: () => void; mode?: 'wallpapers' | 'themes'} = $props();
 
-    let wallpapers = $state<WallpaperEntry[]>([]);
+    let items = $state<SlideItem[]>([]);
     let currentIndex = $state(0);
     let isLoading = $state(true);
     let isCaching = $state(false);
@@ -63,13 +66,20 @@
     let extractionGen = 0;
     let extractTimer: ReturnType<typeof setTimeout> | null = null;
 
+    let tabHoldStart = 0;
+    let tabRepeatTimer: ReturnType<typeof setInterval> | null = null;
+
+    let searchQuery = $state('');
+    let searchVisible = $state(false);
+    let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
     let container: HTMLDivElement | undefined = $state();
     let areaWidth = $state(0);
 
-    const CARD_WIDTH = 280;
+    const CARD_WIDTH = 240;
     const CARD_GAP = 32;
     const CARD_STEP = CARD_WIDTH + CARD_GAP;
-    const CARD_MAX_HEIGHT = 500;
+    const CARD_MAX_HEIGHT = 350;
     const SKEW = 5;
     const EXTRACT_DEBOUNCE = 300;
     const BUFFER = 3;
@@ -79,19 +89,19 @@
     );
 
     let visibleRange = $derived.by(() => {
-        if (!areaWidth || wallpapers.length === 0) return {start: 0, end: 0};
+        if (!areaWidth || items.length === 0) return {start: 0, end: 0};
         const halfViewport = areaWidth / 2;
         const cardsInHalf = Math.ceil(halfViewport / CARD_STEP) + 1;
         const start = Math.max(0, currentIndex - cardsInHalf - BUFFER);
         const end = Math.min(
-            wallpapers.length,
+            items.length,
             currentIndex + cardsInHalf + BUFFER + 1
         );
         return {start, end};
     });
 
     let visibleSlides = $derived(
-        wallpapers.slice(visibleRange.start, visibleRange.end)
+        items.slice(visibleRange.start, visibleRange.end)
     );
 
     let spacerWidth = $derived(visibleRange.start * CARD_STEP);
@@ -99,14 +109,13 @@
     let normalColors = $derived(extractedPalette.slice(0, 8));
     let brightColors = $derived(extractedPalette.slice(8, 16));
 
-    async function warmCache(wps: WallpaperEntry[]) {
+    async function warmCache(paths: string[]) {
         const app = await getApp();
 
-        // Batch check: parallelize all IsPreviewCached calls
         const cached = await Promise.all(
-            wps.map(wp => app.IsPreviewCached(wp.path).catch(() => false))
+            paths.map(p => app.IsPreviewCached(p).catch(() => false))
         );
-        const uncached = wps.filter((_, i) => !cached[i]);
+        const uncached = paths.filter((_, i) => !cached[i]);
 
         if (uncached.length === 0) return;
 
@@ -120,7 +129,7 @@
             while (idx < uncached.length) {
                 const i = idx++;
                 try {
-                    await app.GetPreview(uncached[i].path);
+                    await app.GetPreview(uncached[i]);
                 } catch {}
                 cacheProgress++;
             }
@@ -134,10 +143,33 @@
         isCaching = false;
     }
 
+    async function loadWallpapers() {
+        const app = await getApp();
+        const wps = await app.ScanLocalWallpapers();
+        return wps.map((wp: any) => ({
+            path: wp.path,
+            name: wp.name,
+            imagePath: wp.path,
+        }));
+    }
+
+    async function loadThemes() {
+        const app = await getApp();
+        const themes = await app.LoadOmarchyThemes();
+        if (!Array.isArray(themes)) return [];
+        return themes
+            .filter((t: any) => t.colors?.length >= 16)
+            .map((t: any) => ({
+                path: t.path,
+                name: t.name,
+                imagePath: t.wallpapers?.[0] ?? '',
+                colors: t.colors,
+            }));
+    }
+
     onMount(async () => {
         document.documentElement.classList.add('transparent-widget');
 
-        // Show the window now that background is transparent (started hidden to avoid white flash)
         try {
             const {WindowShow} = await import(
                 '../../../../wailsjs/runtime/runtime'
@@ -146,18 +178,21 @@
         } catch {}
 
         try {
-            const app = await getApp();
-            wallpapers = await app.ScanLocalWallpapers();
+            items =
+                mode === 'themes' ? await loadThemes() : await loadWallpapers();
         } catch {
-            wallpapers = [];
+            items = [];
         } finally {
             isLoading = false;
         }
 
-        if (wallpapers.length > 0) {
-            await warmCache(wallpapers);
+        if (items.length > 0) {
+            const imagePaths = items.map(it => it.imagePath).filter(Boolean);
+            if (imagePaths.length > 0) {
+                await warmCache(imagePaths);
+            }
             preloadAround(0);
-            extractForIndex(0);
+            selectItem(0);
         }
 
         requestAnimationFrame(() => container?.focus());
@@ -165,30 +200,48 @@
 
     onDestroy(() => {
         if (extractTimer) clearTimeout(extractTimer);
+        if (searchTimer) clearTimeout(searchTimer);
+        stopTabHold();
         previewDataUrls = {};
     });
 
     function preloadAround(idx: number) {
         for (let d = -BUFFER; d <= BUFFER; d++) {
             const i = idx + d;
-            if (i >= 0 && i < wallpapers.length) {
-                loadPreview(wallpapers[i].path);
+            if (i >= 0 && i < items.length && items[i].imagePath) {
+                loadPreview(items[i].imagePath);
             }
         }
     }
 
+    function selectItem(idx: number) {
+        const item = items[idx];
+        if (!item) return;
+
+        if (mode === 'themes' && item.colors) {
+            // Themes already have colors - use them directly
+            setPalette(item.colors);
+            extractedPalette = [...item.colors];
+            accentColor = item.colors[4];
+            if (item.imagePath) setWallpaperPath(item.imagePath);
+        } else {
+            // Wallpapers need extraction
+            extractForIndex(idx);
+        }
+    }
+
     async function extractForIndex(idx: number) {
-        const wp = wallpapers[idx];
-        if (!wp) return;
+        const item = items[idx];
+        if (!item) return;
 
         const gen = ++extractionGen;
         isExtracting = true;
-        setWallpaperPath(wp.path);
+        setWallpaperPath(item.imagePath);
 
         try {
             const app = await getApp();
             const colors: string[] = await app.ExtractColors(
-                wp.path,
+                item.imagePath,
                 getLightMode(),
                 'material'
             );
@@ -210,14 +263,18 @@
 
     function debouncedExtract(idx: number) {
         if (extractTimer) clearTimeout(extractTimer);
-        extractTimer = setTimeout(() => extractForIndex(idx), EXTRACT_DEBOUNCE);
+        extractTimer = setTimeout(() => selectItem(idx), EXTRACT_DEBOUNCE);
     }
 
     function goTo(idx: number) {
-        if (idx < 0 || idx >= wallpapers.length) return;
+        if (idx < 0 || idx >= items.length) return;
         currentIndex = idx;
         preloadAround(idx);
-        debouncedExtract(idx);
+        if (mode === 'themes') {
+            selectItem(idx);
+        } else {
+            debouncedExtract(idx);
+        }
     }
 
     async function applyTheme() {
@@ -242,13 +299,63 @@
         }
     }
 
+    function jumpToSearch() {
+        if (!searchQuery) return;
+        const q = searchQuery.toLowerCase();
+        const idx = items.findIndex(it => it.name.toLowerCase().includes(q));
+        if (idx >= 0) goTo(idx);
+    }
+
+    function clearSearch() {
+        searchQuery = '';
+        searchVisible = false;
+        if (searchTimer) clearTimeout(searchTimer);
+    }
+
+    function startTabHold(dir: number) {
+        tabHoldStart = Date.now();
+        goTo(currentIndex + dir);
+        tabRepeatTimer = setInterval(() => {
+            const held = Date.now() - tabHoldStart;
+            const step = held > 1500 ? 5 : held > 800 ? 3 : 1;
+            goTo(currentIndex + dir * step);
+        }, 120);
+    }
+
+    function stopTabHold() {
+        if (tabRepeatTimer) {
+            clearInterval(tabRepeatTimer);
+            tabRepeatTimer = null;
+        }
+    }
+
     function handleKeydown(e: KeyboardEvent) {
+        if (searchVisible && e.key === 'Escape') {
+            e.preventDefault();
+            clearSearch();
+            return;
+        }
+
+        if (searchVisible && e.key === 'Backspace') {
+            e.preventDefault();
+            searchQuery = searchQuery.slice(0, -1);
+            if (!searchQuery) clearSearch();
+            else jumpToSearch();
+            return;
+        }
+
         if (e.key === 'Tab') {
             e.preventDefault();
-            goTo(currentIndex + (e.shiftKey ? -1 : 1));
+            if (e.repeat) return;
+            clearSearch();
+            startTabHold(e.shiftKey ? -1 : 1);
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            applyTheme();
+            if (searchVisible) {
+                clearSearch();
+            } else {
+                applyTheme();
+            }
         } else if (e.key === 'ArrowRight') {
             e.preventDefault();
             goTo(currentIndex + 1);
@@ -258,6 +365,24 @@
         } else if (e.key === 'Escape') {
             e.preventDefault();
             onclose?.();
+        } else if (
+            e.key.length === 1 &&
+            !e.ctrlKey &&
+            !e.metaKey &&
+            !e.altKey
+        ) {
+            e.preventDefault();
+            searchQuery += e.key;
+            searchVisible = true;
+            jumpToSearch();
+            if (searchTimer) clearTimeout(searchTimer);
+            searchTimer = setTimeout(clearSearch, 2000);
+        }
+    }
+
+    function handleKeyup(e: KeyboardEvent) {
+        if (e.key === 'Tab') {
+            stopTabHold();
         }
     }
 
@@ -276,8 +401,9 @@
     style="background: transparent"
     tabindex="-1"
     role="listbox"
-    aria-label="Wallpaper slider"
+    aria-label="{mode === 'themes' ? 'Theme' : 'Wallpaper'} slider"
     onkeydown={handleKeydown}
+    onkeyup={handleKeyup}
 >
     {#if isCaching}
         <div class="flex flex-col items-center gap-3">
@@ -300,9 +426,10 @@
                 Caching previews {cacheProgress}/{cacheTotal}
             </span>
         </div>
-    {:else if !isLoading && wallpapers.length > 0}
+    {:else if !isLoading && items.length > 0}
         <div
             class="flex w-full items-center overflow-hidden"
+            style="height: {CARD_MAX_HEIGHT + 80}px"
             bind:clientWidth={areaWidth}
         >
             <div
@@ -320,16 +447,16 @@
                     ></div>
                 {/if}
 
-                {#each visibleSlides as wp, vi (wp.path)}
+                {#each visibleSlides as item, vi (item.path)}
                     {@const i = visibleRange.start + vi}
                     <button
-                        class="shrink-0 overflow-hidden border-2"
+                        class="relative shrink-0 overflow-hidden border-2"
                         style="
                             width: {i === currentIndex
-                            ? CARD_WIDTH + 40
+                            ? CARD_WIDTH + 30
                             : CARD_WIDTH}px;
                             height: {i === currentIndex
-                            ? CARD_MAX_HEIGHT + 60
+                            ? CARD_MAX_HEIGHT + 50
                             : CARD_MAX_HEIGHT}px;
                             transform: skewX(-{SKEW}deg);
                             opacity: {slideOpacity(i)};
@@ -346,13 +473,31 @@
                         aria-selected={i === currentIndex}
                         onclick={() => goTo(i)}
                     >
-                        {#if previewDataUrls[wp.path]}
+                        {#if item.imagePath && previewDataUrls[item.imagePath]}
                             <img
-                                src={previewDataUrls[wp.path]}
-                                alt={wp.name}
+                                src={previewDataUrls[item.imagePath]}
+                                alt={item.name}
                                 class="pointer-events-none h-full w-full object-cover"
                                 style="transform: skewX({SKEW}deg) scale(1.15)"
                             />
+                        {:else if item.colors}
+                            <div
+                                class="flex h-full w-full flex-wrap"
+                                style="transform: skewX({SKEW}deg) scale(1.15)"
+                            >
+                                {#each item.colors.slice(0, 8) as c}
+                                    <div
+                                        class="h-1/2"
+                                        style="width: 25%; background: {c}"
+                                    ></div>
+                                {/each}
+                                {#each item.colors.slice(8, 16) as c}
+                                    <div
+                                        class="h-1/2"
+                                        style="width: 25%; background: {c}"
+                                    ></div>
+                                {/each}
+                            </div>
                         {:else}
                             <div
                                 class="flex h-full w-full items-center justify-center"
@@ -364,34 +509,74 @@
                                 >
                             </div>
                         {/if}
+                        {#if mode === 'themes'}
+                            <div
+                                class="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center pb-4"
+                                style="
+                                    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+                                    transform: skewX({SKEW}deg);
+                                    padding-top: 40px;
+                                "
+                            >
+                                <span
+                                    style="
+                                        font-family: 'JetBrains Mono', monospace;
+                                        font-size: 13px;
+                                        color: rgba(255,255,255,0.85);
+                                        letter-spacing: 0.04em;
+                                    "
+                                >
+                                    {item.name}
+                                </span>
+                            </div>
+                        {/if}
                     </button>
                 {/each}
             </div>
         </div>
 
-        <div class="mt-6 flex flex-col items-center gap-2">
+        {#if searchVisible}
             <div
-                class="flex items-center gap-[2px]"
-                style="background: rgba(0,0,0,0.4); padding: 6px 8px;"
+                class="mt-4 flex items-center gap-2"
+                style="background: rgba(0,0,0,0.5); padding: 4px 12px;"
             >
-                {#each normalColors as color}
-                    <div
-                        class="h-6 w-8"
-                        style="background: {color}; transition: background 0.5s ease"
-                    ></div>
-                {/each}
-                <div class="w-3"></div>
-                {#each brightColors as color}
-                    <div
-                        class="h-6 w-8"
-                        style="background: {color}; transition: background 0.5s ease"
-                    ></div>
-                {/each}
+                <span style="color: rgba(255,255,255,0.4); font-size: 10px">
+                    /
+                </span>
+                <span style="color: rgba(255,255,255,0.8); font-size: 11px">
+                    {searchQuery}
+                </span>
+                <span
+                    class="animate-pulse"
+                    style="color: rgba(255,255,255,0.5); font-size: 11px"
+                    >|</span
+                >
+            </div>
+        {/if}
+
+        <div class="mt-8 flex flex-col items-center gap-3">
+            <div class="flex flex-col gap-[2px]">
+                <div class="flex gap-[2px]">
+                    {#each normalColors as color}
+                        <div
+                            class="h-4 w-8"
+                            style="background: {color}; transition: background 0.5s ease"
+                        ></div>
+                    {/each}
+                </div>
+                <div class="flex gap-[2px]">
+                    {#each brightColors as color}
+                        <div
+                            class="h-4 w-8"
+                            style="background: {color}; transition: background 0.5s ease"
+                        ></div>
+                    {/each}
+                </div>
             </div>
             <span
-                style="color: rgba(255,255,255,0.25); font-size: 10px; letter-spacing: 0.05em"
+                style="color: rgba(255,255,255,0.2); font-size: 9px; letter-spacing: 0.08em"
             >
-                {wallpapers[currentIndex]?.name ?? ''}
+                {items[currentIndex]?.name ?? ''}
             </span>
         </div>
     {/if}

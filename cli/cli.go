@@ -58,6 +58,7 @@ Usage:
 GUI options:
   aether --widget-blueprint                 Launch blueprint widget
   aether --widget-wallpaper-slider           Launch wallpaper slider widget
+  aether --widget-themes-slider              Launch themes slider widget
   aether --tab <name>                       Open GUI with a specific tab focused
 
 Import commands:
