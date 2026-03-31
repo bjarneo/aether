@@ -9,6 +9,7 @@
     import BlueprintsView from '$lib/components/blueprints/BlueprintsView.svelte';
     import BlueprintWidget from '$lib/components/blueprints/BlueprintWidget.svelte';
     import OmarchyThemes from '$lib/components/blueprints/OmarchyThemes.svelte';
+    import WallpaperSlider from '$lib/components/slider/WallpaperSlider.svelte';
     import {
         getActiveTab,
         setActiveTab,
@@ -57,13 +58,17 @@
     let showKeymap = $state(false);
     let activeTab = $derived(getActiveTab());
     let widgetMode = $state(false);
+    let sliderWidget = $state(false);
 
     onMount(async () => {
         try {
-            const {IsWidgetMode} = await import('../wailsjs/go/main/App');
+            const {IsWidgetMode, IsSliderWidget} = await import(
+                '../wailsjs/go/main/App'
+            );
             widgetMode = await IsWidgetMode();
+            sliderWidget = await IsSliderWidget();
         } catch {}
-        if (widgetMode) return; // Skip full app setup in widget mode
+        if (widgetMode || sliderWidget) return; // Skip full app setup in widget mode
 
         // Focus a specific tab if requested via --tab flag
         try {
@@ -321,6 +326,13 @@
 
 {#if widgetMode}
     <BlueprintWidget />
+{:else if sliderWidget}
+    <WallpaperSlider
+        onclose={async () => {
+            const {Quit} = await import('../wailsjs/runtime/runtime');
+            Quit();
+        }}
+    />
 {:else}
     <div class="bg-bg-primary flex h-screen flex-col">
         <HeaderBar onabout={() => (showAbout = true)} />
@@ -339,6 +351,8 @@
                 <div class="h-full overflow-y-auto p-3">
                     <OmarchyThemes />
                 </div>
+            {:else if activeTab === 'slider'}
+                <WallpaperSlider />
             {/if}
         </main>
         <ActionBar />

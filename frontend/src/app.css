@@ -47,6 +47,12 @@ body {
     letter-spacing: 0.01em;
 }
 
+/* Transparent mode — applied via .transparent-widget on <html> */
+:root.transparent-widget,
+:root.transparent-widget body {
+    background: transparent !important;
+}
+
 /* Light mode overrides — applied via .light-mode on <html> */
 :root.light-mode {
     --color-bg-primary: #f5f5f7;

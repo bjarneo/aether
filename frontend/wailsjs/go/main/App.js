@@ -70,6 +70,10 @@ export function GetMediaURL(arg1) {
     return window['go']['main']['App']['GetMediaURL'](arg1);
 }
 
+export function GetPreview(arg1) {
+    return window['go']['main']['App']['GetPreview'](arg1);
+}
+
 export function GetSettings() {
     return window['go']['main']['App']['GetSettings']();
 }
@@ -112,6 +116,14 @@ export function IsMacOS() {
 
 export function IsOmarchyInstalled() {
     return window['go']['main']['App']['IsOmarchyInstalled']();
+}
+
+export function IsPreviewCached(arg1) {
+    return window['go']['main']['App']['IsPreviewCached'](arg1);
+}
+
+export function IsSliderWidget() {
+    return window['go']['main']['App']['IsSliderWidget']();
 }
 
 export function IsWidgetMode() {

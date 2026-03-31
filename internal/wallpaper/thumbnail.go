@@ -19,14 +19,18 @@ import (
 )
 
 const thumbnailSize = 300
+const previewSize = 800
+
+func cachePath(imagePath, suffix string) string {
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(imagePath+suffix)))
+	return filepath.Join(platform.ThumbnailDir(), hash+".png")
+}
 
 // GetThumbnail returns a cached thumbnail path for the given image, generating
 // it if the cache entry is missing or stale. The thumbnail is a 300x300 PNG
 // stored in ~/.cache/aether/thumbnails/.
 func GetThumbnail(imagePath string) (string, error) {
-	hash := fmt.Sprintf("%x", md5.Sum([]byte(imagePath)))
-	thumbDir := platform.ThumbnailDir()
-	thumbPath := filepath.Join(thumbDir, hash+".png")
+	thumbPath := cachePath(imagePath, "")
 
 	// Check if the source image exists.
 	srcInfo, err := os.Stat(imagePath)
@@ -42,6 +46,7 @@ func GetThumbnail(imagePath string) (string, error) {
 	}
 
 	// Generate the thumbnail.
+	thumbDir := platform.ThumbnailDir()
 	if err := platform.EnsureDir(thumbDir); err != nil {
 		return "", fmt.Errorf("failed to create thumbnail directory: %w", err)
 	}
@@ -71,6 +76,71 @@ func GetThumbnail(imagePath string) (string, error) {
 	}
 
 	return thumbPath, nil
+}
+
+// GetPreview returns a cached preview path (800px) for the slider widget.
+func GetPreview(imagePath string) (string, error) {
+	previewPath := cachePath(imagePath, "-preview")
+
+	srcInfo, err := os.Stat(imagePath)
+	if err != nil {
+		return "", fmt.Errorf("source image not found: %w", err)
+	}
+
+	if pInfo, err := os.Stat(previewPath); err == nil {
+		if pInfo.ModTime().After(srcInfo.ModTime()) {
+			return previewPath, nil
+		}
+	}
+
+	if err := platform.EnsureDir(platform.ThumbnailDir()); err != nil {
+		return "", fmt.Errorf("failed to create preview directory: %w", err)
+	}
+
+	ext := strings.ToLower(filepath.Ext(imagePath))
+	if ext == ".mp4" || ext == ".webm" {
+		_, err := platform.RunSync("ffmpeg",
+			"-ss", "1", "-i", imagePath,
+			"-vframes", "1", "-vf", fmt.Sprintf("scale=%d:-1", previewSize),
+			"-y", previewPath)
+		if err != nil {
+			return "", fmt.Errorf("ffmpeg preview failed: %w", err)
+		}
+		return previewPath, nil
+	}
+
+	src, err := loadImage(imagePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to load image: %w", err)
+	}
+
+	preview := scaleThumbnail(src, previewSize)
+	out, err := os.Create(previewPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create preview file: %w", err)
+	}
+	defer out.Close()
+
+	if err := png.Encode(out, preview); err != nil {
+		_ = os.Remove(previewPath)
+		return "", fmt.Errorf("failed to encode preview: %w", err)
+	}
+
+	return previewPath, nil
+}
+
+// IsPreviewCached returns true if a fresh preview exists for the given path.
+func IsPreviewCached(imagePath string) bool {
+	previewPath := cachePath(imagePath, "-preview")
+	srcInfo, err := os.Stat(imagePath)
+	if err != nil {
+		return false
+	}
+	pInfo, err := os.Stat(previewPath)
+	if err != nil {
+		return false
+	}
+	return pInfo.ModTime().After(srcInfo.ModTime())
 }
 
 // loadImage opens and decodes an image file.
@@ -140,8 +210,7 @@ func getVideoThumbnail(videoPath, thumbDir, thumbPath string) (string, error) {
 // ExtractVideoFrame extracts a single frame from a video for color extraction.
 // Returns the path to a cached PNG in the thumbnail directory.
 func ExtractVideoFrame(videoPath string) (string, error) {
-	hash := fmt.Sprintf("%x", md5.Sum([]byte(videoPath+"-frame")))
-	framePath := filepath.Join(platform.ThumbnailDir(), hash+".png")
+	framePath := cachePath(videoPath, "-frame")
 
 	if info, err := os.Stat(framePath); err == nil {
 		srcInfo, _ := os.Stat(videoPath)

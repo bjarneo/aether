@@ -40,11 +40,15 @@ type App struct {
 	themeWatcher *theme.ThemeWatcher
 	media        *MediaServer
 	widgetMode   bool
+	sliderWidget bool
 	focusTab     string
 }
 
 // IsWidgetMode returns true when running in --widget-blueprint mode.
 func (a *App) IsWidgetMode() bool { return a.widgetMode }
+
+// IsSliderWidget returns true when running in --widget-slider mode.
+func (a *App) IsSliderWidget() bool { return a.sliderWidget }
 
 // IsMacOS returns true when running on macOS.
 func (a *App) IsMacOS() bool { return runtime.GOOS == "darwin" }
@@ -508,6 +512,16 @@ func (a *App) ScanLocalWallpapers() ([]wallpaper.WallpaperInfo, error) {
 // GetThumbnail returns a thumbnail path for an image.
 func (a *App) GetThumbnail(path string) (string, error) {
 	return wallpaper.GetThumbnail(path)
+}
+
+// GetPreview returns an 800px preview path for the slider widget.
+func (a *App) GetPreview(path string) (string, error) {
+	return wallpaper.GetPreview(path)
+}
+
+// IsPreviewCached returns true if an 800px preview already exists and is fresh.
+func (a *App) IsPreviewCached(path string) bool {
+	return wallpaper.IsPreviewCached(path)
 }
 
 // ---------------------------------------------------------------------------

@@ -55,6 +55,8 @@ export function GetFocusTab(): Promise<string>;
 
 export function GetMediaURL(arg1: string): Promise<string>;
 
+export function GetPreview(arg1: string): Promise<string>;
+
 export function GetSettings(): Promise<Record<string, any>>;
 
 export function GetTemplateColors(): Promise<Record<string, Array<string>>>;
@@ -76,6 +78,10 @@ export function IsFavorite(arg1: string): Promise<boolean>;
 export function IsMacOS(): Promise<boolean>;
 
 export function IsOmarchyInstalled(): Promise<boolean>;
+
+export function IsPreviewCached(arg1: string): Promise<boolean>;
+
+export function IsSliderWidget(): Promise<boolean>;
 
 export function IsWidgetMode(): Promise<boolean>;
 
