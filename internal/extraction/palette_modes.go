@@ -182,9 +182,9 @@ func GenerateMaterialPalette(dominantColors []string, lightMode bool) [16]string
 		palette[7] = "#ffffff"
 	}
 
-	// Find best ANSI color matches from actual image colors
-	for i := 0; i < len(ANSIHueArray); i++ {
-		matchIndex := FindBestColorMatch(ANSIHueArray[i], dominantColors, usedIndices)
+	// Find best ANSI color matches from actual image colors using OKLCH hue targets
+	for i := 0; i < len(OKLCHAnsiHues); i++ {
+		matchIndex := FindBestColorMatch(OKLCHAnsiHues[i], dominantColors, usedIndices)
 		matchedColor := dominantColors[matchIndex]
 		hsl := color.HexToHSL(matchedColor)
 
@@ -228,37 +228,17 @@ func GenerateMaterialPalette(dominantColors []string, lightMode bool) [16]string
 }
 
 // GenerateAnalogousPalette generates an analogous color palette (adjacent hues on the color wheel).
+// Uses OKLCH for perceptually uniform hue spacing — ±30° in OKLCH produces evenly perceived differences.
 func GenerateAnalogousPalette(dominantColors []string, lightMode bool) [16]string {
-	// Find most saturated chromatic color as base
-	type chromaticEntry struct {
-		c          string
-		hsl        color.HSL
-		saturation float64
-	}
-
-	var chromaticColors []chromaticEntry
-	for _, c := range dominantColors {
-		hsl := color.HexToHSL(c)
-		if hsl.S > MonochromeSaturationThreshold {
-			chromaticColors = append(chromaticColors, chromaticEntry{c: c, hsl: hsl, saturation: hsl.S})
-		}
-	}
-
-	// Sort by saturation descending
-	for i := 0; i < len(chromaticColors); i++ {
-		for j := i + 1; j < len(chromaticColors); j++ {
-			if chromaticColors[j].saturation > chromaticColors[i].saturation {
-				chromaticColors[i], chromaticColors[j] = chromaticColors[j], chromaticColors[i]
-			}
-		}
-	}
-
+	// Find most chromatic color as base (using OKLCH chroma)
 	var baseHue float64
-	if len(chromaticColors) > 0 {
-		baseHue = chromaticColors[0].hsl.H
-	} else {
-		hsl := color.HexToHSL(dominantColors[0])
-		baseHue = hsl.H
+	bestChroma := 0.0
+	for _, c := range dominantColors {
+		lch := color.HexToOKLCH(c)
+		if lch.C > bestChroma {
+			bestChroma = lch.C
+			baseHue = lch.H
+		}
 	}
 
 	sortedByLightness := SortColorsByLightness(dominantColors)
@@ -268,48 +248,47 @@ func GenerateAnalogousPalette(dominantColors []string, lightMode bool) [16]strin
 	var palette [16]string
 
 	if lightMode {
-		palette[0] = color.HSLToHex(baseHue, 12, math.Max(90, lightest.Lightness))
-		palette[7] = color.HSLToHex(baseHue, 30, math.Min(25, darkest.Lightness+10))
+		palette[0] = color.OKLCHToHex(color.OKLCH{L: math.Max(0.92, lightest.Lightness), C: 0.02, H: baseHue})
+		palette[7] = color.OKLCHToHex(color.OKLCH{L: math.Min(0.28, darkest.Lightness+0.05), C: 0.04, H: baseHue})
 	} else {
-		palette[0] = color.HSLToHex(baseHue, 18, math.Min(12, darkest.Lightness))
-		palette[7] = color.HSLToHex(baseHue, 15, math.Max(85, lightest.Lightness-10))
+		palette[0] = color.OKLCHToHex(color.OKLCH{L: math.Min(0.16, darkest.Lightness), C: 0.03, H: baseHue})
+		palette[7] = color.OKLCHToHex(color.OKLCH{L: math.Max(0.88, lightest.Lightness-0.05), C: 0.025, H: baseHue})
 	}
 
+	// Analogous offsets: ±30° in OKLCH (perceptually uniform)
 	analogousOffsets := [6]float64{-30, -20, -10, 10, 20, 30}
-	saturationLevels := [6]float64{45, 50, 48, 52, 47, 50}
-	lightnessBase := 58.0
+	chromaLevels := [6]float64{0.09, 0.10, 0.095, 0.105, 0.092, 0.10}
+	lightnessBase := 0.60
 	if lightMode {
-		lightnessBase = 45.0
+		lightnessBase = 0.48
 	}
 
 	for i := 0; i < 6; i++ {
 		hue := math.Mod(baseHue+analogousOffsets[i]+360, 360)
-		lightness := lightnessBase - 3
+		lightness := lightnessBase - 0.02
 		if i%2 != 0 {
-			lightness = lightnessBase + 3
+			lightness = lightnessBase + 0.02
 		}
-		palette[i+1] = color.HSLToHex(hue, saturationLevels[i], lightness)
+		palette[i+1] = color.OKLCHToHex(color.OKLCH{L: lightness, C: chromaLevels[i], H: hue})
 	}
 
-	if lightMode {
-		palette[8] = color.HSLToHex(baseHue, 20, 55)
-	} else {
-		palette[8] = color.HSLToHex(baseHue, 15, 45)
-	}
+	// Color 8: comment color with guaranteed contrast
+	palette[8] = generateCommentColor(palette[0])
 
+	// Bright versions (9-14)
 	for i := 0; i < 6; i++ {
 		hue := math.Mod(baseHue+analogousOffsets[i]+360, 360)
-		lightness := 68.0
+		lightness := 0.70
 		if lightMode {
-			lightness = 38.0
+			lightness = 0.40
 		}
-		palette[i+9] = color.HSLToHex(hue, saturationLevels[i]+8, lightness)
+		palette[i+9] = color.OKLCHToHex(color.OKLCH{L: lightness, C: chromaLevels[i] + 0.02, H: hue})
 	}
 
 	if lightMode {
-		palette[15] = color.HSLToHex(baseHue, 20, 20)
+		palette[15] = color.OKLCHToHex(color.OKLCH{L: 0.22, C: 0.03, H: baseHue})
 	} else {
-		palette[15] = color.HSLToHex(baseHue, 10, 95)
+		palette[15] = color.OKLCHToHex(color.OKLCH{L: 0.95, C: 0.015, H: baseHue})
 	}
 
 	return palette

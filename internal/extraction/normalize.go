@@ -6,92 +6,92 @@ import (
 	"aether/internal/color"
 )
 
-// NormalizeBrightness normalizes the brightness of ANSI colors to ensure readability
-// against the background color. Handles very dark backgrounds, very light backgrounds,
-// and outlier detection for normal backgrounds.
+// NormalizeBrightness normalizes the brightness of ANSI colors using OKLab perceptual
+// lightness and WCAG contrast ratios to ensure readability against the background.
 func NormalizeBrightness(palette [16]string) [16]string {
-	bgHsl := color.HexToHSL(palette[0])
-	bgLightness := bgHsl.L
+	bgLab := color.HexToOKLab(palette[0])
+	bgL := bgLab.L
 
-	isVeryDarkBg := bgLightness < VeryDarkBackgroundThreshold
-	isVeryLightBg := bgLightness > VeryLightBackgroundThreshold
+	isVeryDarkBg := bgL < VeryDarkBgLightness
+	isVeryLightBg := bgL > VeryLightBgLightness
 
-	colorIndices := []int{1, 2, 3, 4, 5, 6, 7}
+	colorIndices := []int{1, 2, 3, 4, 5, 6}
 
 	type colorInfo struct {
-		index      int
-		lightness  float64
-		hue        float64
-		saturation float64
+		index int
+		labL  float64 // OKLab perceptual lightness
 	}
 
 	ansiColors := make([]colorInfo, len(colorIndices))
 	for idx, i := range colorIndices {
-		hsl := color.HexToHSL(palette[i])
+		lab := color.HexToOKLab(palette[i])
 		ansiColors[idx] = colorInfo{
-			index:      i,
-			lightness:  hsl.L,
-			hue:        hsl.H,
-			saturation: hsl.S,
+			index: i,
+			labL:  lab.L,
 		}
 	}
 
-	avgLightness := 0.0
+	avgL := 0.0
 	for _, c := range ansiColors {
-		avgLightness += c.lightness
+		avgL += c.labL
 	}
-	avgLightness /= float64(len(ansiColors))
+	avgL /= float64(len(ansiColors))
 
-	isBrightTheme := avgLightness > BrightThemeThreshold
+	isBrightTheme := avgL > BrightThemeThreshold
 
 	if isVeryDarkBg {
+		// On very dark backgrounds, ensure all ANSI colors are visible
 		for _, ci := range ansiColors {
-			if ci.lightness < MinLightnessOnDarkBg {
-				adjustedLightness := MinLightnessOnDarkBg + float64(ci.index)*3
-				palette[ci.index] = AdjustColorLightness(palette[ci.index], adjustedLightness)
-				if ci.index >= 1 && ci.index <= 6 {
-					palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
-				}
+			contrast := color.ContrastRatio(palette[0], palette[ci.index])
+			if contrast < MinContrastRatio {
+				// Boost lightness until contrast is met
+				palette[ci.index] = boostContrastAgainstBg(palette[ci.index], palette[0])
+				palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
 			}
 		}
 		return palette
 	}
 
 	if isVeryLightBg {
+		// On very light backgrounds, ensure all ANSI colors are dark enough
 		for _, ci := range ansiColors {
-			if ci.lightness > MaxLightnessOnLightBg {
-				adjustedLightness := math.Max(AbsoluteMinLightness, MaxLightnessOnLightBg-float64(ci.index)*2)
-				palette[ci.index] = AdjustColorLightness(palette[ci.index], adjustedLightness)
-				if ci.index >= 1 && ci.index <= 6 {
-					palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
-				}
+			contrast := color.ContrastRatio(palette[0], palette[ci.index])
+			if contrast < MinContrastRatio {
+				palette[ci.index] = boostContrastAgainstBg(palette[ci.index], palette[0])
+				palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
 			}
 		}
 		return palette
 	}
 
-	// Normal background - apply outlier detection
+	// Normal background - detect and fix perceptual outliers
 	for _, ci := range ansiColors {
-		if math.Abs(ci.lightness-avgLightness) <= OutlierLightnessThreshold {
+		deviation := math.Abs(ci.labL - avgL)
+		if deviation <= OutlierLightnessThreshold {
 			continue
 		}
 
-		isDarkOutlierInBrightTheme := isBrightTheme &&
-			ci.lightness < avgLightness-OutlierLightnessThreshold
-		isBrightOutlierInDarkTheme := !isBrightTheme &&
-			ci.lightness > avgLightness+OutlierLightnessThreshold
+		isDarkOutlierInBrightTheme := isBrightTheme && ci.labL < avgL-OutlierLightnessThreshold
+		isBrightOutlierInDarkTheme := !isBrightTheme && ci.labL > avgL+OutlierLightnessThreshold
 
 		if isDarkOutlierInBrightTheme || isBrightOutlierInDarkTheme {
-			var adjustedLightness float64
+			var adjustedL float64
 			if isDarkOutlierInBrightTheme {
-				adjustedLightness = avgLightness - 10
+				adjustedL = avgL - 0.08
 			} else {
-				adjustedLightness = avgLightness + 10
+				adjustedL = avgL + 0.08
 			}
-			palette[ci.index] = AdjustColorLightness(palette[ci.index], adjustedLightness)
-			if ci.index >= 1 && ci.index <= 6 {
-				palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
-			}
+			palette[ci.index] = AdjustColorLightness(palette[ci.index], adjustedL)
+			palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
+		}
+	}
+
+	// Final pass: verify all ANSI colors (1-6) meet minimum contrast
+	for _, ci := range ansiColors {
+		contrast := color.ContrastRatio(palette[0], palette[ci.index])
+		if contrast < MinContrastRatio {
+			palette[ci.index] = boostContrastAgainstBg(palette[ci.index], palette[0])
+			palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
 		}
 	}
 

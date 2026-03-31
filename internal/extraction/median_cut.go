@@ -9,21 +9,21 @@ import (
 	"aether/internal/color"
 )
 
-// ColorBucket represents a group of colors for the median-cut algorithm.
-type ColorBucket struct {
-	Colors []color.RGB
-	Ranges [3][2]float64 // [channel][min, max] where channel 0=R, 1=G, 2=B
+// OKLabBucket represents a group of colors in OKLab perceptual space for median-cut.
+type OKLabBucket struct {
+	Colors []color.OKLab
+	Ranges [3][2]float64 // [axis][min, max] where axis 0=L, 1=A, 2=B
 }
 
-// NewColorBucket creates a new ColorBucket and computes its channel ranges.
-func NewColorBucket(colors []color.RGB) *ColorBucket {
-	b := &ColorBucket{Colors: colors}
+// NewOKLabBucket creates a new bucket and computes its axis ranges.
+func NewOKLabBucket(colors []color.OKLab) *OKLabBucket {
+	b := &OKLabBucket{Colors: colors}
 	b.computeRanges()
 	return b
 }
 
-// computeRanges computes the min/max for each channel (R, G, B).
-func (b *ColorBucket) computeRanges() {
+// computeRanges computes the min/max for each OKLab axis.
+func (b *OKLabBucket) computeRanges() {
 	if len(b.Colors) == 0 {
 		b.Ranges = [3][2]float64{{0, 0}, {0, 0}, {0, 0}}
 		return
@@ -31,13 +31,13 @@ func (b *ColorBucket) computeRanges() {
 
 	first := b.Colors[0]
 	b.Ranges = [3][2]float64{
-		{first.R, first.R},
-		{first.G, first.G},
+		{first.L, first.L},
+		{first.A, first.A},
 		{first.B, first.B},
 	}
 
 	for _, c := range b.Colors {
-		vals := [3]float64{c.R, c.G, c.B}
+		vals := [3]float64{c.L, c.A, c.B}
 		for ch := 0; ch < 3; ch++ {
 			if vals[ch] < b.Ranges[ch][0] {
 				b.Ranges[ch][0] = vals[ch]
@@ -49,111 +49,113 @@ func (b *ColorBucket) computeRanges() {
 	}
 }
 
-// channelRange returns max - min for a given channel.
-func (b *ColorBucket) channelRange(ch int) float64 {
-	return b.Ranges[ch][1] - b.Ranges[ch][0]
+// axisRange returns max - min for a given axis.
+func (b *OKLabBucket) axisRange(axis int) float64 {
+	return b.Ranges[axis][1] - b.Ranges[axis][0]
 }
 
-// LongestChannel returns the channel index (0=R, 1=G, 2=B) with the widest range.
-func (b *ColorBucket) LongestChannel() int {
-	rRange := b.channelRange(0)
-	gRange := b.channelRange(1)
-	bRange := b.channelRange(2)
+// LongestAxis returns the axis index (0=L, 1=A, 2=B) with the widest perceptual range.
+// Weights L slightly higher since lightness differences are the most perceptible.
+func (b *OKLabBucket) LongestAxis() int {
+	lRange := b.axisRange(0) * 1.2 // Weight lightness slightly higher
+	aRange := b.axisRange(1)
+	bRange := b.axisRange(2)
 
-	if rRange >= gRange && rRange >= bRange {
+	if lRange >= aRange && lRange >= bRange {
 		return 0
 	}
-	if gRange >= bRange {
+	if aRange >= bRange {
 		return 1
 	}
 	return 2
 }
 
-// Split splits the bucket along its longest channel at the median point.
-func (b *ColorBucket) Split() (*ColorBucket, *ColorBucket) {
-	ch := b.LongestChannel()
+// Split splits the bucket along its longest axis at the median point.
+func (b *OKLabBucket) Split() (*OKLabBucket, *OKLabBucket) {
+	axis := b.LongestAxis()
 
 	sort.Slice(b.Colors, func(i, j int) bool {
-		return channelValue(b.Colors[i], ch) < channelValue(b.Colors[j], ch)
+		return oklabAxisValue(b.Colors[i], axis) < oklabAxisValue(b.Colors[j], axis)
 	})
 
 	mid := len(b.Colors) / 2
-	left := make([]color.RGB, mid)
-	right := make([]color.RGB, len(b.Colors)-mid)
+	left := make([]color.OKLab, mid)
+	right := make([]color.OKLab, len(b.Colors)-mid)
 	copy(left, b.Colors[:mid])
 	copy(right, b.Colors[mid:])
 
-	return NewColorBucket(left), NewColorBucket(right)
+	return NewOKLabBucket(left), NewOKLabBucket(right)
 }
 
-// AverageColor returns the average color of the bucket and its pixel count.
-func (b *ColorBucket) AverageColor() (color.RGB, int) {
+// AverageColor returns the average color of the bucket in OKLab space and its pixel count.
+// Averaging in OKLab produces perceptually natural intermediate colors.
+func (b *OKLabBucket) AverageColor() (color.OKLab, int) {
 	count := len(b.Colors)
 	if count == 0 {
-		return color.RGB{R: 0, G: 0, B: 0}, 0
+		return color.OKLab{}, 0
 	}
 
-	var rSum, gSum, bSum float64
+	var lSum, aSum, bSum float64
 	for _, c := range b.Colors {
-		rSum += c.R
-		gSum += c.G
+		lSum += c.L
+		aSum += c.A
 		bSum += c.B
 	}
 
-	return color.RGB{
-		R: math.Round(rSum / float64(count)),
-		G: math.Round(gSum / float64(count)),
-		B: math.Round(bSum / float64(count)),
+	n := float64(count)
+	return color.OKLab{
+		L: lSum / n,
+		A: aSum / n,
+		B: bSum / n,
 	}, count
 }
 
-// Volume returns the volume of this bucket, used for prioritising splits.
-// Larger volume means more color variation.
-func (b *ColorBucket) Volume() float64 {
-	return b.channelRange(0) * b.channelRange(1) * b.channelRange(2) * float64(len(b.Colors))
+// Volume returns the perceptual volume of this bucket.
+// Larger volume = more perceptual color variation inside the bucket.
+func (b *OKLabBucket) Volume() float64 {
+	return b.axisRange(0) * b.axisRange(1) * b.axisRange(2) * float64(len(b.Colors))
 }
 
-// channelValue extracts the value of a specific channel (0=R, 1=G, 2=B) from an RGB color.
-func channelValue(c color.RGB, ch int) float64 {
-	switch ch {
+// oklabAxisValue extracts a specific axis value from an OKLab color.
+func oklabAxisValue(c color.OKLab, axis int) float64 {
+	switch axis {
 	case 0:
-		return c.R
+		return c.L
 	case 1:
-		return c.G
+		return c.A
 	default:
 		return c.B
 	}
 }
 
-// colorEntry holds an average color and its pixel count.
+// colorEntry holds an average color (as hex) and its pixel count.
 type colorEntry struct {
-	Color color.RGB
+	Hex   string
 	Count int
 }
 
-// MedianCut performs median-cut color quantization on a set of RGB colors.
-// It iteratively splits the bucket with the largest volume until numColors buckets exist.
-// Returns a slice of {Color, Count} sorted by count descending.
-func MedianCut(colors []color.RGB, numColors int) []colorEntry {
+// MedianCut performs median-cut color quantization in OKLab perceptual space.
+// It iteratively splits the bucket with the largest perceptual volume until
+// numColors buckets exist. Returns hex colors sorted by pixel count descending.
+func MedianCut(colors []color.OKLab, numColors int) []colorEntry {
 	if len(colors) == 0 {
 		return nil
 	}
 
 	if len(colors) <= numColors {
-		return deduplicateColors(colors)
+		return deduplicateOKLabColors(colors)
 	}
 
-	buckets := []*ColorBucket{NewColorBucket(colors)}
+	buckets := []*OKLabBucket{NewOKLabBucket(colors)}
 
 	for len(buckets) < numColors {
-		splitIdx := findLargestSplittableBucket(buckets)
+		splitIdx := findLargestSplittableOKLabBucket(buckets)
 		if splitIdx == -1 {
 			break
 		}
 
 		left, right := buckets[splitIdx].Split()
-		// Replace the split bucket with left and right
-		newBuckets := make([]*ColorBucket, 0, len(buckets)+1)
+		newBuckets := make([]*OKLabBucket, 0, len(buckets)+1)
 		newBuckets = append(newBuckets, buckets[:splitIdx]...)
 		newBuckets = append(newBuckets, left, right)
 		newBuckets = append(newBuckets, buckets[splitIdx+1:]...)
@@ -164,15 +166,16 @@ func MedianCut(colors []color.RGB, numColors int) []colorEntry {
 	for _, bucket := range buckets {
 		avg, count := bucket.AverageColor()
 		if count > 0 {
-			result = append(result, colorEntry{Color: avg, Count: count})
+			hex := color.OKLabToHex(avg)
+			result = append(result, colorEntry{Hex: hex, Count: count})
 		}
 	}
 
 	return result
 }
 
-// ExtractDominantColors loads an image, samples its pixels, runs median-cut quantization,
-// and returns hex color strings (uppercase) sorted by dominance.
+// ExtractDominantColors loads an image, samples its pixels, converts to OKLab,
+// runs perceptual median-cut quantization, and returns hex colors sorted by dominance.
 func ExtractDominantColors(imagePath string, numColors int) ([]string, error) {
 	pixels, err := LoadAndSamplePixels(imagePath)
 	if err != nil {
@@ -183,7 +186,17 @@ func ExtractDominantColors(imagePath string, numColors int) ([]string, error) {
 		return nil, fmt.Errorf("not enough pixels to extract colors")
 	}
 
-	quantized := MedianCut(pixels, numColors)
+	// Convert RGB pixels to OKLab for perceptual quantization
+	oklabPixels := make([]color.OKLab, 0, len(pixels))
+	for _, px := range pixels {
+		oklabPixels = append(oklabPixels, color.RGBToOKLab(px))
+	}
+
+	// Boost chromatic pixels so colorful image regions aren't drowned out
+	// by large uniform backgrounds (e.g., a sunset subject against a dark sky)
+	boosted := boostChromaticPixels(oklabPixels)
+
+	quantized := MedianCut(boosted, numColors)
 	if len(quantized) == 0 {
 		return nil, fmt.Errorf("no colors extracted from image")
 	}
@@ -195,32 +208,59 @@ func ExtractDominantColors(imagePath string, numColors int) ([]string, error) {
 
 	hexColors := make([]string, len(quantized))
 	for i, entry := range quantized {
-		hex := color.RGBToHex(entry.Color.R, entry.Color.G, entry.Color.B)
-		hexColors[i] = strings.ToUpper(hex)
+		hexColors[i] = strings.ToUpper(entry.Hex)
 	}
 
 	return hexColors, nil
 }
 
-// deduplicateColors removes duplicate RGB colors and returns unique entries.
-func deduplicateColors(colors []color.RGB) []colorEntry {
-	seen := make(map[string]bool)
+// boostChromaticPixels duplicates pixels with high OKLCH chroma to give them
+// more influence in median-cut. This ensures colorful image regions are properly
+// represented even when dominated by large uniform backgrounds.
+func boostChromaticPixels(pixels []color.OKLab) []color.OKLab {
+	result := make([]color.OKLab, 0, len(pixels)*2)
+
+	for _, px := range pixels {
+		result = append(result, px)
+		// Compute chroma (distance from neutral axis in a-b plane)
+		chroma := math.Sqrt(px.A*px.A + px.B*px.B)
+		if chroma > ChromaBoostThreshold {
+			// Duplicate chromatic pixels to boost their representation
+			for j := 1; j < ChromaBoostFactor; j++ {
+				result = append(result, px)
+			}
+		}
+	}
+
+	return result
+}
+
+// deduplicateOKLabColors removes near-duplicate OKLab colors (within perceptual threshold).
+func deduplicateOKLabColors(colors []color.OKLab) []colorEntry {
 	var unique []colorEntry
+	const threshold = 0.01 // Very close in OKLab = same color
 
 	for _, c := range colors {
-		key := fmt.Sprintf("%v,%v,%v", c.R, c.G, c.B)
-		if !seen[key] {
-			seen[key] = true
-			unique = append(unique, colorEntry{Color: c, Count: 1})
+		isDuplicate := false
+		for _, u := range unique {
+			uLab := color.HexToOKLab(u.Hex)
+			if color.OKLabDistance(c, uLab) < threshold {
+				isDuplicate = true
+				break
+			}
+		}
+		if !isDuplicate {
+			hex := color.OKLabToHex(c)
+			unique = append(unique, colorEntry{Hex: hex, Count: 1})
 		}
 	}
 
 	return unique
 }
 
-// findLargestSplittableBucket finds the bucket with the largest volume that has >1 colors.
-// Returns -1 if no bucket can be split.
-func findLargestSplittableBucket(buckets []*ColorBucket) int {
+// findLargestSplittableOKLabBucket finds the bucket with the largest perceptual volume
+// that has more than 1 color. Returns -1 if no bucket can be split.
+func findLargestSplittableOKLabBucket(buckets []*OKLabBucket) int {
 	maxVolume := 0.0
 	maxIndex := -1
 

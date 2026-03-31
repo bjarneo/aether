@@ -14,7 +14,7 @@ import (
 	"golang.org/x/image/draw"
 )
 
-// LoadAndSamplePixels loads an image, scales it to 300x300 (preserving aspect ratio),
+// LoadAndSamplePixels loads an image, scales it to ImageScaleSize (preserving aspect ratio),
 // and samples up to MaxPixelsToSample pixels, skipping transparent pixels (alpha < 128).
 // Returns a slice of color.RGB values.
 func LoadAndSamplePixels(imagePath string) ([]color.RGB, error) {

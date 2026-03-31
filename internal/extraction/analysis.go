@@ -7,12 +7,13 @@ import (
 	"aether/internal/color"
 )
 
-// IsDarkColor determines if a color is considered "dark" based on its lightness.
+// IsDarkColor determines if a color is considered "dark" using OKLab perceptual lightness.
 func IsDarkColor(hex string) bool {
-	return color.HexToHSL(hex).L < DarkColorThreshold
+	lab := color.HexToOKLab(hex)
+	return lab.L < DarkColorThreshold
 }
 
-// CalculateHueDistance calculates the circular distance between two hues.
+// CalculateHueDistance calculates the circular distance between two hues (works for both HSL and OKLCH).
 // Handles wraparound at 360 degrees and returns a value between 0 and 180.
 func CalculateHueDistance(hue1, hue2 float64) float64 {
 	diff := math.Abs(hue1 - hue2)
@@ -22,27 +23,27 @@ func CalculateHueDistance(hue1, hue2 float64) float64 {
 	return diff
 }
 
-// IsMonochromeImage detects whether the extracted colors are mostly monochrome/grayscale.
-// Returns true if more than 70% of colors have saturation below the threshold.
+// IsMonochromeImage detects whether the extracted colors are mostly monochrome/grayscale
+// using OKLCH chroma (perceptually accurate colorfulness metric).
+// Returns true if more than 70% of colors have chroma below the threshold.
 func IsMonochromeImage(colors []string) bool {
-	lowSatCount := 0
+	lowChromaCount := 0
 
 	for _, c := range colors {
-		hsl := color.HexToHSL(c)
-		if hsl.S < MonochromeSaturationThreshold {
-			lowSatCount++
+		lch := color.HexToOKLCH(c)
+		if lch.C < MonochromeChromaThreshold {
+			lowChromaCount++
 		}
 	}
 
-	return float64(lowSatCount)/float64(len(colors)) > MonochromeImageThreshold
+	return float64(lowChromaCount)/float64(len(colors)) > MonochromeImageThreshold
 }
 
-// findColorByLightness finds a color by lightness extremity.
+// findColorByPerceptualLightness finds a color by OKLab perceptual lightness extremity.
 // If findLightest is true, returns the lightest; otherwise the darkest.
-// excludeIndices is a set of indices to skip.
-func findColorByLightness(colors []string, findLightest bool, excludeIndices map[int]bool) (string, int) {
+func findColorByPerceptualLightness(colors []string, findLightest bool, excludeIndices map[int]bool) (string, int) {
 	bestIndex := 0
-	bestLightness := 101.0
+	bestLightness := 2.0 // Above max (1.0) to ensure any real value wins
 	if findLightest {
 		bestLightness = -1.0
 	}
@@ -52,16 +53,16 @@ func findColorByLightness(colors []string, findLightest bool, excludeIndices map
 			continue
 		}
 
-		hsl := color.HexToHSL(colors[i])
+		lab := color.HexToOKLab(colors[i])
 		var isBetter bool
 		if findLightest {
-			isBetter = hsl.L > bestLightness
+			isBetter = lab.L > bestLightness
 		} else {
-			isBetter = hsl.L < bestLightness
+			isBetter = lab.L < bestLightness
 		}
 
 		if isBetter {
-			bestLightness = hsl.L
+			bestLightness = lab.L
 			bestIndex = i
 		}
 	}
@@ -69,50 +70,99 @@ func findColorByLightness(colors []string, findLightest bool, excludeIndices map
 	return colors[bestIndex], bestIndex
 }
 
-// FindBackgroundColor finds the background color - darkest for dark mode, lightest for light mode.
+// FindBackgroundColor finds the background color using OKLab perceptual lightness.
+// Dark mode: darkest. Light mode: lightest.
 func FindBackgroundColor(colors []string, lightMode bool) (string, int) {
-	return findColorByLightness(colors, lightMode, nil)
+	return findColorByPerceptualLightness(colors, lightMode, nil)
 }
 
-// FindForegroundColor finds the foreground color - opposite of background.
-func FindForegroundColor(colors []string, lightMode bool, usedIndices map[int]bool) (string, int) {
-	return findColorByLightness(colors, !lightMode, usedIndices)
-}
+// FindForegroundColor finds the foreground color (opposite of background).
+// Also enforces minimum contrast ratio against the background.
+func FindForegroundColor(colors []string, lightMode bool, bgColor string, usedIndices map[int]bool) (string, int) {
+	// First, find by lightness extremity
+	fgColor, fgIndex := findColorByPerceptualLightness(colors, !lightMode, usedIndices)
 
-// CalculateColorScore calculates a color quality score for ANSI color selection.
-// Balances hue accuracy, saturation preference, and lightness suitability.
-// Lower score = better match.
-func CalculateColorScore(hsl color.HSL, targetHue float64) float64 {
-	// Hue accuracy - primary factor
-	hueScore := CalculateHueDistance(hsl.H, targetHue) * 2.5
+	// Check contrast ratio; if insufficient, synthesize a better foreground
+	contrast := color.ContrastRatio(bgColor, fgColor)
+	if contrast >= MinFgBgContrast {
+		return fgColor, fgIndex
+	}
 
-	// Saturation preference - strongly prefer chromatic colors
-	var satScore float64
-	if hsl.S < AnsiMinSaturationForMatch {
-		satScore = 80
-	} else if hsl.S < 20 {
-		satScore = 40
-	} else if hsl.S < 30 {
-		satScore = 15
+	// Try other candidates sorted by contrast
+	type candidate struct {
+		index    int
+		contrast float64
+	}
+	var candidates []candidate
+	for i, c := range colors {
+		if usedIndices != nil && usedIndices[i] {
+			continue
+		}
+		cr := color.ContrastRatio(bgColor, c)
+		if cr > contrast {
+			candidates = append(candidates, candidate{index: i, contrast: cr})
+		}
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].contrast > candidates[j].contrast
+	})
+
+	if len(candidates) > 0 && candidates[0].contrast >= MinContrastRatio {
+		return colors[candidates[0].index], candidates[0].index
+	}
+
+	// Fallback: adjust the original fg to meet contrast
+	bgLab := color.HexToOKLab(bgColor)
+	fgLab := color.HexToOKLab(fgColor)
+	if bgLab.L < 0.5 {
+		// Dark bg: push fg lighter
+		fgLab.L = math.Min(1.0, bgLab.L+0.65)
 	} else {
-		satScore = math.Max(0, (50-hsl.S)*0.3)
+		// Light bg: push fg darker
+		fgLab.L = math.Max(0.0, bgLab.L-0.65)
+	}
+	adjustedHex := color.OKLabToHex(fgLab)
+	return adjustedHex, fgIndex
+}
+
+// CalculateColorScore calculates a color quality score for ANSI color selection
+// using OKLCH perceptual color space. Lower score = better match.
+func CalculateColorScore(lch color.OKLCH, targetHue float64) float64 {
+	// Hue accuracy in perceptually uniform OKLCH space
+	hueScore := CalculateHueDistance(lch.H, targetHue) * 2.0
+
+	// Chroma preference - strongly prefer chromatic colors
+	var chromaScore float64
+	if lch.C < MinChromaForAnsiMatch {
+		chromaScore = 80 // Heavy penalty for near-gray
+	} else if lch.C < 0.05 {
+		chromaScore = 40
+	} else if lch.C < IdealChromaMin {
+		chromaScore = 15
+	} else if lch.C <= IdealChromaMax {
+		chromaScore = 0 // Ideal range - no penalty
+	} else {
+		chromaScore = (lch.C - IdealChromaMax) * 50 // Mild penalty for very vivid
 	}
 
 	// Lightness suitability - prefer mid-range, penalize extremes
+	// OKLab L is perceptually linear, so these thresholds are meaningful
 	var lightnessScore float64
-	if hsl.L < TooDarkThreshold {
-		lightnessScore = (TooDarkThreshold - hsl.L) * 2.5
-	} else if hsl.L > TooBrightThreshold {
-		lightnessScore = (hsl.L - TooBrightThreshold) * 2
+	if lch.L < TooDarkLightness {
+		lightnessScore = (TooDarkLightness - lch.L) * 200
+	} else if lch.L > TooBrightLightness {
+		lightnessScore = (lch.L - TooBrightLightness) * 150
 	} else {
-		lightnessScore = math.Abs(hsl.L-55) * 0.2
+		// Slight preference for L around 0.55-0.65 (good readability zone)
+		lightnessScore = math.Abs(lch.L-0.60) * 20
 	}
 
-	return hueScore + satScore + lightnessScore
+	return hueScore + chromaScore + lightnessScore
 }
 
-// FindBestColorMatch finds the best matching color for a specific ANSI color role.
-// Returns the index of the best match in colorPool.
+// FindBestColorMatch finds the best matching color for a specific ANSI color role
+// using OKLCH-based scoring. Returns the index of the best match in colorPool.
 func FindBestColorMatch(targetHue float64, colorPool []string, usedIndices map[int]bool) int {
 	bestIndex := -1
 	bestScore := math.Inf(1)
@@ -122,8 +172,8 @@ func FindBestColorMatch(targetHue float64, colorPool []string, usedIndices map[i
 			continue
 		}
 
-		hsl := color.HexToHSL(colorPool[i])
-		score := CalculateColorScore(hsl, targetHue)
+		lch := color.HexToOKLCH(colorPool[i])
+		score := CalculateColorScore(lch, targetHue)
 
 		if score < bestScore {
 			bestScore = score
@@ -137,36 +187,49 @@ func FindBestColorMatch(targetHue float64, colorPool []string, usedIndices map[i
 	return 0
 }
 
-// GenerateBrightVersion generates a lighter version of a color for bright ANSI slots.
-// Scales the boost based on available headroom to avoid washing out bright colors.
+// GenerateBrightVersion generates a perceptually lighter version of a color for bright ANSI slots.
+// Works in OKLab space so the boost is perceptually uniform.
 func GenerateBrightVersion(hex string) string {
-	hsl := color.HexToHSL(hex)
-	headroom := 90 - hsl.L
-	boost := math.Max(5, math.Min(BrightColorLightnessBoost, headroom*0.6))
-	newLightness := math.Min(90, hsl.L+boost)
-	newSaturation := math.Min(100, hsl.S*BrightColorSaturationBoost)
-	return color.HSLToHex(hsl.H, newSaturation, newLightness)
+	lab := color.HexToOKLab(hex)
+	lch := color.OKLabToOKLCH(lab)
+
+	// Scale boost based on available headroom
+	headroom := 0.92 - lab.L
+	boost := math.Max(0.04, math.Min(BrightColorLightnessBoost, headroom*0.6))
+	newL := math.Min(0.92, lab.L+boost)
+
+	// Slight chroma boost for vibrancy
+	newC := math.Min(0.3, lch.C*BrightColorSaturationBoost)
+
+	return color.OKLCHToHex(color.OKLCH{L: newL, C: newC, H: lch.H})
 }
 
-// AdjustColorLightness adjusts a color to the given target lightness.
+// AdjustColorLightness adjusts a color to the given target OKLab lightness (0-1).
 func AdjustColorLightness(hex string, targetLightness float64) string {
+	lab := color.HexToOKLab(hex)
+	lab.L = targetLightness
+	return color.OKLabToHex(lab)
+}
+
+// AdjustColorLightnessHSL adjusts a color using HSL lightness (0-100) for legacy compatibility.
+func AdjustColorLightnessHSL(hex string, targetLightness float64) string {
 	hsl := color.HexToHSL(hex)
 	return color.HSLToHex(hsl.H, hsl.S, targetLightness)
 }
 
-// ColorLightnessInfo holds a color with its lightness and hue values.
+// ColorLightnessInfo holds a color with its perceptual lightness and hue.
 type ColorLightnessInfo struct {
 	Color     string
-	Lightness float64
-	Hue       float64
+	Lightness float64 // OKLab L (0-1)
+	Hue       float64 // OKLCH H (0-360)
 }
 
-// SortColorsByLightness sorts colors by lightness ascending.
+// SortColorsByLightness sorts colors by OKLab perceptual lightness ascending.
 func SortColorsByLightness(colors []string) []ColorLightnessInfo {
 	result := make([]ColorLightnessInfo, len(colors))
 	for i, c := range colors {
-		hsl := color.HexToHSL(c)
-		result[i] = ColorLightnessInfo{Color: c, Lightness: hsl.L, Hue: hsl.H}
+		lch := color.HexToOKLCH(c)
+		result[i] = ColorLightnessInfo{Color: c, Lightness: lch.L, Hue: lch.H}
 	}
 
 	sort.Slice(result, func(i, j int) bool {
@@ -177,35 +240,36 @@ func SortColorsByLightness(colors []string) []ColorLightnessInfo {
 }
 
 // SynthesizeAnsiColor synthesizes an ANSI color when no good match exists in the image.
-// Uses the average saturation and lightness of already-assigned colors to create
+// Uses the average chroma and lightness of already-assigned colors (in OKLCH) to create
 // a color that fits the palette's visual mood.
 func SynthesizeAnsiColor(targetHue float64, existingColors []string) string {
-	var totalS, totalL float64
+	var totalC, totalL float64
 	count := 0
 
 	for _, c := range existingColors {
 		if c == "" {
 			continue
 		}
-		hsl := color.HexToHSL(c)
-		if hsl.S >= AnsiMinSaturationForMatch {
-			totalS += hsl.S
-			totalL += hsl.L
+		lch := color.HexToOKLCH(c)
+		if lch.C >= MinChromaForAnsiMatch {
+			totalC += lch.C
+			totalL += lch.L
 			count++
 		}
 	}
 
-	avgS := 50.0
-	avgL := 55.0
+	avgC := 0.10 // Default chroma for synthesis
+	avgL := 0.60 // Default lightness
 	if count > 0 {
-		avgS = totalS / float64(count)
+		avgC = totalC / float64(count)
 		avgL = totalL / float64(count)
 	}
 
-	synS := math.Max(35, math.Min(75, avgS))
-	synL := math.Max(40, math.Min(70, avgL))
+	// Clamp to sane ranges
+	synC := math.Max(0.06, math.Min(0.18, avgC))
+	synL := math.Max(0.40, math.Min(0.75, avgL))
 
-	return color.HSLToHex(targetHue, synS, synL)
+	return color.OKLCHToHex(color.OKLCH{L: synL, C: synC, H: targetHue})
 }
 
 // AnsiAssignment represents the assignment of a pool color to an ANSI slot.
@@ -214,26 +278,27 @@ type AnsiAssignment struct {
 	Score     float64
 }
 
-// FindOptimalAnsiAssignment finds optimal ANSI color assignments using global greedy matching.
-// Instead of assigning colors sequentially, this finds the globally best (ANSI slot, color) pair
-// at each step, preventing earlier slots from stealing good matches from later ones.
+// FindOptimalAnsiAssignment finds optimal ANSI color assignments using OKLCH-based
+// global greedy matching. Instead of assigning colors sequentially, this finds the
+// globally best (ANSI slot, color) pair at each step, preventing earlier slots from
+// stealing good matches from later ones.
 func FindOptimalAnsiAssignment(colorPool []string, usedIndices map[int]bool) [6]*AnsiAssignment {
 	type candidate struct {
 		poolIndex int
 		score     float64
 	}
 
-	// Pre-compute and sort scores for all (ANSI slot, color) pairs
+	// Pre-compute and sort scores for all (ANSI slot, color) pairs using OKLCH hue targets
 	allScores := make([][]*candidate, 6)
 	for a := 0; a < 6; a++ {
-		targetHue := ANSIHueArray[a]
+		targetHue := OKLCHAnsiHues[a]
 		candidates := make([]*candidate, len(colorPool))
 		for i, c := range colorPool {
 			if usedIndices[i] {
 				candidates[i] = &candidate{poolIndex: i, score: math.Inf(1)}
 			} else {
-				hsl := color.HexToHSL(c)
-				candidates[i] = &candidate{poolIndex: i, score: CalculateColorScore(hsl, targetHue)}
+				lch := color.HexToOKLCH(c)
+				candidates[i] = &candidate{poolIndex: i, score: CalculateColorScore(lch, targetHue)}
 			}
 		}
 		sort.Slice(candidates, func(i, j int) bool {
@@ -258,7 +323,6 @@ func FindOptimalAnsiAssignment(colorPool []string, usedIndices map[int]bool) [6]
 			if assignments[a] != nil {
 				continue
 			}
-			// Find best unassigned candidate for this slot
 			for _, cand := range allScores[a] {
 				if assignedPoolIndices[cand.poolIndex] {
 					continue
