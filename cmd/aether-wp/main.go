@@ -71,7 +71,12 @@ static int run_gif(const char *path) {
 
 	init_layer_window();
 
+	// GdkPixbufAnimation is fully deprecated in gdk-pixbuf 2.44+ with no
+	// GTK3-compatible replacement.  Suppress the warning until a GTK4 port.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	GdkPixbufAnimation *anim = gdk_pixbuf_animation_new_from_file(path, NULL);
+#pragma GCC diagnostic pop
 	if (!anim) {
 		g_printerr("aether-wp: failed to load GIF: %s\n", path);
 		return 1;
