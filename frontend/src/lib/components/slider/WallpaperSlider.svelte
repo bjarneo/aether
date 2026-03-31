@@ -252,7 +252,7 @@
             const colors: string[] = await app.ExtractColors(
                 item.imagePath,
                 getLightMode(),
-                'material'
+                'normal'
             );
             if (gen !== extractionGen) return;
             setAdjustments({...DEFAULT_ADJUSTMENTS});
