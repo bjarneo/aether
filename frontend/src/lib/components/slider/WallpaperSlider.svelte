@@ -61,8 +61,8 @@
     let cacheProgress = $state(0);
     let cacheTotal = $state(0);
     let isExtracting = $state(false);
-    let accentColor = $state('#89b4fa');
     let extractedPalette = $state<string[]>([]);
+    let accentColor = $derived(extractedPalette[4] ?? '#89b4fa');
     let extractionGen = 0;
     let extractTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -143,26 +143,38 @@
         isCaching = false;
     }
 
-    async function loadWallpapers() {
+    async function loadWallpapers(): Promise<SlideItem[]> {
         const app = await getApp();
         const wps = await app.ScanLocalWallpapers();
-        return wps.map((wp: any) => ({
+        return wps.map(wp => ({
             path: wp.path,
             name: wp.name,
             imagePath: wp.path,
         }));
     }
 
-    async function loadThemes() {
+    function pickPrimaryWallpaper(wallpapers: string[]): string {
+        if (!wallpapers?.length) return '';
+        for (const prefix of ['0-', '1-', '2-']) {
+            const match = wallpapers.find(wp => {
+                const name = wp.split('/').pop() ?? '';
+                return name.startsWith(prefix);
+            });
+            if (match) return match;
+        }
+        return wallpapers[0];
+    }
+
+    async function loadThemes(): Promise<SlideItem[]> {
         const app = await getApp();
         const themes = await app.LoadOmarchyThemes();
         if (!Array.isArray(themes)) return [];
         return themes
-            .filter((t: any) => t.colors?.length >= 16)
-            .map((t: any) => ({
+            .filter(t => t.colors?.length >= 16)
+            .map(t => ({
                 path: t.path,
                 name: t.name,
-                imagePath: t.wallpapers?.[0] ?? '',
+                imagePath: pickPrimaryWallpaper(t.wallpapers),
                 colors: t.colors,
             }));
     }
@@ -219,13 +231,10 @@
         if (!item) return;
 
         if (mode === 'themes' && item.colors) {
-            // Themes already have colors - use them directly
-            setPalette(item.colors);
+            setPalette(item.colors, true);
             extractedPalette = [...item.colors];
-            accentColor = item.colors[4];
             if (item.imagePath) setWallpaperPath(item.imagePath);
         } else {
-            // Wallpapers need extraction
             extractForIndex(idx);
         }
     }
@@ -249,7 +258,6 @@
             setAdjustments({...DEFAULT_ADJUSTMENTS});
             setPalette(colors);
             extractedPalette = [...colors];
-            accentColor = colors[4];
         } catch {
             if (gen === extractionGen) {
                 showToast('Color extraction failed');
