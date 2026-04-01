@@ -444,7 +444,7 @@
 <div
     bind:this={container}
     class="flex h-screen w-full flex-col items-center justify-center overflow-hidden outline-none"
-    style="background: transparent; opacity: {ready
+    style="background: rgba(0, 0, 0, 0.35); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); opacity: {ready
         ? 1
         : 0}; transition: opacity 0.15s ease"
     tabindex="-1"
