@@ -76,10 +76,10 @@
     let container: HTMLDivElement | undefined = $state();
     let areaWidth = $state(0);
 
-    const CARD_WIDTH = 240;
-    const CARD_GAP = 32;
+    const CARD_WIDTH = 180;
+    const CARD_GAP = 20;
     const CARD_STEP = CARD_WIDTH + CARD_GAP;
-    const CARD_MAX_HEIGHT = 350;
+    const CARD_MAX_HEIGHT = 250;
     const SKEW = 5;
     const EXTRACT_DEBOUNCE = 300;
     const BUFFER = 3;
@@ -437,7 +437,7 @@
     {:else if !isLoading && items.length > 0}
         <div
             class="flex w-full items-center overflow-hidden"
-            style="height: {CARD_MAX_HEIGHT + 80}px"
+            style="height: {CARD_MAX_HEIGHT + 50}px"
             bind:clientWidth={areaWidth}
         >
             <div
@@ -461,10 +461,10 @@
                         class="relative shrink-0 overflow-hidden border-2"
                         style="
                             width: {i === currentIndex
-                            ? CARD_WIDTH + 30
+                            ? CARD_WIDTH + 20
                             : CARD_WIDTH}px;
                             height: {i === currentIndex
-                            ? CARD_MAX_HEIGHT + 50
+                            ? CARD_MAX_HEIGHT + 30
                             : CARD_MAX_HEIGHT}px;
                             transform: skewX(-{SKEW}deg);
                             opacity: {slideOpacity(i)};
@@ -562,12 +562,12 @@
             </div>
         {/if}
 
-        <div class="mt-8 flex flex-col items-center gap-3">
+        <div class="mt-4 flex flex-col items-center gap-2">
             <div class="flex flex-col gap-[2px]">
                 <div class="flex gap-[2px]">
                     {#each normalColors as color}
                         <div
-                            class="h-4 w-8"
+                            class="h-3 w-6"
                             style="background: {color}; transition: background 0.5s ease"
                         ></div>
                     {/each}
@@ -575,7 +575,7 @@
                 <div class="flex gap-[2px]">
                     {#each brightColors as color}
                         <div
-                            class="h-4 w-8"
+                            class="h-3 w-6"
                             style="background: {color}; transition: background 0.5s ease"
                         ></div>
                     {/each}
