@@ -78,21 +78,22 @@
     let container: HTMLDivElement | undefined = $state();
     let areaWidth = $state(0);
 
-    const CARD_WIDTH = 180;
-    const CARD_GAP = 20;
+    const CARD_WIDTH = 100;
+    const CARD_GAP = 0;
     const CARD_STEP = CARD_WIDTH + CARD_GAP;
+    const ACTIVE_WIDTH = 220;
     const CARD_MAX_HEIGHT = 250;
     const SKEW = 5;
     const EXTRACT_DEBOUNCE = 300;
-    const BUFFER = 3;
+    const BUFFER = 6;
 
     let trackOffset = $derived(
-        areaWidth / 2 - currentIndex * CARD_STEP - CARD_WIDTH / 2
+        areaWidth / 2 - currentIndex * CARD_STEP - ACTIVE_WIDTH / 2
     );
 
     let visibleRange = $derived.by(() => {
         if (!areaWidth || items.length === 0) return {start: 0, end: 0};
-        const halfViewport = areaWidth / 2;
+        const halfViewport = areaWidth / 2 + ACTIVE_WIDTH;
         const cardsInHalf = Math.ceil(halfViewport / CARD_STEP) + 1;
         const start = Math.max(0, currentIndex - cardsInHalf - BUFFER);
         const end = Math.min(
@@ -494,14 +495,14 @@
                         class="relative shrink-0 overflow-hidden border-2"
                         style="
                             width: {i === currentIndex
-                            ? CARD_WIDTH + 20
+                            ? ACTIVE_WIDTH
                             : CARD_WIDTH}px;
                             height: {i === currentIndex
                             ? CARD_MAX_HEIGHT + 30
                             : CARD_MAX_HEIGHT}px;
                             transform: skewX(-{SKEW}deg);
                             opacity: {slideOpacity(i)};
-                            transition: opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+                            transition: width 0.2s ease, height 0.2s ease, opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
                             border-color: {i === currentIndex
                             ? accentColor
                             : 'transparent'};
@@ -595,12 +596,12 @@
             </div>
         {/if}
 
-        <div class="mt-4 flex flex-col items-center gap-2">
+        <div class="mt-4 flex flex-col items-center">
             <div class="flex flex-col gap-[2px]">
                 <div class="flex gap-[2px]">
                     {#each normalColors as color}
                         <div
-                            class="h-3 w-6"
+                            class="h-4 w-8"
                             style="background: {color}; transition: background 0.5s ease"
                         ></div>
                     {/each}
@@ -608,17 +609,12 @@
                 <div class="flex gap-[2px]">
                     {#each brightColors as color}
                         <div
-                            class="h-3 w-6"
+                            class="h-4 w-8"
                             style="background: {color}; transition: background 0.5s ease"
                         ></div>
                     {/each}
                 </div>
             </div>
-            <span
-                style="color: rgba(255,255,255,0.2); font-size: 9px; letter-spacing: 0.08em"
-            >
-                {items[currentIndex]?.name ?? ''}
-            </span>
         </div>
     {/if}
 </div>
