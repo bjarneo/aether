@@ -64,6 +64,7 @@ func SetupOverlayWindow(appClass string) {
 		match + ", float true",
 		match + ", pin true",
 		match + ", animation false",
+		match + ", border_size 0",
 		fmt.Sprintf("%s, size %d %d", match, w, h),
 		match + ", move 0 0",
 	}
