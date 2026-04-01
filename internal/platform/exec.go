@@ -2,6 +2,9 @@ package platform
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"strings"
@@ -46,6 +49,65 @@ func IsNvidiaWayland() bool {
 	}
 	_, err := os.Stat("/proc/driver/nvidia/version")
 	return err == nil
+}
+
+// SetupOverlayWindow makes the given window class a full-screen floating overlay.
+// On Hyprland it injects session-scoped windowrules via hyprctl; on other WMs
+// it is a no-op (the Wails AlwaysOnTop + Frameless flags handle it).
+func SetupOverlayWindow(appClass string) {
+	if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") == "" {
+		return
+	}
+	w, h := hyprlandMonitorSize()
+	match := "match:class " + appClass
+	rules := []string{
+		match + ", float true",
+		match + ", pin true",
+		match + ", animation false",
+		fmt.Sprintf("%s, size %d %d", match, w, h),
+		match + ", move 0 0",
+	}
+	for _, rule := range rules {
+		exec.Command("hyprctl", "keyword", "windowrule", rule).Run()
+	}
+}
+
+// hyprlandMonitorSize returns the effective (scaled) pixel dimensions of the
+// focused monitor via hyprctl.
+func hyprlandMonitorSize() (int, int) {
+	out, err := exec.Command("hyprctl", "monitors", "-j").Output()
+	if err != nil {
+		return 1920, 1080
+	}
+	var monitors []struct {
+		Width   int     `json:"width"`
+		Height  int     `json:"height"`
+		Scale   float64 `json:"scale"`
+		Focused bool    `json:"focused"`
+	}
+	if json.Unmarshal(out, &monitors) != nil {
+		return 1920, 1080
+	}
+	for _, m := range monitors {
+		if m.Focused {
+			s := m.Scale
+			if s <= 0 {
+				s = 1
+			}
+			return int(math.Round(float64(m.Width) / s)),
+				int(math.Round(float64(m.Height) / s))
+		}
+	}
+	if len(monitors) > 0 {
+		m := monitors[0]
+		s := m.Scale
+		if s <= 0 {
+			s = 1
+		}
+		return int(math.Round(float64(m.Width) / s)),
+			int(math.Round(float64(m.Height) / s))
+	}
+	return 1920, 1080
 }
 
 // filteredEnv returns a copy of the current environment with LD_PRELOAD removed.

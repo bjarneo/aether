@@ -51,6 +51,12 @@ body {
 :root.transparent-widget,
 :root.transparent-widget body {
     background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+:root.transparent-widget *:focus {
+    outline: none !important;
 }
 
 /* Light mode overrides — applied via .light-mode on <html> */

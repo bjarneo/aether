@@ -93,6 +93,10 @@ func main() {
 		WindowIsTranslucent: isSliderMode,
 	}
 
+	if isSliderMode {
+		platform.SetupOverlayWindow(programName)
+	}
+
 	err := wails.Run(&options.App{
 		Title:       title,
 		Width:       width,
