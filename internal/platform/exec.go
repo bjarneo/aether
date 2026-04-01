@@ -68,9 +68,11 @@ func SetupOverlayWindow(appClass string) {
 		fmt.Sprintf("%s, size %d %d", match, w, h),
 		match + ", move 0 0",
 	}
-	for _, rule := range rules {
-		exec.Command("hyprctl", "keyword", "windowrule", rule).Run()
+	batch := make([]string, len(rules))
+	for i, rule := range rules {
+		batch[i] = "keyword windowrule " + rule
 	}
+	exec.Command("hyprctl", "--batch", strings.Join(batch, " ; ")).Run()
 }
 
 // hyprlandMonitorSize returns the effective (scaled) pixel dimensions of the
@@ -89,26 +91,20 @@ func hyprlandMonitorSize() (int, int) {
 	if json.Unmarshal(out, &monitors) != nil {
 		return 1920, 1080
 	}
-	for _, m := range monitors {
-		if m.Focused {
-			s := m.Scale
-			if s <= 0 {
-				s = 1
-			}
-			return int(math.Round(float64(m.Width) / s)),
-				int(math.Round(float64(m.Height) / s))
+	// Prefer the focused monitor, fall back to first.
+	m := monitors[0]
+	for _, mon := range monitors {
+		if mon.Focused {
+			m = mon
+			break
 		}
 	}
-	if len(monitors) > 0 {
-		m := monitors[0]
-		s := m.Scale
-		if s <= 0 {
-			s = 1
-		}
-		return int(math.Round(float64(m.Width) / s)),
-			int(math.Round(float64(m.Height) / s))
+	s := m.Scale
+	if s <= 0 {
+		s = 1
 	}
-	return 1920, 1080
+	return int(math.Round(float64(m.Width) / s)),
+		int(math.Round(float64(m.Height) / s))
 }
 
 // filteredEnv returns a copy of the current environment with LD_PRELOAD removed.

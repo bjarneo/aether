@@ -55,7 +55,7 @@ body {
     outline: none !important;
     box-shadow: none !important;
 }
-:root.transparent-widget *:focus {
+:root.transparent-widget :focus-visible {
     outline: none !important;
 }
 
