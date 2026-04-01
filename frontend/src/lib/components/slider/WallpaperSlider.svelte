@@ -54,6 +54,7 @@
         mode = 'wallpapers',
     }: {onclose?: () => void; mode?: 'wallpapers' | 'themes'} = $props();
 
+    let allItems = $state<SlideItem[]>([]);
     let items = $state<SlideItem[]>([]);
     let currentIndex = $state(0);
     let isLoading = $state(true);
@@ -71,7 +72,6 @@
 
     let searchQuery = $state('');
     let searchVisible = $state(false);
-    let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
     let container: HTMLDivElement | undefined = $state();
     let areaWidth = $state(0);
@@ -190,9 +190,11 @@
         } catch {}
 
         try {
-            items =
+            allItems =
                 mode === 'themes' ? await loadThemes() : await loadWallpapers();
+            items = [...allItems];
         } catch {
+            allItems = [];
             items = [];
         } finally {
             isLoading = false;
@@ -212,7 +214,6 @@
 
     onDestroy(() => {
         if (extractTimer) clearTimeout(extractTimer);
-        if (searchTimer) clearTimeout(searchTimer);
         stopTabHold();
         previewDataUrls = {};
     });
@@ -307,17 +308,32 @@
         }
     }
 
-    function jumpToSearch() {
-        if (!searchQuery) return;
+    function applySearchFilter() {
+        if (!searchQuery) {
+            resetSearch();
+            return;
+        }
         const q = searchQuery.toLowerCase();
-        const idx = items.findIndex(it => it.name.toLowerCase().includes(q));
-        if (idx >= 0) goTo(idx);
+        items = allItems.filter(it => it.name.toLowerCase().includes(q));
+        currentIndex = 0;
+        if (items.length > 0) {
+            preloadAround(0);
+            selectItem(0);
+        }
     }
 
-    function clearSearch() {
+    function resetSearch() {
+        const currentItem = items[currentIndex];
         searchQuery = '';
         searchVisible = false;
-        if (searchTimer) clearTimeout(searchTimer);
+        items = [...allItems];
+        if (currentItem) {
+            const idx = items.findIndex(it => it.path === currentItem.path);
+            currentIndex = idx >= 0 ? idx : 0;
+        } else {
+            currentIndex = 0;
+        }
+        preloadAround(currentIndex);
     }
 
     function startTabHold(dir: number) {
@@ -340,30 +356,25 @@
     function handleKeydown(e: KeyboardEvent) {
         if (searchVisible && e.key === 'Escape') {
             e.preventDefault();
-            clearSearch();
+            resetSearch();
             return;
         }
 
         if (searchVisible && e.key === 'Backspace') {
             e.preventDefault();
             searchQuery = searchQuery.slice(0, -1);
-            if (!searchQuery) clearSearch();
-            else jumpToSearch();
+            if (!searchQuery) resetSearch();
+            else applySearchFilter();
             return;
         }
 
         if (e.key === 'Tab') {
             e.preventDefault();
             if (e.repeat) return;
-            clearSearch();
             startTabHold(e.shiftKey ? -1 : 1);
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            if (searchVisible) {
-                clearSearch();
-            } else {
-                applyTheme();
-            }
+            applyTheme();
         } else if (e.key === 'ArrowRight') {
             e.preventDefault();
             goTo(currentIndex + 1);
@@ -382,9 +393,7 @@
             e.preventDefault();
             searchQuery += e.key;
             searchVisible = true;
-            jumpToSearch();
-            if (searchTimer) clearTimeout(searchTimer);
-            searchTimer = setTimeout(clearSearch, 2000);
+            applySearchFilter();
         }
     }
 
