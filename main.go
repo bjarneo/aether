@@ -78,6 +78,7 @@ func main() {
 		title = "Aether Slider"
 		frameless = true
 		alwaysOnTop = true
+		width, height = 0, 0
 	}
 
 	isSliderMode := sliderWidget || themesSlider

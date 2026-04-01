@@ -184,9 +184,10 @@
         document.documentElement.classList.add('transparent-widget');
 
         try {
-            const {WindowShow} = await import(
+            const {WindowShow, WindowFullscreen} = await import(
                 '../../../../wailsjs/runtime/runtime'
             );
+            WindowFullscreen();
             WindowShow();
         } catch {}
 

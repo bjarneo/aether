@@ -221,16 +221,10 @@ aether --widget-themes-slider
 
 **Hyprland configuration:**
 
-For the slider widgets to display as transparent overlays, add to your Hyprland config (adjust `size` to your monitor resolution):
+For the slider widgets to display as transparent overlays, add to your Hyprland config:
 
 ```conf
-# Aether slider widgets (wallpaper + themes)
-windowrule = match:class aether-slider, float 1
-windowrule = match:class aether-slider, pin 1
-windowrule = match:class aether-slider, no_shadow 1
-windowrule = match:class aether-slider, decorate 0
-windowrule = match:class aether-slider, size 2880 1800  # replace with your monitor resolution
-windowrule = match:class aether-slider, center 1
+# No window rules needed — the slider handles fullscreen automatically.
 ```
 
 **Keybind examples:**
