@@ -19,6 +19,7 @@
 
     let previewDataUrls = $state<Record<string, string>>({});
     let previewPending = new Set<string>();
+    let previewTick = $state(0);
 
     async function loadPreview(path: string) {
         if (previewDataUrls[path] || previewPending.has(path)) return;
@@ -27,9 +28,15 @@
             const app = await getApp();
             const previewPath = await app.GetPreview(path);
             const dataUrl = await app.ReadImageAsDataURL(previewPath);
-            previewDataUrls = {...previewDataUrls, [path]: dataUrl};
+            previewDataUrls[path] = dataUrl;
+            previewTick++;
         } catch {}
         previewPending.delete(path);
+    }
+
+    function hasPreview(path: string): string | undefined {
+        void previewTick;
+        return previewDataUrls[path];
     }
 
     let _appModule: Awaited<
@@ -122,7 +129,7 @@
 
         if (uncached.length === 0) return;
 
-        const CONCURRENCY = 4;
+        const CONCURRENCY = 8;
         cacheTotal = uncached.length;
         cacheProgress = 0;
         isCaching = true;
@@ -502,6 +509,7 @@
                             : CARD_MAX_HEIGHT}px;
                             transform: skewX(-{SKEW}deg);
                             opacity: {slideOpacity(i)};
+                            contain: layout style paint;
                             transition: width 0.2s ease, height 0.2s ease, opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
                             border-color: {i === currentIndex
                             ? accentColor
@@ -515,9 +523,9 @@
                         aria-selected={i === currentIndex}
                         onclick={() => goTo(i)}
                     >
-                        {#if item.imagePath && previewDataUrls[item.imagePath]}
+                        {#if item.imagePath && hasPreview(item.imagePath)}
                             <img
-                                src={previewDataUrls[item.imagePath]}
+                                src={hasPreview(item.imagePath)}
                                 alt={item.name}
                                 class="pointer-events-none h-full w-full object-cover"
                                 style="transform: skewX({SKEW}deg) scale(1.15)"
