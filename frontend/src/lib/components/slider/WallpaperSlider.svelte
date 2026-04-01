@@ -69,9 +69,10 @@
 
     let tabHoldStart = 0;
     let tabRepeatTimer: ReturnType<typeof setInterval> | null = null;
+    let isRapidNav = false;
 
     let searchQuery = $state('');
-    let searchVisible = $state(false);
+    let searchVisible = $derived(searchQuery.length > 0);
 
     let container: HTMLDivElement | undefined = $state();
     let areaWidth = $state(0);
@@ -278,6 +279,10 @@
     function goTo(idx: number) {
         if (idx < 0 || idx >= items.length) return;
         currentIndex = idx;
+        if (isRapidNav) {
+            if (mode === 'themes') selectItem(idx);
+            return;
+        }
         preloadAround(idx);
         if (mode === 'themes') {
             selectItem(idx);
@@ -315,17 +320,16 @@
         }
         const q = searchQuery.toLowerCase();
         items = allItems.filter(it => it.name.toLowerCase().includes(q));
-        currentIndex = 0;
         if (items.length > 0) {
-            preloadAround(0);
-            selectItem(0);
+            goTo(0);
+        } else {
+            currentIndex = 0;
         }
     }
 
     function resetSearch() {
         const currentItem = items[currentIndex];
         searchQuery = '';
-        searchVisible = false;
         items = [...allItems];
         if (currentItem) {
             const idx = items.findIndex(it => it.path === currentItem.path);
@@ -333,11 +337,12 @@
         } else {
             currentIndex = 0;
         }
-        preloadAround(currentIndex);
+        goTo(currentIndex);
     }
 
     function startTabHold(dir: number) {
         tabHoldStart = Date.now();
+        isRapidNav = true;
         goTo(currentIndex + dir);
         tabRepeatTimer = setInterval(() => {
             const held = Date.now() - tabHoldStart;
@@ -350,6 +355,11 @@
         if (tabRepeatTimer) {
             clearInterval(tabRepeatTimer);
             tabRepeatTimer = null;
+        }
+        if (isRapidNav) {
+            isRapidNav = false;
+            preloadAround(currentIndex);
+            selectItem(currentIndex);
         }
     }
 
@@ -392,7 +402,6 @@
         ) {
             e.preventDefault();
             searchQuery += e.key;
-            searchVisible = true;
             applySearchFilter();
         }
     }
@@ -453,7 +462,8 @@
                 class="flex items-center"
                 style="
                     transform: translateX({trackOffset}px);
-                    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    will-change: transform;
                     gap: {CARD_GAP}px;
                 "
             >
@@ -477,7 +487,7 @@
                             : CARD_MAX_HEIGHT}px;
                             transform: skewX(-{SKEW}deg);
                             opacity: {slideOpacity(i)};
-                            transition: opacity 0.4s ease, transform 0.4s ease, width 0.4s ease, height 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+                            transition: opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
                             border-color: {i === currentIndex
                             ? accentColor
                             : 'transparent'};
