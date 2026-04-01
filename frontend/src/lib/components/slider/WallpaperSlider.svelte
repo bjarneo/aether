@@ -58,6 +58,7 @@
     let items = $state<SlideItem[]>([]);
     let currentIndex = $state(0);
     let isLoading = $state(true);
+    let ready = $state(false);
     let isCaching = $state(false);
     let cacheProgress = $state(0);
     let cacheTotal = $state(0);
@@ -196,6 +197,9 @@
                 WindowSetPosition(0, 0);
             }
             WindowShow();
+            requestAnimationFrame(() => {
+                ready = true;
+            });
         } catch {}
 
         try {
@@ -432,7 +436,9 @@
 <div
     bind:this={container}
     class="flex h-screen w-full flex-col items-center justify-center overflow-hidden outline-none"
-    style="background: transparent"
+    style="background: transparent; opacity: {ready
+        ? 1
+        : 0}; transition: opacity 0.15s ease"
     tabindex="-1"
     role="listbox"
     aria-label="{mode === 'themes' ? 'Theme' : 'Wallpaper'} slider"
