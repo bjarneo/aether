@@ -92,21 +92,23 @@
     const CARD_MAX_HEIGHT = 250;
     const SKEW = 5;
     const EXTRACT_DEBOUNCE = 300;
-    const BUFFER = 6;
+    const MIN_BUFFER = 6;
 
     let trackOffset = $derived(
         areaWidth / 2 - currentIndex * CARD_STEP - ACTIVE_WIDTH / 2
     );
 
+    let viewportBuffer = $derived(
+        Math.max(
+            MIN_BUFFER,
+            Math.ceil((areaWidth / 2 + ACTIVE_WIDTH) / CARD_STEP) + 2
+        )
+    );
+
     let visibleRange = $derived.by(() => {
         if (!areaWidth || items.length === 0) return {start: 0, end: 0};
-        const halfViewport = areaWidth / 2 + ACTIVE_WIDTH;
-        const cardsInHalf = Math.ceil(halfViewport / CARD_STEP) + 1;
-        const start = Math.max(0, currentIndex - cardsInHalf - BUFFER);
-        const end = Math.min(
-            items.length,
-            currentIndex + cardsInHalf + BUFFER + 1
-        );
+        const start = Math.max(0, currentIndex - viewportBuffer);
+        const end = Math.min(items.length, currentIndex + viewportBuffer + 1);
         return {start, end};
     });
 
@@ -240,7 +242,8 @@
     });
 
     function preloadAround(idx: number) {
-        for (let d = -BUFFER; d <= BUFFER; d++) {
+        const buf = viewportBuffer;
+        for (let d = -buf; d <= buf; d++) {
             const i = idx + d;
             if (i >= 0 && i < items.length && items[i].imagePath) {
                 loadPreview(items[i].imagePath);
@@ -476,7 +479,7 @@
         </div>
     {:else if !isLoading && items.length > 0}
         <div
-            class="flex w-full items-center overflow-hidden"
+            class="relative flex w-full items-center overflow-hidden"
             style="height: {CARD_MAX_HEIGHT + 50}px"
             bind:clientWidth={areaWidth}
         >
@@ -583,6 +586,16 @@
                     </button>
                 {/each}
             </div>
+
+            <!-- Edge fade gradients -->
+            <div
+                class="pointer-events-none absolute inset-y-0 left-0 z-10"
+                style="width: 220px; background: linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 40%, transparent 100%)"
+            ></div>
+            <div
+                class="pointer-events-none absolute inset-y-0 right-0 z-10"
+                style="width: 220px; background: linear-gradient(to left, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 40%, transparent 100%)"
+            ></div>
         </div>
 
         {#if searchVisible}
