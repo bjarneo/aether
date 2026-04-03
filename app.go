@@ -22,6 +22,7 @@ import (
 	"aether/internal/theme"
 	"aether/internal/wallhaven"
 	"aether/internal/wallpaper"
+	"aether/ipc"
 
 	wailsrt "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -39,6 +40,7 @@ type App struct {
 	batch        *batch.Processor
 	themeWatcher *theme.ThemeWatcher
 	media        *MediaServer
+	ipcServer    *ipc.Server
 	widgetMode   bool
 	sliderWidget bool
 	themesSlider bool
@@ -84,6 +86,21 @@ func (a *App) startup(ctx context.Context) {
 	if err := a.media.Start(); err != nil {
 		log.Printf("media server: %v", err)
 	}
+
+	// Start IPC server for remote control
+	srv, err := ipc.NewServer(ipc.DefaultSocketPath(), a)
+	if err != nil {
+		log.Printf("ipc: %v", err)
+	} else {
+		a.ipcServer = srv
+	}
+}
+
+// CloseIPC shuts down the IPC server. Called on app exit.
+func (a *App) CloseIPC() {
+	if a.ipcServer != nil {
+		a.ipcServer.Close()
+	}
 }
 
 // GetMediaURL returns an http://localhost URL for streaming a local media file.
@@ -99,6 +116,7 @@ func (a *App) GetMediaURL(path string) string {
 
 // ExtractColors extracts a 16-color ANSI palette from an image or video.
 // For video files, a frame is extracted first via ffmpeg.
+// Also syncs the result to backend state so IPC commands operate on the current palette.
 func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]string, error) {
 	if theme.IsVideoFile(path) {
 		framePath, err := wallpaper.ExtractVideoFrame(path)
@@ -107,7 +125,16 @@ func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]strin
 		}
 		path = framePath
 	}
-	return extraction.ExtractColors(path, lightMode, mode)
+	palette, err := extraction.ExtractColors(path, lightMode, mode)
+	if err != nil {
+		return palette, err
+	}
+	// Keep backend state in sync so IPC commands use the current palette
+	a.state.SetPalette(palette)
+	a.state.WallpaperPath = path
+	a.state.LightMode = lightMode
+	a.state.ExtractionMode = mode
+	return palette, nil
 }
 
 // AdjustPaletteColors applies the adjustment pipeline to all palette colors.
@@ -955,6 +982,216 @@ func (a *App) GetTemplateColors() map[string][]string {
 func (a *App) ResetState() {
 	a.history.Push(*a.state)
 	*a.state = *theme.NewThemeState()
+}
+
+// ---------------------------------------------------------------------------
+// IPC Remote Control
+// ---------------------------------------------------------------------------
+
+// HandleIPC dispatches an IPC command from the Unix socket to the appropriate
+// App method. This implements the ipc.Dispatcher interface.
+func (a *App) HandleIPC(req ipc.Request) ipc.Response {
+	switch strings.ToLower(req.Cmd) {
+	case "status":
+		return a.ipcStatus()
+
+	case "extract":
+		if req.Path == "" {
+			return ipc.Response{OK: false, Error: "extract requires a path"}
+		}
+		mode := req.Mode
+		if mode == "" {
+			mode = "normal"
+		}
+		lightMode := false
+		if req.LightMode != nil {
+			lightMode = *req.LightMode
+		}
+		palette, err := a.ExtractColors(req.Path, lightMode, mode)
+		if err != nil {
+			return ipc.Response{OK: false, Error: err.Error()}
+		}
+		a.state.SetPalette(palette)
+		a.state.WallpaperPath = req.Path
+		a.state.ExtractionMode = mode
+		a.state.LightMode = lightMode
+		a.emitIPCStateChanged()
+		return a.ipcStatus()
+
+	case "set-color":
+		if req.Value == "" {
+			return ipc.Response{OK: false, Error: "set-color requires a value"}
+		}
+		if req.Index < 0 || req.Index > 15 {
+			return ipc.Response{OK: false, Error: "index must be 0-15"}
+		}
+		a.state.SetColor(req.Index, req.Value)
+		a.emitIPCStateChanged()
+		return a.ipcStatus()
+
+	case "set-palette":
+		if len(req.Palette) < 16 {
+			return ipc.Response{OK: false, Error: "palette requires 16 colors"}
+		}
+		var p [16]string
+		copy(p[:], req.Palette[:16])
+		a.state.SetPalette(p)
+		a.emitIPCStateChanged()
+		return a.ipcStatus()
+
+	case "adjust":
+		adj := a.buildAdjustments(req)
+		result := make([]string, 16)
+		for i, hex := range a.state.BasePalette {
+			if hex != "" {
+				result[i] = color.AdjustColor(hex, adj)
+			}
+		}
+		var p [16]string
+		copy(p[:], result)
+		a.state.SetAdjustedPalette(p)
+		a.state.Adjustments = adj
+		a.emitIPCStateChanged()
+		return a.ipcStatus()
+
+	case "set-mode":
+		if req.Mode == "" {
+			return ipc.Response{OK: false, Error: "set-mode requires a mode"}
+		}
+		a.SetExtractionMode(req.Mode)
+		a.emitIPCStateChanged()
+		return ipc.Response{OK: true, Mode: req.Mode}
+
+	case "apply":
+		result, err := a.ApplyTheme(ApplyThemeRequest{
+			Palette:        a.state.Palette[:],
+			WallpaperPath:  a.state.WallpaperPath,
+			LightMode:      a.state.LightMode,
+			ExtendedColors: a.state.ExtendedColors,
+			AppOverrides:   a.state.AppOverrides,
+		})
+		if err != nil {
+			return ipc.Response{OK: false, Error: err.Error()}
+		}
+		return ipc.Response{OK: result.Success}
+
+	case "toggle-light-mode":
+		a.state.LightMode = !a.state.LightMode
+		a.emitIPCStateChanged()
+		lm := a.state.LightMode
+		return ipc.Response{OK: true, LightMode: &lm}
+
+	case "load-blueprint":
+		if req.Name == "" {
+			return ipc.Response{OK: false, Error: "load-blueprint requires a name"}
+		}
+		if err := a.LoadBlueprint(req.Name); err != nil {
+			return ipc.Response{OK: false, Error: err.Error()}
+		}
+		a.emitIPCStateChanged()
+		return a.ipcStatus()
+
+	case "apply-blueprint":
+		if req.Name == "" {
+			return ipc.Response{OK: false, Error: "apply-blueprint requires a name"}
+		}
+		result, err := a.ApplyBlueprint(req.Name)
+		if err != nil {
+			return ipc.Response{OK: false, Error: err.Error()}
+		}
+		return ipc.Response{OK: result.Success}
+
+	case "list-blueprints":
+		bps, err := a.ListBlueprints()
+		if err != nil {
+			return ipc.Response{OK: false, Error: err.Error()}
+		}
+		// Return as JSON in the OK response
+		data, _ := json.Marshal(bps)
+		return ipc.Response{OK: true, Error: string(data)} // reuse Error field for data payload
+
+	case "set-wallpaper":
+		if req.Path == "" {
+			return ipc.Response{OK: false, Error: "set-wallpaper requires a path"}
+		}
+		a.state.WallpaperPath = req.Path
+		a.emitIPCStateChanged()
+		return ipc.Response{OK: true, Wallpaper: req.Path}
+
+	case "get-variables":
+		vars := a.ComputeVariables(a.state.Palette[:], a.state.ExtendedColors, a.state.LightMode)
+		data, _ := json.Marshal(vars)
+		return ipc.Response{OK: true, Error: string(data)}
+
+	default:
+		return ipc.Response{OK: false, Error: fmt.Sprintf("unknown command: %s", req.Cmd)}
+	}
+}
+
+func (a *App) ipcStatus() ipc.Response {
+	palette := a.state.Palette[:]
+	lm := a.state.LightMode
+	return ipc.Response{
+		OK:        true,
+		Palette:   palette,
+		LightMode: &lm,
+		Mode:      a.state.ExtractionMode,
+		Wallpaper: a.state.WallpaperPath,
+	}
+}
+
+func (a *App) emitIPCStateChanged() {
+	if a.ctx == nil {
+		return
+	}
+	wailsrt.EventsEmit(a.ctx, "ipc-state-changed", map[string]interface{}{
+		"palette":     a.state.Palette[:],
+		"lightMode":   a.state.LightMode,
+		"mode":        a.state.ExtractionMode,
+		"wallpaper":   a.state.WallpaperPath,
+		"adjustments": a.state.Adjustments,
+	})
+}
+
+func (a *App) buildAdjustments(req ipc.Request) color.Adjustments {
+	adj := a.state.Adjustments
+	if req.Vibrance != nil {
+		adj.Vibrance = *req.Vibrance
+	}
+	if req.Saturation != nil {
+		adj.Saturation = *req.Saturation
+	}
+	if req.Contrast != nil {
+		adj.Contrast = *req.Contrast
+	}
+	if req.Brightness != nil {
+		adj.Brightness = *req.Brightness
+	}
+	if req.Shadows != nil {
+		adj.Shadows = *req.Shadows
+	}
+	if req.Highlights != nil {
+		adj.Highlights = *req.Highlights
+	}
+	if req.HueShift != nil {
+		adj.HueShift = *req.HueShift
+	}
+	if req.Temperature != nil {
+		adj.Temperature = *req.Temperature
+	}
+	if req.Tint != nil {
+		adj.Tint = *req.Tint
+	}
+	if req.Gamma != nil {
+		adj.Gamma = *req.Gamma
+	}
+	if req.BlackPoint != nil {
+		adj.BlackPoint = *req.BlackPoint
+	}
+	if req.WhitePoint != nil {
+		adj.WhitePoint = *req.WhitePoint
+	}
+	return adj
 }
 
 // --- Config JSON helpers ---

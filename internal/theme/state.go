@@ -8,6 +8,7 @@ import (
 // ThemeState holds all mutable state for the current theme.
 type ThemeState struct {
 	Palette          [16]string                   `json:"palette"`
+	BasePalette      [16]string                   `json:"basePalette"`
 	WallpaperPath    string                       `json:"wallpaperPath"`
 	LightMode        bool                         `json:"lightMode"`
 	LockedColors     map[int]bool                 `json:"lockedColors"`
@@ -43,6 +44,7 @@ var DefaultPalette = [16]string{
 func NewThemeState() *ThemeState {
 	s := &ThemeState{
 		Palette:          DefaultPalette,
+		BasePalette:      DefaultPalette,
 		LockedColors:     make(map[int]bool),
 		Adjustments:      color.DefaultAdjustments(),
 		ExtendedColors:   make(map[string]string),
@@ -54,8 +56,15 @@ func NewThemeState() *ThemeState {
 	return s
 }
 
-// SetPalette replaces the entire palette and rebuilds color roles.
+// SetPalette replaces both the display palette and the base palette, then rebuilds color roles.
 func (s *ThemeState) SetPalette(colors [16]string) {
+	s.Palette = colors
+	s.BasePalette = colors
+	s.ColorRoles = s.buildColorRoles()
+}
+
+// SetAdjustedPalette replaces only the display palette (keeps base unchanged).
+func (s *ThemeState) SetAdjustedPalette(colors [16]string) {
 	s.Palette = colors
 	s.ColorRoles = s.buildColorRoles()
 }

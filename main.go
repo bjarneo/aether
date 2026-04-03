@@ -2,12 +2,14 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
 
 	"aether/cli"
 	"aether/internal/platform"
+	"aether/ipc"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -26,6 +28,25 @@ func main() {
 	// CLI mode: if first arg starts with -- and isn't a GUI flag, dispatch to CLI
 	if len(os.Args) > 1 && strings.HasPrefix(os.Args[1], "--") && !guiFlags[os.Args[1]] {
 		os.Exit(cli.Run(os.Args[1:], EmbeddedTemplates))
+	}
+
+	// IPC subcommand mode: bare commands like "aether status" route to running instance
+	ipcCommands := map[string]bool{
+		"status": true, "extract": true, "set-color": true, "set-palette": true,
+		"adjust": true, "set-mode": true, "apply": true, "toggle-light-mode": true,
+		"load-blueprint": true, "apply-blueprint": true, "save-blueprint": true,
+		"list-blueprints": true, "set-wallpaper": true, "get-variables": true,
+	}
+	if len(os.Args) > 1 && ipcCommands[os.Args[1]] {
+		os.Exit(cli.RunIPC(os.Args[1:]))
+	}
+
+	// Check for IPC socket conflict before launching GUI
+	if _, err := os.Stat(ipc.DefaultSocketPath()); err == nil {
+		if ipc.IsRunning() {
+			fmt.Fprintln(os.Stderr, "Aether is already running. Use IPC commands to control it.")
+			os.Exit(1)
+		}
 	}
 
 	// Work around WebKitGTK + NVIDIA Wayland protocol error (Protocol error 71).
@@ -60,6 +81,7 @@ func main() {
 
 	// GUI mode: launch Wails application
 	app := NewApp()
+	defer app.CloseIPC()
 	app.widgetMode = widgetMode
 	app.sliderWidget = sliderWidget
 	app.themesSlider = themesSlider

@@ -38,6 +38,8 @@
         setColor,
         setExtendedColor,
         setAppOverride,
+        setLightMode,
+        setExtractionMode,
     } from '$lib/stores/theme.svelte';
     import {getSettings} from '$lib/stores/settings.svelte';
     import {
@@ -302,6 +304,34 @@
                                 JSON.stringify(colors)
                             );
                         } catch {}
+                    }
+                );
+
+                // Listen for IPC remote control state changes
+                EventsOn(
+                    'ipc-state-changed',
+                    (state: {
+                        palette?: string[];
+                        lightMode?: boolean;
+                        mode?: string;
+                        wallpaper?: string;
+                        adjustments?: import('$lib/types/theme').Adjustments;
+                    }) => {
+                        if (state.palette && state.palette.length >= 16) {
+                            setPalette(state.palette);
+                        }
+                        if (state.lightMode !== undefined) {
+                            setLightMode(state.lightMode);
+                        }
+                        if (state.mode) {
+                            setExtractionMode(state.mode);
+                        }
+                        if (state.wallpaper) {
+                            setWallpaperPath(state.wallpaper);
+                        }
+                        if (state.adjustments) {
+                            setAdjustments(state.adjustments);
+                        }
                     }
                 );
             } catch {}
