@@ -195,17 +195,9 @@
         document.documentElement.classList.add('transparent-widget');
 
         try {
-            const {WindowShow, WindowSetSize, WindowSetPosition, ScreenGetAll} =
-                await import('../../../../wailsjs/runtime/runtime');
-            const screens = await ScreenGetAll();
-            const current =
-                screens.find(s => s.isCurrent) ??
-                screens.find(s => s.isPrimary) ??
-                screens[0];
-            if (current) {
-                WindowSetSize(current.width, current.height);
-                WindowSetPosition(0, 0);
-            }
+            const {WindowShow} = await import(
+                '../../../../wailsjs/runtime/runtime'
+            );
             WindowShow();
             requestAnimationFrame(() => {
                 ready = true;

@@ -78,7 +78,7 @@ func main() {
 		title = "Aether Slider"
 		frameless = true
 		alwaysOnTop = true
-		width, height = 0, 0
+		width, height = platform.MonitorSize()
 	}
 
 	isSliderMode := sliderWidget || themesSlider

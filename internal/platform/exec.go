@@ -75,6 +75,15 @@ func SetupOverlayWindow(appClass string) {
 	exec.Command("hyprctl", "--batch", strings.Join(batch, " ; ")).Run()
 }
 
+// MonitorSize returns the effective (scaled) pixel dimensions of the focused
+// monitor. On Hyprland it queries hyprctl; elsewhere it falls back to 1920x1080.
+func MonitorSize() (int, int) {
+	if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") == "" {
+		return 1920, 1080
+	}
+	return hyprlandMonitorSize()
+}
+
 // hyprlandMonitorSize returns the effective (scaled) pixel dimensions of the
 // focused monitor via hyprctl.
 func hyprlandMonitorSize() (int, int) {
