@@ -34,7 +34,7 @@ func main() {
 	ipcCommands := map[string]bool{
 		"status": true, "extract": true, "set-color": true, "set-palette": true,
 		"adjust": true, "set-mode": true, "apply": true, "toggle-light-mode": true,
-		"load-blueprint": true, "apply-blueprint": true, "save-blueprint": true,
+		"load-blueprint": true, "apply-blueprint": true,
 		"list-blueprints": true, "set-wallpaper": true, "get-variables": true,
 	}
 	if len(os.Args) > 1 && ipcCommands[os.Args[1]] {
@@ -42,11 +42,9 @@ func main() {
 	}
 
 	// Check for IPC socket conflict before launching GUI
-	if _, err := os.Stat(ipc.DefaultSocketPath()); err == nil {
-		if ipc.IsRunning() {
-			fmt.Fprintln(os.Stderr, "Aether is already running. Use IPC commands to control it.")
-			os.Exit(1)
-		}
+	if ipc.IsRunning() {
+		fmt.Fprintln(os.Stderr, "Aether is already running. Use IPC commands to control it.")
+		os.Exit(1)
 	}
 
 	// Work around WebKitGTK + NVIDIA Wayland protocol error (Protocol error 71).

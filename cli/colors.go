@@ -25,7 +25,6 @@ func runColorConvert(args []string) int {
 	}
 
 	hex := normalizeHex(args[0])
-	rgb := color.HexToRGB(hex)
 
 	result := map[string]interface{}{
 		"input": hex,
@@ -33,6 +32,7 @@ func runColorConvert(args []string) int {
 
 	switch target {
 	case "rgb":
+		rgb := color.HexToRGB(hex)
 		result["r"] = rgb.R
 		result["g"] = rgb.G
 		result["b"] = rgb.B
@@ -44,6 +44,7 @@ func runColorConvert(args []string) int {
 		fmt.Printf("rgb(%s)\n", color.HexToRGBString(hex))
 
 	case "hsl":
+		rgb := color.HexToRGB(hex)
 		hsl := color.RGBToHSL(rgb.R, rgb.G, rgb.B)
 		result["h"] = hsl.H
 		result["s"] = hsl.S
@@ -245,7 +246,7 @@ func runColorInfo(args []string) int {
 	rgb := color.HexToRGB(hex)
 	hsl := color.RGBToHSL(rgb.R, rgb.G, rgb.B)
 	lab := color.HexToOKLab(hex)
-	lch := color.HexToOKLCH(hex)
+	lch := color.OKLabToOKLCH(lab)
 	isDark := extraction.IsDarkColor(hex)
 
 	if jsonOut {

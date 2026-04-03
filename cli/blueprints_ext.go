@@ -54,14 +54,9 @@ func runShowBlueprint(args []string) int {
 		fmt.Printf("  Wallpaper URL: %s\n", bp.Palette.WallpaperURL)
 	}
 	fmt.Println("  Colors:")
-	names := [16]string{
-		"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
-		"bright_black", "bright_red", "bright_green", "bright_yellow",
-		"bright_blue", "bright_magenta", "bright_cyan", "bright_white",
-	}
 	for i, c := range bp.Palette.Colors {
 		if i < 16 {
-			fmt.Printf("    %2d %-16s %s\n", i, names[i], c)
+			fmt.Printf("    %2d %-16s %s\n", i, paletteNames[i], c)
 		}
 	}
 	if len(bp.AppOverrides) > 0 {
@@ -87,26 +82,7 @@ func runDeleteBlueprint(args []string) int {
 	name := args[0]
 	svc := blueprint.NewService()
 
-	// Verify it exists first
-	bp, err := svc.FindByName(name)
-	if err != nil {
-		msg := fmt.Sprintf("Error: %v", err)
-		if jsonOut {
-			return printErrorJSON(msg)
-		}
-		fmt.Fprintln(os.Stderr, msg)
-		return 1
-	}
-	if bp == nil {
-		msg := fmt.Sprintf("Blueprint %q not found", name)
-		if jsonOut {
-			return printErrorJSON(msg)
-		}
-		fmt.Fprintln(os.Stderr, msg)
-		return 1
-	}
-
-	if err := svc.Delete(bp.Name); err != nil {
+	if err := svc.Delete(name); err != nil {
 		msg := fmt.Sprintf("Failed to delete: %v", err)
 		if jsonOut {
 			return printErrorJSON(msg)
@@ -117,11 +93,11 @@ func runDeleteBlueprint(args []string) int {
 
 	if jsonOut {
 		return printJSON(map[string]interface{}{
-			"deleted": bp.Name,
+			"deleted": name,
 			"ok":      true,
 		})
 	}
-	fmt.Printf("Deleted blueprint: %s\n", bp.Name)
+	fmt.Printf("Deleted blueprint: %s\n", name)
 	return 0
 }
 

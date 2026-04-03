@@ -66,6 +66,24 @@ func parsePaletteArg(s string) ([]string, error) {
 	return bp.Palette.Colors, nil
 }
 
+// paletteNames maps ANSI color indices 0-15 to their semantic names.
+var paletteNames = [16]string{
+	"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+	"bright_black", "bright_red", "bright_green", "bright_yellow",
+	"bright_blue", "bright_magenta", "bright_cyan", "bright_white",
+}
+
+// parseFlagNames returns which --flag names are present in args.
+func parseFlagNames(args []string) map[string]bool {
+	present := make(map[string]bool)
+	for i, arg := range args {
+		if strings.HasPrefix(arg, "--") && i+1 < len(args) {
+			present[arg] = true
+		}
+	}
+	return present
+}
+
 // parseAdjustmentFlags extracts all 12 adjustment flags from args.
 func parseAdjustmentFlags(args []string) (color.Adjustments, []string) {
 	adj := color.DefaultAdjustments()

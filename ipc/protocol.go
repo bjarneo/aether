@@ -1,10 +1,15 @@
 package ipc
 
-import "aether/internal/platform"
+import (
+	"encoding/json"
+	"path/filepath"
+
+	"aether/internal/platform"
+)
 
 // DefaultSocketPath returns the path for the Aether IPC socket.
 func DefaultSocketPath() string {
-	return platform.ConfigDir() + "/aether.sock"
+	return filepath.Join(platform.ConfigDir(), "aether.sock")
 }
 
 // Request is a JSON command sent from the CLI client to the running Aether GUI.
@@ -45,8 +50,9 @@ type Response struct {
 	Error string `json:"error,omitempty"`
 
 	// Status fields (returned by "status" and state-changing commands)
-	Palette   []string `json:"palette,omitempty"`
-	LightMode *bool    `json:"light_mode,omitempty"`
-	Mode      string   `json:"mode,omitempty"`
-	Wallpaper string   `json:"wallpaper,omitempty"`
+	Palette   []string        `json:"palette,omitempty"`
+	LightMode *bool           `json:"light_mode,omitempty"`
+	Mode      string          `json:"mode,omitempty"`
+	Wallpaper string          `json:"wallpaper,omitempty"`
+	Data      json.RawMessage `json:"data,omitempty"`
 }

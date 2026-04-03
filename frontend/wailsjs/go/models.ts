@@ -112,6 +112,7 @@ export namespace ipc {
         light_mode?: boolean;
         mode?: string;
         wallpaper?: string;
+        data?: number[];
 
         static createFrom(source: any = {}) {
             return new Response(source);
@@ -125,6 +126,7 @@ export namespace ipc {
             this.light_mode = source['light_mode'];
             this.mode = source['mode'];
             this.wallpaper = source['wallpaper'];
+            this.data = source['data'];
         }
     }
 }

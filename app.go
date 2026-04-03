@@ -116,7 +116,6 @@ func (a *App) GetMediaURL(path string) string {
 
 // ExtractColors extracts a 16-color ANSI palette from an image or video.
 // For video files, a frame is extracted first via ffmpeg.
-// Also syncs the result to backend state so IPC commands operate on the current palette.
 func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]string, error) {
 	if theme.IsVideoFile(path) {
 		framePath, err := wallpaper.ExtractVideoFrame(path)
@@ -129,7 +128,6 @@ func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]strin
 	if err != nil {
 		return palette, err
 	}
-	// Keep backend state in sync so IPC commands use the current palette
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = path
 	a.state.LightMode = lightMode
@@ -1007,14 +1005,9 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 		if req.LightMode != nil {
 			lightMode = *req.LightMode
 		}
-		palette, err := a.ExtractColors(req.Path, lightMode, mode)
-		if err != nil {
+		if _, err := a.ExtractColors(req.Path, lightMode, mode); err != nil {
 			return ipc.Response{OK: false, Error: err.Error()}
 		}
-		a.state.SetPalette(palette)
-		a.state.WallpaperPath = req.Path
-		a.state.ExtractionMode = mode
-		a.state.LightMode = lightMode
 		a.emitIPCStateChanged()
 		return a.ipcStatus()
 
@@ -1041,14 +1034,9 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 
 	case "adjust":
 		adj := a.buildAdjustments(req)
-		result := make([]string, 16)
-		for i, hex := range a.state.BasePalette {
-			if hex != "" {
-				result[i] = color.AdjustColor(hex, adj)
-			}
-		}
+		adjusted := a.AdjustPaletteColors(a.state.BasePalette[:], adj)
 		var p [16]string
-		copy(p[:], result)
+		copy(p[:], adjusted)
 		a.state.SetAdjustedPalette(p)
 		a.state.Adjustments = adj
 		a.emitIPCStateChanged()
@@ -1106,9 +1094,8 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 		if err != nil {
 			return ipc.Response{OK: false, Error: err.Error()}
 		}
-		// Return as JSON in the OK response
 		data, _ := json.Marshal(bps)
-		return ipc.Response{OK: true, Error: string(data)} // reuse Error field for data payload
+		return ipc.Response{OK: true, Data: data}
 
 	case "set-wallpaper":
 		if req.Path == "" {
@@ -1121,7 +1108,7 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 	case "get-variables":
 		vars := a.ComputeVariables(a.state.Palette[:], a.state.ExtendedColors, a.state.LightMode)
 		data, _ := json.Marshal(vars)
-		return ipc.Response{OK: true, Error: string(data)}
+		return ipc.Response{OK: true, Data: data}
 
 	default:
 		return ipc.Response{OK: false, Error: fmt.Sprintf("unknown command: %s", req.Cmd)}

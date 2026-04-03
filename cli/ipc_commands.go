@@ -59,19 +59,44 @@ func RunIPC(args []string) int {
 		req.Palette = colors
 
 	case "adjust":
+		provided := parseFlagNames(rest)
 		adj, _ := parseAdjustmentFlags(rest)
-		req.Vibrance = floatPtr(adj.Vibrance)
-		req.Saturation = floatPtr(adj.Saturation)
-		req.Contrast = floatPtr(adj.Contrast)
-		req.Brightness = floatPtr(adj.Brightness)
-		req.Shadows = floatPtr(adj.Shadows)
-		req.Highlights = floatPtr(adj.Highlights)
-		req.HueShift = floatPtr(adj.HueShift)
-		req.Temperature = floatPtr(adj.Temperature)
-		req.Tint = floatPtr(adj.Tint)
-		req.Gamma = floatPtr(adj.Gamma)
-		req.BlackPoint = floatPtr(adj.BlackPoint)
-		req.WhitePoint = floatPtr(adj.WhitePoint)
+		if provided["--vibrance"] {
+			req.Vibrance = &adj.Vibrance
+		}
+		if provided["--saturation"] {
+			req.Saturation = &adj.Saturation
+		}
+		if provided["--contrast"] {
+			req.Contrast = &adj.Contrast
+		}
+		if provided["--brightness"] {
+			req.Brightness = &adj.Brightness
+		}
+		if provided["--shadows"] {
+			req.Shadows = &adj.Shadows
+		}
+		if provided["--highlights"] {
+			req.Highlights = &adj.Highlights
+		}
+		if provided["--hue-shift"] {
+			req.HueShift = &adj.HueShift
+		}
+		if provided["--temperature"] {
+			req.Temperature = &adj.Temperature
+		}
+		if provided["--tint"] {
+			req.Tint = &adj.Tint
+		}
+		if provided["--gamma"] {
+			req.Gamma = &adj.Gamma
+		}
+		if provided["--black-point"] {
+			req.BlackPoint = &adj.BlackPoint
+		}
+		if provided["--white-point"] {
+			req.WhitePoint = &adj.WhitePoint
+		}
 
 	case "set-mode":
 		if len(rest) == 0 {
@@ -151,14 +176,9 @@ func printStatus(resp ipc.Response) {
 	}
 	if len(resp.Palette) > 0 {
 		fmt.Println("Palette:")
-		names := [16]string{
-			"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
-			"bright_black", "bright_red", "bright_green", "bright_yellow",
-			"bright_blue", "bright_magenta", "bright_cyan", "bright_white",
-		}
 		for i, c := range resp.Palette {
 			if i < 16 {
-				fmt.Printf("  %2d %-16s %s\n", i, names[i], c)
+				fmt.Printf("  %2d %-16s %s\n", i, paletteNames[i], c)
 			}
 		}
 	}
@@ -170,11 +190,4 @@ func ipcError(jsonOut bool, msg string) int {
 	}
 	fmt.Fprintln(os.Stderr, msg)
 	return 1
-}
-
-func floatPtr(v float64) *float64 {
-	if v == 0 {
-		return nil
-	}
-	return &v
 }

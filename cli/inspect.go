@@ -186,14 +186,9 @@ func runCurrentTheme(args []string) int {
 	if fg != "" {
 		fmt.Printf("  foreground: %s\n", fg)
 	}
-	names := [16]string{
-		"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
-		"bright_black", "bright_red", "bright_green", "bright_yellow",
-		"bright_blue", "bright_magenta", "bright_cyan", "bright_white",
-	}
 	for i, c := range colors {
 		if c != "" {
-			fmt.Printf("  %2d %-16s %s\n", i, names[i], c)
+			fmt.Printf("  %2d %-16s %s\n", i, paletteNames[i], c)
 		}
 	}
 	return 0
