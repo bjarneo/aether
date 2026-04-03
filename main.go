@@ -41,8 +41,17 @@ func main() {
 		os.Exit(cli.RunIPC(os.Args[1:]))
 	}
 
-	// Check for IPC socket conflict before launching GUI
-	if ipc.IsRunning() {
+	// Check for IPC socket conflict before launching GUI.
+	// Widget/slider modes are lightweight overlays — allow them even when
+	// the main Aether editor is already running.
+	isWidget := false
+	for _, a := range os.Args[1:] {
+		if guiFlags[a] {
+			isWidget = true
+			break
+		}
+	}
+	if !isWidget && ipc.IsRunning() {
 		fmt.Fprintln(os.Stderr, "Aether is already running. Use IPC commands to control it.")
 		os.Exit(1)
 	}
