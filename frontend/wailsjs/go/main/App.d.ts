@@ -4,6 +4,7 @@ import {color} from '../models';
 import {theme} from '../models';
 import {main} from '../models';
 import {favorites} from '../models';
+import {ipc} from '../models';
 import {omarchy} from '../models';
 import {wallpaper} from '../models';
 import {wallhaven} from '../models';
@@ -24,6 +25,8 @@ export function BlueprintExists(arg1: string): Promise<boolean>;
 export function CancelBatchProcessing(): Promise<void>;
 
 export function ClearTheme(): Promise<void>;
+
+export function CloseIPC(): Promise<void>;
 
 export function ComputeVariables(
     arg1: Array<string>,
@@ -68,6 +71,8 @@ export function GetWallhavenConfig(): Promise<Record<string, any>>;
 export function GetWallpaperTags(): Promise<Record<string, any>>;
 
 export function HandleDroppedFiles(arg1: Array<string>): Promise<string>;
+
+export function HandleIPC(arg1: ipc.Request): Promise<ipc.Response>;
 
 export function ImportFileDialog(arg1: string): Promise<main.ImportResult>;
 

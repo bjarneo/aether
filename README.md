@@ -124,6 +124,7 @@ wails build
 | [Custom Templates](docs/custom-templates.md) | Add support for your apps |
 | [Custom Apps](docs/custom-apps.md) | Per-app template system |
 | [File System](docs/filesystem.md) | Where Aether stores files |
+| [Remote Control](docs/remote-control.md) | IPC commands and AI integration |
 | [Standalone](docs/standalone.md) | Using Aether without Omarchy |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues |
 

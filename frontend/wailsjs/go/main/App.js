@@ -26,6 +26,10 @@ export function ClearTheme() {
     return window['go']['main']['App']['ClearTheme']();
 }
 
+export function CloseIPC() {
+    return window['go']['main']['App']['CloseIPC']();
+}
+
 export function ComputeVariables(arg1, arg2, arg3) {
     return window['go']['main']['App']['ComputeVariables'](arg1, arg2, arg3);
 }
@@ -96,6 +100,10 @@ export function GetWallpaperTags() {
 
 export function HandleDroppedFiles(arg1) {
     return window['go']['main']['App']['HandleDroppedFiles'](arg1);
+}
+
+export function HandleIPC(arg1) {
+    return window['go']['main']['App']['HandleIPC'](arg1);
 }
 
 export function ImportFileDialog(arg1) {

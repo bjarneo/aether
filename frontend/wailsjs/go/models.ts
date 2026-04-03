@@ -54,6 +54,81 @@ export namespace favorites {
     }
 }
 
+export namespace ipc {
+    export class Request {
+        cmd: string;
+        path?: string;
+        mode?: string;
+        name?: string;
+        index?: number;
+        value?: string;
+        palette?: string[];
+        vibrance?: number;
+        saturation?: number;
+        contrast?: number;
+        brightness?: number;
+        shadows?: number;
+        highlights?: number;
+        hue_shift?: number;
+        temperature?: number;
+        tint?: number;
+        gamma?: number;
+        black_point?: number;
+        white_point?: number;
+        light_mode?: boolean;
+
+        static createFrom(source: any = {}) {
+            return new Request(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.cmd = source['cmd'];
+            this.path = source['path'];
+            this.mode = source['mode'];
+            this.name = source['name'];
+            this.index = source['index'];
+            this.value = source['value'];
+            this.palette = source['palette'];
+            this.vibrance = source['vibrance'];
+            this.saturation = source['saturation'];
+            this.contrast = source['contrast'];
+            this.brightness = source['brightness'];
+            this.shadows = source['shadows'];
+            this.highlights = source['highlights'];
+            this.hue_shift = source['hue_shift'];
+            this.temperature = source['temperature'];
+            this.tint = source['tint'];
+            this.gamma = source['gamma'];
+            this.black_point = source['black_point'];
+            this.white_point = source['white_point'];
+            this.light_mode = source['light_mode'];
+        }
+    }
+    export class Response {
+        ok: boolean;
+        error?: string;
+        palette?: string[];
+        light_mode?: boolean;
+        mode?: string;
+        wallpaper?: string;
+
+        static createFrom(source: any = {}) {
+            return new Response(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.ok = source['ok'];
+            this.error = source['error'];
+            this.palette = source['palette'];
+            this.light_mode = source['light_mode'];
+            this.mode = source['mode'];
+            this.wallpaper = source['wallpaper'];
+        }
+    }
+}
+
 export namespace main {
     export class ApplyThemeRequest {
         palette: string[];

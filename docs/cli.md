@@ -282,6 +282,268 @@ Aether launches `aether-wp` automatically when you apply a theme with an animate
 
 When applying a static wallpaper, Aether automatically kills any running `aether-wp` process and falls back to `swaybg`.
 
+## Color Utilities
+
+Standalone commands for working with colors. No running GUI needed.
+
+### Color Info
+
+Show all representations of a hex color:
+
+```bash
+aether --color-info "#7cd480"
+aether --color-info "#7cd480" --json
+```
+
+### Color Convert
+
+Convert a color between formats:
+
+```bash
+aether --color-convert "#7cd480" --to rgb
+aether --color-convert "#7cd480" --to hsl
+aether --color-convert "#7cd480" --to oklab
+aether --color-convert "#7cd480" --to oklch
+```
+
+### Contrast
+
+Check WCAG contrast ratio between two colors:
+
+```bash
+aether --contrast "#0a180a" "#a5baa7"
+```
+
+Returns the ratio and AA/AAA pass/fail for normal and large text.
+
+### Adjust Color
+
+Apply the 12-step adjustment pipeline to a single color:
+
+```bash
+aether --adjust-color "#7cd480" --vibrance 20 --saturation -10
+```
+
+Supports all adjustment flags: `--vibrance`, `--saturation`, `--contrast`, `--brightness`, `--shadows`, `--highlights`, `--hue-shift`, `--temperature`, `--tint`, `--gamma`, `--black-point`, `--white-point`.
+
+### Darken / Lighten
+
+```bash
+aether --darken "#7cd480" 70    # 0 = black, 100 = unchanged
+aether --lighten "#7cd480" 20   # 0 = unchanged, 100 = white
+```
+
+## Palette Operations
+
+### Extract Palette
+
+Extract a 16-color palette from a wallpaper without applying it (read-only):
+
+```bash
+aether --extract-palette ~/wallpaper.jpg
+aether --extract-palette ~/wallpaper.jpg --extract-mode pastel --light-mode --json
+```
+
+### Palette from Color
+
+Generate a full 16-color ANSI palette from a single base color:
+
+```bash
+aether --palette-from-color "#7cd480"
+```
+
+### Gradient
+
+Generate a color gradient between two colors:
+
+```bash
+aether --gradient "#0a180a" "#bed3c0"
+aether --gradient "#0a180a" "#bed3c0" --steps 8
+```
+
+Defaults to 16 steps. Use `--steps` for a custom count.
+
+### Adjust Palette
+
+Apply adjustments to an entire palette (JSON array or blueprint name):
+
+```bash
+aether --adjust-palette '["#0a180a","#a8ad42","#7cd480"]' --vibrance 20
+aether --adjust-palette "Nord" --temperature 15
+```
+
+### Palette Info
+
+Analyze a palette for contrast, dark/light detection, and monochrome detection:
+
+```bash
+aether --palette-info '["#0a180a","#a8ad42","#7cd480","#a0c877","#53ba97","#7cc094","#8fd7b0","#a5baa7","#39513c","#a8ad42","#7cd480","#a0c877","#53ba97","#7cc094","#8fd7b0","#bed3c0"]'
+aether --palette-info "Nord" --json
+```
+
+## Blueprint Management
+
+### Show Blueprint
+
+Display full details of a saved blueprint:
+
+```bash
+aether --show-blueprint "Nord"
+aether --show-blueprint "Nord" --json
+```
+
+### Delete Blueprint
+
+```bash
+aether --delete-blueprint "Old Theme"
+```
+
+### Export Blueprint
+
+Export a blueprint to a JSON file:
+
+```bash
+aether --export-blueprint "Nord"
+aether --export-blueprint "Nord" --output ~/themes/nord.json
+```
+
+## Inspection
+
+### List Apps
+
+List all applications that Aether can generate themes for:
+
+```bash
+aether --list-apps
+aether --list-apps --json
+```
+
+### List Modes
+
+List available extraction modes with descriptions:
+
+```bash
+aether --list-modes
+```
+
+### Show Variables
+
+Show all template variables that would be generated for a source (wallpaper or blueprint):
+
+```bash
+aether --show-variables ~/wallpaper.jpg
+aether --show-variables "Nord" --json
+```
+
+### Current Theme
+
+Show the currently applied theme colors (reads from `~/.config/aether/theme/colors.toml`):
+
+```bash
+aether --current-theme
+aether --current-theme --json
+```
+
+### Preview Template
+
+Preview the rendered output of a specific app template:
+
+```bash
+aether --preview-template kitty ~/wallpaper.jpg
+aether --preview-template alacritty "Nord" --json
+```
+
+## Wallpapers
+
+### Search Wallhaven
+
+Search wallhaven.cc from the command line:
+
+```bash
+aether --search-wallhaven "dark forest"
+aether --search-wallhaven "mountains" --sorting relevance --purity 100 --page 2 --json
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--categories` | Filter categories (default "111" = all) |
+| `--purity` | Purity filter (default "100" = SFW) |
+| `--sorting` | Sort by: date_added, relevance, random, views, favorites, toplist |
+| `--order` | Sort order: desc, asc |
+| `--page` | Page number |
+| `--at-least` | Minimum resolution (e.g. "1920x1080") |
+| `--colors` | Filter by color hex (without #) |
+
+### List Wallpapers
+
+List local wallpapers from `~/Wallpapers`:
+
+```bash
+aether --list-wallpapers
+aether --list-wallpapers --json
+```
+
+### Random Wallpaper
+
+Pick a random wallpaper from the local directory:
+
+```bash
+aether --random-wallpaper
+```
+
+## Favorites
+
+### List Favorites
+
+```bash
+aether --list-favorites
+aether --list-favorites --json
+```
+
+### Toggle Favorite
+
+```bash
+aether --toggle-favorite ~/Wallpapers/forest.jpg
+aether --toggle-favorite ~/Wallpapers/forest.jpg --type wallhaven
+```
+
+### Is Favorite
+
+```bash
+aether --is-favorite ~/Wallpapers/forest.jpg
+```
+
+## Remote Control
+
+When Aether is running, you can control the editor in real time using bare subcommands (no `--` prefix). These connect to the running instance via a Unix domain socket.
+
+```bash
+aether status                      # show editor state
+aether extract ~/wallpaper.jpg     # load wallpaper into editor
+aether set-color 4 "#53ba97"       # change a palette color
+aether adjust --vibrance 20        # move sidebar sliders
+aether set-mode pastel             # change extraction mode
+aether toggle-light-mode           # flip light/dark
+aether apply                       # apply current theme
+aether load-blueprint "Nord"       # load blueprint into editor
+aether apply-blueprint "Nord"      # apply blueprint directly
+aether set-wallpaper ~/wall.jpg    # set wallpaper path
+```
+
+See [Remote Control](remote-control.md) for the full IPC reference and AI integration guide.
+
+## JSON Output
+
+All commands support `--json` for machine-readable output:
+
+```bash
+aether --color-info "#7cd480" --json
+aether --extract-palette ~/wallpaper.jpg --json
+aether status --json
+```
+
 ## Scripting Examples
 
 ### Theme Rotation Script
