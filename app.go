@@ -562,6 +562,13 @@ func (a *App) LoadOmarchyThemes() ([]omarchy.Theme, error) {
 	return omarchy.LoadAllThemes()
 }
 
+// ApplyOmarchyThemeByName activates an existing Omarchy theme directly
+// by running "omarchy-theme-set <name>" without processing through Aether templates.
+func (a *App) ApplyOmarchyThemeByName(name string) error {
+	_, err := platform.RunSync("omarchy-theme-set", name)
+	return err
+}
+
 // IsOmarchyInstalled returns true if the current system has Omarchy.
 func (a *App) IsOmarchyInstalled() bool {
 	return theme.IsOmarchyInstalled()

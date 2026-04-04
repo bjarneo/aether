@@ -16,6 +16,8 @@ export function AdjustPaletteColors(
 
 export function ApplyBlueprint(arg1: string): Promise<theme.ApplyResult>;
 
+export function ApplyOmarchyThemeByName(arg1: string): Promise<void>;
+
 export function ApplyTheme(
     arg1: main.ApplyThemeRequest
 ): Promise<theme.ApplyResult>;

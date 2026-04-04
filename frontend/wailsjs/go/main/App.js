@@ -10,6 +10,10 @@ export function ApplyBlueprint(arg1) {
     return window['go']['main']['App']['ApplyBlueprint'](arg1);
 }
 
+export function ApplyOmarchyThemeByName(arg1) {
+    return window['go']['main']['App']['ApplyOmarchyThemeByName'](arg1);
+}
+
 export function ApplyTheme(arg1) {
     return window['go']['main']['App']['ApplyTheme'](arg1);
 }

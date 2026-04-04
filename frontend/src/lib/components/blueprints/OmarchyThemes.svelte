@@ -1,14 +1,6 @@
 <script lang="ts">
     import {onMount} from 'svelte';
-    import {
-        setPalette,
-        setWallpaperPath,
-        getLightMode,
-        getAdditionalImages,
-        getExtendedColors,
-        getAppOverrides,
-    } from '$lib/stores/theme.svelte';
-    import {getSettings} from '$lib/stores/settings.svelte';
+    import {setPalette, setWallpaperPath} from '$lib/stores/theme.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
     import {
         getCachedThumbnail,
@@ -63,28 +55,13 @@
     }
 
     async function handleApply(theme: any) {
-        const palette = theme.colors;
-        const wallpaper = theme.wallpapers?.[0] ?? '';
-        if (palette?.length < 16) return;
         loadThemeIntoState(theme);
         try {
-            const {ApplyTheme} = await import(
+            const {ApplyOmarchyThemeByName} = await import(
                 '../../../../wailsjs/go/main/App'
             );
-            const result = await ApplyTheme({
-                palette,
-                wallpaperPath: wallpaper,
-                lightMode: getLightMode(),
-                additionalImages: getAdditionalImages(),
-                extendedColors: getExtendedColors(),
-                settings: getSettings(),
-                appOverrides: getAppOverrides(),
-            });
-            if (result.success) {
-                showToast(`Applied theme: ${theme.name}`);
-            } else {
-                showToast('Theme files generated');
-            }
+            await ApplyOmarchyThemeByName(theme.name);
+            showToast(`Applied theme: ${theme.name}`);
         } catch {
             showToast('Failed to apply theme');
         }
