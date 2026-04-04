@@ -10,6 +10,11 @@ package main
 
 static GstElement *pipeline = NULL;
 static GtkWindow *window = NULL;
+static const char *media_path = NULL;
+static int gpu_failed = 0;
+
+// Forward declarations
+static int setup_pipeline(const char *path, int force_cpu);
 
 // Tear down pipeline + window inside the running main loop so the
 // Wayland compositor receives the surface-destroy before the loop exits.
@@ -32,6 +37,27 @@ static void request_shutdown(void) {
 	g_idle_add(cleanup_and_quit, NULL);
 }
 
+// Retry with CPU rendering after GPU failure (called from main loop)
+static gboolean retry_with_cpu(gpointer data) {
+	// Tear down the failed GPU pipeline
+	if (pipeline) {
+		gst_element_set_state(pipeline, GST_STATE_NULL);
+		gst_object_unref(pipeline);
+		pipeline = NULL;
+	}
+	// Remove the old video widget from the window
+	GList *children = gtk_container_get_children(GTK_CONTAINER(window));
+	for (GList *l = children; l; l = l->next)
+		gtk_container_remove(GTK_CONTAINER(window), GTK_WIDGET(l->data));
+	g_list_free(children);
+
+	g_printerr("aether-wp: GPU failed, retrying with CPU rendering\n");
+	if (setup_pipeline(media_path, 1) != 0) {
+		cleanup_and_quit(NULL);
+	}
+	return FALSE;
+}
+
 static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
 	switch (GST_MESSAGE_TYPE(msg)) {
 	case GST_MESSAGE_EOS:
@@ -42,6 +68,13 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
 	case GST_MESSAGE_ERROR: {
 		GError *err = NULL;
 		gst_message_parse_error(msg, &err, NULL);
+		// If GPU rendering failed and we haven't retried yet, fall back to CPU
+		if (!gpu_failed) {
+			gpu_failed = 1;
+			g_error_free(err);
+			g_idle_add(retry_with_cpu, NULL);
+			return TRUE;
+		}
 		g_printerr("aether-wp: %s\n", err->message);
 		g_error_free(err);
 		cleanup_and_quit(NULL);
@@ -93,14 +126,9 @@ static int run_gif(const char *path) {
 	return 0;
 }
 
-static int run_wallpaper(const char *path, int force_cpu) {
-	int argc = 0;
-	gtk_init(&argc, NULL);
-	gst_init(&argc, NULL);
-
-	init_layer_window();
-
-	// GStreamer pipeline: playbin + gtkglsink (GPU-accelerated)
+// setup_pipeline creates the GStreamer pipeline and video widget.
+// Can be called during initial setup or during GPU->CPU fallback retry.
+static int setup_pipeline(const char *path, int force_cpu) {
 	pipeline = gst_element_factory_make("playbin", "player");
 	if (!pipeline) {
 		g_printerr("aether-wp: failed to create playbin\n");
@@ -136,6 +164,7 @@ static int run_wallpaper(const char *path, int force_cpu) {
 	if (!sink) {
 		g_printerr("aether-wp: no GTK video sink available (install gst-plugins-good or gst-plugin-gtk)\n");
 		gst_object_unref(pipeline);
+		pipeline = NULL;
 		return 1;
 	}
 
@@ -144,9 +173,11 @@ static int run_wallpaper(const char *path, int force_cpu) {
 	g_object_set(pipeline, "video-sink", video_sink, NULL);
 	g_object_set(pipeline, "volume", 0.0, NULL);
 
-	// Flags: video + native-video + deinterlace, no audio.
-	// native-video is required for 10-bit H.264/AV1 (only hardware decoders support it).
-	g_object_set(pipeline, "flags", 0x61, NULL);
+	// Flags: video (0x01) + deinterlace (0x200), no audio.
+	// GPU adds native-video (0x40) so hardware decoders pass 10-bit
+	// H.264/AV1 directly to the GL sink without conversion.
+	// CPU omits native-video so playbin converts 10-bit to 8-bit for gtksink.
+	g_object_set(pipeline, "flags", using_gpu ? 0x241 : 0x201, NULL);
 
 	// Get the GTK widget from the sink and add to window
 	GtkWidget *video_widget = NULL;
@@ -154,6 +185,7 @@ static int run_wallpaper(const char *path, int force_cpu) {
 	if (!video_widget) {
 		g_printerr("aether-wp: failed to get video widget\n");
 		gst_object_unref(pipeline);
+		pipeline = NULL;
 		return 1;
 	}
 	gtk_container_add(GTK_CONTAINER(window), video_widget);
@@ -164,6 +196,7 @@ static int run_wallpaper(const char *path, int force_cpu) {
 	if (!uri) {
 		g_printerr("aether-wp: invalid file path: %s\n", path);
 		gst_object_unref(pipeline);
+		pipeline = NULL;
 		return 1;
 	}
 	g_object_set(pipeline, "uri", uri, NULL);
@@ -175,9 +208,26 @@ static int run_wallpaper(const char *path, int force_cpu) {
 	gst_object_unref(bus);
 
 	gst_element_set_state(pipeline, GST_STATE_PLAYING);
+	gtk_widget_show_all(GTK_WIDGET(window));
+
+	return 0;
+}
+
+static int run_wallpaper(const char *path, int force_cpu) {
+	int argc = 0;
+	gtk_init(&argc, NULL);
+	gst_init(&argc, NULL);
+
+	init_layer_window();
+
+	media_path = path;
+	// If force_cpu, mark gpu_failed so bus errors don't trigger another retry
+	if (force_cpu) gpu_failed = 1;
+
+	if (setup_pipeline(path, force_cpu) != 0)
+		return 1;
 
 	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-	gtk_widget_show_all(GTK_WIDGET(window));
 	gtk_main();
 
 	return 0;
