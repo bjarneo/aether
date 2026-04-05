@@ -11,15 +11,14 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Extract version
         id: version
-        env:
-          TAG: ${{ github.event.workflow_run.head_branch }}
         run: |
+          TAG="${{ github.event.workflow_run.head_branch }}"
           echo "pkgver=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Generate PKGBUILD
@@ -90,11 +89,36 @@ jobs:
           cat PKGBUILD
 
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
-        with:
-          pkgname: aether
-          pkgbuild: ./PKGBUILD
-          commit_username: ${{ secrets.AUR_USERNAME }}
-          commit_email: ${{ secrets.AUR_EMAIL }}
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to v${{ steps.version.outputs.pkgver }}"
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          AUR_USERNAME: ${{ secrets.AUR_USERNAME }}
+          AUR_EMAIL: ${{ secrets.AUR_EMAIL }}
+          PKGVER: ${{ steps.version.outputs.pkgver }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$AUR_SSH_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          ssh-keyscan -t rsa,ecdsa,ed25519 aur.archlinux.org >> ~/.ssh/known_hosts 2>/dev/null
+          cat >> ~/.ssh/config <<EOF
+          Host aur.archlinux.org
+            IdentityFile ~/.ssh/aur
+            User aur
+          EOF
+
+          git clone ssh://aur@aur.archlinux.org/aether.git aur-repo
+          cd aur-repo
+
+          git config user.name "$AUR_USERNAME"
+          git config user.email "$AUR_EMAIL"
+
+          cp ../PKGBUILD .
+          docker run --rm -v "$PWD/PKGBUILD:/PKGBUILD:ro" archlinux:base bash -c \
+            'pacman -Sy --noconfirm pacman-contrib >&2 && cp /PKGBUILD /tmp/ && cd /tmp && chown nobody PKGBUILD && runuser -u nobody -- makepkg --printsrcinfo' > .SRCINFO
+
+          git add PKGBUILD .SRCINFO
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update to v${PKGVER}"
+            git push
+          fi
