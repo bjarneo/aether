@@ -25,6 +25,12 @@ export interface Filters {
     clarity: number; // 0-100 (local contrast)
     posterize: number; // 0-10 (color levels, 0=off)
     noise: number; // 0-100 (color noise, not mono)
+    cropX: number; // 0-1 percentage from left
+    cropY: number; // 0-1 percentage from top
+    cropW: number; // 0-1 width percentage
+    cropH: number; // 0-1 height percentage
+    resizeW: number; // target width in pixels, 0 = no resize
+    resizeH: number; // target height in pixels, 0 = no resize
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -49,16 +55,46 @@ export const DEFAULT_FILTERS: Filters = {
     clarity: 0,
     posterize: 0,
     noise: 0,
+    cropX: 0,
+    cropY: 0,
+    cropW: 1,
+    cropH: 1,
+    resizeW: 0,
+    resizeH: 0,
 };
+
+export function hasActiveCrop(f: Filters): boolean {
+    return f.cropX !== 0 || f.cropY !== 0 || f.cropW !== 1 || f.cropH !== 1;
+}
 
 export function applyFilters(
     img: HTMLImageElement,
     filters: Filters,
     maxSize = 0
 ): string {
-    let w = img.naturalWidth;
-    let h = img.naturalHeight;
-    if (!w || !h) return '';
+    const natW = img.naturalWidth;
+    const natH = img.naturalHeight;
+    if (!natW || !natH) return '';
+
+    // Crop source rect
+    const srcX = Math.round(filters.cropX * natW);
+    const srcY = Math.round(filters.cropY * natH);
+    const srcW = Math.max(1, Math.round(filters.cropW * natW));
+    const srcH = Math.max(1, Math.round(filters.cropH * natH));
+
+    // Output dimensions
+    let w = srcW;
+    let h = srcH;
+    if (filters.resizeW > 0 && filters.resizeH > 0) {
+        w = filters.resizeW;
+        h = filters.resizeH;
+    } else if (filters.resizeW > 0) {
+        w = filters.resizeW;
+        h = Math.round(srcH * (w / srcW));
+    } else if (filters.resizeH > 0) {
+        h = filters.resizeH;
+        w = Math.round(srcW * (h / srcH));
+    }
 
     if (maxSize > 0 && (w > maxSize || h > maxSize)) {
         const scale = maxSize / Math.max(w, h);
@@ -70,7 +106,7 @@ export function applyFilters(
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d', {willReadFrequently: true})!;
-    ctx.drawImage(img, 0, 0, w, h);
+    ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, w, h);
 
     // Pixelate (re-sample)
     if (filters.pixelate > 0) {
@@ -442,6 +478,9 @@ export function hasActiveFilters(f: Filters): boolean {
         f.fade > 0 ||
         f.clarity > 0 ||
         f.posterize > 0 ||
-        f.noise > 0
+        f.noise > 0 ||
+        hasActiveCrop(f) ||
+        f.resizeW !== 0 ||
+        f.resizeH !== 0
     );
 }

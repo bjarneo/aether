@@ -1,5 +1,6 @@
 <script lang="ts">
     import FilterControls from './FilterControls.svelte';
+    import CropOverlay from './CropOverlay.svelte';
     import {
         getWallpaperPath,
         setWallpaperPath,
@@ -31,10 +32,16 @@
     let imgReady = $state(false);
     let imgEl = $state<HTMLImageElement | null>(null);
     let previewUrl = $state('');
+    let cropMode = $state(false);
+    let cropAspectRatio = $state(0);
+    let displayImgEl = $state<HTMLImageElement | null>(null);
+    let previewAreaEl = $state<HTMLElement | null>(null);
 
     let originalUrl = $derived(getCachedFullImage(getWallpaperPath()) || '');
     let isVideo = $derived(isVideoSource(originalUrl));
     let hasChanges = $derived(!isVideo && hasActiveFilters(filters));
+    let naturalWidth = $derived(imgEl?.naturalWidth ?? 0);
+    let naturalHeight = $derived(imgEl?.naturalHeight ?? 0);
 
     // Load image when editor opens
     $effect(() => {
@@ -43,6 +50,8 @@
             previewUrl = '';
             imgReady = false;
             imgEl = null;
+            cropMode = false;
+            cropAspectRatio = 0;
             const path = getWallpaperPath();
             if (path && !getCachedFullImage(path)) {
                 loadFullImage(path);
@@ -55,6 +64,10 @@
 
     function renderPreview() {
         if (!imgEl || !imgReady) return;
+        if (cropMode) {
+            previewUrl = '';
+            return;
+        }
         if (hasActiveFilters(filters)) {
             previewUrl = applyFilters(imgEl, filters, 1200);
         } else {
@@ -62,10 +75,11 @@
         }
     }
 
-    // Watch for filter changes
+    // Watch for filter and cropMode changes
     $effect(() => {
         // Touch every filter field to track dependencies
         const _ = JSON.stringify(filters);
+        const __ = cropMode;
         if (!open || !imgReady) return;
         if (previewTimer) clearTimeout(previewTimer);
         previewTimer = setTimeout(renderPreview, 60);
@@ -74,6 +88,12 @@
     function resetFilters() {
         filters = {...DEFAULT_FILTERS};
         previewUrl = '';
+        cropMode = false;
+        cropAspectRatio = 0;
+    }
+
+    function handleCropChange(x: number, y: number, w: number, h: number) {
+        filters = {...filters, cropX: x, cropY: y, cropW: w, cropH: h};
     }
 
     function handleImageLoad(e: Event) {
@@ -154,7 +174,8 @@
         <div class="flex flex-1 overflow-hidden">
             <div class="flex flex-1 flex-col bg-[#080809]">
                 <div
-                    class="relative flex flex-1 items-center justify-center p-6"
+                    class="relative flex flex-1 items-center justify-center overflow-hidden p-6"
+                    bind:this={previewAreaEl}
                 >
                     {#if originalUrl && isVideo}
                         <!-- svelte-ignore a11y_media_has_caption -->
@@ -177,19 +198,29 @@
                         />
 
                         <!-- Visible preview -->
-                        {#if showOriginal || !previewUrl}
-                            <img
-                                src={originalUrl}
-                                alt="Original"
-                                class="max-h-full max-w-full object-contain"
-                                style="filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5))"
-                            />
-                        {:else}
-                            <img
-                                src={previewUrl}
-                                alt="Preview"
-                                class="max-h-full max-w-full object-contain"
-                                style="filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5))"
+                        <img
+                            bind:this={displayImgEl}
+                            src={showOriginal || !previewUrl
+                                ? originalUrl
+                                : previewUrl}
+                            alt="Preview"
+                            class="max-h-full max-w-full object-contain"
+                            style="filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5))"
+                        />
+
+                        <!-- Crop overlay -->
+                        {#if cropMode && imgReady && displayImgEl && previewAreaEl}
+                            <CropOverlay
+                                imgEl={displayImgEl}
+                                containerEl={previewAreaEl}
+                                cropX={filters.cropX}
+                                cropY={filters.cropY}
+                                cropW={filters.cropW}
+                                cropH={filters.cropH}
+                                aspectRatio={cropAspectRatio}
+                                {naturalWidth}
+                                {naturalHeight}
+                                oncrop={handleCropChange}
                             />
                         {/if}
 
@@ -224,7 +255,11 @@
                     >
 
                     <span class="text-fg-dimmed text-[10px]">
-                        Live preview · Double-click slider to reset
+                        {#if cropMode}
+                            Drag corners to crop · Drag inside to move
+                        {:else}
+                            Live preview · Double-click slider to reset
+                        {/if}
                     </span>
                 </div>
             </div>
@@ -234,7 +269,12 @@
             >
                 <FilterControls
                     bind:filters
+                    bind:cropMode
                     onpreview={() => renderPreview()}
+                    {cropAspectRatio}
+                    oncropaspectratio={r => (cropAspectRatio = r)}
+                    {naturalWidth}
+                    {naturalHeight}
                 />
             </div>
         </div>

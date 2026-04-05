@@ -1,44 +1,100 @@
 <script lang="ts">
     import {debounce} from '$lib/utils/debounce';
+    import ExpandableSection from '$lib/components/shared/ExpandableSection.svelte';
+    import {
+        DEFAULT_FILTERS,
+        hasActiveCrop,
+        type Filters,
+    } from '$lib/utils/canvas-filters';
+
+    type SliderDef = {
+        key: string;
+        label: string;
+        min: number;
+        max: number;
+        step: number;
+    };
 
     let {
         filters = $bindable(),
         onpreview,
-    }: {filters: any; onpreview: () => void} = $props();
+        cropMode = $bindable(false),
+        cropAspectRatio = 0,
+        oncropaspectratio = (_r: number) => {},
+        naturalWidth = 0,
+        naturalHeight = 0,
+    }: {
+        filters: Filters;
+        onpreview: () => void;
+        cropMode?: boolean;
+        cropAspectRatio?: number;
+        oncropaspectratio?: (r: number) => void;
+        naturalWidth?: number;
+        naturalHeight?: number;
+    } = $props();
 
     const debouncedPreview = debounce(() => onpreview(), 300);
+
+    const defaults: Record<string, number> =
+        DEFAULT_FILTERS as unknown as Record<string, number>;
 
     function update(key: string, value: number) {
         filters = {...filters, [key]: value};
         debouncedPreview();
     }
 
-    let activeTab = $state<'adjust' | 'effects' | 'pro' | 'presets'>('adjust');
+    // Section expanded states
+    let lightExpanded = $state(true);
+    let colorExpanded = $state(false);
+    let detailExpanded = $state(false);
+    let presetsExpanded = $state(false);
 
-    const defaults: Record<string, number> = {
-        blur: 0,
-        brightness: 100,
-        contrast: 100,
-        saturation: 100,
-        hueRotate: 0,
-        sepia: 0,
-        invert: 0,
-        oilPaint: 0,
-        pixelate: 0,
-        exposure: 0,
-        vignette: 0,
-        sharpen: 0,
-        grain: 0,
-        shadows: 0,
-        highlights: 0,
-        temperature: 0,
-        tint: 0,
-        fade: 0,
-        clarity: 0,
-        posterize: 0,
-        noise: 0,
-    };
+    // Slider definitions per section
+    const lightSliders: SliderDef[] = [
+        {key: 'brightness', label: 'Brightness', min: 0, max: 200, step: 1},
+        {key: 'contrast', label: 'Contrast', min: 0, max: 200, step: 1},
+        {key: 'exposure', label: 'Exposure', min: -100, max: 100, step: 1},
+        {key: 'shadows', label: 'Shadows', min: -100, max: 100, step: 1},
+        {key: 'highlights', label: 'Highlights', min: -100, max: 100, step: 1},
+        {key: 'clarity', label: 'Clarity', min: 0, max: 100, step: 1},
+        {key: 'fade', label: 'Fade', min: 0, max: 100, step: 1},
+    ];
 
+    const colorSliders: SliderDef[] = [
+        {key: 'saturation', label: 'Saturation', min: 0, max: 200, step: 1},
+        {
+            key: 'temperature',
+            label: 'Temperature',
+            min: -100,
+            max: 100,
+            step: 1,
+        },
+        {key: 'tint', label: 'Tint', min: -100, max: 100, step: 1},
+        {key: 'hueRotate', label: 'Hue Shift', min: 0, max: 360, step: 1},
+        {key: 'sepia', label: 'Sepia', min: 0, max: 100, step: 1},
+        {key: 'invert', label: 'Invert', min: 0, max: 100, step: 1},
+        {key: 'posterize', label: 'Posterize', min: 0, max: 10, step: 1},
+    ];
+
+    const detailSliders: SliderDef[] = [
+        {key: 'sharpen', label: 'Sharpen', min: 0, max: 100, step: 1},
+        {key: 'blur', label: 'Blur', min: 0, max: 100, step: 1},
+        {key: 'grain', label: 'Grain', min: 0, max: 10, step: 1},
+        {key: 'noise', label: 'Color Noise', min: 0, max: 100, step: 1},
+        {key: 'vignette', label: 'Vignette', min: 0, max: 100, step: 1},
+        {key: 'oilPaint', label: 'Oil Paint', min: 0, max: 10, step: 1},
+        {key: 'pixelate', label: 'Pixelate', min: 0, max: 100, step: 1},
+    ];
+
+    function hasModifiedSliders(sliders: SliderDef[]) {
+        return sliders.some(
+            s =>
+                (filters as unknown as Record<string, number>)[s.key] !==
+                defaults[s.key]
+        );
+    }
+
+    // Presets
     const presets = [
         {
             name: 'Muted',
@@ -164,182 +220,306 @@
     ];
 
     function applyPreset(preset: (typeof presets)[0]) {
-        filters = {...defaults, ...preset.values};
+        filters = {...DEFAULT_FILTERS, ...preset.values};
         debouncedPreview();
     }
 
-    const tabs = [
-        {
-            id: 'adjust',
-            label: 'Light',
-            sliders: [
-                {
-                    key: 'brightness',
-                    label: 'Brightness',
-                    min: 0,
-                    max: 200,
-                    step: 1,
-                },
-                {key: 'contrast', label: 'Contrast', min: 0, max: 200, step: 1},
-                {
-                    key: 'exposure',
-                    label: 'Exposure',
-                    min: -100,
-                    max: 100,
-                    step: 1,
-                },
-                {
-                    key: 'shadows',
-                    label: 'Shadows',
-                    min: -100,
-                    max: 100,
-                    step: 1,
-                },
-                {
-                    key: 'highlights',
-                    label: 'Highlights',
-                    min: -100,
-                    max: 100,
-                    step: 1,
-                },
-                {key: 'clarity', label: 'Clarity', min: 0, max: 100, step: 1},
-                {key: 'fade', label: 'Fade', min: 0, max: 100, step: 1},
-            ],
-        },
-        {
-            id: 'effects',
-            label: 'Color',
-            sliders: [
-                {
-                    key: 'saturation',
-                    label: 'Saturation',
-                    min: 0,
-                    max: 200,
-                    step: 1,
-                },
-                {
-                    key: 'temperature',
-                    label: 'Temperature',
-                    min: -100,
-                    max: 100,
-                    step: 1,
-                },
-                {key: 'tint', label: 'Tint', min: -100, max: 100, step: 1},
-                {
-                    key: 'hueRotate',
-                    label: 'Hue Shift',
-                    min: 0,
-                    max: 360,
-                    step: 1,
-                },
-                {key: 'sepia', label: 'Sepia', min: 0, max: 100, step: 1},
-                {key: 'invert', label: 'Invert', min: 0, max: 100, step: 1},
-                {
-                    key: 'posterize',
-                    label: 'Posterize',
-                    min: 0,
-                    max: 10,
-                    step: 1,
-                },
-            ],
-        },
-        {
-            id: 'pro',
-            label: 'Detail',
-            sliders: [
-                {key: 'sharpen', label: 'Sharpen', min: 0, max: 100, step: 1},
-                {key: 'blur', label: 'Blur', min: 0, max: 100, step: 1},
-                {key: 'grain', label: 'Grain', min: 0, max: 10, step: 1},
-                {key: 'noise', label: 'Color Noise', min: 0, max: 100, step: 1},
-                {key: 'vignette', label: 'Vignette', min: 0, max: 100, step: 1},
-                {key: 'oilPaint', label: 'Oil Paint', min: 0, max: 10, step: 1},
-                {key: 'pixelate', label: 'Pixelate', min: 0, max: 100, step: 1},
-            ],
-        },
-    ] as const;
+    // Crop presets
+    const cropPresets = [
+        {label: 'Free', ratio: 0},
+        {label: '1:1', ratio: 1},
+        {label: '16:9', ratio: 16 / 9},
+        {label: '4:3', ratio: 4 / 3},
+        {label: '3:2', ratio: 3 / 2},
+        {label: '9:16', ratio: 9 / 16},
+        {label: '3:4', ratio: 3 / 4},
+        {label: '2:3', ratio: 2 / 3},
+    ];
 
-    let currentSliders = $derived(
-        tabs.find(t => t.id === activeTab)?.sliders || []
-    );
+    let resizeLocked = $state(true);
+
+    function applyCropPreset(ratio: number) {
+        oncropaspectratio(ratio);
+        if (ratio === 0) return;
+        if (naturalWidth === 0 || naturalHeight === 0) return;
+
+        const natAspect = naturalWidth / naturalHeight;
+        const normRatio = ratio / natAspect;
+
+        const cx = filters.cropX + filters.cropW / 2;
+        const cy = filters.cropY + filters.cropH / 2;
+
+        let w = filters.cropW;
+        let h = w / normRatio;
+
+        if (h > 1) {
+            h = 1;
+            w = h * normRatio;
+        }
+        if (w > 1) {
+            w = 1;
+            h = w / normRatio;
+        }
+
+        let x = cx - w / 2;
+        let y = cy - h / 2;
+        x = Math.max(0, Math.min(1 - w, x));
+        y = Math.max(0, Math.min(1 - h, y));
+
+        filters = {...filters, cropX: x, cropY: y, cropW: w, cropH: h};
+        debouncedPreview();
+    }
+
+    function resetCrop() {
+        filters = {...filters, cropX: 0, cropY: 0, cropW: 1, cropH: 1};
+        oncropaspectratio(0);
+        debouncedPreview();
+    }
+
+    function getCropAspect() {
+        const w = filters.cropW * (naturalWidth || 1);
+        const h = filters.cropH * (naturalHeight || 1);
+        return h > 0 ? w / h : 1;
+    }
+
+    function handleResizeWidth(e: Event) {
+        const w = parseInt((e.target as HTMLInputElement).value) || 0;
+        const newFilters = {...filters, resizeW: w};
+        if (resizeLocked && w > 0) {
+            newFilters.resizeH = Math.round(w / getCropAspect());
+        }
+        filters = newFilters;
+        debouncedPreview();
+    }
+
+    function handleResizeHeight(e: Event) {
+        const h = parseInt((e.target as HTMLInputElement).value) || 0;
+        const newFilters = {...filters, resizeH: h};
+        if (resizeLocked && h > 0) {
+            newFilters.resizeW = Math.round(h * getCropAspect());
+        }
+        filters = newFilters;
+        debouncedPreview();
+    }
+
+    function resetResize() {
+        filters = {...filters, resizeW: 0, resizeH: 0};
+        debouncedPreview();
+    }
 </script>
 
-<div class="flex h-full flex-col">
-    <!-- Panel header -->
-    <div class="border-b border-[rgba(255,255,255,0.06)] px-4 py-3">
-        <span
-            class="text-fg-dimmed text-[10px] font-medium uppercase tracking-widest"
-            >Adjustments</span
-        >
-    </div>
-
-    <!-- Tab navigation -->
-    <div class="flex border-b border-[rgba(255,255,255,0.06)]">
-        {#each [...tabs, {id: 'presets', label: 'Presets'}] as tab}
-            <button
-                class="flex-1 py-2.5 text-[10px] font-medium uppercase tracking-wider transition-all duration-100
-          {activeTab === tab.id
-                    ? 'text-accent border-accent border-b-2'
-                    : 'text-fg-dimmed hover:text-fg-secondary'}"
-                onclick={() => (activeTab = tab.id as any)}>{tab.label}</button
-            >
+{#snippet renderSliders(sliders: SliderDef[])}
+    <div class="space-y-4 pt-1">
+        {#each sliders as s}
+            {@const isModified =
+                (filters as unknown as Record<string, number>)[s.key] !==
+                defaults[s.key]}
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-fg-secondary text-[11px]">{s.label}</span>
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <span
+                        class="min-w-[36px] cursor-pointer text-right font-mono text-[11px] tabular-nums
+                            {isModified ? 'text-fg-primary' : 'text-fg-dimmed'}"
+                        role="button"
+                        tabindex="-1"
+                        ondblclick={() => update(s.key, defaults[s.key])}
+                        title="Double-click to reset"
+                        >{(filters as unknown as Record<string, number>)[
+                            s.key
+                        ]}</span
+                    >
+                </div>
+                <input
+                    type="range"
+                    class="w-full cursor-pointer"
+                    min={s.min}
+                    max={s.max}
+                    step={s.step}
+                    value={(filters as unknown as Record<string, number>)[
+                        s.key
+                    ]}
+                    oninput={e =>
+                        update(s.key, parseFloat(e.currentTarget.value))}
+                    ondblclick={() => update(s.key, defaults[s.key])}
+                />
+            </div>
         {/each}
     </div>
+{/snippet}
 
-    <!-- Content -->
+<div class="flex h-full flex-col">
     <div class="flex-1 overflow-y-auto">
-        {#if activeTab === 'presets'}
-            <!-- Presets grid -->
-            <div class="p-4">
-                <div class="grid grid-cols-2 gap-2">
+        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+            <ExpandableSection
+                title="Light"
+                bind:expanded={lightExpanded}
+                suffix={hasModifiedSliders(lightSliders) ? ' \u2022' : ''}
+            >
+                {@render renderSliders(lightSliders)}
+            </ExpandableSection>
+        </section>
+
+        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+            <ExpandableSection
+                title="Color"
+                bind:expanded={colorExpanded}
+                suffix={hasModifiedSliders(colorSliders) ? ' \u2022' : ''}
+            >
+                {@render renderSliders(colorSliders)}
+            </ExpandableSection>
+        </section>
+
+        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+            <ExpandableSection
+                title="Detail"
+                bind:expanded={detailExpanded}
+                suffix={hasModifiedSliders(detailSliders) ? ' \u2022' : ''}
+            >
+                {@render renderSliders(detailSliders)}
+            </ExpandableSection>
+        </section>
+
+        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+            <ExpandableSection
+                title="Transform"
+                bind:expanded={cropMode}
+                suffix={hasActiveCrop(filters) ||
+                filters.resizeW !== 0 ||
+                filters.resizeH !== 0
+                    ? ' \u2022'
+                    : ''}
+            >
+                <div class="space-y-5 pt-1">
+                    <!-- Crop -->
+                    <div class="space-y-2">
+                        <span
+                            class="text-fg-dimmed text-[10px] font-medium uppercase tracking-widest"
+                            >Crop</span
+                        >
+                        <div class="grid grid-cols-4 gap-1.5">
+                            {#each cropPresets as preset}
+                                <button
+                                    class="border py-2 text-[10px] font-medium transition-all duration-100
+                                        {cropAspectRatio === preset.ratio
+                                        ? 'text-accent border-accent/30 bg-accent/10'
+                                        : 'text-fg-secondary border-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.04)]'}"
+                                    onclick={() =>
+                                        applyCropPreset(preset.ratio)}
+                                    >{preset.label}</button
+                                >
+                            {/each}
+                        </div>
+                        {#if hasActiveCrop(filters)}
+                            <button
+                                class="text-fg-dimmed hover:text-fg-secondary text-[10px] transition-colors"
+                                onclick={resetCrop}>Reset Crop</button
+                            >
+                        {/if}
+                    </div>
+
+                    <div class="border-t border-[rgba(255,255,255,0.06)]"></div>
+
+                    <!-- Resize -->
+                    <div class="space-y-2">
+                        <span
+                            class="text-fg-dimmed text-[10px] font-medium uppercase tracking-widest"
+                            >Resize</span
+                        >
+                        <div class="flex items-start gap-2">
+                            <div class="flex-1 space-y-2">
+                                <div class="space-y-1">
+                                    <span class="text-fg-dimmed text-[10px]"
+                                        >Width</span
+                                    >
+                                    <input
+                                        type="number"
+                                        class="text-fg-primary placeholder:text-fg-dimmed w-full border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] px-2 py-1.5 text-[11px]"
+                                        placeholder={String(
+                                            Math.round(
+                                                filters.cropW * naturalWidth
+                                            ) || naturalWidth
+                                        )}
+                                        value={filters.resizeW || ''}
+                                        oninput={handleResizeWidth}
+                                    />
+                                </div>
+                                <div class="space-y-1">
+                                    <span class="text-fg-dimmed text-[10px]"
+                                        >Height</span
+                                    >
+                                    <input
+                                        type="number"
+                                        class="text-fg-primary placeholder:text-fg-dimmed w-full border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] px-2 py-1.5 text-[11px]"
+                                        placeholder={String(
+                                            Math.round(
+                                                filters.cropH * naturalHeight
+                                            ) || naturalHeight
+                                        )}
+                                        value={filters.resizeH || ''}
+                                        oninput={handleResizeHeight}
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                class="mt-5 flex h-[62px] w-6 items-center justify-center border transition-colors
+                                    {resizeLocked
+                                    ? 'border-accent/30 text-accent bg-accent/10'
+                                    : 'text-fg-dimmed hover:text-fg-secondary border-[rgba(255,255,255,0.06)]'}"
+                                onclick={() => (resizeLocked = !resizeLocked)}
+                                title={resizeLocked
+                                    ? 'Unlock aspect ratio'
+                                    : 'Lock aspect ratio'}
+                            >
+                                <svg
+                                    viewBox="0 0 16 16"
+                                    class="h-3 w-3"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="8"
+                                        width="10"
+                                        height="6"
+                                        rx="1"
+                                    />
+                                    <path
+                                        d="M5 8V5.5a3 3 0 0 1 6 0{resizeLocked
+                                            ? 'V8'
+                                            : ''}"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                        <span class="text-fg-dimmed text-[10px]">
+                            Original: {naturalWidth} x {naturalHeight}
+                        </span>
+                        {#if filters.resizeW !== 0 || filters.resizeH !== 0}
+                            <button
+                                class="text-fg-dimmed hover:text-fg-secondary text-[10px] transition-colors"
+                                onclick={resetResize}>Reset Size</button
+                            >
+                        {/if}
+                    </div>
+                </div>
+            </ExpandableSection>
+        </section>
+
+        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+            <ExpandableSection title="Presets" bind:expanded={presetsExpanded}>
+                <div class="grid grid-cols-2 gap-2 pt-1">
                     {#each presets as preset}
                         <button
                             class="text-fg-secondary hover:text-fg-primary border border-[rgba(255,255,255,0.06)] px-3 py-2.5 text-left
-                text-[11px] font-medium transition-all duration-100 hover:bg-[rgba(255,255,255,0.04)]"
+                                text-[11px] font-medium transition-all duration-100 hover:bg-[rgba(255,255,255,0.04)]"
                             onclick={() => applyPreset(preset)}
                             >{preset.name}</button
                         >
                     {/each}
                 </div>
-            </div>
-        {:else}
-            <!-- Sliders -->
-            <div class="space-y-4 p-4">
-                {#each currentSliders as s}
-                    {@const isModified = filters[s.key] !== defaults[s.key]}
-                    <div class="space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <span class="text-fg-secondary text-[11px]"
-                                >{s.label}</span
-                            >
-                            <!-- svelte-ignore a11y_no_static_element_interactions -->
-                            <span
-                                class="min-w-[36px] cursor-pointer text-right font-mono text-[11px] tabular-nums
-                  {isModified ? 'text-fg-primary' : 'text-fg-dimmed'}"
-                                role="button"
-                                tabindex="-1"
-                                ondblclick={() =>
-                                    update(s.key, defaults[s.key])}
-                                title="Double-click to reset"
-                                >{filters[s.key]}</span
-                            >
-                        </div>
-                        <input
-                            type="range"
-                            class="w-full cursor-pointer"
-                            min={s.min}
-                            max={s.max}
-                            step={s.step}
-                            value={filters[s.key]}
-                            oninput={e =>
-                                update(
-                                    s.key,
-                                    parseFloat(e.currentTarget.value)
-                                )}
-                            ondblclick={() => update(s.key, defaults[s.key])}
-                        />
-                    </div>
-                {/each}
-            </div>
-        {/if}
+            </ExpandableSection>
+        </section>
     </div>
 </div>
