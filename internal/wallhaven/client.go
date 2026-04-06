@@ -102,6 +102,59 @@ func (c *Client) Search(params SearchParams) (*SearchResult, error) {
 	return &result, nil
 }
 
+// SearchMultiPage fetches numPages consecutive pages concurrently and merges
+// the results. Metadata is normalized so the caller sees logical pagination
+// (e.g. last_page is adjusted for the multi-page fetch).
+func (c *Client) SearchMultiPage(params SearchParams, numPages int) (*SearchResult, error) {
+	if numPages <= 1 {
+		return c.Search(params)
+	}
+
+	type pageResult struct {
+		index  int
+		result *SearchResult
+		err    error
+	}
+
+	ch := make(chan pageResult, numPages)
+	for i := 0; i < numPages; i++ {
+		go func(idx int) {
+			p := params
+			p.Page = params.Page + idx
+			res, err := c.Search(p)
+			ch <- pageResult{index: idx, result: res, err: err}
+		}(i)
+	}
+
+	results := make([]*SearchResult, numPages)
+	for i := 0; i < numPages; i++ {
+		pr := <-ch
+		if pr.err != nil {
+			if pr.index == 0 {
+				return nil, pr.err
+			}
+			continue
+		}
+		results[pr.index] = pr.result
+	}
+
+	merged := results[0]
+	if merged == nil {
+		return nil, fmt.Errorf("wallhaven search failed for first page")
+	}
+	for i := 1; i < numPages; i++ {
+		if results[i] != nil {
+			merged.Data = append(merged.Data, results[i].Data...)
+		}
+	}
+
+	// Normalize pagination metadata so the caller sees logical pages
+	merged.Meta.CurrentPage = (params.Page-1)/numPages + 1
+	merged.Meta.LastPage = (merged.Meta.LastPage + numPages - 1) / numPages
+
+	return merged, nil
+}
+
 // wallhavenPagePattern matches wallhaven.cc page URLs and extracts the ID.
 var wallhavenPagePattern = regexp.MustCompile(`wallhaven\.cc/w/([a-zA-Z0-9]+)`)
 

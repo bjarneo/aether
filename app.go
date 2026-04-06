@@ -521,7 +521,7 @@ func (a *App) SaveWallhavenConfig(config map[string]interface{}) error {
 
 // SearchWallhaven searches wallhaven.cc for wallpapers.
 func (a *App) SearchWallhaven(params wallhaven.SearchParams) (*wallhaven.SearchResult, error) {
-	return a.wallhaven.Search(params)
+	return a.wallhaven.SearchMultiPage(params, 2)
 }
 
 // DownloadWallpaper downloads a wallpaper from a URL. Returns local path.

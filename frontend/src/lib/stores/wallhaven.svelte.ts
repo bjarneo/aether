@@ -154,6 +154,15 @@ export function togglePurity(index: number): void {
 
 // --- Actions ---
 export async function search(): Promise<void> {
+    page = 1;
+    await doSearch();
+}
+
+export async function searchPage(): Promise<void> {
+    await doSearch();
+}
+
+async function doSearch(): Promise<void> {
     isSearching = true;
     try {
         const {SearchWallhaven} = await import('../../../wailsjs/go/main/App');

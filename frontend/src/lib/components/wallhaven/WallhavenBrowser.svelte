@@ -6,6 +6,7 @@
         getResults,
         getIsSearching,
         search,
+        searchPage,
         getTotalPages,
         getTotalResults,
         getPage,
@@ -45,7 +46,7 @@
             totalPages={getTotalPages()}
             onPageChange={p => {
                 setPage(p);
-                search();
+                searchPage();
             }}
         />
     {/if}
