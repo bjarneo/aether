@@ -282,9 +282,10 @@ func (a *App) ListBlueprints() ([]map[string]interface{}, error) {
 			"name":      bp.Name,
 			"timestamp": bp.Timestamp,
 			"palette": map[string]interface{}{
-				"colors":    bp.Palette.Colors,
-				"wallpaper": bp.Palette.Wallpaper,
-				"lightMode": bp.Palette.LightMode,
+				"colors":           bp.Palette.Colors,
+				"wallpaper":        bp.Palette.Wallpaper,
+				"lightMode":        bp.Palette.LightMode,
+				"additionalImages": bp.Palette.AdditionalImages,
 			},
 			"adjustments":  bp.Adjustments,
 			"appOverrides": bp.AppOverrides,
@@ -365,6 +366,11 @@ func (a *App) LoadBlueprint(name string) error {
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
+	if bp.Palette.AdditionalImages != nil {
+		a.state.AdditionalImages = bp.Palette.AdditionalImages
+	} else {
+		a.state.AdditionalImages = []string{}
+	}
 	a.state.Adjustments = a.adjustmentsFromBlueprint(bp)
 	a.state.AppOverrides = a.appOverridesFromBlueprint(bp)
 	return nil
@@ -388,6 +394,11 @@ func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
+	if bp.Palette.AdditionalImages != nil {
+		a.state.AdditionalImages = bp.Palette.AdditionalImages
+	} else {
+		a.state.AdditionalImages = []string{}
+	}
 	a.state.Adjustments = a.adjustmentsFromBlueprint(bp)
 	a.state.AppOverrides = a.appOverridesFromBlueprint(bp)
 

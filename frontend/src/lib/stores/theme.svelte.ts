@@ -255,6 +255,10 @@ export function setIsApplying(v: boolean): void {
     isApplying = v;
 }
 
+export function setAdditionalImages(images: string[]): void {
+    additionalImages = [...images];
+}
+
 export function addAdditionalImage(path: string): void {
     if (!additionalImages.includes(path)) {
         additionalImages = [...additionalImages, path];

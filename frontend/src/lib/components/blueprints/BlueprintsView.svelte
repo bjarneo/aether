@@ -8,6 +8,7 @@
         setWallpaperPath,
         setAdjustments,
         setAppOverrides,
+        setAdditionalImages,
     } from '$lib/stores/theme.svelte';
     import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
 
@@ -68,6 +69,7 @@
             }
             setAdjustments(bp.adjustments ?? {...DEFAULT_ADJUSTMENTS});
             setAppOverrides(bp.appOverrides ?? {});
+            setAdditionalImages(bp.palette?.additionalImages ?? []);
             setActiveTab('editor');
             showToast(`Loaded: ${bp.name}`);
         } catch {
