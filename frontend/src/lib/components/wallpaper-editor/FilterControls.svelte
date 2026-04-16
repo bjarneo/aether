@@ -4,6 +4,7 @@
     import {
         DEFAULT_FILTERS,
         hasActiveCrop,
+        hasPaletteGrade,
         buildPaletteLUT,
         type Filters,
     } from '$lib/utils/canvas-filters';
@@ -129,9 +130,7 @@
         return canvas.toDataURL();
     });
 
-    let paletteGradeActive = $derived(
-        filters.paletteStops.length >= 2 && filters.paletteStrength > 0
-    );
+    let paletteGradeActive = $derived(hasPaletteGrade(filters));
 
     // Slider definitions per section
     const lightSliders: SliderDef[] = [

@@ -3,6 +3,8 @@
  * Works in all webkit2gtk versions.
  */
 
+import {hexToRgb, rgbToHsl01, hslToRgb01} from './color';
+
 export interface Filters {
     blur: number;
     brightness: number;
@@ -69,6 +71,10 @@ export const DEFAULT_FILTERS: Filters = {
 
 export function hasActiveCrop(f: Filters): boolean {
     return f.cropX !== 0 || f.cropY !== 0 || f.cropW !== 1 || f.cropH !== 1;
+}
+
+export function hasPaletteGrade(f: Filters): boolean {
+    return f.paletteStops.length >= 2 && f.paletteStrength > 0;
 }
 
 export function applyFilters(
@@ -139,10 +145,9 @@ export function applyFilters(
 
     // Build the palette-grade LUT once, if needed. Output depends only on source
     // luminance, so a 256-entry table captures the entire tone-map grade.
-    const paletteLUT =
-        filters.paletteStops.length >= 2 && filters.paletteStrength > 0
-            ? buildPaletteLUT(filters.paletteStops)
-            : null;
+    const paletteLUT = hasPaletteGrade(filters)
+        ? buildPaletteLUT(filters.paletteStops)
+        : null;
 
     // Single-pass per-pixel adjustments
     const needsPixel =
@@ -297,11 +302,12 @@ export function applyFilters(
                 b += lift * (1 - b / 255);
             }
 
-            // Palette grade — map this pixel's luminance to the ramp color and
-            // blend. The LUT already encodes "hue+sat from ramp, lightness from src",
-            // so we just index by source luminance and lerp by strength.
+            // Palette grade — LUT is indexed by HSL lightness (max+min)/2,
+            // consistent with how the ramp was built.
             if (paletteLUT) {
-                const y = (0.2126 * r + 0.7152 * g + 0.0722 * b) | 0;
+                const cMax = r > g ? (r > b ? r : b) : g > b ? g : b;
+                const cMin = r < g ? (r < b ? r : b) : g < b ? g : b;
+                const y = ((cMax + cMin) / 2) | 0;
                 const yi = y < 0 ? 0 : y > 255 ? 255 : y;
                 const base = yi * 3;
                 const t = paletteBlend;
@@ -506,7 +512,7 @@ export function hasActiveFilters(f: Filters): boolean {
         f.clarity > 0 ||
         f.posterize > 0 ||
         f.noise > 0 ||
-        (f.paletteStops.length >= 2 && f.paletteStrength > 0) ||
+        hasPaletteGrade(f) ||
         hasActiveCrop(f) ||
         f.resizeW !== 0 ||
         f.resizeH !== 0
@@ -537,9 +543,12 @@ export function buildPaletteLUT(stops: string[]): Uint8ClampedArray | null {
     // swatches in any order and the grade always runs shadow→highlight.
     const hsl: {h: number; s: number; l: number}[] = [];
     for (const hex of stops) {
-        const parsed = parseHexRgb(hex);
-        if (!parsed) return null;
-        hsl.push(rgbToHsl01(parsed.r, parsed.g, parsed.b));
+        const {r, g, b} = hexToRgb(hex);
+        if (r === 0 && g === 0 && b === 0 && hex !== '#000000') {
+            // hexToRgb returns {0,0,0} for invalid input
+            return null;
+        }
+        hsl.push(rgbToHsl01(r, g, b));
     }
     hsl.sort((a, b) => a.l - b.l);
 
@@ -567,60 +576,6 @@ export function buildPaletteLUT(stops: string[]): Uint8ClampedArray | null {
         lut[y * 3 + 2] = Math.round(bb * 255);
     }
     return lut;
-}
-
-function parseHexRgb(hex: string): {r: number; g: number; b: number} | null {
-    if (!hex || typeof hex !== 'string') return null;
-    const h = hex.startsWith('#') ? hex.slice(1) : hex;
-    if (h.length !== 6) return null;
-    const n = parseInt(h, 16);
-    if (Number.isNaN(n)) return null;
-    return {r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff};
-}
-
-// RGB (0-255) → HSL (h,s,l in 0..1)
-function rgbToHsl01(
-    r: number,
-    g: number,
-    b: number
-): {h: number; s: number; l: number} {
-    const rn = r / 255,
-        gn = g / 255,
-        bn = b / 255;
-    const max = Math.max(rn, gn, bn);
-    const min = Math.min(rn, gn, bn);
-    const l = (max + min) / 2;
-    let h = 0;
-    let s = 0;
-    if (max !== min) {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
-        else if (max === gn) h = ((bn - rn) / d + 2) / 6;
-        else h = ((rn - gn) / d + 4) / 6;
-    }
-    return {h, s, l};
-}
-
-// HSL (0..1) → RGB (0..1)
-function hslToRgb01(h: number, s: number, l: number): [number, number, number] {
-    if (s === 0) return [l, l, l];
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    return [
-        hue2rgb(p, q, h + 1 / 3),
-        hue2rgb(p, q, h),
-        hue2rgb(p, q, h - 1 / 3),
-    ];
-}
-
-function hue2rgb(p: number, q: number, t: number): number {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
 }
 
 // Interpolate hue (0..1) along the shortest arc around the wheel.
