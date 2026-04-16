@@ -65,9 +65,7 @@
         }}
         onkeydown={e => e.key === 'Escape' && onclose()}
     >
-        <div
-            class="w-80 border border-[rgba(255,255,255,0.08)] bg-[#131318] shadow-2xl"
-        >
+        <div class="border-border bg-bg-secondary w-80 border shadow-2xl">
             <div class="p-6 text-center">
                 <!-- ASCII "A" logo with one color per line -->
                 <pre
@@ -111,9 +109,7 @@
                 </div>
             </div>
 
-            <div
-                class="flex justify-center border-t border-[rgba(255,255,255,0.06)] p-3"
-            >
+            <div class="border-border flex justify-center border-t p-3">
                 <button
                     class="bg-accent hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium text-[#111116]"
                     onclick={onclose}>Close</button

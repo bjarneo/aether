@@ -141,7 +141,7 @@
     >
         <!-- Top toolbar -->
         <div
-            class="flex h-11 shrink-0 items-center justify-between border-b border-[rgba(255,255,255,0.06)] bg-[#0c0c10] px-5"
+            class="border-border bg-bg-secondary flex h-11 shrink-0 items-center justify-between border-b px-5"
         >
             <div class="flex items-center gap-3">
                 <span
@@ -172,7 +172,7 @@
 
         <!-- Main content -->
         <div class="flex flex-1 overflow-hidden">
-            <div class="flex flex-1 flex-col bg-[#080809]">
+            <div class="bg-bg-primary flex flex-1 flex-col">
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                     class="relative flex flex-1 items-center justify-center overflow-hidden p-6"
@@ -253,7 +253,7 @@
 
                 <!-- Bottom bar -->
                 <div
-                    class="flex items-center justify-between border-t border-[rgba(255,255,255,0.06)] bg-[#0c0c10] px-5 py-2"
+                    class="border-border bg-bg-secondary flex items-center justify-between border-t px-5 py-2"
                 >
                     <span class="text-fg-dimmed text-[10px]">
                         {#if showOriginal}
@@ -269,7 +269,7 @@
             </div>
 
             <div
-                class="flex w-72 flex-col border-l border-[rgba(255,255,255,0.06)] bg-[#0e0e13]"
+                class="border-border bg-bg-secondary flex w-72 flex-col border-l"
             >
                 <FilterControls
                     bind:filters

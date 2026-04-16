@@ -88,7 +88,7 @@
             >
                 <!-- Preview image -->
                 <div
-                    class="flex aspect-video items-center justify-center overflow-hidden bg-[#0a0a0e]"
+                    class="bg-bg-primary flex aspect-video items-center justify-center overflow-hidden"
                 >
                     {#if theme.wallpapers?.length > 0 && getCachedThumbnail(theme.wallpapers[0])}
                         <img

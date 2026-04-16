@@ -208,12 +208,10 @@
             if (e.target === e.currentTarget) closeColorPicker();
         }}
     >
-        <div
-            class="w-[340px] border border-[rgba(255,255,255,0.08)] bg-[#131318] shadow-2xl"
-        >
+        <div class="border-border bg-bg-secondary w-[340px] border shadow-2xl">
             <!-- Header -->
             <div
-                class="flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] px-4 py-3"
+                class="border-border flex items-center justify-between border-b px-4 py-3"
             >
                 <div>
                     <span class="text-fg-primary text-[12px] font-medium"
@@ -254,7 +252,7 @@
                 <!-- Color preview + hex input -->
                 <div class="flex gap-3">
                     <label
-                        class="relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden border border-[rgba(255,255,255,0.08)]"
+                        class="border-border relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden border"
                     >
                         <div
                             class="absolute inset-0"
@@ -278,9 +276,9 @@
                             >
                             <input
                                 type="text"
-                                class="text-fg-primary w-full border bg-[#0c0c10] px-2.5 py-1.5 font-mono text-[13px] outline-none
+                                class="text-fg-primary bg-bg-secondary w-full border px-2.5 py-1.5 font-mono text-[13px] outline-none
                   {isValid
-                                    ? 'focus:border-accent border-[rgba(255,255,255,0.08)]'
+                                    ? 'focus:border-accent border-border'
                                     : 'border-destructive'}"
                                 data-color-hex-input
                                 value={hexInput}
@@ -300,7 +298,7 @@
                                     class="relative h-5 w-9 transition-colors duration-150
                     {locked
                                         ? 'bg-accent'
-                                        : 'border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.06)]'}"
+                                        : 'border-border bg-bg-elevated border'}"
                                     onclick={toggleLock}
                                     role="switch"
                                     aria-checked={locked}
@@ -332,7 +330,7 @@
                                 class="relative h-3 flex-1"
                                 style="background: {channelGradient(
                                     channel
-                                )}; border: 1px solid rgba(255,255,255,0.06);"
+                                )}; border: 1px solid var(--color-border);"
                             >
                                 <input
                                     type="range"

@@ -39,10 +39,10 @@
                 <div
                     class="group relative h-10 overflow-hidden border transition-all duration-150
             {locked
-                        ? 'cursor-default border-[rgba(255,255,255,0.03)]'
+                        ? 'border-border cursor-default'
                         : sel
                           ? 'border-accent cursor-pointer border-2'
-                          : 'hover:border-accent cursor-pointer border-[rgba(255,255,255,0.06)] hover:z-10 hover:scale-[1.04]'}"
+                          : 'hover:border-accent border-border cursor-pointer hover:z-10 hover:scale-[1.04]'}"
                     style:background-color={hex}
                     onclick={e => {
                         if (e.ctrlKey || e.metaKey) {

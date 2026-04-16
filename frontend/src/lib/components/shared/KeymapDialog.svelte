@@ -47,7 +47,7 @@
     >
         <div class="border-border bg-bg-secondary w-[360px] border shadow-2xl">
             <div
-                class="flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] px-4 py-3"
+                class="border-border flex items-center justify-between border-b px-4 py-3"
             >
                 <span class="text-fg-primary text-[12px] font-medium"
                     >Keyboard Shortcuts</span
@@ -71,9 +71,7 @@
             <div class="max-h-[60vh] overflow-y-auto p-4">
                 {#each keybindings as section, i}
                     {#if i > 0}
-                        <div
-                            class="my-3 border-t border-[rgba(255,255,255,0.06)]"
-                        ></div>
+                        <div class="border-border my-3 border-t"></div>
                     {/if}
                     <span
                         class="text-fg-dimmed mb-2 block text-[9px] uppercase tracking-wider"
@@ -87,7 +85,7 @@
                             <div class="flex gap-1">
                                 {#each bind.keys.split('+') as part}
                                     <kbd
-                                        class="text-fg-primary min-w-[24px] border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.05)] px-1.5 py-0.5 text-center font-mono text-[10px]"
+                                        class="text-fg-primary border-border bg-bg-hover min-w-[24px] border px-1.5 py-0.5 text-center font-mono text-[10px]"
                                         >{part}</kbd
                                     >
                                 {/each}

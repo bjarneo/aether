@@ -65,7 +65,7 @@
         </button>
     {:else}
         <button
-            class="text-fg-dimmed hover:text-fg-secondary flex items-center gap-1 border border-[rgba(255,255,255,0.08)] px-2 py-1 text-[10px] transition-colors hover:border-[rgba(255,255,255,0.15)]"
+            class="text-fg-dimmed hover:text-fg-secondary border-border hover:border-border-focus flex items-center gap-1 border px-2 py-1 text-[10px] transition-colors"
             onclick={toggle}
         >
             <svg
@@ -93,14 +93,14 @@
             }}
         ></div>
         <div
-            class="absolute bottom-full left-0 z-50 mb-1 min-w-[160px] border border-[rgba(255,255,255,0.12)] bg-[#1a1a20] shadow-xl"
+            class="border-border-focus bg-bg-secondary absolute bottom-full left-0 z-50 mb-1 min-w-[160px] border shadow-xl"
         >
             {#if allLabels.length > 0}
                 <div class="p-1">
                     {#each allLabels as label}
                         <div class="group/label flex items-center">
                             <button
-                                class="flex flex-1 items-center gap-2 px-2.5 py-1.5 text-left text-[11px] transition-colors hover:bg-[rgba(255,255,255,0.06)]
+                                class="hover:bg-bg-hover flex flex-1 items-center gap-2 px-2.5 py-1.5 text-left text-[11px] transition-colors
                   {currentLabel?.id === label.id
                                     ? 'text-fg-primary'
                                     : 'text-fg-secondary'}"
@@ -149,15 +149,15 @@
             {/if}
 
             {#if currentLabel}
-                <div class="border-t border-[rgba(255,255,255,0.08)] p-1">
+                <div class="border-border border-t p-1">
                     <button
-                        class="text-fg-dimmed hover:text-fg-secondary w-full px-2.5 py-1.5 text-left text-[11px] transition-colors hover:bg-[rgba(255,255,255,0.06)]"
+                        class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover w-full px-2.5 py-1.5 text-left text-[11px] transition-colors"
                         onclick={remove}>Remove label</button
                     >
                 </div>
             {/if}
 
-            <div class="border-t border-[rgba(255,255,255,0.08)] p-1">
+            <div class="border-border border-t p-1">
                 {#if creating}
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div
@@ -170,7 +170,7 @@
                                 <button
                                     class="h-4 w-4 transition-all
                     {newColor === c
-                                        ? 'scale-110 ring-1 ring-white ring-offset-1 ring-offset-[#1a1a20]'
+                                        ? 'ring-offset-bg-secondary scale-110 ring-1 ring-white ring-offset-1'
                                         : 'hover:scale-110'}"
                                     style:background-color={c}
                                     onclick={e => {
@@ -188,7 +188,7 @@
                             ></span>
                             <input
                                 type="text"
-                                class="text-fg-primary focus:border-accent flex-1 border border-[rgba(255,255,255,0.12)] bg-[#0e0e13] px-2 py-1 text-[11px] outline-none"
+                                class="text-fg-primary focus:border-accent border-border-focus bg-bg-secondary flex-1 border px-2 py-1 text-[11px] outline-none"
                                 placeholder="Name..."
                                 bind:value={newName}
                                 onkeydown={e => {
@@ -220,7 +220,7 @@
                     </div>
                 {:else}
                     <button
-                        class="text-accent w-full px-2.5 py-1.5 text-left text-[11px] transition-colors hover:bg-[rgba(255,255,255,0.06)]"
+                        class="text-accent hover:bg-bg-hover w-full px-2.5 py-1.5 text-left text-[11px] transition-colors"
                         onclick={e => {
                             e.stopPropagation();
                             creating = true;

@@ -180,7 +180,7 @@
                             onclick={() => handleSelect(wp)}
                         >
                             <div
-                                class="aspect-video overflow-hidden bg-[#0a0a0e]"
+                                class="bg-bg-primary aspect-video overflow-hidden"
                             >
                                 <LazyImage path={wp.path} alt={wp.name} />
                             </div>

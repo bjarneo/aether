@@ -98,7 +98,7 @@
 </script>
 
 <div class="bg-bg-surface border-border group relative overflow-hidden border">
-    <div class="aspect-video overflow-hidden bg-[#0a0a0e]">
+    <div class="bg-bg-primary aspect-video overflow-hidden">
         <img
             src={wallpaper.thumbs?.large ||
                 wallpaper.thumbs?.original ||

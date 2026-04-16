@@ -192,7 +192,7 @@
                             class="group relative flex h-8 min-w-[38px] flex-1 cursor-pointer items-end justify-center overflow-hidden border transition-all duration-100
                             {isOverridden
                                 ? 'border-accent'
-                                : 'border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]'}"
+                                : 'border-border hover:border-border-focus'}"
                             style:background-color={display}
                             onclick={() =>
                                 openOverrideColorPicker(selectedApp, role)}

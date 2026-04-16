@@ -72,7 +72,7 @@
         <div class="grid grid-cols-4 gap-1.5">
             {#each getAdditionalImages() as img (img)}
                 <div
-                    class="border-border group relative aspect-video overflow-hidden border bg-[#0a0a0e]"
+                    class="border-border bg-bg-primary group relative aspect-video overflow-hidden border"
                 >
                     {#if thumbnails[img]}
                         <img

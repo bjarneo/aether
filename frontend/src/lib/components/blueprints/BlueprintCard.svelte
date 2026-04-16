@@ -34,7 +34,7 @@
 <div class="bg-bg-surface border-border group overflow-hidden border">
     <!-- Wallpaper preview -->
     <div
-        class="flex aspect-video items-center justify-center overflow-hidden bg-[#0a0a0e]"
+        class="bg-bg-primary flex aspect-video items-center justify-center overflow-hidden"
     >
         {#if getCachedThumbnail(blueprint.palette?.wallpaper)}
             <img

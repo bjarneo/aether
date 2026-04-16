@@ -433,7 +433,7 @@
 
 <div class="flex h-full flex-col">
     <div class="flex-1 overflow-y-auto">
-        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+        <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Light"
                 bind:expanded={lightExpanded}
@@ -443,7 +443,7 @@
             </ExpandableSection>
         </section>
 
-        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+        <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Color"
                 bind:expanded={colorExpanded}
@@ -453,7 +453,7 @@
             </ExpandableSection>
         </section>
 
-        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+        <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Palette Grade"
                 bind:expanded={paletteExpanded}
@@ -480,7 +480,7 @@
                                 class="relative aspect-square border transition-all duration-100
                                     {picked
                                     ? 'border-accent ring-accent/40 ring-1'
-                                    : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.25)]'}
+                                    : 'border-border hover:border-border-focus'}
                                     {capped ? 'opacity-30' : ''}"
                                 style="background-color: {hex}"
                                 title={picked
@@ -527,12 +527,12 @@
                             <img
                                 src={rampPreviewUrl}
                                 alt="Effective LUT"
-                                class="h-6 w-full border border-[rgba(255,255,255,0.08)]"
+                                class="border-border h-6 w-full border"
                                 style="image-rendering: pixelated; object-fit: fill;"
                             />
                         {:else}
                             <div
-                                class="h-6 border border-[rgba(255,255,255,0.08)]"
+                                class="border-border h-6 border"
                                 style={filters.paletteStops.length === 1
                                     ? `background: ${filters.paletteStops[0]}`
                                     : 'background: repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 4px, transparent 4px 8px)'}
@@ -596,7 +596,7 @@
             </ExpandableSection>
         </section>
 
-        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+        <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Detail"
                 bind:expanded={detailExpanded}
@@ -606,7 +606,7 @@
             </ExpandableSection>
         </section>
 
-        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+        <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Transform"
                 bind:expanded={cropMode}
@@ -629,7 +629,7 @@
                                     class="border py-2 text-[10px] font-medium transition-all duration-100
                                         {cropAspectRatio === preset.ratio
                                         ? 'text-accent border-accent/30 bg-accent/10'
-                                        : 'text-fg-secondary border-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.04)]'}"
+                                        : 'text-fg-secondary border-border hover:bg-bg-surface'}"
                                     onclick={() =>
                                         applyCropPreset(preset.ratio)}
                                     >{preset.label}</button
@@ -644,7 +644,7 @@
                         {/if}
                     </div>
 
-                    <div class="border-t border-[rgba(255,255,255,0.06)]"></div>
+                    <div class="border-border border-t"></div>
 
                     <!-- Resize -->
                     <div class="space-y-2">
@@ -660,7 +660,7 @@
                                     >
                                     <input
                                         type="number"
-                                        class="text-fg-primary placeholder:text-fg-dimmed w-full border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] px-2 py-1.5 text-[11px]"
+                                        class="text-fg-primary placeholder:text-fg-dimmed border-border bg-bg-surface w-full border px-2 py-1.5 text-[11px]"
                                         placeholder={String(
                                             Math.round(
                                                 filters.cropW * naturalWidth
@@ -676,7 +676,7 @@
                                     >
                                     <input
                                         type="number"
-                                        class="text-fg-primary placeholder:text-fg-dimmed w-full border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.04)] px-2 py-1.5 text-[11px]"
+                                        class="text-fg-primary placeholder:text-fg-dimmed border-border bg-bg-surface w-full border px-2 py-1.5 text-[11px]"
                                         placeholder={String(
                                             Math.round(
                                                 filters.cropH * naturalHeight
@@ -691,7 +691,7 @@
                                 class="mt-5 flex h-[62px] w-6 items-center justify-center border transition-colors
                                     {resizeLocked
                                     ? 'border-accent/30 text-accent bg-accent/10'
-                                    : 'text-fg-dimmed hover:text-fg-secondary border-[rgba(255,255,255,0.06)]'}"
+                                    : 'text-fg-dimmed hover:text-fg-secondary border-border'}"
                                 onclick={() => (resizeLocked = !resizeLocked)}
                                 title={resizeLocked
                                     ? 'Unlock aspect ratio'
@@ -733,13 +733,13 @@
             </ExpandableSection>
         </section>
 
-        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+        <section class="border-border border-b p-3">
             <ExpandableSection title="Presets" bind:expanded={presetsExpanded}>
                 <div class="grid grid-cols-2 gap-2 pt-1">
                     {#each presets as preset}
                         <button
-                            class="text-fg-secondary hover:text-fg-primary border border-[rgba(255,255,255,0.06)] px-3 py-2.5 text-left
-                                text-[11px] font-medium transition-all duration-100 hover:bg-[rgba(255,255,255,0.04)]"
+                            class="text-fg-secondary hover:text-fg-primary border-border hover:bg-bg-surface border px-3 py-2.5
+                                text-left text-[11px] font-medium transition-all duration-100"
                             onclick={() => applyPreset(preset)}
                             >{preset.name}</button
                         >

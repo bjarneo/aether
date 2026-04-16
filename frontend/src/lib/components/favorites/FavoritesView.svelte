@@ -219,7 +219,7 @@
                         class="bg-bg-surface border-border group relative border"
                     >
                         <div
-                            class="flex aspect-video items-center justify-center overflow-hidden bg-[#0a0a0e]"
+                            class="bg-bg-primary flex aspect-video items-center justify-center overflow-hidden"
                         >
                             {#if getCachedThumbnail(fav.path)}
                                 <img
