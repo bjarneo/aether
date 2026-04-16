@@ -165,7 +165,7 @@
                     class="bg-accent hover:bg-accent-hover px-5 py-1.5 text-[11px] font-medium text-[#111116] transition-colors disabled:opacity-40"
                     onclick={handleApply}
                     disabled={isProcessing || !hasChanges}
-                    >{isProcessing ? 'Exporting...' : 'Apply & Extract'}</button
+                    >{isProcessing ? 'Exporting...' : 'Apply'}</button
                 >
             </div>
         </div>
@@ -173,9 +173,15 @@
         <!-- Main content -->
         <div class="flex flex-1 overflow-hidden">
             <div class="flex flex-1 flex-col bg-[#080809]">
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                     class="relative flex flex-1 items-center justify-center overflow-hidden p-6"
                     bind:this={previewAreaEl}
+                    onmousedown={() => {
+                        if (!cropMode && hasChanges) showOriginal = true;
+                    }}
+                    onmouseup={() => (showOriginal = false)}
+                    onmouseleave={() => (showOriginal = false)}
                 >
                     {#if originalUrl && isVideo}
                         <!-- svelte-ignore a11y_media_has_caption -->
@@ -197,15 +203,20 @@
                             onload={handleImageLoad}
                         />
 
-                        <!-- Visible preview -->
+                        <!-- Single image — width/height pinned to original's
+                             natural dimensions so the element computes the same
+                             display size regardless of which src is loaded -->
                         <img
                             bind:this={displayImgEl}
                             src={showOriginal || !previewUrl
                                 ? originalUrl
                                 : previewUrl}
                             alt="Preview"
-                            class="max-h-full max-w-full object-contain"
+                            width={naturalWidth || undefined}
+                            height={naturalHeight || undefined}
+                            class="max-h-full max-w-full select-none object-contain"
                             style="filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5))"
+                            draggable="false"
                         />
 
                         <!-- Crop overlay -->
@@ -244,21 +255,14 @@
                 <div
                     class="flex items-center justify-between border-t border-[rgba(255,255,255,0.06)] bg-[#0c0c10] px-5 py-2"
                 >
-                    <button
-                        class="text-fg-dimmed hover:text-fg-secondary border border-[rgba(255,255,255,0.06)] px-3 py-1 text-[10px] transition-colors"
-                        onmousedown={() => (showOriginal = true)}
-                        onmouseup={() => (showOriginal = false)}
-                        onmouseleave={() => (showOriginal = false)}
-                        >{showOriginal
-                            ? 'Showing Original'
-                            : 'Hold to Compare'}</button
-                    >
-
                     <span class="text-fg-dimmed text-[10px]">
-                        {#if cropMode}
+                        {#if showOriginal}
+                            Showing Original
+                        {:else if cropMode}
                             Drag corners to crop · Drag inside to move
                         {:else}
-                            Live preview · Double-click slider to reset
+                            Click & hold image to compare · Double-click slider
+                            to reset
                         {/if}
                     </span>
                 </div>

@@ -25,6 +25,8 @@ export interface Filters {
     clarity: number; // 0-100 (local contrast)
     posterize: number; // 0-10 (color levels, 0=off)
     noise: number; // 0-100 (color noise, not mono)
+    paletteStops: string[]; // ordered hex colors forming a tone ramp (shadows→highlights); 0, 2, 3, or 4 entries
+    paletteStrength: number; // 0-100 blend of palette grade over original
     cropX: number; // 0-1 percentage from left
     cropY: number; // 0-1 percentage from top
     cropW: number; // 0-1 width percentage
@@ -55,6 +57,8 @@ export const DEFAULT_FILTERS: Filters = {
     clarity: 0,
     posterize: 0,
     noise: 0,
+    paletteStops: [],
+    paletteStrength: 70,
     cropX: 0,
     cropY: 0,
     cropW: 1,
@@ -133,6 +137,13 @@ export function applyFilters(
         boxBlur(ctx, w, h, Math.max(2, Math.round(filters.oilPaint * 2)));
     }
 
+    // Build the palette-grade LUT once, if needed. Output depends only on source
+    // luminance, so a 256-entry table captures the entire tone-map grade.
+    const paletteLUT =
+        filters.paletteStops.length >= 2 && filters.paletteStrength > 0
+            ? buildPaletteLUT(filters.paletteStops)
+            : null;
+
     // Single-pass per-pixel adjustments
     const needsPixel =
         filters.brightness !== 100 ||
@@ -149,7 +160,8 @@ export function applyFilters(
         filters.tint !== 0 ||
         filters.fade > 0 ||
         filters.noise > 0 ||
-        filters.posterize > 0;
+        filters.posterize > 0 ||
+        paletteLUT !== null;
 
     if (needsPixel) {
         const imageData = ctx.getImageData(0, 0, w, h);
@@ -168,6 +180,7 @@ export function applyFilters(
                 : 1;
         const shadowAdj = filters.shadows / 200;
         const highlightAdj = filters.highlights / 200;
+        const paletteBlend = paletteLUT ? filters.paletteStrength / 100 : 0;
         const grainInt = filters.grain * 8;
         const tempWarm = filters.temperature / 100; // -1 to 1
         const tintShift = filters.tint / 100; // -1 to 1
@@ -282,6 +295,20 @@ export function applyFilters(
                 r += lift * (1 - r / 255);
                 g += lift * (1 - g / 255);
                 b += lift * (1 - b / 255);
+            }
+
+            // Palette grade — map this pixel's luminance to the ramp color and
+            // blend. The LUT already encodes "hue+sat from ramp, lightness from src",
+            // so we just index by source luminance and lerp by strength.
+            if (paletteLUT) {
+                const y = (0.2126 * r + 0.7152 * g + 0.0722 * b) | 0;
+                const yi = y < 0 ? 0 : y > 255 ? 255 : y;
+                const base = yi * 3;
+                const t = paletteBlend;
+                const inv = 1 - t;
+                r = r * inv + paletteLUT[base] * t;
+                g = g * inv + paletteLUT[base + 1] * t;
+                b = b * inv + paletteLUT[base + 2] * t;
             }
 
             // Posterize (reduce color levels)
@@ -479,8 +506,130 @@ export function hasActiveFilters(f: Filters): boolean {
         f.clarity > 0 ||
         f.posterize > 0 ||
         f.noise > 0 ||
+        (f.paletteStops.length >= 2 && f.paletteStrength > 0) ||
         hasActiveCrop(f) ||
         f.resizeW !== 0 ||
         f.resizeH !== 0
     );
+}
+
+/**
+ * Build a 256-entry RGB LUT from palette hex stops.
+ *
+ * For each possible source luminance Y ∈ [0,255], the LUT entry is the
+ * "colorize" output when a pixel of that luminance is graded through the ramp:
+ * hue+saturation are interpolated between stops at position Y/255, while
+ * lightness is pinned to Y/255 itself — matching ImageMagick's `-compose
+ * Colorize`, which preserves original brightness and only repaints chroma.
+ *
+ * Because the output depends solely on source luminance, one 1D table captures
+ * the entire grade. Per-pixel apply is then O(1): luminance → table lookup → lerp.
+ *
+ * Stops are auto-sorted by luminance before building the ramp, so click order
+ * doesn't matter — darkest color always anchors shadows, brightest anchors
+ * highlights. 2 stops = duotone, 3 stops = shadow/mid/highlight, 4+ = split-tone.
+ */
+export function buildPaletteLUT(stops: string[]): Uint8ClampedArray | null {
+    if (stops.length < 2) return null;
+
+    // Parse all stops to HSL (h, s, l in 0..1), then sort by lightness.
+    // Sorting here makes the UI's pick order irrelevant — users can click
+    // swatches in any order and the grade always runs shadow→highlight.
+    const hsl: {h: number; s: number; l: number}[] = [];
+    for (const hex of stops) {
+        const parsed = parseHexRgb(hex);
+        if (!parsed) return null;
+        hsl.push(rgbToHsl01(parsed.r, parsed.g, parsed.b));
+    }
+    hsl.sort((a, b) => a.l - b.l);
+
+    const lut = new Uint8ClampedArray(256 * 3);
+    const segs = hsl.length - 1;
+
+    for (let y = 0; y < 256; y++) {
+        const t = y / 255;
+        // Find which segment t falls in and the local [0,1] interp factor
+        const pos = t * segs;
+        const i0 = Math.min(segs - 1, Math.floor(pos));
+        const f = pos - i0;
+        const a = hsl[i0];
+        const b = hsl[i0 + 1];
+
+        // Interpolate hue along shortest arc
+        const h = lerpHue(a.h, b.h, f);
+        const s = a.s * (1 - f) + b.s * f;
+        // Lightness = source luminance — this is the "keep original brightness" trick
+        const l = t;
+
+        const [rr, gg, bb] = hslToRgb01(h, s, l);
+        lut[y * 3] = Math.round(rr * 255);
+        lut[y * 3 + 1] = Math.round(gg * 255);
+        lut[y * 3 + 2] = Math.round(bb * 255);
+    }
+    return lut;
+}
+
+function parseHexRgb(hex: string): {r: number; g: number; b: number} | null {
+    if (!hex || typeof hex !== 'string') return null;
+    const h = hex.startsWith('#') ? hex.slice(1) : hex;
+    if (h.length !== 6) return null;
+    const n = parseInt(h, 16);
+    if (Number.isNaN(n)) return null;
+    return {r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff};
+}
+
+// RGB (0-255) → HSL (h,s,l in 0..1)
+function rgbToHsl01(
+    r: number,
+    g: number,
+    b: number
+): {h: number; s: number; l: number} {
+    const rn = r / 255,
+        gn = g / 255,
+        bn = b / 255;
+    const max = Math.max(rn, gn, bn);
+    const min = Math.min(rn, gn, bn);
+    const l = (max + min) / 2;
+    let h = 0;
+    let s = 0;
+    if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+        else if (max === gn) h = ((bn - rn) / d + 2) / 6;
+        else h = ((rn - gn) / d + 4) / 6;
+    }
+    return {h, s, l};
+}
+
+// HSL (0..1) → RGB (0..1)
+function hslToRgb01(h: number, s: number, l: number): [number, number, number] {
+    if (s === 0) return [l, l, l];
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    return [
+        hue2rgb(p, q, h + 1 / 3),
+        hue2rgb(p, q, h),
+        hue2rgb(p, q, h - 1 / 3),
+    ];
+}
+
+function hue2rgb(p: number, q: number, t: number): number {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+}
+
+// Interpolate hue (0..1) along the shortest arc around the wheel.
+function lerpHue(a: number, b: number, t: number): number {
+    let d = b - a;
+    if (d > 0.5) d -= 1;
+    else if (d < -0.5) d += 1;
+    let h = a + d * t;
+    if (h < 0) h += 1;
+    if (h >= 1) h -= 1;
+    return h;
 }

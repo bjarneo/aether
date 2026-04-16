@@ -4,8 +4,13 @@
     import {
         DEFAULT_FILTERS,
         hasActiveCrop,
+        buildPaletteLUT,
         type Filters,
     } from '$lib/utils/canvas-filters';
+    import {getPalette} from '$lib/stores/theme.svelte';
+    import {isLightColor} from '$lib/utils/color';
+
+    const MAX_PALETTE_STOPS = 4;
 
     type SliderDef = {
         key: string;
@@ -46,8 +51,87 @@
     // Section expanded states
     let lightExpanded = $state(true);
     let colorExpanded = $state(false);
+    let paletteExpanded = $state(false);
     let detailExpanded = $state(false);
     let presetsExpanded = $state(false);
+
+    // Current theme palette — the colors.toml turned into pickable LUT stops.
+    // Filter out duplicates and empties so the picker only shows distinct colors.
+    let paletteColors = $derived.by(() => {
+        const seen = new Set<string>();
+        const out: string[] = [];
+        for (const c of getPalette()) {
+            if (!c || !c.startsWith('#') || c.length < 7) continue;
+            const key = c.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push(c);
+        }
+        return out;
+    });
+
+    function togglePaletteStop(hex: string) {
+        const stops = filters.paletteStops;
+        const idx = stops.findIndex(s => s.toLowerCase() === hex.toLowerCase());
+        let next: string[];
+        if (idx >= 0) {
+            next = stops.filter((_, i) => i !== idx);
+        } else if (stops.length >= MAX_PALETTE_STOPS) {
+            return; // cap reached
+        } else {
+            next = [...stops, hex];
+        }
+        filters = {...filters, paletteStops: next};
+        debouncedPreview();
+    }
+
+    function clearPaletteStops() {
+        filters = {
+            ...filters,
+            paletteStops: [],
+            paletteStrength: DEFAULT_FILTERS.paletteStrength,
+        };
+        debouncedPreview();
+    }
+
+    function setPaletteStrength(v: number) {
+        filters = {...filters, paletteStrength: v};
+        debouncedPreview();
+    }
+
+    function stopIndex(hex: string): number {
+        return filters.paletteStops.findIndex(
+            s => s.toLowerCase() === hex.toLowerCase()
+        );
+    }
+
+    // Render the actual effective LUT as a data-URL strip, so the preview bar
+    // shows exactly what will be applied to the image (HSL-space colorize with
+    // luminance pinned to source) — not a naive straight-RGB gradient between
+    // stops, which would misrepresent the grade.
+    let rampPreviewUrl = $derived.by(() => {
+        if (filters.paletteStops.length < 2) return '';
+        const lut = buildPaletteLUT(filters.paletteStops);
+        if (!lut) return '';
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 1;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return '';
+        const img = ctx.createImageData(256, 1);
+        for (let i = 0; i < 256; i++) {
+            img.data[i * 4] = lut[i * 3];
+            img.data[i * 4 + 1] = lut[i * 3 + 1];
+            img.data[i * 4 + 2] = lut[i * 3 + 2];
+            img.data[i * 4 + 3] = 255;
+        }
+        ctx.putImageData(img, 0, 0);
+        return canvas.toDataURL();
+    });
+
+    let paletteGradeActive = $derived(
+        filters.paletteStops.length >= 2 && filters.paletteStrength > 0
+    );
 
     // Slider definitions per section
     const lightSliders: SliderDef[] = [
@@ -367,6 +451,149 @@
                 suffix={hasModifiedSliders(colorSliders) ? ' \u2022' : ''}
             >
                 {@render renderSliders(colorSliders)}
+            </ExpandableSection>
+        </section>
+
+        <section class="border-b border-[rgba(255,255,255,0.06)] p-3">
+            <ExpandableSection
+                title="Palette Grade"
+                bind:expanded={paletteExpanded}
+                suffix={paletteGradeActive ? ' \u2022' : ''}
+            >
+                <div class="space-y-3 pt-1">
+                    <p class="text-fg-dimmed text-[10px] leading-relaxed">
+                        Click up to {MAX_PALETTE_STOPS} theme colors to build a tone
+                        ramp (shadows → highlights). Preserves original brightness;
+                        only repaints hue and saturation.
+                    </p>
+
+                    <!-- Palette swatch grid -->
+                    <div class="grid grid-cols-8 gap-1">
+                        {#each paletteColors as hex}
+                            {@const idx = stopIndex(hex)}
+                            {@const picked = idx >= 0}
+                            {@const capped =
+                                !picked &&
+                                filters.paletteStops.length >=
+                                    MAX_PALETTE_STOPS}
+                            <button
+                                type="button"
+                                class="relative aspect-square border transition-all duration-100
+                                    {picked
+                                    ? 'border-accent ring-accent/40 ring-1'
+                                    : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.25)]'}
+                                    {capped ? 'opacity-30' : ''}"
+                                style="background-color: {hex}"
+                                title={picked
+                                    ? `Stop ${idx + 1} · ${hex} — click to remove`
+                                    : capped
+                                      ? `Max ${MAX_PALETTE_STOPS} stops`
+                                      : `${hex} — click to add as stop`}
+                                disabled={capped}
+                                onclick={() => togglePaletteStop(hex)}
+                            >
+                                {#if picked}
+                                    <span
+                                        class="absolute inset-0 flex items-center justify-center text-[9px] font-bold tabular-nums"
+                                        style="color: {isLightColor(hex)
+                                            ? '#000'
+                                            : '#fff'}">{idx + 1}</span
+                                    >
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
+
+                    <!-- Ramp preview — shows the actual LUT (what each source
+                    luminance maps to), not a naive stop-to-stop RGB gradient.
+                    Auto-sorted by luminance, so shadows are on the left. -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-fg-dimmed text-[10px]">
+                                {filters.paletteStops.length === 0
+                                    ? 'No stops selected'
+                                    : filters.paletteStops.length === 1
+                                      ? '1 stop — pick one more'
+                                      : `${filters.paletteStops.length} stops · auto-sorted`}
+                            </span>
+                            {#if filters.paletteStops.length > 0}
+                                <button
+                                    type="button"
+                                    class="text-fg-dimmed hover:text-fg-secondary text-[10px] transition-colors"
+                                    onclick={clearPaletteStops}>Clear</button
+                                >
+                            {/if}
+                        </div>
+                        {#if filters.paletteStops.length >= 2 && rampPreviewUrl}
+                            <img
+                                src={rampPreviewUrl}
+                                alt="Effective LUT"
+                                class="h-6 w-full border border-[rgba(255,255,255,0.08)]"
+                                style="image-rendering: pixelated; object-fit: fill;"
+                            />
+                        {:else}
+                            <div
+                                class="h-6 border border-[rgba(255,255,255,0.08)]"
+                                style={filters.paletteStops.length === 1
+                                    ? `background: ${filters.paletteStops[0]}`
+                                    : 'background: repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 4px, transparent 4px 8px)'}
+                            ></div>
+                        {/if}
+                        <div
+                            class="text-fg-dimmed flex justify-between text-[9px]"
+                        >
+                            <span>Shadows</span>
+                            <span>Midtones</span>
+                            <span>Highlights</span>
+                        </div>
+                    </div>
+
+                    <!-- Strength slider (only matters once a ramp is valid) -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-fg-secondary text-[11px]"
+                                >Strength</span
+                            >
+                            <!-- svelte-ignore a11y_no_static_element_interactions -->
+                            <span
+                                class="min-w-[36px] cursor-pointer text-right font-mono text-[11px] tabular-nums
+                                    {filters.paletteStrength !==
+                                DEFAULT_FILTERS.paletteStrength
+                                    ? 'text-fg-primary'
+                                    : 'text-fg-dimmed'}"
+                                role="button"
+                                tabindex="-1"
+                                ondblclick={() =>
+                                    setPaletteStrength(
+                                        DEFAULT_FILTERS.paletteStrength
+                                    )}
+                                title="Double-click to reset"
+                                >{filters.paletteStrength}</span
+                            >
+                        </div>
+                        <input
+                            type="range"
+                            class="w-full cursor-pointer disabled:opacity-40"
+                            min="0"
+                            max="100"
+                            step="1"
+                            disabled={filters.paletteStops.length < 2}
+                            value={filters.paletteStrength}
+                            oninput={e =>
+                                setPaletteStrength(
+                                    parseFloat(e.currentTarget.value)
+                                )}
+                            ondblclick={() =>
+                                setPaletteStrength(
+                                    DEFAULT_FILTERS.paletteStrength
+                                )}
+                        />
+                        <p class="text-fg-dimmed text-[9px] leading-snug">
+                            ≤ 50% reads as a tint · ≥ 60% rebuilds the image in
+                            the palette.
+                        </p>
+                    </div>
+                </div>
             </ExpandableSection>
         </section>
 
