@@ -44,6 +44,7 @@ export interface Settings {
     includeVscode: boolean;
     includeNeovim: boolean;
     selectedNeovimConfig: string;
+    videoCpuMode: boolean;
 }
 
 export const DEFAULT_ADJUSTMENTS: Adjustments = {

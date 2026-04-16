@@ -162,7 +162,8 @@ func stopAetherWp() {
 }
 
 // applyWallpaperAetherWp starts aether-wp for animated wallpapers.
-func applyWallpaperAetherWp(mediaPath string) error {
+// When cpuMode is true, passes --cpu to skip GPU and use software rendering.
+func applyWallpaperAetherWp(mediaPath string, cpuMode bool) error {
 	wpBin := aetherWpPath()
 	if wpBin == "" {
 		return fmt.Errorf("aether-wp binary not found")
@@ -171,10 +172,20 @@ func applyWallpaperAetherWp(mediaPath string) error {
 	_ = platform.RunAsync("pkill", "-x", "swaybg")
 	stopAetherWp()
 
-	if err := platform.RunAsync("setsid", wpBin, mediaPath); err != nil {
+	args := []string{wpBin}
+	if cpuMode {
+		args = append(args, "--cpu")
+	}
+	args = append(args, mediaPath)
+
+	if err := platform.RunAsync("setsid", args...); err != nil {
 		return fmt.Errorf("failed to start aether-wp: %w", err)
 	}
-	log.Printf("aether-wp started for: %s", mediaPath)
+	mode := "GPU"
+	if cpuMode {
+		mode = "CPU"
+	}
+	log.Printf("aether-wp started (%s) for: %s", mode, mediaPath)
 	return nil
 }
 
@@ -215,7 +226,7 @@ func ApplyWallpaper(wallpaperPath string, settings Settings) error {
 	log.Printf("Created wallpaper symlink: %s -> %s", symlinkPath, wallpaperPath)
 
 	if IsAnimatedWallpaper(wallpaperPath) && IsAetherWpAvailable() {
-		return applyWallpaperAetherWp(wallpaperPath)
+		return applyWallpaperAetherWp(wallpaperPath, settings.VideoCpuMode)
 	}
 	return applyWallpaperSwaybg(symlinkPath)
 }

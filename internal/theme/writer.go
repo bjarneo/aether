@@ -57,6 +57,7 @@ type Settings struct {
 	IncludeNeovim        bool            `json:"includeNeovim"`
 	SelectedNeovimConfig string          `json:"selectedNeovimConfig"`
 	ExcludedApps         map[string]bool `json:"excludedApps,omitempty"`
+	VideoCpuMode         bool            `json:"videoCpuMode"`
 }
 
 // ApplyResult is returned by ApplyTheme with the outcome of theme application.
