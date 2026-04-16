@@ -106,11 +106,18 @@ export function applyFilters(
         w = Math.round(srcW * (h / srcH));
     }
 
+    // Remember full-res dimensions before capping — spatial effects (blur,
+    // oil paint) scale their radius by this ratio so the preview at maxSize
+    // matches the final export pixel-for-pixel.
+    const fullLong = Math.max(w, h);
+
     if (maxSize > 0 && (w > maxSize || h > maxSize)) {
         const scale = maxSize / Math.max(w, h);
         w = Math.round(w * scale);
         h = Math.round(h * scale);
     }
+
+    const spatialScale = Math.max(w, h) / fullLong;
 
     const canvas = document.createElement('canvas');
     canvas.width = w;
@@ -133,14 +140,24 @@ export function applyFilters(
         ctx.imageSmoothingEnabled = true;
     }
 
-    // Blur (two-pass box blur)
+    // Blur (two-pass box blur) — radius scaled to match full-res output
     if (filters.blur > 0) {
-        boxBlur(ctx, w, h, Math.max(1, Math.round(filters.blur / 10)));
+        boxBlur(
+            ctx,
+            w,
+            h,
+            Math.max(1, Math.round((filters.blur / 4) * spatialScale))
+        );
     }
 
-    // Oil paint (heavier box blur)
+    // Oil paint (heavier box blur) — radius scaled to match full-res output
     if (filters.oilPaint > 0) {
-        boxBlur(ctx, w, h, Math.max(2, Math.round(filters.oilPaint * 2)));
+        boxBlur(
+            ctx,
+            w,
+            h,
+            Math.max(2, Math.round(filters.oilPaint * 2 * spatialScale))
+        );
     }
 
     // Build the palette-grade LUT once, if needed. Output depends only on source
