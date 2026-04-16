@@ -1,7 +1,7 @@
 import type {Settings} from '$lib/types/theme';
 
 const defaults: Settings = {
-    includeGtk: true,
+    includeGtk: false,
     includeZed: true,
     includeVscode: false,
     includeNeovim: true,
