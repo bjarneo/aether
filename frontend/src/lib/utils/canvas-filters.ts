@@ -125,9 +125,12 @@ export function applyFilters(
     const ctx = canvas.getContext('2d', {willReadFrequently: true})!;
     ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, w, h);
 
-    // Pixelate (re-sample)
+    // Pixelate (re-sample) — block size scaled so preview matches export
     if (filters.pixelate > 0) {
-        const block = Math.max(2, Math.round(filters.pixelate / 5));
+        const block = Math.max(
+            2,
+            Math.round((filters.pixelate / 5) * spatialScale)
+        );
         const sw = Math.max(1, Math.round(w / block));
         const sh = Math.max(1, Math.round(h / block));
         const tmp = document.createElement('canvas');
