@@ -1,6 +1,7 @@
 <script lang="ts">
     import AdjustmentSlider from './AdjustmentSlider.svelte';
     import ExpandableSection from '$lib/components/shared/ExpandableSection.svelte';
+    import CurvesEditor from '$lib/components/wallpaper-editor/CurvesEditor.svelte';
     import {
         getAdjustments,
         setAdjustments,
@@ -17,14 +18,49 @@
         getExtendedColors,
         getBaseExtendedColors,
         setAdjustedExtendedColors,
+        getPaletteCurvePoints,
+        setPaletteCurvePoints,
     } from '$lib/stores/theme.svelte';
     import {pushState} from '$lib/stores/history.svelte';
     import {ADJUSTMENT_LIMITS} from '$lib/constants/colors';
     import {DEFAULT_ADJUSTMENTS, type Adjustments} from '$lib/types/theme';
     import {debounce} from '$lib/utils/debounce';
+    import {buildCurveLUT, applyCurveToColors} from '$lib/utils/canvas-filters';
+    import {hexToRgb} from '$lib/utils/color';
 
     let adj = $derived(getAdjustments());
     let expanded = $state(true);
+    let curvePoints = $state<[number, number][]>([]);
+
+    // Sync store → local on external changes (undo/redo)
+    $effect(() => {
+        const stored = getPaletteCurvePoints();
+        if (JSON.stringify(stored) !== JSON.stringify(curvePoints)) {
+            curvePoints = stored;
+        }
+    });
+
+    // Build a palette luminance histogram (Gaussian bumps at each color's L)
+    let paletteHistogram = $derived.by(() => {
+        const pal = getPalette();
+        const hist = new Array(256).fill(0);
+        const sigma = 8;
+        for (const hex of pal) {
+            if (!hex || hex.length < 7) continue;
+            const {r, g, b} = hexToRgb(hex);
+            const lum = Math.round((Math.max(r, g, b) + Math.min(r, g, b)) / 2);
+            for (let i = 0; i < 256; i++) {
+                const d = i - lum;
+                hist[i] += Math.exp((-d * d) / (2 * sigma * sigma));
+            }
+        }
+        return hist;
+    });
+
+    function handleCurveChange() {
+        setPaletteCurvePoints(curvePoints);
+        applyAdjustments(getAdjustments());
+    }
 
     const sliderDefs = [
         {key: 'vibrance', label: 'Vibrance'},
@@ -42,7 +78,7 @@
     ] as const;
 
     // Always adjust from basePalette so changes are non-destructive
-    // Respects locked colors and color selection
+    // Respects locked colors, color selection, and palette curve
     const applyAdjustments = debounce(async (adj: Adjustments) => {
         const base = getBasePalette();
         const locked = getLockedColors();
@@ -52,6 +88,8 @@
         const extSelActive = hasExtColorSelection();
         const anySelection = hasAnySelection();
         const baseExt = getBaseExtendedColors();
+        const curveLUT =
+            curvePoints.length > 0 ? buildCurveLUT(curvePoints) : null;
         try {
             const {AdjustPaletteColors} = await import(
                 '../../../../wailsjs/go/main/App'
@@ -61,11 +99,14 @@
             if (!(anySelection && !paletteSelActive && extSelActive)) {
                 const result = await AdjustPaletteColors(base, adj);
                 if (result && Array.isArray(result) && result.length >= 16) {
-                    const final = result.map((c: string, i: number) => {
+                    let final = result.map((c: string, i: number) => {
                         if (locked[i]) return base[i];
                         if (paletteSelActive && !selected[i]) return base[i];
                         return c;
                     });
+                    if (curveLUT) {
+                        final = applyCurveToColors(final, curveLUT);
+                    }
                     setAdjustedPalette(final);
                 }
             }
@@ -78,11 +119,21 @@
                     const extKeys = Object.keys(baseExt);
                     const adjusted: Record<string, string> = {};
                     extKeys.forEach((key, i) => {
-                        adjusted[key] =
+                        const val =
                             extSelActive && !selectedExt[key]
                                 ? baseExt[key]
                                 : extResult[i];
+                        adjusted[key] = val;
                     });
+                    if (curveLUT) {
+                        const curvedExt = applyCurveToColors(
+                            Object.values(adjusted),
+                            curveLUT
+                        );
+                        Object.keys(adjusted).forEach((key, i) => {
+                            adjusted[key] = curvedExt[i];
+                        });
+                    }
                     setAdjustedExtendedColors(adjusted);
                 }
             }
@@ -125,11 +176,21 @@
     function resetAll() {
         pushState(getPalette(), getExtendedColors(), getAdjustments());
         setAdjustments({...DEFAULT_ADJUSTMENTS});
+        curvePoints = [];
+        setPaletteCurvePoints([]);
         setPalette(getBasePalette(), true);
     }
 </script>
 
 <ExpandableSection title="Color Adjustments" bind:expanded>
+    <div class="mb-3">
+        <CurvesEditor
+            bind:points={curvePoints}
+            histogram={paletteHistogram}
+            onchange={handleCurveChange}
+        />
+    </div>
+
     <button
         class="text-fg-dimmed hover:text-fg-secondary mb-2 text-[10px]"
         onclick={resetAll}

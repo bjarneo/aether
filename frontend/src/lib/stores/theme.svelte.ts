@@ -20,6 +20,7 @@ let isExtracting = $state<boolean>(false);
 let isApplying = $state<boolean>(false);
 let additionalImages = $state<string[]>([]);
 let appOverrides = $state<Record<string, Record<string, string>>>({});
+let paletteCurvePoints = $state<[number, number][]>([]);
 
 // Extended colors — independent from palette, initialized from palette on extract/load
 let extendedColors = $state<Record<string, string>>({
@@ -129,6 +130,12 @@ export function getBaseExtendedColors(): Record<string, string> {
 }
 export function getAppOverrides(): Record<string, Record<string, string>> {
     return appOverrides;
+}
+export function getPaletteCurvePoints(): [number, number][] {
+    return paletteCurvePoints;
+}
+export function setPaletteCurvePoints(pts: [number, number][]): void {
+    paletteCurvePoints = pts;
 }
 export function setAppOverride(app: string, role: string, hex: string): void {
     const current = appOverrides[app] || {};
@@ -316,4 +323,5 @@ export function reset(): void {
     extendedColors = {...ext};
     baseExtendedColors = {...ext};
     appOverrides = {};
+    paletteCurvePoints = [];
 }

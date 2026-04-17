@@ -19,6 +19,7 @@
     import {
         applyFilters,
         hasActiveFilters,
+        computeHistogram,
         DEFAULT_FILTERS,
         type Filters,
     } from '$lib/utils/canvas-filters';
@@ -36,6 +37,7 @@
     let cropAspectRatio = $state(0);
     let displayImgEl = $state<HTMLImageElement | null>(null);
     let previewAreaEl = $state<HTMLElement | null>(null);
+    let histogram = $state<number[]>([]);
 
     let originalUrl = $derived(getCachedFullImage(getWallpaperPath()) || '');
     let isVideo = $derived(isVideoSource(originalUrl));
@@ -99,6 +101,7 @@
     function handleImageLoad(e: Event) {
         imgEl = e.target as HTMLImageElement;
         imgReady = true;
+        histogram = computeHistogram(imgEl);
     }
 
     async function handleApply() {
@@ -279,6 +282,7 @@
                     oncropaspectratio={r => (cropAspectRatio = r)}
                     {naturalWidth}
                     {naturalHeight}
+                    {histogram}
                 />
             </div>
         </div>

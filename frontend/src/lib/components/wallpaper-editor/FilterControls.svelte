@@ -1,9 +1,11 @@
 <script lang="ts">
     import {debounce} from '$lib/utils/debounce';
     import ExpandableSection from '$lib/components/shared/ExpandableSection.svelte';
+    import CurvesEditor from './CurvesEditor.svelte';
     import {
         DEFAULT_FILTERS,
         hasActiveCrop,
+        hasCurve,
         hasPaletteGrade,
         buildPaletteLUT,
         type Filters,
@@ -29,6 +31,7 @@
         oncropaspectratio = (_r: number) => {},
         naturalWidth = 0,
         naturalHeight = 0,
+        histogram = [] as number[],
     }: {
         filters: Filters;
         onpreview: () => void;
@@ -37,6 +40,7 @@
         oncropaspectratio?: (r: number) => void;
         naturalWidth?: number;
         naturalHeight?: number;
+        histogram?: number[];
     } = $props();
 
     const debouncedPreview = debounce(() => onpreview(), 300);
@@ -50,6 +54,7 @@
     }
 
     // Section expanded states
+    let curvesExpanded = $state(true);
     let lightExpanded = $state(true);
     let colorExpanded = $state(false);
     let paletteExpanded = $state(false);
@@ -433,6 +438,22 @@
 
 <div class="flex h-full flex-col">
     <div class="flex-1 overflow-y-auto">
+        <section class="border-border border-b p-3">
+            <ExpandableSection
+                title="Curves"
+                bind:expanded={curvesExpanded}
+                suffix={hasCurve(filters) ? ' \u2022' : ''}
+            >
+                <div class="pt-1">
+                    <CurvesEditor
+                        bind:points={filters.curvePoints}
+                        {histogram}
+                        onchange={debouncedPreview}
+                    />
+                </div>
+            </ExpandableSection>
+        </section>
+
         <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Light"

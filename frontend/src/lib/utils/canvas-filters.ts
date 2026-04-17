@@ -3,7 +3,7 @@
  * Works in all webkit2gtk versions.
  */
 
-import {hexToRgb, rgbToHsl01, hslToRgb01} from './color';
+import {hexToRgb, rgbToHex, rgbToHsl01, hslToRgb01} from './color';
 
 export interface Filters {
     blur: number;
@@ -27,6 +27,7 @@ export interface Filters {
     clarity: number; // 0-100 (local contrast)
     posterize: number; // 0-10 (color levels, 0=off)
     noise: number; // 0-100 (color noise, not mono)
+    curvePoints: [number, number][]; // tone-curve control points in 0..1 range; empty = identity
     paletteStops: string[]; // ordered hex colors forming a tone ramp (shadows→highlights); 0, 2, 3, or 4 entries
     paletteStrength: number; // 0-100 blend of palette grade over original
     cropX: number; // 0-1 percentage from left
@@ -59,6 +60,7 @@ export const DEFAULT_FILTERS: Filters = {
     clarity: 0,
     posterize: 0,
     noise: 0,
+    curvePoints: [],
     paletteStops: [],
     paletteStrength: 70,
     cropX: 0,
@@ -69,12 +71,139 @@ export const DEFAULT_FILTERS: Filters = {
     resizeH: 0,
 };
 
+/** Compute a 256-entry luminance histogram from an image element. */
+export function computeHistogram(img: HTMLImageElement): number[] {
+    const w = Math.min(img.naturalWidth, 512);
+    const h = Math.round(img.naturalHeight * (w / img.naturalWidth));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d', {willReadFrequently: true})!;
+    ctx.drawImage(img, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h).data;
+    const hist = new Array(256).fill(0);
+    for (let i = 0; i < d.length; i += 4) {
+        const lum = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+        hist[lum]++;
+    }
+    return hist;
+}
+
 export function hasActiveCrop(f: Filters): boolean {
     return f.cropX !== 0 || f.cropY !== 0 || f.cropW !== 1 || f.cropH !== 1;
 }
 
 export function hasPaletteGrade(f: Filters): boolean {
     return f.paletteStops.length >= 2 && f.paletteStrength > 0;
+}
+
+/** Apply a tone curve LUT to an array of hex colors (adjusts HSL lightness). */
+export function applyCurveToColors(
+    colors: string[],
+    lut: Uint8Array
+): string[] {
+    return colors.map(hex => {
+        if (!hex || hex.length < 7) return hex;
+        const {r, g, b} = hexToRgb(hex);
+        const hsl = rgbToHsl01(r, g, b);
+        const newL = lut[Math.round(hsl.l * 255)] / 255;
+        const [nr, ng, nb] = hslToRgb01(hsl.h, hsl.s, newL);
+        return rgbToHex(
+            Math.round(nr * 255),
+            Math.round(ng * 255),
+            Math.round(nb * 255)
+        );
+    });
+}
+
+export function hasCurve(f: Filters): boolean {
+    return f.curvePoints.length > 0;
+}
+
+/**
+ * Build a 256-entry tone-curve LUT from user control points using monotone
+ * cubic interpolation (Fritsch-Carlson). Endpoints (0,0) and (1,1) are
+ * implicit. Returns null when points is empty (identity curve).
+ */
+export function buildCurveLUT(points: [number, number][]): Uint8Array | null {
+    if (points.length === 0) return null;
+
+    // Merge user points with fixed endpoints, sort by x
+    const pts: {x: number; y: number}[] = [
+        {x: 0, y: 0},
+        ...points.map(([x, y]) => ({x, y})),
+        {x: 1, y: 1},
+    ].sort((a, b) => a.x - b.x);
+
+    const n = pts.length;
+    const dx: number[] = [];
+    const dy: number[] = [];
+    const m: number[] = [];
+
+    for (let i = 0; i < n - 1; i++) {
+        dx.push(pts[i + 1].x - pts[i].x);
+        dy.push(pts[i + 1].y - pts[i].y);
+        m.push(dx[i] === 0 ? 0 : dy[i] / dx[i]);
+    }
+
+    // Tangents via Fritsch-Carlson (monotone, no overshoot)
+    const tangents: number[] = new Array(n).fill(0);
+    tangents[0] = m[0];
+    tangents[n - 1] = m[n - 2];
+    for (let i = 1; i < n - 1; i++) {
+        if (m[i - 1] * m[i] <= 0) {
+            tangents[i] = 0;
+        } else {
+            tangents[i] = (m[i - 1] + m[i]) / 2;
+        }
+    }
+
+    // Fritsch-Carlson monotonicity correction
+    for (let i = 0; i < n - 1; i++) {
+        if (m[i] === 0) {
+            tangents[i] = 0;
+            tangents[i + 1] = 0;
+        } else {
+            const a = tangents[i] / m[i];
+            const b = tangents[i + 1] / m[i];
+            const s = a * a + b * b;
+            if (s > 9) {
+                const t = 3 / Math.sqrt(s);
+                tangents[i] = t * a * m[i];
+                tangents[i + 1] = t * b * m[i];
+            }
+        }
+    }
+
+    // Evaluate spline at 256 evenly spaced x values
+    const lut = new Uint8Array(256);
+    let seg = 0;
+    for (let i = 0; i < 256; i++) {
+        const x = i / 255;
+        while (seg < n - 2 && x > pts[seg + 1].x) seg++;
+        const p0 = pts[seg];
+        const p1 = pts[seg + 1];
+        const h = p1.x - p0.x;
+        if (h === 0) {
+            lut[i] = Math.round(p0.y * 255);
+            continue;
+        }
+        const t = (x - p0.x) / h;
+        const t2 = t * t;
+        const t3 = t2 * t;
+        // Cubic Hermite basis
+        const h00 = 2 * t3 - 3 * t2 + 1;
+        const h10 = t3 - 2 * t2 + t;
+        const h01 = -2 * t3 + 3 * t2;
+        const h11 = t3 - t2;
+        const val =
+            h00 * p0.y +
+            h10 * h * tangents[seg] +
+            h01 * p1.y +
+            h11 * h * tangents[seg + 1];
+        lut[i] = Math.max(0, Math.min(255, Math.round(val * 255)));
+    }
+    return lut;
 }
 
 export function applyFilters(
@@ -163,14 +292,17 @@ export function applyFilters(
         );
     }
 
-    // Build the palette-grade LUT once, if needed. Output depends only on source
-    // luminance, so a 256-entry table captures the entire tone-map grade.
+    // Build LUTs once before the pixel loop
+    const curveLUT = hasCurve(filters)
+        ? buildCurveLUT(filters.curvePoints)
+        : null;
     const paletteLUT = hasPaletteGrade(filters)
         ? buildPaletteLUT(filters.paletteStops)
         : null;
 
     // Single-pass per-pixel adjustments
     const needsPixel =
+        curveLUT !== null ||
         filters.brightness !== 100 ||
         filters.contrast !== 100 ||
         filters.saturation !== 100 ||
@@ -223,6 +355,13 @@ export function applyFilters(
             let r = d[i],
                 g = d[i + 1],
                 b = d[i + 2];
+
+            // Tone curve — applied first to establish base tonality
+            if (curveLUT) {
+                r = curveLUT[r];
+                g = curveLUT[g];
+                b = curveLUT[b];
+            }
 
             // Invert
             if (invertAmt > 0) {
@@ -511,6 +650,7 @@ function boxBlur(
 
 export function hasActiveFilters(f: Filters): boolean {
     return (
+        hasCurve(f) ||
         f.blur !== 0 ||
         f.brightness !== 100 ||
         f.contrast !== 100 ||
