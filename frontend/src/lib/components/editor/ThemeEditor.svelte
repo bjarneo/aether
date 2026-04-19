@@ -7,9 +7,10 @@
     import AppColorOverrides from './AppColorOverrides.svelte';
     import AdditionalImages from './AdditionalImages.svelte';
     import SettingsSidebar from '../sidebar/SettingsSidebar.svelte';
+    import ColorPickerDialog from '../color-picker/ColorPickerDialog.svelte';
     import WallpaperEditor from '../wallpaper-editor/WallpaperEditor.svelte';
     import {getWallpaperPath, getPalette} from '$lib/stores/theme.svelte';
-    import {getSidebarVisible} from '$lib/stores/ui.svelte';
+    import {getSidebarVisible, getColorPickerOpen} from '$lib/stores/ui.svelte';
     import {DEFAULT_PALETTE} from '$lib/types/theme';
 
     let wallpaper = $derived(getWallpaperPath());
@@ -18,11 +19,18 @@
         !!wallpaper || palette.some((c, i) => c !== DEFAULT_PALETTE[i])
     );
     let sidebarVisible = $derived(getSidebarVisible());
+    let colorPickerOpen = $derived(getColorPickerOpen());
 
     let showWallpaperEditor = $state(false);
 </script>
 
 <div class="flex h-full">
+    {#if sidebarVisible}
+        <aside class="bg-bg-secondary border-border w-64 shrink-0 border-r">
+            <SettingsSidebar />
+        </aside>
+    {/if}
+
     <div class="flex-1 overflow-y-auto p-4">
         {#if hasContent}
             {#if wallpaper}
@@ -48,9 +56,11 @@
         {/if}
     </div>
 
-    {#if sidebarVisible}
-        <aside class="bg-bg-secondary border-border w-64 shrink-0 border-l">
-            <SettingsSidebar />
+    {#if colorPickerOpen}
+        <aside
+            class="bg-bg-secondary border-border w-72 shrink-0 overflow-y-auto border-l"
+        >
+            <ColorPickerDialog />
         </aside>
     {/if}
 

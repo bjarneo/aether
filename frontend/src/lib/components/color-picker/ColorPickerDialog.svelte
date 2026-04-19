@@ -1,6 +1,5 @@
 <script lang="ts">
     import {
-        getColorPickerOpen,
         getColorPickerIndex,
         getColorPickerExtKey,
         getColorPickerOverrideApp,
@@ -25,7 +24,6 @@
     import {hexToRgb, rgbToHex} from '$lib/utils/color';
     import ShadeGrid from './ShadeGrid.svelte';
 
-    // Color role label map for override mode
     const ROLE_LABELS: Record<string, string> = {
         background: 'Background',
         foreground: 'Foreground',
@@ -65,7 +63,6 @@
         selection: 'Selection',
     };
 
-    let open = $derived(getColorPickerOpen());
     let idx = $derived(getColorPickerIndex());
     let extKey = $derived(getColorPickerExtKey());
     let overrideApp = $derived(getColorPickerOverrideApp());
@@ -73,16 +70,14 @@
     let isExtended = $derived(extKey !== '');
     let isOverride = $derived(overrideApp !== '' && overrideRole !== '');
 
-    // For override mode: get the override value and computed base color
     let overrideValue = $derived(
         isOverride ? getAppOverrides()[overrideApp]?.[overrideRole] || '' : ''
     );
 
-    // Computed variables from the backend (includes derived colors)
     let computedVars = $state<Record<string, string>>({});
 
     $effect(() => {
-        if (open && isOverride) {
+        if (isOverride) {
             import('../../../../wailsjs/go/main/App')
                 .then(({ComputeVariables}) =>
                     ComputeVariables(
@@ -102,19 +97,15 @@
     }
 
     let currentColor = $derived(
-        open
-            ? isOverride
-                ? overrideValue || getOverrideBaseColor()
-                : isExtended
-                  ? getExtendedColors()[extKey] || '#000000'
-                  : getPalette()[idx] || '#000000'
-            : '#000000'
+        isOverride
+            ? overrideValue || getOverrideBaseColor()
+            : isExtended
+              ? getExtendedColors()[extKey] || '#000000'
+              : getPalette()[idx] || '#000000'
     );
 
     let locked = $derived(
-        open && !isExtended && !isOverride
-            ? getLockedColors()[idx] || false
-            : false
+        !isExtended && !isOverride ? getLockedColors()[idx] || false : false
     );
 
     let title = $derived(
@@ -133,10 +124,8 @@
     let rgb = $derived(hexToRgb(currentColor));
 
     $effect(() => {
-        if (open) {
-            hexInput = currentColor;
-            isValid = true;
-        }
+        hexInput = currentColor;
+        isValid = true;
     });
 
     function applyColor(hex: string) {
@@ -180,16 +169,6 @@
         }
     }
 
-    $effect(() => {
-        if (open) {
-            const handler = (e: KeyboardEvent) => {
-                if (e.key === 'Escape') closeColorPicker();
-            };
-            document.addEventListener('keydown', handler);
-            return () => document.removeEventListener('keydown', handler);
-        }
-    });
-
     const RGB_CHANNELS = ['r', 'g', 'b'] as const;
     const RGB_LABELS = {r: 'R', g: 'G', b: 'B'};
 
@@ -200,177 +179,154 @@
     }
 </script>
 
-{#if open}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="flex h-full flex-col">
     <div
-        class="fixed inset-0 z-40 flex items-center justify-center bg-black/50"
-        onclick={e => {
-            if (e.target === e.currentTarget) closeColorPicker();
-        }}
+        class="border-border flex items-center justify-between border-b px-4 py-3"
     >
-        <div class="border-border bg-bg-secondary w-[340px] border shadow-2xl">
-            <!-- Header -->
-            <div
-                class="border-border flex items-center justify-between border-b px-4 py-3"
+        <div>
+            <span class="text-fg-primary text-[12px] font-medium">{title}</span>
+            <span class="text-fg-dimmed ml-2 text-[10px]">{subtitle}</span>
+        </div>
+        <div class="flex items-center gap-2">
+            {#if isOverride && overrideValue}
+                <button
+                    class="text-destructive/60 hover:text-destructive text-[10px] transition-colors"
+                    onclick={handleResetOverride}
+                >
+                    Reset
+                </button>
+            {/if}
+            <button
+                class="text-fg-dimmed hover:text-fg-primary flex h-6 w-6 items-center justify-center transition-colors"
+                onclick={closeColorPicker}
+                aria-label="Close color picker"
             >
-                <div>
-                    <span class="text-fg-primary text-[12px] font-medium"
-                        >{title}</span
-                    >
-                    <span class="text-fg-dimmed ml-2 text-[10px]"
-                        >{subtitle}</span
-                    >
-                </div>
-                <div class="flex items-center gap-2">
-                    {#if isOverride && overrideValue}
-                        <button
-                            class="text-destructive/60 hover:text-destructive text-[10px] transition-colors"
-                            onclick={handleResetOverride}
-                        >
-                            Reset
-                        </button>
-                    {/if}
-                    <button
-                        class="text-fg-dimmed hover:text-fg-primary flex h-6 w-6 items-center justify-center transition-colors"
-                        onclick={closeColorPicker}
-                    >
-                        <svg
-                            class="h-4 w-4"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                        >
-                            <path d="M18 6L6 18M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="space-y-4 p-4">
-                <!-- Color preview + hex input -->
-                <div class="flex gap-3">
-                    <label
-                        class="border-border relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden border"
-                    >
-                        <div
-                            class="absolute inset-0"
-                            style:background-color={currentColor}
-                        ></div>
-                        {#if !locked}
-                            <input
-                                type="color"
-                                value={currentColor}
-                                oninput={e => applyColor(e.currentTarget.value)}
-                                class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                            />
-                        {/if}
-                    </label>
-
-                    <div class="flex flex-1 flex-col justify-between">
-                        <div>
-                            <span
-                                class="text-fg-dimmed mb-1 block text-[9px] uppercase tracking-wider"
-                                >Hex</span
-                            >
-                            <input
-                                type="text"
-                                class="text-fg-primary bg-bg-secondary w-full border px-2.5 py-1.5 font-mono text-[13px] outline-none
-                  {isValid
-                                    ? 'focus:border-accent border-border'
-                                    : 'border-destructive'}"
-                                data-color-hex-input
-                                value={hexInput}
-                                oninput={e =>
-                                    handleHexInput(e.currentTarget.value)}
-                                maxlength={7}
-                                spellcheck={false}
-                                disabled={locked}
-                            />
-                        </div>
-                        {#if !isExtended && !isOverride}
-                            <div class="mt-2 flex items-center justify-between">
-                                <span class="text-fg-dimmed text-[10px]"
-                                    >Locked</span
-                                >
-                                <button
-                                    class="relative h-5 w-9 transition-colors duration-150
-                    {locked
-                                        ? 'bg-accent'
-                                        : 'border-border bg-bg-elevated border'}"
-                                    onclick={toggleLock}
-                                    role="switch"
-                                    aria-checked={locked}
-                                    aria-label="Lock color"
-                                >
-                                    <span
-                                        class="bg-fg-primary absolute left-0.5 top-0.5 h-4 w-4 transition-transform duration-150
-                    {locked ? 'translate-x-4' : 'translate-x-0'}"
-                                    ></span>
-                                </button>
-                            </div>
-                        {/if}
-                    </div>
-                </div>
-
-                <!-- RGB sliders -->
-                <div class="space-y-2">
-                    <span
-                        class="text-fg-dimmed text-[9px] uppercase tracking-wider"
-                        >RGB Channels</span
-                    >
-                    {#each RGB_CHANNELS as channel}
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="text-fg-dimmed w-3 font-mono text-[10px]"
-                                >{RGB_LABELS[channel]}</span
-                            >
-                            <div
-                                class="relative h-3 flex-1"
-                                style="background: {channelGradient(
-                                    channel
-                                )}; border: 1px solid var(--color-border);"
-                            >
-                                <input
-                                    type="range"
-                                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                                    min="0"
-                                    max="255"
-                                    step="1"
-                                    value={rgb[channel]}
-                                    oninput={e =>
-                                        handleRgbChange(
-                                            channel,
-                                            parseInt(e.currentTarget.value)
-                                        )}
-                                    disabled={locked}
-                                />
-                                <div
-                                    class="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-sm"
-                                    style:left="{(rgb[channel] / 255) * 100}%"
-                                ></div>
-                            </div>
-                            <span
-                                class="text-fg-dimmed w-7 text-right font-mono text-[10px]"
-                                >{rgb[channel]}</span
-                            >
-                        </div>
-                    {/each}
-                </div>
-
-                <!-- Shade grid -->
-                <div>
-                    <span
-                        class="text-fg-dimmed mb-2 block text-[9px] uppercase tracking-wider"
-                        >Shades & Tints</span
-                    >
-                    <ShadeGrid
-                        baseColor={currentColor}
-                        onselect={c => applyColor(c)}
-                    />
-                </div>
-            </div>
+                <svg
+                    class="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                >
+                    <path d="M18 6L6 18M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
     </div>
-{/if}
+
+    <div class="space-y-4 p-4">
+        <div class="flex gap-3">
+            <label
+                class="border-border relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden border"
+            >
+                <div
+                    class="absolute inset-0"
+                    style:background-color={currentColor}
+                ></div>
+                {#if !locked}
+                    <input
+                        type="color"
+                        value={currentColor}
+                        oninput={e => applyColor(e.currentTarget.value)}
+                        class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                {/if}
+            </label>
+
+            <div class="flex flex-1 flex-col justify-between">
+                <div>
+                    <span
+                        class="text-fg-dimmed mb-1 block text-[9px] uppercase tracking-wider"
+                        >Hex</span
+                    >
+                    <input
+                        type="text"
+                        class="text-fg-primary bg-bg-secondary w-full border px-2.5 py-1.5 font-mono text-[13px] outline-none
+                          {isValid
+                            ? 'focus:border-accent border-border'
+                            : 'border-destructive'}"
+                        data-color-hex-input
+                        value={hexInput}
+                        oninput={e => handleHexInput(e.currentTarget.value)}
+                        maxlength={7}
+                        spellcheck={false}
+                        disabled={locked}
+                    />
+                </div>
+                {#if !isExtended && !isOverride}
+                    <div class="mt-2 flex items-center justify-between">
+                        <span class="text-fg-dimmed text-[10px]">Locked</span>
+                        <button
+                            class="relative h-5 w-9 transition-colors duration-150
+                                {locked
+                                ? 'bg-accent'
+                                : 'border-border bg-bg-elevated border'}"
+                            onclick={toggleLock}
+                            role="switch"
+                            aria-checked={locked}
+                            aria-label="Lock color"
+                        >
+                            <span
+                                class="bg-fg-primary absolute left-0.5 top-0.5 h-4 w-4 transition-transform duration-150
+                                    {locked
+                                    ? 'translate-x-4'
+                                    : 'translate-x-0'}"
+                            ></span>
+                        </button>
+                    </div>
+                {/if}
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
+                >RGB Channels</span
+            >
+            {#each RGB_CHANNELS as channel}
+                <div class="flex items-center gap-2">
+                    <span class="text-fg-dimmed w-3 font-mono text-[10px]"
+                        >{RGB_LABELS[channel]}</span
+                    >
+                    <div
+                        class="relative h-3 flex-1"
+                        style="background: {channelGradient(
+                            channel
+                        )}; border: 1px solid var(--color-border);"
+                    >
+                        <input
+                            type="range"
+                            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            min="0"
+                            max="255"
+                            step="1"
+                            value={rgb[channel]}
+                            oninput={e =>
+                                handleRgbChange(
+                                    channel,
+                                    parseInt(e.currentTarget.value)
+                                )}
+                            disabled={locked}
+                        />
+                        <div
+                            class="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-sm"
+                            style:left="{(rgb[channel] / 255) * 100}%"
+                        ></div>
+                    </div>
+                    <span
+                        class="text-fg-dimmed w-7 text-right font-mono text-[10px]"
+                        >{rgb[channel]}</span
+                    >
+                </div>
+            {/each}
+        </div>
+
+        <div>
+            <span
+                class="text-fg-dimmed mb-2 block text-[9px] uppercase tracking-wider"
+                >Shades & Tints</span
+            >
+            <ShadeGrid baseColor={currentColor} onselect={c => applyColor(c)} />
+        </div>
+    </div>
+</div>

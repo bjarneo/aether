@@ -50,7 +50,6 @@
         pushUndo,
     } from '$lib/stores/history.svelte';
     import Toast from '$lib/components/shared/Toast.svelte';
-    import ColorPickerDialog from '$lib/components/color-picker/ColorPickerDialog.svelte';
     import AboutDialog from '$lib/components/shared/AboutDialog.svelte';
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
@@ -405,7 +404,6 @@
         </main>
         <ActionBar />
         <Toast />
-        <ColorPickerDialog />
         <AboutDialog open={showAbout} onclose={() => (showAbout = false)} />
         <KeymapDialog open={showKeymap} onclose={() => (showKeymap = false)} />
     </div>
