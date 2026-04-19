@@ -23,7 +23,14 @@
         ANSI_COLOR_NAMES,
         EXTENDED_COLOR_LABELS,
     } from '$lib/constants/colors';
-    import {hexToRgb, rgbToHex} from '$lib/utils/color';
+    import {
+        hexToRgb,
+        rgbToHex,
+        hexToHsl,
+        hslToHex,
+        relativeLuminance,
+        contrastLevel,
+    } from '$lib/utils/color';
     import ShadeGrid from './ShadeGrid.svelte';
 
     const ROLE_LABELS: Record<string, string> = {
@@ -162,6 +169,64 @@
         applyColor(rgbToHex(c.r, c.g, c.b));
     }
 
+    let hsl = $derived(hexToHsl(currentColor));
+
+    function handleHslChange(channel: 'h' | 's' | 'l', value: number) {
+        const next = {...hsl, [channel]: value};
+        applyColor(hslToHex(next.h, next.s, next.l));
+    }
+
+    // When editing an app override, prefer the role map's computed bg/fg so
+    // the ratio reflects what the target app will actually render against.
+    let contrastBg = $derived(
+        (isOverride && computedVars['background']) ||
+            getPalette()[0] ||
+            '#000000'
+    );
+    let contrastFg = $derived(
+        (isOverride && computedVars['foreground']) ||
+            getPalette()[15] ||
+            '#ffffff'
+    );
+
+    let isBgAnchor = $derived(!isExtended && !isOverride && idx === 0);
+    let isFgAnchor = $derived(!isExtended && !isOverride && idx === 15);
+
+    // Cache the current-color luminance so a slider tick doesn't gamma-decode
+    // it twice (once per ratio derived).
+    let currentLum = $derived(relativeLuminance(currentColor));
+    const ratio = (otherHex: string) => {
+        const l = relativeLuminance(otherHex);
+        const [hi, lo] = currentLum > l ? [currentLum, l] : [l, currentLum];
+        return (hi + 0.05) / (lo + 0.05);
+    };
+    let ratioBg = $derived(ratio(contrastBg));
+    let ratioFg = $derived(ratio(contrastFg));
+
+    const LEVEL_CLASSES: Record<ReturnType<typeof contrastLevel>, string> = {
+        AAA: 'text-success border-success/40',
+        AA: 'text-accent border-accent/40',
+        'AA-L': 'text-warning border-warning/40',
+        fail: 'text-destructive border-destructive/40',
+    };
+
+    let contrastPills = $derived(
+        [
+            {
+                label: 'vs bg',
+                ratio: ratioBg,
+                anchor: contrastBg,
+                show: !isBgAnchor,
+            },
+            {
+                label: 'vs fg',
+                ratio: ratioFg,
+                anchor: contrastFg,
+                show: !isFgAnchor,
+            },
+        ].filter(p => p.show)
+    );
+
     function toggleLock() {
         if (!isExtended && !isOverride) setLockedColor(idx, !locked);
     }
@@ -180,6 +245,22 @@
         const lo = {...rgb, [channel]: 0};
         const hi = {...rgb, [channel]: 255};
         return `linear-gradient(to right, ${rgbToHex(lo.r, lo.g, lo.b)}, ${rgbToHex(hi.r, hi.g, hi.b)})`;
+    }
+
+    const HSL_CHANNELS = ['h', 's', 'l'] as const;
+    const HSL_LABELS = {h: 'H', s: 'S', l: 'L'};
+    const HSL_MAX = {h: 360, s: 100, l: 100};
+    const HSL_SUFFIX = {h: '°', s: '%', l: '%'};
+    const HUE_RAINBOW =
+        'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)';
+
+    function hslChannelGradient(channel: 'h' | 's' | 'l'): string {
+        if (channel === 'h') return HUE_RAINBOW;
+        if (channel === 's') {
+            return `linear-gradient(to right, ${hslToHex(hsl.h, 0, hsl.l)}, ${hslToHex(hsl.h, 100, hsl.l)})`;
+        }
+        // l: black → pure hue at 50% lightness → white
+        return `linear-gradient(to right, #000, ${hslToHex(hsl.h, hsl.s, 50)}, #fff)`;
     }
 </script>
 
@@ -298,6 +379,34 @@
             </div>
         </div>
 
+        {#if contrastPills.length > 0}
+            <div class="space-y-1.5">
+                <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
+                    >Contrast</span
+                >
+                <div class="flex gap-1.5">
+                    {#each contrastPills as pill}
+                        {@const level = contrastLevel(pill.ratio)}
+                        <div
+                            class="flex flex-1 items-center justify-between border px-2 py-1 {LEVEL_CLASSES[
+                                level
+                            ]}"
+                            title="Contrast against {pill.anchor}"
+                        >
+                            <span class="text-fg-dimmed text-[9px]"
+                                >{pill.label}</span
+                            >
+                            <span class="font-mono text-[10px] tabular-nums"
+                                >{pill.ratio.toFixed(1)}:1</span
+                            >
+                            <span class="text-[9px] font-semibold">{level}</span
+                            >
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        {/if}
+
         <div class="space-y-2">
             <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
                 >RGB Channels</span
@@ -335,6 +444,49 @@
                     <span
                         class="text-fg-dimmed w-7 text-right font-mono text-[10px]"
                         >{rgb[channel]}</span
+                    >
+                </div>
+            {/each}
+        </div>
+
+        <div class="space-y-2">
+            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
+                >HSL Channels</span
+            >
+            {#each HSL_CHANNELS as channel}
+                <div class="flex items-center gap-2">
+                    <span class="text-fg-dimmed w-3 font-mono text-[10px]"
+                        >{HSL_LABELS[channel]}</span
+                    >
+                    <div
+                        class="relative h-3 flex-1"
+                        style="background: {hslChannelGradient(
+                            channel
+                        )}; border: 1px solid var(--color-border);"
+                    >
+                        <input
+                            type="range"
+                            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            min="0"
+                            max={HSL_MAX[channel]}
+                            step="1"
+                            value={hsl[channel]}
+                            oninput={e =>
+                                handleHslChange(
+                                    channel,
+                                    parseFloat(e.currentTarget.value)
+                                )}
+                            disabled={locked}
+                        />
+                        <div
+                            class="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-sm"
+                            style:left="{(hsl[channel] / HSL_MAX[channel]) *
+                                100}%"
+                        ></div>
+                    </div>
+                    <span
+                        class="text-fg-dimmed w-7 text-right font-mono text-[10px] tabular-nums"
+                        >{Math.round(hsl[channel])}{HSL_SUFFIX[channel]}</span
                     >
                 </div>
             {/each}

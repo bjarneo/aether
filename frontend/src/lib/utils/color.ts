@@ -111,3 +111,37 @@ export function copyColor(hex: string): void {
         .then(() => showToast(`Copied ${hex}`))
         .catch(() => {});
 }
+
+// WCAG 2.1 relative luminance — gamma-decode sRGB channels, then weight by
+// photopic luminous efficiency (Rec. 709). Returns 0..1.
+export function relativeLuminance(hex: string): number {
+    const {r, g, b} = hexToRgb(hex);
+    const chan = (v: number) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
+}
+
+// WCAG 2.1 contrast ratio. Symmetric: caller doesn't need to pass lighter first.
+// Range is 1 (no contrast) to 21 (pure black on pure white).
+export function contrastRatio(a: string, b: string): number {
+    const la = relativeLuminance(a);
+    const lb = relativeLuminance(b);
+    const [hi, lo] = la > lb ? [la, lb] : [lb, la];
+    return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * Categorize a WCAG contrast ratio. Thresholds per WCAG 2.1 SC 1.4.3 / 1.4.6:
+ *   AAA       ≥ 7   (normal text)
+ *   AA        ≥ 4.5 (normal text / AAA large)
+ *   AA-large  ≥ 3   (large text only)
+ *   fail      < 3
+ */
+export function contrastLevel(ratio: number): 'AAA' | 'AA' | 'AA-L' | 'fail' {
+    if (ratio >= 7) return 'AAA';
+    if (ratio >= 4.5) return 'AA';
+    if (ratio >= 3) return 'AA-L';
+    return 'fail';
+}
