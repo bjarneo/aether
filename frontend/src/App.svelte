@@ -52,13 +52,12 @@
         pushUndo,
     } from '$lib/stores/history.svelte';
     import Toast from '$lib/components/shared/Toast.svelte';
-    import AboutDialog from '$lib/components/shared/AboutDialog.svelte';
+    import AboutStrip from '$lib/components/layout/AboutStrip.svelte';
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
     import {hexToRgb} from '$lib/utils/color';
     import type {main} from '../wailsjs/go/models';
 
-    let showAbout = $state(false);
     let showKeymap = $state(false);
     let activeTab = $derived(getActiveTab());
     let widgetMode = $state(false);
@@ -236,7 +235,6 @@
             if (getEyedropperActive()) setEyedropperActive(false);
             else if (getColorPickerOpen()) closeColorPicker();
             else if (showKeymap) showKeymap = false;
-            else if (showAbout) showAbout = false;
         });
 
         // Listen for events from Go
@@ -388,7 +386,7 @@
     />
 {:else}
     <div class="bg-bg-primary flex h-screen flex-col">
-        <HeaderBar onabout={() => (showAbout = true)} />
+        <HeaderBar />
         <main class="flex-1 overflow-hidden">
             {#if activeTab === 'editor'}
                 <ThemeEditor />
@@ -407,8 +405,8 @@
             {/if}
         </main>
         <ActionBar />
+        <AboutStrip />
         <Toast />
-        <AboutDialog open={showAbout} onclose={() => (showAbout = false)} />
         <KeymapDialog open={showKeymap} onclose={() => (showKeymap = false)} />
     </div>
 {/if}

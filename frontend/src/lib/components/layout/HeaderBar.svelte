@@ -8,7 +8,6 @@
         type Tab,
     } from '$lib/stores/ui.svelte';
 
-    let {onabout}: {onabout?: () => void} = $props();
     let sidebarVisible = $derived(getSidebarVisible());
     let isMac = $state(false);
 
@@ -133,13 +132,4 @@
             </button>
         {/each}
     </nav>
-    {#if onabout}
-        <button
-            class="text-fg-dimmed hover:text-fg-secondary px-2 text-[10px] transition-colors duration-100"
-            class:pb-1.5={isMac}
-            onclick={onabout}
-            aria-label="About Aether"
-            style="--wails-draggable:no-drag">About</button
-        >
-    {/if}
 </header>
