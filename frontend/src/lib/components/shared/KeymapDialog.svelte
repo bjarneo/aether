@@ -31,6 +31,33 @@
                 {keys: 'Shift+Click', desc: 'Toggle selection'},
             ],
         },
+        {
+            group: 'Image Editor',
+            binds: [
+                {keys: 'C', desc: 'Toggle crop mode'},
+                {keys: 'R', desc: 'Reset all adjustments'},
+                {keys: 'B', desc: 'Toggle before/after'},
+                {keys: 'Space', desc: 'Toggle before/after'},
+                {keys: '[', desc: 'Rotate 90° CCW'},
+                {keys: ']', desc: 'Rotate 90° CW'},
+                {keys: 'F', desc: 'Flip horizontal'},
+                {keys: 'V', desc: 'Flip vertical'},
+                {keys: 'Ctrl+Z', desc: 'Undo filter change'},
+                {keys: 'Ctrl+Shift+Z', desc: 'Redo filter change'},
+                {keys: 'Ctrl+Enter', desc: 'Apply and close'},
+                {keys: 'Escape', desc: 'Exit crop / close'},
+            ],
+        },
+        {
+            group: 'Curves Editor',
+            binds: [
+                {keys: 'Click', desc: 'Add or select point'},
+                {keys: 'Ctrl+Click', desc: 'Remove point'},
+                {keys: 'Arrow Keys', desc: 'Nudge selected point'},
+                {keys: 'Shift+Arrow', desc: 'Nudge by 10×'},
+                {keys: 'Delete', desc: 'Remove selected point'},
+            ],
+        },
     ];
 </script>
 

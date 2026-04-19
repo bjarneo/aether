@@ -48,10 +48,14 @@
     const LOUPE_SAMPLES = 11; // odd so one pixel is dead-center
     const LOUPE_ZOOM = 10;
     const LOUPE_SIZE = LOUPE_SAMPLES * LOUPE_ZOOM;
+    const LOUPE_MARGIN = 20;
+    const LOUPE_HEX_STRIP = 20; // approx height of hex readout strip
     let loupeCanvas = $state<HTMLCanvasElement | null>(null);
     let loupeVisible = $state(false);
     let loupeX = $state(0);
     let loupeY = $state(0);
+    let loupeFlipX = $state(false);
+    let loupeFlipY = $state(false);
     let loupeHex = $state('#000000');
 
     $effect(() => {
@@ -177,6 +181,13 @@
 
         loupeX = e.clientX;
         loupeY = e.clientY;
+        // Flip loupe to the opposite side of the cursor when near the viewport
+        // edge, so the loupe + hex strip stay fully visible.
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        loupeFlipX = e.clientX + LOUPE_MARGIN + LOUPE_SIZE + 4 > vw;
+        loupeFlipY =
+            e.clientY + LOUPE_MARGIN + LOUPE_SIZE + LOUPE_HEX_STRIP > vh;
         loupeVisible = true;
     }
 
@@ -389,8 +400,12 @@
     <div
         class="pointer-events-none fixed z-50 transition-opacity"
         class:opacity-0={!loupeVisible}
-        style:left="{loupeX + 20}px"
-        style:top="{loupeY + 20}px"
+        style:left="{loupeFlipX
+            ? loupeX - LOUPE_MARGIN - LOUPE_SIZE - 4
+            : loupeX + LOUPE_MARGIN}px"
+        style:top="{loupeFlipY
+            ? loupeY - LOUPE_MARGIN - LOUPE_SIZE - LOUPE_HEX_STRIP
+            : loupeY + LOUPE_MARGIN}px"
     >
         <div class="relative">
             <canvas

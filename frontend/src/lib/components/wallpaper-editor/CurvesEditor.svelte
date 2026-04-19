@@ -18,13 +18,20 @@
 
     let canvasEl = $state<HTMLCanvasElement | null>(null);
     let dragging = $state<number | null>(null);
+    let selected = $state<number | null>(null);
 
-    // Redraw whenever points, histogram, or theme mode change. JSON.stringify
-    // ensures coordinate mutations (not just length changes) trigger a redraw.
+    // Clamp selection whenever points change length. Avoids a stale index
+    // pointing past the end after a deletion or reset.
+    $effect(() => {
+        if (selected !== null && selected >= points.length) selected = null;
+    });
+
+    // Redraw whenever points, histogram, selection, or theme mode change.
     $effect(() => {
         const _ = JSON.stringify(points);
         const __ = histogram.length;
         const ___ = getLightMode();
+        const ____ = selected;
         draw();
     });
 
@@ -103,24 +110,34 @@
         }
         ctx.stroke();
 
-        // Control points
-        const allPts: {x: number; y: number; fixed: boolean}[] = [
-            {x: 0, y: 0, fixed: true},
-            ...points.map(([x, y]) => ({x, y, fixed: false})),
-            {x: 1, y: 1, fixed: true},
-        ];
-
-        for (const pt of allPts) {
+        // Endpoints (always drawn small + dimmed)
+        for (const pt of [
+            {x: 0, y: 0},
+            {x: 1, y: 1},
+        ]) {
             const [cx, cy] = toCanvas(pt.x, pt.y);
             ctx.beginPath();
-            ctx.arc(cx, cy, pt.fixed ? 3 : 5, 0, Math.PI * 2);
-            ctx.fillStyle = pt.fixed ? ink(0.4) : ink(0.95);
+            ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+            ctx.fillStyle = ink(0.4);
             ctx.fill();
-            if (!pt.fixed) {
-                ctx.strokeStyle = outline;
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
+        }
+
+        // User points — selected ring highlighted
+        for (let i = 0; i < points.length; i++) {
+            const [x, y] = points[i];
+            const [cx, cy] = toCanvas(x, y);
+            const isSel = selected === i;
+            ctx.beginPath();
+            ctx.arc(cx, cy, isSel ? 6 : 5, 0, Math.PI * 2);
+            ctx.fillStyle = ink(0.95);
+            ctx.fill();
+            ctx.strokeStyle = isSel
+                ? light
+                    ? 'rgba(47,110,255,0.95)'
+                    : 'rgba(120,170,255,0.95)'
+                : outline;
+            ctx.lineWidth = isSel ? 2 : 1;
+            ctx.stroke();
         }
     }
 
@@ -150,6 +167,7 @@
 
     function handleMouseDown(e: MouseEvent) {
         if (!canvasEl) return;
+        canvasEl.focus();
         const [cx, cy] = getMousePos(e);
 
         // Right-click or ctrl+click removes nearest point
@@ -158,6 +176,7 @@
             const idx = findNearestPoint(cx, cy);
             if (idx !== null) {
                 points = points.filter((_, i) => i !== idx);
+                selected = null;
                 onchange();
             }
             return;
@@ -167,10 +186,12 @@
         const idx = findNearestPoint(cx, cy);
         if (idx !== null) {
             dragging = idx;
+            selected = idx;
         } else {
             const [x, y] = fromCanvas(cx, cy);
             points = [...points, [x, y]];
             dragging = points.length - 1;
+            selected = points.length - 1;
             onchange();
         }
     }
@@ -190,34 +211,86 @@
     function handleMouseUp() {
         dragging = null;
     }
+
+    function handleKeyDown(e: KeyboardEvent) {
+        if (selected === null || selected >= points.length) return;
+
+        // Delete / Backspace removes the selected user point
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            points = points.filter((_, i) => i !== selected);
+            selected = null;
+            onchange();
+            e.preventDefault();
+            return;
+        }
+
+        // Arrow keys nudge. Shift increases step.
+        const step = e.shiftKey ? 10 / 255 : 1 / 255;
+        let dx = 0;
+        let dy = 0;
+        switch (e.key) {
+            case 'ArrowLeft':
+                dx = -step;
+                break;
+            case 'ArrowRight':
+                dx = step;
+                break;
+            case 'ArrowUp':
+                dy = step;
+                break;
+            case 'ArrowDown':
+                dy = -step;
+                break;
+            default:
+                return;
+        }
+        e.preventDefault();
+        const [px, py] = points[selected];
+        const nx = Math.max(0.01, Math.min(0.99, px + dx));
+        const ny = Math.max(0, Math.min(1, py + dy));
+        points = points.map((p, i) =>
+            i === selected ? ([nx, ny] as [number, number]) : p
+        );
+        onchange();
+    }
 </script>
 
 <div class="space-y-1.5">
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <canvas
         bind:this={canvasEl}
         width={W}
         height={H}
-        class="border-border w-full cursor-crosshair border"
+        tabindex="0"
+        class="border-border focus:border-accent/50 focus:ring-accent/10 w-full cursor-crosshair border outline-none focus:ring-2"
         style="height: {H}px; image-rendering: auto;"
         onmousedown={handleMouseDown}
         onmousemove={handleMouseMove}
         onmouseup={handleMouseUp}
         onmouseleave={handleMouseUp}
+        onkeydown={handleKeyDown}
         oncontextmenu={e => e.preventDefault()}
     ></canvas>
-    <div class="flex items-center justify-between">
-        <span class="text-fg-dimmed text-[9px]">
-            Click to add · drag to adjust · ctrl+click to remove
+    <div class="flex items-center justify-between gap-2">
+        <span class="text-fg-dimmed text-[9px] leading-snug">
+            {#if selected !== null}
+                Point {selected + 1} selected · ← ↑ ↓ → nudge · Shift×10 · Del remove
+            {:else}
+                Click to add · drag to adjust · click a point then arrow keys to
+                nudge
+            {/if}
         </span>
         {#if points.length > 0}
             <button
                 type="button"
-                class="text-fg-dimmed hover:text-fg-secondary text-[10px] transition-colors"
+                class="text-fg-dimmed hover:text-fg-primary border-border hover:bg-bg-surface shrink-0 border px-2 py-0.5 text-[10px] transition-colors"
                 onclick={() => {
                     points = [];
+                    selected = null;
                     onchange();
-                }}>Reset</button
+                }}
+                title="Clear all curve points"
+                aria-label="Reset curve">Reset</button
             >
         {/if}
     </div>

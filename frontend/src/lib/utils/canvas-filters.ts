@@ -36,6 +36,10 @@ export interface Filters {
     cropH: number; // 0-1 height percentage
     resizeW: number; // target width in pixels, 0 = no resize
     resizeH: number; // target height in pixels, 0 = no resize
+    rotate: number; // 0, 90, 180, 270 degrees clockwise
+    flipH: boolean; // mirror horizontally
+    flipV: boolean; // mirror vertically
+    strength: number; // 0-100 master adjustment strength; 100 = full effect
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -69,6 +73,10 @@ export const DEFAULT_FILTERS: Filters = {
     cropH: 1,
     resizeW: 0,
     resizeH: 0,
+    rotate: 0,
+    flipH: false,
+    flipV: false,
+    strength: 100,
 };
 
 /** Compute a 256-entry luminance histogram from an image element. */
@@ -89,8 +97,110 @@ export function computeHistogram(img: HTMLImageElement): number[] {
     return hist;
 }
 
+/** Compute per-channel histograms (R, G, B, luminance) from a downsampled image. */
+export function computeChannelHistograms(img: HTMLImageElement): {
+    r: number[];
+    g: number[];
+    b: number[];
+    l: number[];
+} {
+    const w = Math.min(img.naturalWidth, 512);
+    const h = Math.round(img.naturalHeight * (w / img.naturalWidth));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d', {willReadFrequently: true})!;
+    ctx.drawImage(img, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h).data;
+    const r = new Array(256).fill(0);
+    const g = new Array(256).fill(0);
+    const b = new Array(256).fill(0);
+    const l = new Array(256).fill(0);
+    for (let i = 0; i < d.length; i += 4) {
+        r[d[i]]++;
+        g[d[i + 1]]++;
+        b[d[i + 2]]++;
+        const lum = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+        l[lum]++;
+    }
+    return {r, g, b, l};
+}
+
+function percentileIndex(hist: number[], pct: number): number {
+    let total = 0;
+    for (let i = 0; i < 256; i++) total += hist[i];
+    const target = total * pct;
+    let cum = 0;
+    for (let i = 0; i < 256; i++) {
+        cum += hist[i];
+        if (cum >= target) return i;
+    }
+    return 255;
+}
+
+function channelMean(hist: number[]): number {
+    let sum = 0;
+    let count = 0;
+    for (let i = 0; i < 256; i++) {
+        sum += hist[i] * i;
+        count += hist[i];
+    }
+    return count > 0 ? sum / count : 128;
+}
+
+/**
+ * Auto Levels: return curvePoints that stretch the 0.5–99.5 percentile
+ * luminance range to 0..1, giving the image full tonal span without clipping.
+ * Returns empty array if the image already occupies the full range.
+ */
+export function autoLevelsCurve(hist: number[]): [number, number][] {
+    const lo = percentileIndex(hist, 0.005);
+    const hi = percentileIndex(hist, 0.995);
+    if (hi - lo < 10) return []; // already close to full range
+    const points: [number, number][] = [];
+    if (lo > 2) points.push([lo / 255, 0.02]);
+    if (hi < 253) points.push([hi / 255, 0.98]);
+    return points;
+}
+
+/**
+ * Auto Contrast: mild S-curve pulling darks down and lights up. Uses midtone
+ * anchors rather than histogram analysis — a safer, predictable default.
+ */
+export function autoContrastCurve(): [number, number][] {
+    return [
+        [0.25, 0.18],
+        [0.75, 0.82],
+    ];
+}
+
+/**
+ * Auto White Balance via gray-world assumption: compute mean R/G/B and derive
+ * temperature + tint values that push channel means toward equality.
+ * Invertible relative to the applyFilters formulas:
+ *   temperature: R += t*30, B -= t*30  →  t = (B-R)*100/60
+ *   tint:        G -= t*20, R/B += t*10 → t = (G - (R+B)/2) * 5
+ */
+export function autoWhiteBalance(channelHist: {
+    r: number[];
+    g: number[];
+    b: number[];
+}): {temperature: number; tint: number} {
+    const mR = channelMean(channelHist.r);
+    const mG = channelMean(channelHist.g);
+    const mB = channelMean(channelHist.b);
+    const temp = Math.max(-100, Math.min(100, ((mB - mR) * 100) / 60));
+    const gMid = (mR + mB) / 2;
+    const tint = Math.max(-100, Math.min(100, (mG - gMid) * 5));
+    return {temperature: Math.round(temp), tint: Math.round(tint)};
+}
+
 export function hasActiveCrop(f: Filters): boolean {
     return f.cropX !== 0 || f.cropY !== 0 || f.cropW !== 1 || f.cropH !== 1;
+}
+
+export function hasTransform(f: Filters): boolean {
+    return f.rotate !== 0 || f.flipH || f.flipV;
 }
 
 export function hasPaletteGrade(f: Filters): boolean {
@@ -206,14 +316,86 @@ export function buildCurveLUT(points: [number, number][]): Uint8Array | null {
     return lut;
 }
 
+/**
+ * Scale tonal/color filters toward their neutral defaults by a 0-100 master
+ * strength. 100 = full effect (no change). 0 = identity (all defaults).
+ * Structural properties (crop, resize, rotate, flip, palette stops) are not
+ * scaled — strength only dials stylistic intensity.
+ */
+function applyStrength(f: Filters): Filters {
+    const s = f.strength / 100;
+    if (s === 1) return f;
+    const lerp = (v: number, def: number) => def + (v - def) * s;
+    return {
+        ...f,
+        brightness: lerp(f.brightness, 100),
+        contrast: lerp(f.contrast, 100),
+        saturation: lerp(f.saturation, 100),
+        exposure: lerp(f.exposure, 0),
+        shadows: lerp(f.shadows, 0),
+        highlights: lerp(f.highlights, 0),
+        temperature: lerp(f.temperature, 0),
+        tint: lerp(f.tint, 0),
+        hueRotate: f.hueRotate * s,
+        fade: f.fade * s,
+        clarity: f.clarity * s,
+        sepia: f.sepia * s,
+        invert: f.invert * s,
+        vignette: f.vignette * s,
+        sharpen: f.sharpen * s,
+        grain: f.grain * s,
+        noise: f.noise * s,
+        blur: f.blur * s,
+        oilPaint: f.oilPaint * s,
+        pixelate: f.pixelate * s,
+        posterize: f.posterize * s,
+        paletteStrength: f.paletteStrength * s,
+        // Curve points scale their deviation from the y=x identity line
+        curvePoints: f.curvePoints.map(
+            ([x, y]) => [x, x + (y - x) * s] as [number, number]
+        ),
+    };
+}
+
+/**
+ * Render filters into a given destination canvas. No JPEG encoding, no data
+ * URL allocation — the dest canvas is resized and written in place, so the
+ * caller can display it directly as a <canvas> element. This is the hot path
+ * for live preview; dataURL-based rendering (applyFilters) is reserved for
+ * export.
+ *
+ * When no rotation/flip is requested, the destination is used as the working
+ * canvas — zero extra allocations per render.
+ */
+export function renderToCanvas(
+    img: HTMLImageElement,
+    filters: Filters,
+    dest: HTMLCanvasElement,
+    maxSize = 0
+): void {
+    renderInternal(img, filters, dest, maxSize);
+}
+
 export function applyFilters(
     img: HTMLImageElement,
     filters: Filters,
     maxSize = 0
 ): string {
+    const canvas = document.createElement('canvas');
+    renderInternal(img, filters, canvas, maxSize);
+    return canvas.toDataURL('image/jpeg', 0.92);
+}
+
+function renderInternal(
+    img: HTMLImageElement,
+    filters: Filters,
+    dest: HTMLCanvasElement,
+    maxSize = 0
+): void {
+    filters = applyStrength(filters);
     const natW = img.naturalWidth;
     const natH = img.naturalHeight;
-    if (!natW || !natH) return '';
+    if (!natW || !natH) return;
 
     // Crop source rect
     const srcX = Math.round(filters.cropX * natW);
@@ -248,7 +430,10 @@ export function applyFilters(
 
     const spatialScale = Math.max(w, h) / fullLong;
 
-    const canvas = document.createElement('canvas');
+    // When no rotate/flip is needed, the dest canvas IS the working canvas.
+    // Saves one canvas allocation per render (significant for live preview).
+    const needsTransform = hasTransform(filters);
+    const canvas = needsTransform ? document.createElement('canvas') : dest;
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d', {willReadFrequently: true})!;
@@ -586,7 +771,27 @@ export function applyFilters(
         ctx.fillRect(0, 0, w, h);
     }
 
-    return canvas.toDataURL('image/jpeg', 0.92);
+    // Rotate / flip — applied last. When `needsTransform` is true, `canvas`
+    // is a throwaway temp and we write the transformed result into `dest`.
+    // When false, `canvas === dest` and we're already done.
+    if (needsTransform) {
+        const rot = ((filters.rotate % 360) + 360) % 360;
+        const swap = rot === 90 || rot === 270;
+        const outW = swap ? h : w;
+        const outH = swap ? w : h;
+
+        dest.width = outW;
+        dest.height = outH;
+        const dctx = dest.getContext('2d')!;
+        dctx.save();
+        dctx.translate(outW / 2, outH / 2);
+        if (filters.flipH) dctx.scale(-1, 1);
+        if (filters.flipV) dctx.scale(1, -1);
+        if (rot !== 0) dctx.rotate((rot * Math.PI) / 180);
+        dctx.translate(-w / 2, -h / 2);
+        dctx.drawImage(canvas, 0, 0);
+        dctx.restore();
+    }
 }
 
 function boxBlur(
@@ -674,6 +879,7 @@ export function hasActiveFilters(f: Filters): boolean {
         f.noise > 0 ||
         hasPaletteGrade(f) ||
         hasActiveCrop(f) ||
+        hasTransform(f) ||
         f.resizeW !== 0 ||
         f.resizeH !== 0
     );
