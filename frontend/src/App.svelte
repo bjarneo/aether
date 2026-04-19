@@ -20,6 +20,8 @@
         getColorPickerExtKey,
         getColorPickerOverrideApp,
         getColorPickerOverrideRole,
+        getEyedropperActive,
+        setEyedropperActive,
     } from '$lib/stores/ui.svelte';
     import {
         getIsApplying,
@@ -230,7 +232,8 @@
 
         // Escape - Close modals
         registerShortcut('escape', () => {
-            if (getColorPickerOpen()) closeColorPicker();
+            if (getEyedropperActive()) setEyedropperActive(false);
+            else if (getColorPickerOpen()) closeColorPicker();
             else if (showKeymap) showKeymap = false;
             else if (showAbout) showAbout = false;
         });

@@ -5,6 +5,8 @@
         getColorPickerOverrideApp,
         getColorPickerOverrideRole,
         closeColorPicker,
+        getEyedropperActive,
+        setEyedropperActive,
     } from '$lib/stores/ui.svelte';
     import {
         getPalette,
@@ -119,6 +121,8 @@
         isOverride ? overrideApp : isExtended ? 'Extended' : `#${idx}`
     );
 
+    let eyedropperActive = $derived(getEyedropperActive());
+
     let hexInput = $state('');
     let isValid = $state(true);
     let rgb = $derived(hexToRgb(currentColor));
@@ -196,6 +200,21 @@
                     Reset
                 </button>
             {/if}
+            <button
+                class="flex h-6 w-6 items-center justify-center transition-colors {eyedropperActive
+                    ? 'text-accent'
+                    : 'text-fg-dimmed hover:text-fg-primary'}"
+                onclick={() => setEyedropperActive(!eyedropperActive)}
+                aria-label="Pick color from wallpaper"
+                aria-pressed={eyedropperActive}
+                title="Pick color from wallpaper"
+            >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M20.71 5.63l-2.34-2.34a1 1 0 0 0-1.41 0l-3.12 3.12-1.93-1.93-1.41 1.41 1.42 1.42L3 16.25V21h4.75l8.92-8.92 1.42 1.42 1.41-1.41-1.92-1.92 3.12-3.12a1 1 0 0 0 .01-1.42ZM6.92 19 5 17.08l8.06-8.06 1.92 1.92Z"
+                    />
+                </svg>
+            </button>
             <button
                 class="text-fg-dimmed hover:text-fg-primary flex h-6 w-6 items-center justify-center transition-colors"
                 onclick={closeColorPicker}

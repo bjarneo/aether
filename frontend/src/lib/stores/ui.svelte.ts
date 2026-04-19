@@ -16,6 +16,7 @@ let colorPickerIndex = $state<number>(-1);
 let colorPickerExtKey = $state<string>(''); // non-empty = editing an extended color
 let colorPickerOverrideApp = $state<string>(''); // non-empty = editing an app override
 let colorPickerOverrideRole = $state<string>(''); // the color role being overridden
+let eyedropperActive = $state<boolean>(false);
 
 // --- Getters ---
 export function getActiveTab(): Tab {
@@ -44,6 +45,9 @@ export function getColorPickerOverrideApp(): string {
 }
 export function getColorPickerOverrideRole(): string {
     return colorPickerOverrideRole;
+}
+export function getEyedropperActive(): boolean {
+    return eyedropperActive;
 }
 
 // --- Actions ---
@@ -93,4 +97,9 @@ export function closeColorPicker(): void {
     colorPickerExtKey = '';
     colorPickerOverrideApp = '';
     colorPickerOverrideRole = '';
+    eyedropperActive = false;
+}
+
+export function setEyedropperActive(v: boolean): void {
+    eyedropperActive = v;
 }

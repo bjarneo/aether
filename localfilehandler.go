@@ -83,5 +83,6 @@ func (s *MediaServer) handleMedia(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", mime)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	http.ServeContent(w, r, filepath.Base(filePath), stat.ModTime(), f)
 }

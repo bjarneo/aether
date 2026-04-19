@@ -94,15 +94,15 @@
                         </div>
                     {/if}
                     <button
-                        class="text-fg-primary hover:bg-accent/80 absolute left-0.5 top-0.5 flex h-4 items-center justify-center bg-black/60 px-1
-              text-[8px] font-medium uppercase tracking-wider opacity-0 transition-opacity group-hover:opacity-100"
+                        class="hover:bg-accent/80 absolute left-0.5 top-0.5 flex h-4 items-center justify-center bg-black/60 px-1 text-[8px]
+              font-medium uppercase tracking-wider text-white opacity-0 transition-opacity group-hover:opacity-100"
                         onclick={() => handleSetAsMain(img)}
                         aria-label="Set as main wallpaper"
                         title="Set as main wallpaper">Main</button
                     >
                     <button
-                        class="text-fg-primary hover:bg-destructive/80 absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center bg-black/60
-              text-[9px] opacity-0 transition-opacity group-hover:opacity-100"
+                        class="hover:bg-destructive/80 absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center bg-black/60
+              text-[9px] text-white opacity-0 transition-opacity group-hover:opacity-100"
                         onclick={() => handleRemove(img)}
                         aria-label="Remove image">x</button
                     >
