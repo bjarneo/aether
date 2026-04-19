@@ -34,7 +34,10 @@
     <div class="flex-1 overflow-y-auto p-4">
         {#if hasContent}
             {#if wallpaper}
-                <WallpaperHero onedit={() => (showWallpaperEditor = true)} />
+                <WallpaperHero
+                    expanded={colorPickerOpen}
+                    onedit={() => (showWallpaperEditor = true)}
+                />
             {:else}
                 <WallpaperPicker />
             {/if}

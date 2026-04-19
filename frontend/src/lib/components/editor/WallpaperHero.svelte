@@ -31,7 +31,8 @@
     } from '$lib/stores/imagecache.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
 
-    let {onedit}: {onedit?: () => void} = $props();
+    let {onedit, expanded = false}: {onedit?: () => void; expanded?: boolean} =
+        $props();
 
     let wallpaperImage = $derived(getCachedFullImage(getWallpaperPath()) || '');
     let loading = $derived(isPending(getWallpaperPath()));
@@ -100,23 +101,33 @@
                 : source.naturalHeight;
         if (!naturalW || !naturalH) return null;
 
-        // object-cover scales to max(containerW/W, containerH/H) and center-crops.
-        const scale = Math.max(rect.width / naturalW, rect.height / naturalH);
+        // object-cover uses max (crop-fill), object-contain uses min (letterbox).
+        const scale = expanded
+            ? Math.min(rect.width / naturalW, rect.height / naturalH)
+            : Math.max(rect.width / naturalW, rect.height / naturalH);
         const offsetX = (rect.width - naturalW * scale) / 2;
         const offsetY = (rect.height - naturalH * scale) / 2;
+        const localX = e.clientX - rect.left - offsetX;
+        const localY = e.clientY - rect.top - offsetY;
+
+        // In contain mode, clicks on the letterbox lie outside the image — bail.
+        if (
+            expanded &&
+            (localX < 0 ||
+                localY < 0 ||
+                localX >= naturalW * scale ||
+                localY >= naturalH * scale)
+        ) {
+            return null;
+        }
+
         const srcX = Math.max(
             0,
-            Math.min(
-                naturalW - 1,
-                Math.floor((e.clientX - rect.left - offsetX) / scale)
-            )
+            Math.min(naturalW - 1, Math.floor(localX / scale))
         );
         const srcY = Math.max(
             0,
-            Math.min(
-                naturalH - 1,
-                Math.floor((e.clientY - rect.top - offsetY) / scale)
-            )
+            Math.min(naturalH - 1, Math.floor(localY / scale))
         );
         return {source, srcX, srcY, naturalW, naturalH};
     }
@@ -273,7 +284,9 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div
-        class="bg-bg-surface border-border flex h-96 w-full items-center justify-center overflow-hidden border"
+        class="bg-bg-surface border-border flex w-full items-center justify-center overflow-hidden border transition-[height] duration-200 {expanded
+            ? 'h-[70vh]'
+            : 'h-96'}"
         class:cursor-crosshair={eyedropperActive}
         onclick={handleSample}
         onmousemove={handleSampleMove}
@@ -291,14 +304,18 @@
                 muted
                 playsinline
                 crossorigin="anonymous"
-                class="h-full w-full object-cover"
+                class="h-full w-full {expanded
+                    ? 'object-contain'
+                    : 'object-cover'}"
             ></video>
         {:else if wallpaperImage}
             <img
                 bind:this={imgEl}
                 src={wallpaperImage}
                 alt="Current wallpaper"
-                class="h-full w-full object-cover"
+                class="h-full w-full {expanded
+                    ? 'object-contain'
+                    : 'object-cover'}"
             />
         {:else}
             <span class="text-fg-dimmed text-[11px]">No preview available</span>
