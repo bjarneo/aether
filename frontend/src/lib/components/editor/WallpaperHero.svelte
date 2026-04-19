@@ -105,8 +105,7 @@
 
         // CSS `zoom` on <html> scales getBoundingClientRect() but not e.clientX/Y
         // on webkit2gtk — normalize rect into the same space as the mouse coords.
-        const zoom =
-            parseFloat(document.documentElement.style.zoom as string) || 1;
+        const zoom = parseFloat(document.documentElement.style.zoom) || 1;
         const rectLeft = rect.left / zoom;
         const rectTop = rect.top / zoom;
         const rectWidth = rect.width / zoom;
