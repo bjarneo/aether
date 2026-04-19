@@ -135,6 +135,50 @@ func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]strin
 	return palette, nil
 }
 
+// ExtractFromImagesResult is the Wails-friendly return value for ExtractColorsFromImages.
+type ExtractFromImagesResult struct {
+	Palette [16]string `json:"palette"`
+	Skipped int        `json:"skipped"`
+}
+
+// ExtractColorsFromImages extracts a blended 16-color palette by sampling pixels
+// from multiple images (typically the main wallpaper plus additional images) and
+// running the OKLab median-cut pipeline on the combined pixel set. Video paths are
+// resolved to extracted frames before sampling; unreadable or unsupported files
+// are skipped and counted in the result.
+func (a *App) ExtractColorsFromImages(paths []string, lightMode bool, mode string) (ExtractFromImagesResult, error) {
+	resolved := make([]string, 0, len(paths))
+	skipped := 0
+	for _, p := range paths {
+		if p == "" {
+			skipped++
+			continue
+		}
+		if theme.IsVideoFile(p) {
+			framePath, err := wallpaper.ExtractVideoFrame(p)
+			if err != nil {
+				skipped++
+				continue
+			}
+			resolved = append(resolved, framePath)
+			continue
+		}
+		resolved = append(resolved, p)
+	}
+
+	palette, extractionSkipped, err := extraction.ExtractColorsFromImages(resolved, lightMode, mode)
+	if err != nil {
+		return ExtractFromImagesResult{}, err
+	}
+	a.state.SetPalette(palette)
+	a.state.LightMode = lightMode
+	a.state.ExtractionMode = mode
+	return ExtractFromImagesResult{
+		Palette: palette,
+		Skipped: skipped + extractionSkipped,
+	}, nil
+}
+
 // AdjustPaletteColors applies the adjustment pipeline to all palette colors.
 // Uses []string (slice) instead of [16]string for Wails JSON compatibility.
 func (a *App) AdjustPaletteColors(palette []string, adj color.Adjustments) []string {

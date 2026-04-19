@@ -58,6 +58,14 @@ export function ExtractColors(arg1, arg2, arg3) {
     return window['go']['main']['App']['ExtractColors'](arg1, arg2, arg3);
 }
 
+export function ExtractColorsFromImages(arg1, arg2, arg3) {
+    return window['go']['main']['App']['ExtractColorsFromImages'](
+        arg1,
+        arg2,
+        arg3
+    );
+}
+
 export function GenerateGradient(arg1, arg2) {
     return window['go']['main']['App']['GenerateGradient'](arg1, arg2);
 }

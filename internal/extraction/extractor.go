@@ -8,61 +8,51 @@ import (
 // Mode can be: "normal", "monochromatic", "analogous", "pastel", "material", "colorful", "muted", "bright".
 // In "normal" mode, it auto-detects whether the image is monochrome or chromatic.
 func ExtractColors(imagePath string, lightMode bool, mode string) ([16]string, error) {
-	// Check cache first
-	cacheKey := GetCacheKey(imagePath, lightMode)
-	if mode != "normal" && cacheKey != "" {
-		cacheKey = cacheKey + "_" + mode
-	}
-
+	cacheKey := buildCacheKey(GetCacheKey(imagePath, lightMode), mode)
 	if cacheKey != "" {
 		if cached, ok := LoadCachedPalette(cacheKey); ok {
 			return cached, nil
 		}
 	}
 
-	// Extract dominant colors
 	dominantColors, err := ExtractDominantColors(imagePath, DominantColorsToExtract)
 	if err != nil {
 		return [16]string{}, fmt.Errorf("color extraction failed: %w", err)
 	}
-
 	if len(dominantColors) < 8 {
 		return [16]string{}, fmt.Errorf("not enough colors extracted from image")
 	}
 
-	var palette [16]string
+	palette := NormalizeBrightness(GeneratePaletteByMode(dominantColors, lightMode, mode))
 
-	switch mode {
-	case "monochromatic":
-		palette = GenerateMonochromaticPalette(dominantColors, lightMode)
-	case "analogous":
-		palette = GenerateAnalogousPalette(dominantColors, lightMode)
-	case "pastel":
-		palette = GeneratePastelPalette(dominantColors, lightMode)
-	case "material":
-		palette = GenerateMaterialPalette(dominantColors, lightMode)
-	case "colorful":
-		palette = GenerateColorfulPalette(dominantColors, lightMode)
-	case "muted":
-		palette = GenerateMutedPalette(dominantColors, lightMode)
-	case "bright":
-		palette = GenerateBrightPalette(dominantColors, lightMode)
-	default:
-		// "normal" mode - auto-detect
-		if IsMonochromeImage(dominantColors) {
-			palette = GenerateMonochromePalette(dominantColors, lightMode)
-		} else {
-			palette = GenerateChromaticPalette(dominantColors, lightMode)
-		}
-	}
-
-	// Normalize brightness for readability
-	palette = NormalizeBrightness(palette)
-
-	// Save to cache
 	if cacheKey != "" {
 		SavePaletteToCache(cacheKey, palette)
 	}
-
 	return palette, nil
+}
+
+// GeneratePaletteByMode dispatches to the palette generator for a given mode.
+// In "normal" mode, auto-detects between monochrome and chromatic generators.
+func GeneratePaletteByMode(dominantColors []string, lightMode bool, mode string) [16]string {
+	switch mode {
+	case "monochromatic":
+		return GenerateMonochromaticPalette(dominantColors, lightMode)
+	case "analogous":
+		return GenerateAnalogousPalette(dominantColors, lightMode)
+	case "pastel":
+		return GeneratePastelPalette(dominantColors, lightMode)
+	case "material":
+		return GenerateMaterialPalette(dominantColors, lightMode)
+	case "colorful":
+		return GenerateColorfulPalette(dominantColors, lightMode)
+	case "muted":
+		return GenerateMutedPalette(dominantColors, lightMode)
+	case "bright":
+		return GenerateBrightPalette(dominantColors, lightMode)
+	default:
+		if IsMonochromeImage(dominantColors) {
+			return GenerateMonochromePalette(dominantColors, lightMode)
+		}
+		return GenerateChromaticPalette(dominantColors, lightMode)
+	}
 }

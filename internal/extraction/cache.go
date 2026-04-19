@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -41,6 +43,46 @@ func GetCacheKey(imagePath string, lightMode bool) string {
 	mtimeSeconds := info.ModTime().Unix()
 	dataString := fmt.Sprintf("%s-%d-%s", imagePath, mtimeSeconds, modeStr)
 
+	hash := md5.Sum([]byte(dataString))
+	return fmt.Sprintf("%x", hash)
+}
+
+// buildCacheKey appends the mode suffix to a base cache key.
+// Returns "" when the base is "" (no caching possible) or falls through for "normal" mode.
+func buildCacheKey(base, mode string) string {
+	if base == "" {
+		return ""
+	}
+	if mode == "normal" {
+		return base
+	}
+	return base + "_" + mode
+}
+
+// GetMultiCacheKey generates a cache key for blended extraction across multiple images.
+// The key hashes the sorted (path, mtime) list plus the light/dark mode so the cache
+// invalidates whenever any input image is modified, added, or removed.
+// Returns an empty string when no inputs can be stat'd.
+func GetMultiCacheKey(paths []string, lightMode bool) string {
+	parts := make([]string, 0, len(paths))
+	for _, p := range paths {
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("%s-%d", p, info.ModTime().Unix()))
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	sort.Strings(parts)
+
+	modeStr := "dark"
+	if lightMode {
+		modeStr = "light"
+	}
+
+	dataString := "multi:" + strings.Join(parts, "|") + "-" + modeStr
 	hash := md5.Sum([]byte(dataString))
 	return fmt.Sprintf("%x", hash)
 }

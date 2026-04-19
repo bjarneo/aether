@@ -174,19 +174,24 @@ func MedianCut(colors []color.OKLab, numColors int) []colorEntry {
 	return result
 }
 
-// ExtractDominantColors loads an image, samples its pixels, converts to OKLab,
-// runs perceptual median-cut quantization, and returns hex colors sorted by dominance.
+// ExtractDominantColors loads an image, samples its pixels, and returns
+// dominant colors sorted by pixel count descending.
 func ExtractDominantColors(imagePath string, numColors int) ([]string, error) {
 	pixels, err := LoadAndSamplePixels(imagePath)
 	if err != nil {
 		return nil, err
 	}
+	return ExtractDominantColorsFromPixels(pixels, numColors)
+}
 
+// ExtractDominantColorsFromPixels runs the OKLab median-cut pipeline on already-sampled pixels.
+// Exposed so callers (e.g. multi-image extraction) can concatenate pixel sets from multiple
+// images before quantization, producing a palette blended across all inputs.
+func ExtractDominantColorsFromPixels(pixels []color.RGB, numColors int) ([]string, error) {
 	if len(pixels) < MinPixelsToSample/10 {
 		return nil, fmt.Errorf("not enough pixels to extract colors")
 	}
 
-	// Convert RGB pixels to OKLab for perceptual quantization
 	oklabPixels := make([]color.OKLab, 0, len(pixels))
 	for _, px := range pixels {
 		oklabPixels = append(oklabPixels, color.RGBToOKLab(px))
@@ -201,7 +206,6 @@ func ExtractDominantColors(imagePath string, numColors int) ([]string, error) {
 		return nil, fmt.Errorf("no colors extracted from image")
 	}
 
-	// Sort by count (dominance) descending
 	sort.Slice(quantized, func(i, j int) bool {
 		return quantized[i].Count > quantized[j].Count
 	})

@@ -11,6 +11,7 @@
         getLightMode,
         getExtractionMode,
         setAdjustments,
+        getAdditionalImages,
     } from '$lib/stores/theme.svelte';
     import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
     import {
@@ -220,6 +221,36 @@
         }
     }
 
+    async function handleExtractAll() {
+        const paths = [getWallpaperPath(), ...getAdditionalImages()].filter(
+            p => !!p
+        );
+        if (paths.length === 0) return;
+        setIsExtracting(true);
+        try {
+            const {ExtractColorsFromImages} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
+            const result = await ExtractColorsFromImages(
+                paths,
+                getLightMode(),
+                getExtractionMode()
+            );
+            setAdjustments({...DEFAULT_ADJUSTMENTS});
+            setPalette(result.palette);
+            const used = paths.length - result.skipped;
+            const suffix =
+                result.skipped > 0 ? ` (${result.skipped} skipped)` : '';
+            showToast(
+                `Blended palette from ${used} image${used === 1 ? '' : 's'}${suffix}`
+            );
+        } catch {
+            showToast('Failed to blend colors');
+        } finally {
+            setIsExtracting(false);
+        }
+    }
+
     async function handleChange() {
         try {
             const {OpenFileDialog} = await import(
@@ -298,6 +329,14 @@
                 class="bg-accent hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors duration-100"
                 onclick={handleExtractColors}>Extract</button
             >
+            {#if getAdditionalImages().length > 0}
+                <button
+                    class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
+                    onclick={handleExtractAll}
+                    title="Blend palette from main wallpaper and all additional images"
+                    >Extract All</button
+                >
+            {/if}
             {#if wallpaperImage}
                 <button
                     class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"

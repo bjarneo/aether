@@ -50,6 +50,12 @@ export function ExtractColors(
     arg3: string
 ): Promise<any>;
 
+export function ExtractColorsFromImages(
+    arg1: Array<string>,
+    arg2: boolean,
+    arg3: string
+): Promise<main.ExtractFromImagesResult>;
+
 export function GenerateGradient(arg1: string, arg2: string): Promise<any>;
 
 export function GeneratePaletteFromColor(arg1: string): Promise<any>;

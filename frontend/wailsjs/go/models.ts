@@ -207,6 +207,20 @@ export namespace main {
             this.appOverrides = source['appOverrides'];
         }
     }
+    export class ExtractFromImagesResult {
+        palette: string[];
+        skipped: number;
+
+        static createFrom(source: any = {}) {
+            return new ExtractFromImagesResult(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.palette = source['palette'];
+            this.skipped = source['skipped'];
+        }
+    }
     export class ImportResult {
         colors: string[];
         name: string;
@@ -312,6 +326,7 @@ export namespace theme {
         includeNeovim: boolean;
         selectedNeovimConfig: string;
         excludedApps?: Record<string, boolean>;
+        videoCpuMode: boolean;
 
         static createFrom(source: any = {}) {
             return new Settings(source);
@@ -325,6 +340,7 @@ export namespace theme {
             this.includeNeovim = source['includeNeovim'];
             this.selectedNeovimConfig = source['selectedNeovimConfig'];
             this.excludedApps = source['excludedApps'];
+            this.videoCpuMode = source['videoCpuMode'];
         }
     }
 }

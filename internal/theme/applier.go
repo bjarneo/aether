@@ -131,6 +131,22 @@ func IsVideoFile(path string) bool {
 	return videoExtensions[strings.ToLower(filepath.Ext(path))]
 }
 
+// imageExtensions are still-image formats that Go's image.Decode handles natively.
+var imageExtensions = map[string]bool{
+	".jpg":  true,
+	".jpeg": true,
+	".png":  true,
+	".gif":  true,
+	".bmp":  true,
+	".webp": true,
+}
+
+// IsImageFile returns true for still-image formats that can be decoded directly
+// without a prior frame-extraction step. The counterpart to IsVideoFile.
+func IsImageFile(path string) bool {
+	return imageExtensions[strings.ToLower(filepath.Ext(path))]
+}
+
 // aetherWpPath returns the path to the aether-wp binary.
 // Looks next to the running binary first, then in PATH.
 func aetherWpPath() string {
