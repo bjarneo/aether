@@ -12,6 +12,10 @@ export function isLightColor(hex: string): boolean {
     return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
 
+export function isValidHex(hex: string): boolean {
+    return typeof hex === 'string' && /^#[0-9a-fA-F]{6}$/.test(hex);
+}
+
 export function hexToRgb(hex: string): {r: number; g: number; b: number} {
     if (!hex || hex.length < 7) return {r: 0, g: 0, b: 0};
     return {

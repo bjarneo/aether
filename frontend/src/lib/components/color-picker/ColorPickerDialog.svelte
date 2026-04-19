@@ -23,14 +23,20 @@
         ANSI_COLOR_NAMES,
         EXTENDED_COLOR_LABELS,
     } from '$lib/constants/colors';
+    import {onDestroy} from 'svelte';
     import {
         hexToRgb,
         rgbToHex,
         hexToHsl,
         hslToHex,
+        isValidHex,
         relativeLuminance,
         contrastLevel,
     } from '$lib/utils/color';
+    import {
+        getRecentColors,
+        pushRecentColor,
+    } from '$lib/stores/recentColors.svelte';
     import ShadeGrid from './ShadeGrid.svelte';
 
     const ROLE_LABELS: Record<string, string> = {
@@ -175,6 +181,34 @@
         const next = {...hsl, [channel]: value};
         applyColor(hslToHex(next.h, next.s, next.l));
     }
+
+    const HARMONY: {label: string; delta: number; title: string}[] = [
+        {label: 'An−', delta: -30, title: 'Analogous −30°'},
+        {label: 'Tri', delta: 120, title: 'Triad +120°'},
+        {label: 'Comp', delta: 180, title: 'Complement +180°'},
+        {label: 'Tri', delta: 240, title: 'Triad +240°'},
+        {label: 'An+', delta: 30, title: 'Analogous +30°'},
+    ];
+
+    let harmonyColors = $derived(
+        HARMONY.map(h => ({
+            ...h,
+            hex: hslToHex(hsl.h + h.delta, hsl.s, hsl.l),
+        }))
+    );
+
+    // Debounced so slider drags don't flood the recents list with intermediate
+    // hexes; only the value the user settles on is recorded.
+    let recordTimer: ReturnType<typeof setTimeout> | null = null;
+    $effect(() => {
+        const hex = currentColor;
+        if (!isValidHex(hex)) return;
+        if (recordTimer) clearTimeout(recordTimer);
+        recordTimer = setTimeout(() => pushRecentColor(hex), 600);
+    });
+    onDestroy(() => {
+        if (recordTimer) clearTimeout(recordTimer);
+    });
 
     // When editing an app override, prefer the role map's computed bg/fg so
     // the ratio reflects what the target app will actually render against.
@@ -407,6 +441,32 @@
             </div>
         {/if}
 
+        <div class="space-y-1.5">
+            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
+                >Harmony</span
+            >
+            <div class="flex gap-1">
+                {#each harmonyColors as h}
+                    <button
+                        type="button"
+                        class="border-border hover:border-border-focus flex flex-1 flex-col items-stretch border transition-colors disabled:opacity-40"
+                        onclick={() => applyColor(h.hex)}
+                        disabled={locked}
+                        title="{h.title} · {h.hex}"
+                    >
+                        <div
+                            class="h-6 w-full"
+                            style:background-color={h.hex}
+                        ></div>
+                        <span
+                            class="text-fg-dimmed py-0.5 text-center text-[8px] tabular-nums leading-none"
+                            >{h.label}</span
+                        >
+                    </button>
+                {/each}
+            </div>
+        </div>
+
         <div class="space-y-2">
             <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
                 >RGB Channels</span
@@ -491,6 +551,26 @@
                 </div>
             {/each}
         </div>
+
+        {#if getRecentColors().length > 0}
+            <div class="space-y-1.5">
+                <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
+                    >Recent</span
+                >
+                <div class="grid grid-cols-12 gap-1">
+                    {#each getRecentColors() as hex}
+                        <button
+                            type="button"
+                            class="border-border hover:border-border-focus aspect-square border transition-colors disabled:opacity-40"
+                            style:background-color={hex}
+                            onclick={() => applyColor(hex)}
+                            disabled={locked}
+                            title={hex}
+                        ></button>
+                    {/each}
+                </div>
+            </div>
+        {/if}
 
         <div>
             <span

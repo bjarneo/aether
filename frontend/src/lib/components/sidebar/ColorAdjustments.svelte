@@ -180,6 +180,74 @@
         setPaletteCurvePoints([]);
         setPalette(getBasePalette(), true);
     }
+
+    type AdjustmentKey = (typeof sliderDefs)[number]['key'];
+
+    // Rapid nudge clicks coalesce into a single undo entry — snapshot the
+    // state before the first click in a burst, commit once the user stops.
+    let nudgeSnapshot: {
+        palette: string[];
+        ext: Record<string, string>;
+        adj: Adjustments;
+    } | null = null;
+    let nudgeCommitTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function nudge(key: AdjustmentKey, delta: number) {
+        const current = getAdjustments();
+        const limits = ADJUSTMENT_LIMITS[key];
+        const next = Math.max(
+            limits.min,
+            Math.min(limits.max, current[key] + delta)
+        );
+        if (next === current[key]) return;
+
+        if (!nudgeSnapshot) {
+            nudgeSnapshot = {
+                palette: [...getPalette()],
+                ext: {...getExtendedColors()},
+                adj: {...current},
+            };
+        }
+        if (nudgeCommitTimer) clearTimeout(nudgeCommitTimer);
+        nudgeCommitTimer = setTimeout(() => {
+            if (nudgeSnapshot) {
+                pushState(
+                    nudgeSnapshot.palette,
+                    nudgeSnapshot.ext,
+                    nudgeSnapshot.adj
+                );
+                nudgeSnapshot = null;
+            }
+        }, 500);
+
+        const newAdj = {...current, [key]: next} as Adjustments;
+        setAdjustments(newAdj);
+        applyAdjustments(newAdj);
+    }
+
+    const VARIANTS: {
+        label: string;
+        title: string;
+        key: AdjustmentKey;
+        delta: number;
+    }[] = [
+        {label: '−H', title: 'Shift hue −15°', key: 'hueShift', delta: -15},
+        {label: '+H', title: 'Shift hue +15°', key: 'hueShift', delta: 15},
+        {label: '−S', title: 'Desaturate 15%', key: 'saturation', delta: -15},
+        {label: '+S', title: 'Saturate 15%', key: 'saturation', delta: 15},
+        {
+            label: '❄',
+            title: 'Cooler (temperature −15)',
+            key: 'temperature',
+            delta: -15,
+        },
+        {
+            label: '☀',
+            title: 'Warmer (temperature +15)',
+            key: 'temperature',
+            delta: 15,
+        },
+    ];
 </script>
 
 <ExpandableSection title="Color Adjustments" bind:expanded>
@@ -191,12 +259,25 @@
         />
     </div>
 
-    <button
-        class="text-fg-dimmed hover:text-fg-secondary mb-2 text-[10px]"
-        onclick={resetAll}
-    >
-        Reset All
-    </button>
+    <div class="mb-2 flex items-center justify-between gap-2">
+        <div class="flex gap-1">
+            {#each VARIANTS as v}
+                <button
+                    type="button"
+                    class="text-fg-secondary hover:text-fg-primary border-border hover:bg-bg-surface border px-1.5 py-0.5 text-[10px] tabular-nums transition-colors"
+                    onclick={() => nudge(v.key, v.delta)}
+                    title={v.title}
+                    aria-label={v.title}>{v.label}</button
+                >
+            {/each}
+        </div>
+        <button
+            class="text-fg-dimmed hover:text-fg-secondary text-[10px]"
+            onclick={resetAll}
+        >
+            Reset All
+        </button>
+    </div>
     <div class="flex flex-col gap-1.5">
         {#each sliderDefs as def}
             <AdjustmentSlider
