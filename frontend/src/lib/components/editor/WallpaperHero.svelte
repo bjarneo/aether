@@ -17,12 +17,14 @@
         isPending,
         isVideoSource,
     } from '$lib/stores/imagecache.svelte';
+    import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
 
     let {onedit}: {onedit?: () => void} = $props();
 
     let wallpaperImage = $derived(getCachedFullImage(getWallpaperPath()) || '');
     let loading = $derived(isPending(getWallpaperPath()));
     let isVideo = $derived(isVideoSource(wallpaperImage));
+    let previewOpen = $state(false);
 
     $effect(() => {
         const path = getWallpaperPath();
@@ -117,6 +119,12 @@
             class="bg-accent hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors duration-100"
             onclick={handleExtractColors}>Extract</button
         >
+        {#if wallpaperImage}
+            <button
+                class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
+                onclick={() => (previewOpen = true)}>View</button
+            >
+        {/if}
         {#if onedit}
             <button
                 class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
@@ -129,3 +137,10 @@
         >
     </div>
 </div>
+
+<ImagePreview
+    src={wallpaperImage}
+    alt="Wallpaper"
+    open={previewOpen}
+    onclose={() => (previewOpen = false)}
+/>

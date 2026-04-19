@@ -276,6 +276,20 @@ export function removeAdditionalImage(path: string): void {
     additionalImages = additionalImages.filter(p => p !== path);
 }
 
+export function swapMainWithAdditional(path: string): void {
+    const idx = additionalImages.indexOf(path);
+    if (idx === -1) return;
+    const oldMain = wallpaperPath;
+    wallpaperPath = path;
+    const next = [...additionalImages];
+    if (oldMain) {
+        next[idx] = oldMain;
+    } else {
+        next.splice(idx, 1);
+    }
+    additionalImages = next;
+}
+
 // --- Shuffle (experimental) ---
 // Randomly reassigns ANSI color roles 1-6 (and their bright counterparts 9-14).
 // Locked colors are excluded from the shuffle.
