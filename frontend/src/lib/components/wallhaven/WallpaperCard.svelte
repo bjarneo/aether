@@ -5,6 +5,7 @@
         getAdditionalImages,
     } from '$lib/stores/theme.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
+    import {openURL} from '$lib/utils/browser';
 
     let {wallpaper, onpreview}: {wallpaper: any; onpreview: () => void} =
         $props();
@@ -80,13 +81,8 @@
         }
     }
 
-    async function handleVisit() {
-        try {
-            const {BrowserOpenURL} = await import(
-                '../../../../wailsjs/runtime/runtime'
-            );
-            BrowserOpenURL(`https://wallhaven.cc/w/${wallpaper.id}`);
-        } catch {}
+    function handleVisit() {
+        openURL(`https://wallhaven.cc/w/${wallpaper.id}`);
     }
 
     function formatSize(bytes: number): string {

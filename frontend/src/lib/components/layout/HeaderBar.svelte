@@ -7,6 +7,7 @@
         toggleSidebar,
         type Tab,
     } from '$lib/stores/ui.svelte';
+    import {openURL} from '$lib/utils/browser';
 
     let sidebarVisible = $derived(getSidebarVisible());
     let isMac = $state(false);
@@ -17,13 +18,6 @@
             isMac = await IsMacOS();
         } catch {}
     });
-
-    async function openGitHub() {
-        const {BrowserOpenURL} = await import(
-            '../../../../wailsjs/runtime/runtime'
-        );
-        BrowserOpenURL('https://github.com/bjarneo/aether');
-    }
 
     const tabs: {id: Tab; label: string; icon: string}[] = [
         {
@@ -80,7 +74,7 @@
         class:pb-1.5={isMac}
         class:ml-2={isMac}
         style="letter-spacing: 0.08em; --wails-draggable:no-drag"
-        onclick={openGitHub}
+        onclick={() => openURL('https://github.com/bjarneo/aether')}
         title="Open GitHub repository">AETHER</button
     >
     <button
