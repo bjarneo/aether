@@ -5,6 +5,7 @@
         {
             group: 'General',
             binds: [
+                {keys: 'Ctrl+P', desc: 'Command palette'},
                 {keys: 'Ctrl+K', desc: 'Show keyboard shortcuts'},
                 {keys: 'Ctrl+Enter', desc: 'Apply theme'},
                 {keys: 'Ctrl+S', desc: 'Save blueprint'},

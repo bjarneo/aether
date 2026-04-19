@@ -10,7 +10,12 @@
     import ColorPickerDialog from '../color-picker/ColorPickerDialog.svelte';
     import WallpaperEditor from '../wallpaper-editor/WallpaperEditor.svelte';
     import {getWallpaperPath, getPalette} from '$lib/stores/theme.svelte';
-    import {getSidebarVisible, getColorPickerOpen} from '$lib/stores/ui.svelte';
+    import {
+        getSidebarVisible,
+        getColorPickerOpen,
+        getImageEditorOpen,
+        setImageEditorOpen,
+    } from '$lib/stores/ui.svelte';
     import {DEFAULT_PALETTE} from '$lib/types/theme';
 
     let wallpaper = $derived(getWallpaperPath());
@@ -20,8 +25,6 @@
     );
     let sidebarVisible = $derived(getSidebarVisible());
     let colorPickerOpen = $derived(getColorPickerOpen());
-
-    let showWallpaperEditor = $state(false);
 </script>
 
 <div class="flex h-full">
@@ -36,7 +39,7 @@
             {#if wallpaper}
                 <WallpaperHero
                     expanded={colorPickerOpen}
-                    onedit={() => (showWallpaperEditor = true)}
+                    onedit={() => setImageEditorOpen(true)}
                 />
             {:else}
                 <WallpaperPicker />
@@ -68,7 +71,7 @@
     {/if}
 
     <WallpaperEditor
-        open={showWallpaperEditor}
-        onclose={() => (showWallpaperEditor = false)}
+        open={getImageEditorOpen()}
+        onclose={() => setImageEditorOpen(false)}
     />
 </div>

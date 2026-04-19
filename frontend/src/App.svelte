@@ -22,44 +22,47 @@
         getColorPickerOverrideRole,
         getEyedropperActive,
         setEyedropperActive,
+        getCommandPaletteOpen,
+        openCommandPalette,
+        closeCommandPalette,
+        getKeymapOpen,
+        setKeymapOpen,
+        toggleKeymap,
     } from '$lib/stores/ui.svelte';
     import {
-        getIsApplying,
-        setIsApplying,
         setWallpaperPath,
-        getPalette,
-        getWallpaperPath,
-        getLightMode,
-        getAdditionalImages,
-        getExtendedColors,
-        getAppOverrides,
-        getAdjustments,
-        setAdjustments,
         setPalette,
-        setAdjustedExtendedColors,
+        setAdjustments,
         setColor,
         setExtendedColor,
         setAppOverride,
         setLightMode,
         setExtractionMode,
     } from '$lib/stores/theme.svelte';
-    import {getSettings} from '$lib/stores/settings.svelte';
+    import {pushState} from '$lib/stores/history.svelte';
     import {
-        undo as historyUndo,
-        redo as historyRedo,
-        pushRedo,
-        pushState,
-        pushUndo,
-    } from '$lib/stores/history.svelte';
+        applyTheme,
+        undoAction,
+        redoAction,
+    } from '$lib/actions/themeActions';
+    import {
+        zoomIn,
+        zoomOut,
+        resetZoom,
+        setZoom,
+        getZoom,
+    } from '$lib/utils/zoom';
     import Toast from '$lib/components/shared/Toast.svelte';
     import AboutStrip from '$lib/components/layout/AboutStrip.svelte';
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
+    import CommandPalette from '$lib/components/shared/CommandPalette.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
     import {hexToRgb} from '$lib/utils/color';
+    import {buildCommands} from '$lib/commands/commands.svelte';
     import type {main} from '../wailsjs/go/models';
 
-    let showKeymap = $state(false);
     let activeTab = $derived(getActiveTab());
+    let commands = $derived(buildCommands());
     let widgetMode = $state(false);
     let sliderWidget = $state(false);
     let themesSlider = $state(false);
@@ -93,50 +96,9 @@
 
         initKeyboardShortcuts();
 
-        // Ctrl+Z - Undo
-        registerShortcut('ctrl+z', () => {
-            const snapshot = historyUndo();
-            if (snapshot) {
-                pushRedo(getPalette(), getExtendedColors(), getAdjustments());
-                setPalette(snapshot.palette, true);
-                setAdjustedExtendedColors(snapshot.extendedColors);
-                setAdjustments(snapshot.adjustments);
-            }
-        });
-
-        // Ctrl+Shift+Z - Redo
-        registerShortcut('ctrl+shift+z', () => {
-            const snapshot = historyRedo();
-            if (snapshot) {
-                pushUndo(getPalette(), getExtendedColors(), getAdjustments());
-                setPalette(snapshot.palette, true);
-                setAdjustedExtendedColors(snapshot.extendedColors);
-                setAdjustments(snapshot.adjustments);
-            }
-        });
-
-        // Ctrl+Enter - Apply theme
-        registerShortcut('ctrl+enter', async () => {
-            if (getIsApplying()) return;
-            setIsApplying(true);
-            try {
-                const {ApplyTheme} = await import('../wailsjs/go/main/App');
-                const result = await ApplyTheme({
-                    palette: getPalette(),
-                    wallpaperPath: getWallpaperPath(),
-                    lightMode: getLightMode(),
-                    additionalImages: getAdditionalImages(),
-                    extendedColors: getExtendedColors(),
-                    settings: getSettings(),
-                    appOverrides: getAppOverrides(),
-                } as unknown as main.ApplyThemeRequest);
-                if (result.success) showToast('Theme applied');
-            } catch {
-                showToast('Failed to apply theme');
-            } finally {
-                setIsApplying(false);
-            }
-        });
+        registerShortcut('ctrl+z', undoAction);
+        registerShortcut('ctrl+shift+z', redoAction);
+        registerShortcut('ctrl+enter', applyTheme);
 
         // Ctrl+S - Save blueprint
         registerShortcut('ctrl+s', () => {
@@ -185,56 +147,28 @@
             });
         });
 
-        // Ctrl+= / Ctrl+- / Ctrl+0 - Zoom controls
-        const ZOOM_STEP = 0.1;
-        const ZOOM_MIN = 0.5;
-        const ZOOM_MAX = 2.0;
-        const ZOOM_DEFAULT = 1.0;
-
-        function getZoom(): number {
-            return parseFloat(localStorage.getItem('aether-zoom') || '1');
-        }
-
-        function applyZoom(level: number) {
-            const clamped = Math.min(
-                ZOOM_MAX,
-                Math.max(ZOOM_MIN, Math.round(level * 100) / 100)
-            );
-            document.documentElement.style.zoom = String(clamped);
-            localStorage.setItem('aether-zoom', String(clamped));
-        }
-
-        // Restore saved zoom level
-        applyZoom(getZoom());
-
-        // Ctrl++ (on standard keyboards, + is Shift+=, so e.key is "+")
-        registerShortcut('ctrl+shift++', () => {
-            applyZoom(getZoom() + ZOOM_STEP);
-        });
-
-        // Ctrl++ via numpad (no shift needed)
-        registerShortcut('ctrl++', () => {
-            applyZoom(getZoom() + ZOOM_STEP);
-        });
-
-        registerShortcut('ctrl+-', () => {
-            applyZoom(getZoom() - ZOOM_STEP);
-        });
-
-        registerShortcut('ctrl+0', () => {
-            applyZoom(ZOOM_DEFAULT);
-        });
+        setZoom(getZoom());
+        registerShortcut('ctrl+shift++', zoomIn);
+        registerShortcut('ctrl++', zoomIn);
+        registerShortcut('ctrl+-', zoomOut);
+        registerShortcut('ctrl+0', resetZoom);
 
         // Ctrl+K - Show keymap
         registerShortcut('ctrl+k', () => {
-            showKeymap = !showKeymap;
+            toggleKeymap();
         });
 
-        // Escape - Close modals
+        // Ctrl+P - Command palette
+        registerShortcut('ctrl+p', () => {
+            if (getCommandPaletteOpen()) closeCommandPalette();
+            else openCommandPalette();
+        });
+
         registerShortcut('escape', () => {
-            if (getEyedropperActive()) setEyedropperActive(false);
+            if (getCommandPaletteOpen()) closeCommandPalette();
+            else if (getEyedropperActive()) setEyedropperActive(false);
             else if (getColorPickerOpen()) closeColorPicker();
-            else if (showKeymap) showKeymap = false;
+            else if (getKeymapOpen()) setKeymapOpen(false);
         });
 
         // Listen for events from Go
@@ -407,6 +341,14 @@
         <ActionBar />
         <AboutStrip />
         <Toast />
-        <KeymapDialog open={showKeymap} onclose={() => (showKeymap = false)} />
+        <KeymapDialog
+            open={getKeymapOpen()}
+            onclose={() => setKeymapOpen(false)}
+        />
+        <CommandPalette
+            open={getCommandPaletteOpen()}
+            {commands}
+            onclose={closeCommandPalette}
+        />
     </div>
 {/if}

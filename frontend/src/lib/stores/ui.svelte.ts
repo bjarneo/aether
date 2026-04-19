@@ -17,6 +17,9 @@ let colorPickerExtKey = $state<string>(''); // non-empty = editing an extended c
 let colorPickerOverrideApp = $state<string>(''); // non-empty = editing an app override
 let colorPickerOverrideRole = $state<string>(''); // the color role being overridden
 let eyedropperActive = $state<boolean>(false);
+let commandPaletteOpen = $state<boolean>(false);
+let keymapOpen = $state<boolean>(false);
+let imageEditorOpen = $state<boolean>(false);
 
 // --- Getters ---
 export function getActiveTab(): Tab {
@@ -102,4 +105,31 @@ export function closeColorPicker(): void {
 
 export function setEyedropperActive(v: boolean): void {
     eyedropperActive = v;
+}
+
+export function getCommandPaletteOpen(): boolean {
+    return commandPaletteOpen;
+}
+export function openCommandPalette(): void {
+    commandPaletteOpen = true;
+}
+export function closeCommandPalette(): void {
+    commandPaletteOpen = false;
+}
+
+export function getKeymapOpen(): boolean {
+    return keymapOpen;
+}
+export function setKeymapOpen(v: boolean): void {
+    keymapOpen = v;
+}
+export function toggleKeymap(): void {
+    keymapOpen = !keymapOpen;
+}
+
+export function getImageEditorOpen(): boolean {
+    return imageEditorOpen;
+}
+export function setImageEditorOpen(v: boolean): void {
+    imageEditorOpen = v;
 }
