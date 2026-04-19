@@ -77,13 +77,38 @@
     style="--wails-draggable:drag"
 >
     <button
-        class="text-fg-primary hover:text-accent mr-6 text-[11px] font-semibold tracking-wide transition-colors duration-100"
+        class="text-fg-primary hover:text-accent text-[11px] font-semibold tracking-wide transition-colors duration-100"
         class:pb-1.5={isMac}
         class:ml-2={isMac}
         style="letter-spacing: 0.08em; --wails-draggable:no-drag"
         onclick={openGitHub}
         title="Open GitHub repository">AETHER</button
     >
+    <button
+        class="text-fg-dimmed hover:text-fg-primary mx-3 flex h-6 w-6 items-center justify-center transition-colors duration-100"
+        class:mb-0.5={isMac}
+        onclick={toggleSidebar}
+        title={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
+        aria-label="Toggle sidebar"
+        style="--wails-draggable:no-drag"
+    >
+        <svg
+            class="h-3.5 w-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        >
+            <rect x="3" y="3" width="18" height="18" rx="2" /><line
+                x1="9"
+                y1="3"
+                x2="9"
+                y2="21"
+            />
+        </svg>
+    </button>
     <nav class="flex flex-1 justify-center gap-0.5">
         {#each tabs as tab}
             <button
@@ -117,29 +142,4 @@
             style="--wails-draggable:no-drag">About</button
         >
     {/if}
-    <button
-        class="text-fg-dimmed hover:text-fg-primary ml-1 flex h-6 w-6 items-center justify-center transition-colors duration-100"
-        class:mb-0.5={isMac}
-        onclick={toggleSidebar}
-        title={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
-        aria-label="Toggle sidebar"
-        style="--wails-draggable:no-drag"
-    >
-        <svg
-            class="h-3.5 w-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-        >
-            <rect x="3" y="3" width="18" height="18" rx="2" /><line
-                x1="15"
-                y1="3"
-                x2="15"
-                y2="21"
-            />
-        </svg>
-    </button>
 </header>
