@@ -2,6 +2,18 @@
 
 Desktop theming app. **Wails 2** (Go backend) + **Svelte 5** frontend (TypeScript, Tailwind v4). Extracts color palettes from wallpapers and applies cohesive themes across a Linux desktop (Omarchy-friendly, works standalone).
 
+## Detailed project docs (outside the repo)
+
+Architecture decisions, design rationale, flow diagrams, ADRs, feature specs, and historical context live at:
+
+```
+~/Documents/bjarne/projects/Aether
+```
+
+**Read that folder** before making non-trivial changes or when the user asks "how does X work". **Write new detailed docs there** — the repo's `docs/` folder is reserved for user-facing documentation (CLI, installation, custom apps, templates). Content in `~/Documents/bjarne/projects/Aether` is deliberately outside git.
+
+See the `aether-docs` skill (`.claude/skills/aether-docs/SKILL.md`) for the full convention.
+
 ## Commands
 
 From repo root (requires Go + `wails` CLI + Node):
