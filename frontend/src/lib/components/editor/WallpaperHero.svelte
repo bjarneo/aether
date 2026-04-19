@@ -327,31 +327,38 @@
         >
             <button
                 class="bg-accent hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors duration-100"
-                onclick={handleExtractColors}>Extract</button
+                onclick={handleExtractColors}
+                title="Extract a 16-color palette from the main wallpaper"
+                >Extract</button
             >
             {#if getAdditionalImages().length > 0}
                 <button
                     class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
                     onclick={handleExtractAll}
-                    title="Blend palette from main wallpaper and all additional images"
+                    title="Blend a palette from the main wallpaper and all additional images"
                     >Extract All</button
                 >
             {/if}
             {#if wallpaperImage}
                 <button
                     class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
-                    onclick={() => (previewOpen = true)}>View</button
+                    onclick={() => (previewOpen = true)}
+                    title="View the wallpaper in full-size mode">View</button
                 >
             {/if}
             {#if onedit}
                 <button
                     class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
-                    onclick={onedit}>Edit</button
+                    onclick={onedit}
+                    title="Open the wallpaper editor to crop, adjust, and apply filters"
+                    >Edit</button
                 >
             {/if}
             <button
                 class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
-                onclick={handleChange}>Change</button
+                onclick={handleChange}
+                title="Choose a different wallpaper from your files"
+                >Change</button
             >
         </div>
     {/if}
