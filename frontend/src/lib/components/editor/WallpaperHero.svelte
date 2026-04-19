@@ -103,14 +103,23 @@
                 : source.naturalHeight;
         if (!naturalW || !naturalH) return null;
 
+        // CSS `zoom` on <html> scales getBoundingClientRect() but not e.clientX/Y
+        // on webkit2gtk — normalize rect into the same space as the mouse coords.
+        const zoom =
+            parseFloat(document.documentElement.style.zoom as string) || 1;
+        const rectLeft = rect.left / zoom;
+        const rectTop = rect.top / zoom;
+        const rectWidth = rect.width / zoom;
+        const rectHeight = rect.height / zoom;
+
         // object-cover uses max (crop-fill), object-contain uses min (letterbox).
         const scale = expanded
-            ? Math.min(rect.width / naturalW, rect.height / naturalH)
-            : Math.max(rect.width / naturalW, rect.height / naturalH);
-        const offsetX = (rect.width - naturalW * scale) / 2;
-        const offsetY = (rect.height - naturalH * scale) / 2;
-        const localX = e.clientX - rect.left - offsetX;
-        const localY = e.clientY - rect.top - offsetY;
+            ? Math.min(rectWidth / naturalW, rectHeight / naturalH)
+            : Math.max(rectWidth / naturalW, rectHeight / naturalH);
+        const offsetX = (rectWidth - naturalW * scale) / 2;
+        const offsetY = (rectHeight - naturalH * scale) / 2;
+        const localX = e.clientX - rectLeft - offsetX;
+        const localY = e.clientY - rectTop - offsetY;
 
         // In contain mode, clicks on the letterbox lie outside the image — bail.
         if (
