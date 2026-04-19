@@ -39,6 +39,8 @@
     let isVideo = $derived(isVideoSource(wallpaperImage));
     let previewOpen = $state(false);
     let eyedropperActive = $derived(getEyedropperActive());
+    let containerHeight = $derived(expanded ? 'h-[70vh]' : 'h-96');
+    let objectFit = $derived(expanded ? 'object-contain' : 'object-cover');
 
     let imgEl = $state<HTMLImageElement | null>(null);
     let videoEl = $state<HTMLVideoElement | null>(null);
@@ -284,9 +286,7 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div
-        class="bg-bg-surface border-border flex w-full items-center justify-center overflow-hidden border transition-[height] duration-200 {expanded
-            ? 'h-[70vh]'
-            : 'h-96'}"
+        class="bg-bg-surface border-border flex w-full items-center justify-center overflow-hidden border transition-[height] duration-200 {containerHeight}"
         class:cursor-crosshair={eyedropperActive}
         onclick={handleSample}
         onmousemove={handleSampleMove}
@@ -304,18 +304,14 @@
                 muted
                 playsinline
                 crossorigin="anonymous"
-                class="h-full w-full {expanded
-                    ? 'object-contain'
-                    : 'object-cover'}"
+                class="h-full w-full {objectFit}"
             ></video>
         {:else if wallpaperImage}
             <img
                 bind:this={imgEl}
                 src={wallpaperImage}
                 alt="Current wallpaper"
-                class="h-full w-full {expanded
-                    ? 'object-contain'
-                    : 'object-cover'}"
+                class="h-full w-full {objectFit}"
             />
         {:else}
             <span class="text-fg-dimmed text-[11px]">No preview available</span>
