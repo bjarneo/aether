@@ -49,7 +49,7 @@
                 lockedColors: [],
                 extendedColors: getExtendedColors(),
                 appOverrides: getAppOverrides(),
-                adjustments: getAdjustments(),
+                adjustments: {...getAdjustments()},
             });
             showToast(`Saved: ${name.trim()}`);
             onsave();

@@ -56,6 +56,7 @@
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
     import {hexToRgb} from '$lib/utils/color';
+    import type {main} from '../wailsjs/go/models';
 
     let showAbout = $state(false);
     let showKeymap = $state(false);
@@ -129,7 +130,7 @@
                     extendedColors: getExtendedColors(),
                     settings: getSettings(),
                     appOverrides: getAppOverrides(),
-                });
+                } as unknown as main.ApplyThemeRequest);
                 if (result.success) showToast('Theme applied');
             } catch {
                 showToast('Failed to apply theme');

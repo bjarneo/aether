@@ -28,6 +28,7 @@
     import {getActiveTab, setActiveTab, showToast} from '$lib/stores/ui.svelte';
     import {getApiKey, getTotalResults} from '$lib/stores/wallhaven.svelte';
     import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
+    import type {main} from '../../../../wailsjs/go/models';
 
     let showImportMenu = $state(false);
     let showExportDialog = $state(false);
@@ -115,7 +116,7 @@
                 extendedColors: getExtendedColors(),
                 settings: getSettings(),
                 appOverrides: getAppOverrides(),
-            });
+            } as unknown as main.ApplyThemeRequest);
             if (result.success) {
                 // Only sync light/dark mode to UI after backend confirms apply
                 if (getLightMode()) {

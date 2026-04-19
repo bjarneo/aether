@@ -16,6 +16,7 @@
     import {getSettings} from '$lib/stores/settings.svelte';
     import {showToast} from '$lib/stores/ui.svelte';
     import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
+    import type {main} from '../../../../wailsjs/go/models';
 
     let previewDataUrls = $state<Record<string, string>>({});
     let previewPending = new Set<string>();
@@ -319,7 +320,7 @@
                 extendedColors: getExtendedColors(),
                 settings: getSettings(),
                 appOverrides: getAppOverrides(),
-            });
+            } as unknown as main.ApplyThemeRequest);
             if (result.success) showToast('Theme applied');
         } catch {
             showToast('Failed to apply theme');

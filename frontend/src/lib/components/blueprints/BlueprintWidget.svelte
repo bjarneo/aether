@@ -19,7 +19,7 @@
             const {ListBlueprints} = await import(
                 '../../../../wailsjs/go/main/App'
             );
-            blueprints = (await ListBlueprints()) || [];
+            blueprints = ((await ListBlueprints()) || []) as Blueprint[];
         } catch {
             blueprints = [];
         }
