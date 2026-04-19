@@ -1,5 +1,6 @@
 <script lang="ts">
     import {buildCurveLUT} from '$lib/utils/canvas-filters';
+    import {getLightMode} from '$lib/stores/theme.svelte';
 
     const W = 256;
     const H = 192;
@@ -18,11 +19,12 @@
     let canvasEl = $state<HTMLCanvasElement | null>(null);
     let dragging = $state<number | null>(null);
 
-    // Redraw whenever points or histogram change. JSON.stringify ensures
-    // coordinate mutations (not just length changes) trigger a redraw.
+    // Redraw whenever points, histogram, or theme mode change. JSON.stringify
+    // ensures coordinate mutations (not just length changes) trigger a redraw.
     $effect(() => {
         const _ = JSON.stringify(points);
         const __ = histogram.length;
+        const ___ = getLightMode();
         draw();
     });
 
@@ -45,11 +47,16 @@
         const ch = canvasEl.height;
         ctx.clearRect(0, 0, cw, ch);
 
+        const light = getLightMode();
+        const ink = (alpha: number) =>
+            light ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha})`;
+        const outline = light ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+
         // Histogram bars
         if (histogram.length === 256) {
             const max = Math.max(...histogram);
             if (max > 0) {
-                ctx.fillStyle = 'rgba(255,255,255,0.08)';
+                ctx.fillStyle = ink(0.14);
                 for (let i = 0; i < 256; i++) {
                     const barH = (histogram[i] / max) * H;
                     ctx.fillRect(PAD + i, PAD + H - barH, 1, barH);
@@ -58,7 +65,7 @@
         }
 
         // Grid lines
-        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.strokeStyle = ink(0.1);
         ctx.lineWidth = 1;
         for (let i = 1; i < 4; i++) {
             const x = PAD + (W * i) / 4;
@@ -74,7 +81,7 @@
         }
 
         // Diagonal reference (identity)
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.strokeStyle = ink(0.2);
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
         ctx.moveTo(...toCanvas(0, 0));
@@ -84,7 +91,7 @@
 
         // Curve from LUT
         const lut = buildCurveLUT(points);
-        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.strokeStyle = ink(0.9);
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let i = 0; i < 256; i++) {
@@ -107,12 +114,10 @@
             const [cx, cy] = toCanvas(pt.x, pt.y);
             ctx.beginPath();
             ctx.arc(cx, cy, pt.fixed ? 3 : 5, 0, Math.PI * 2);
-            ctx.fillStyle = pt.fixed
-                ? 'rgba(255,255,255,0.3)'
-                : 'rgba(255,255,255,0.9)';
+            ctx.fillStyle = pt.fixed ? ink(0.4) : ink(0.95);
             ctx.fill();
             if (!pt.fixed) {
-                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.strokeStyle = outline;
                 ctx.lineWidth = 1;
                 ctx.stroke();
             }
