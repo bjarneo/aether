@@ -102,7 +102,7 @@
             />
         </svg>
     </button>
-    <nav class="flex flex-1 justify-center gap-0.5">
+    <nav class="flex flex-1 justify-end gap-0.5">
         {#each tabs as tab}
             <button
                 class="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-all duration-100
