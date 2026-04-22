@@ -218,6 +218,10 @@ export function StartBatchProcessing(arg1, arg2) {
     return window['go']['main']['App']['StartBatchProcessing'](arg1, arg2);
 }
 
+export function SyncState(arg1) {
+    return window['go']['main']['App']['SyncState'](arg1);
+}
+
 export function ToggleFavorite(arg1, arg2, arg3) {
     return window['go']['main']['App']['ToggleFavorite'](arg1, arg2, arg3);
 }

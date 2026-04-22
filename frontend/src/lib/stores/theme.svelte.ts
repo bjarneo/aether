@@ -131,6 +131,26 @@ export function getBaseExtendedColors(): Record<string, string> {
 export function getAppOverrides(): Record<string, Record<string, string>> {
     return appOverrides;
 }
+
+// Snapshot of the fields mirrored into Go for IPC reads (aether status) and
+// for constructing ApplyThemeRequest/SaveBlueprintRequest payloads.
+export function getThemeSnapshot(): {
+    palette: string[];
+    wallpaperPath: string;
+    lightMode: boolean;
+    extendedColors: Record<string, string>;
+    appOverrides: Record<string, Record<string, string>>;
+    additionalImages: string[];
+} {
+    return {
+        palette,
+        wallpaperPath,
+        lightMode,
+        extendedColors,
+        appOverrides,
+        additionalImages,
+    };
+}
 export function getPaletteCurvePoints(): [number, number][] {
     return paletteCurvePoints;
 }

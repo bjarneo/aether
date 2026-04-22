@@ -200,6 +200,41 @@ func (a *App) SetExtractionMode(mode string) {
 	a.state.ExtractionMode = mode
 }
 
+// SyncStateRequest mirrors the frontend editor state into Go so IPC readers
+// (`aether status`, etc.) reflect live edits without requiring Apply.
+type SyncStateRequest struct {
+	Palette          []string                     `json:"palette"`
+	WallpaperPath    string                       `json:"wallpaperPath"`
+	LightMode        bool                         `json:"lightMode"`
+	ExtendedColors   map[string]string            `json:"extendedColors"`
+	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	AdditionalImages []string                     `json:"additionalImages"`
+}
+
+// SyncState is called (debounced) by the frontend whenever the editor state
+// changes. Uses SetAdjustedPalette so BasePalette from the last extraction
+// is preserved as the "pristine" reference.
+func (a *App) SyncState(req SyncStateRequest) {
+	if len(req.Palette) >= 16 {
+		var p [16]string
+		for i := 0; i < 16; i++ {
+			p[i] = req.Palette[i]
+		}
+		a.state.SetAdjustedPalette(p)
+	}
+	a.state.WallpaperPath = req.WallpaperPath
+	a.state.LightMode = req.LightMode
+	if req.ExtendedColors != nil {
+		a.state.ExtendedColors = req.ExtendedColors
+	}
+	if req.AppOverrides != nil {
+		a.state.AppOverrides = req.AppOverrides
+	}
+	if req.AdditionalImages != nil {
+		a.state.AdditionalImages = req.AdditionalImages
+	}
+}
+
 // ComputeVariables builds the full template variable map from the given
 // palette and extended colors. Returns all base + derived color values.
 func (a *App) ComputeVariables(paletteSlice []string, extendedColors map[string]string, lightMode bool) map[string]string {

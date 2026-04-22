@@ -269,6 +269,28 @@ export namespace main {
             this.adjustments = source['adjustments'];
         }
     }
+    export class SyncStateRequest {
+        palette: string[];
+        wallpaperPath: string;
+        lightMode: boolean;
+        extendedColors: Record<string, string>;
+        appOverrides: Record<string, any>;
+        additionalImages: string[];
+
+        static createFrom(source: any = {}) {
+            return new SyncStateRequest(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.palette = source['palette'];
+            this.wallpaperPath = source['wallpaperPath'];
+            this.lightMode = source['lightMode'];
+            this.extendedColors = source['extendedColors'];
+            this.appOverrides = source['appOverrides'];
+            this.additionalImages = source['additionalImages'];
+        }
+    }
 }
 
 export namespace omarchy {

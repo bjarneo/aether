@@ -38,7 +38,9 @@
         setAppOverride,
         setLightMode,
         setExtractionMode,
+        getThemeSnapshot,
     } from '$lib/stores/theme.svelte';
+    import {debounce} from '$lib/utils/debounce';
     import {pushState} from '$lib/stores/history.svelte';
     import {
         applyTheme,
@@ -66,6 +68,21 @@
     let widgetMode = $state(false);
     let sliderWidget = $state(false);
     let themesSlider = $state(false);
+
+    // Mirror editor state into Go (debounced) so `aether status` and other IPC
+    // readers reflect live edits without waiting for an Apply. 300ms covers
+    // slider drags; the first sync on mount posts the initial snapshot.
+    const syncStateToBackend = debounce((snapshot: main.SyncStateRequest) => {
+        import('../wailsjs/go/main/App')
+            .then(({SyncState}) => SyncState(snapshot))
+            .catch(() => {});
+    }, 300);
+
+    $effect(() => {
+        syncStateToBackend(
+            getThemeSnapshot() as unknown as main.SyncStateRequest
+        );
+    });
 
     onMount(async () => {
         try {

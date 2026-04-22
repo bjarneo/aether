@@ -137,6 +137,8 @@ export function StartBatchProcessing(
     arg2: boolean
 ): Promise<void>;
 
+export function SyncState(arg1: main.SyncStateRequest): Promise<void>;
+
 export function ToggleFavorite(
     arg1: string,
     arg2: string,
