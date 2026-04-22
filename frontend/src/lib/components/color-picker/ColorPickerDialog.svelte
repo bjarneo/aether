@@ -29,6 +29,8 @@
         rgbToHex,
         hexToHsl,
         hslToHex,
+        hexToOklch,
+        oklchToHex,
         isValidHex,
         relativeLuminance,
         contrastLevel,
@@ -296,6 +298,54 @@
         // l: black → pure hue at 50% lightness → white
         return `linear-gradient(to right, #000, ${hslToHex(hsl.h, hsl.s, 50)}, #fff)`;
     }
+
+    type OklchChannel = 'l' | 'c' | 'h';
+
+    let oklch = $derived(hexToOklch(currentColor));
+
+    const OKLCH_CHANNELS: readonly OklchChannel[] = ['l', 'c', 'h'] as const;
+    const OKLCH_LABELS: Record<OklchChannel, string> = {l: 'L', c: 'C', h: 'H'};
+    // Slider scaling: step=1 on the input element, so we map L 0..1 → 0..100
+    // and C 0..0.4 → 0..40 for smooth dragging, then convert back on change.
+    const OKLCH_MAX: Record<OklchChannel, number> = {l: 100, c: 40, h: 360};
+    const OKLCH_FROM_SLIDER: Record<OklchChannel, number> = {
+        l: 1 / 100,
+        c: 1 / 100,
+        h: 1,
+    };
+
+    let oklchSlider = $derived<Record<OklchChannel, number>>({
+        l: oklch.l / OKLCH_FROM_SLIDER.l,
+        c: oklch.c / OKLCH_FROM_SLIDER.c,
+        h: oklch.h / OKLCH_FROM_SLIDER.h,
+    });
+
+    function handleOklchChange(channel: OklchChannel, sliderValue: number) {
+        const next = {
+            ...oklch,
+            [channel]: sliderValue * OKLCH_FROM_SLIDER[channel],
+        };
+        applyColor(oklchToHex(next.l, next.c, next.h));
+    }
+
+    function oklchChannelGradient(channel: OklchChannel): string {
+        const steps = 12;
+        const stops: string[] = [];
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            if (channel === 'l') stops.push(oklchToHex(t, oklch.c, oklch.h));
+            else if (channel === 'c')
+                stops.push(oklchToHex(oklch.l, t * 0.4, oklch.h));
+            else stops.push(oklchToHex(oklch.l, oklch.c, t * 360));
+        }
+        return `linear-gradient(to right, ${stops.join(', ')})`;
+    }
+
+    function formatOklch(channel: OklchChannel): string {
+        if (channel === 'l') return `${Math.round(oklch.l * 100)}%`;
+        if (channel === 'c') return oklch.c.toFixed(2);
+        return `${Math.round(oklch.h)}°`;
+    }
 </script>
 
 <div class="flex h-full flex-col">
@@ -547,6 +597,50 @@
                     <span
                         class="text-fg-dimmed w-7 text-right font-mono text-[10px] tabular-nums"
                         >{Math.round(hsl[channel])}{HSL_SUFFIX[channel]}</span
+                    >
+                </div>
+            {/each}
+        </div>
+
+        <div class="space-y-2">
+            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
+                >OKLCH Channels</span
+            >
+            {#each OKLCH_CHANNELS as channel}
+                <div class="flex items-center gap-2">
+                    <span class="text-fg-dimmed w-3 font-mono text-[10px]"
+                        >{OKLCH_LABELS[channel]}</span
+                    >
+                    <div
+                        class="relative h-3 flex-1"
+                        style="background: {oklchChannelGradient(
+                            channel
+                        )}; border: 1px solid var(--color-border);"
+                    >
+                        <input
+                            type="range"
+                            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            min="0"
+                            max={OKLCH_MAX[channel]}
+                            step="1"
+                            value={oklchSlider[channel]}
+                            oninput={e =>
+                                handleOklchChange(
+                                    channel,
+                                    parseFloat(e.currentTarget.value)
+                                )}
+                            disabled={locked}
+                        />
+                        <div
+                            class="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-sm"
+                            style:left="{(oklchSlider[channel] /
+                                OKLCH_MAX[channel]) *
+                                100}%"
+                        ></div>
+                    </div>
+                    <span
+                        class="text-fg-dimmed w-10 text-right font-mono text-[10px] tabular-nums"
+                        >{formatOklch(channel)}</span
                     >
                 </div>
             {/each}
