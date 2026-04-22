@@ -4,6 +4,7 @@
         loadThumbnail,
         isThumbnailCached,
     } from '$lib/stores/imagecache.svelte';
+    import {observeIntersection} from '$lib/utils/intersection';
 
     let {path, alt = ''}: {path: string; alt?: string} = $props();
 
@@ -13,20 +14,16 @@
 
     $effect(() => {
         if (!element || isThumbnailCached(path)) return;
-
-        const observer = new IntersectionObserver(
-            entries => {
-                if (entries[0].isIntersecting && !triggered) {
+        return observeIntersection(
+            element,
+            entry => {
+                if (entry.isIntersecting && !triggered) {
                     triggered = true;
                     loadThumbnail(path);
-                    observer.disconnect();
                 }
             },
             {rootMargin: '200px'}
         );
-
-        observer.observe(element);
-        return () => observer.disconnect();
     });
 </script>
 

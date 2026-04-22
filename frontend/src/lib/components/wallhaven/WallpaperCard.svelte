@@ -6,15 +6,31 @@
     } from '$lib/stores/theme.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
     import {openURL} from '$lib/utils/browser';
+    import {observeIntersection} from '$lib/utils/intersection';
 
     let {wallpaper, onpreview}: {wallpaper: any; onpreview: () => void} =
         $props();
     let isDownloading = $state(false);
     let isFavorited = $state(false);
+    let cardEl = $state<HTMLDivElement | null>(null);
+    let inView = $state(false);
+    let favoriteChecked = false;
 
-    // Check initial favorite status
+    // Gate <img> and the IsFavorite IPC call on viewport so scrolled-past
+    // cards release decoded-image memory and never-visible cards skip IPC.
     $effect(() => {
-        checkFavorite();
+        if (!cardEl) return;
+        return observeIntersection(
+            cardEl,
+            entry => {
+                inView = entry.isIntersecting;
+                if (inView && !favoriteChecked) {
+                    favoriteChecked = true;
+                    checkFavorite();
+                }
+            },
+            {rootMargin: '600px 0px'}
+        );
     });
 
     async function checkFavorite() {
@@ -93,16 +109,21 @@
     }
 </script>
 
-<div class="bg-bg-surface border-border group relative overflow-hidden border">
+<div
+    bind:this={cardEl}
+    class="bg-bg-surface border-border group relative overflow-hidden border"
+>
     <div class="bg-bg-primary aspect-video overflow-hidden">
-        <img
-            src={wallpaper.thumbs?.large ||
-                wallpaper.thumbs?.original ||
-                wallpaper.thumbs?.small}
-            alt={wallpaper.id}
-            class="h-full w-full object-cover"
-            loading="lazy"
-        />
+        {#if inView}
+            <img
+                src={wallpaper.thumbs?.large ||
+                    wallpaper.thumbs?.original ||
+                    wallpaper.thumbs?.small}
+                alt={wallpaper.id}
+                class="h-full w-full object-cover"
+                loading="lazy"
+            />
+        {/if}
     </div>
 
     <!-- Add to additional images -->

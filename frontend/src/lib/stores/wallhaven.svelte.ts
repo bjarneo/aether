@@ -18,6 +18,10 @@ let results = $state<any[]>([]);
 let totalPages = $state(0);
 let totalResults = $state(0);
 let isSearching = $state(false);
+let isLoadingMore = $state(false);
+
+export type CardSize = 'small' | 'medium' | 'large';
+let cardSize = $state<CardSize>('small');
 
 // Load config from ~/.config/aether/wallhaven.json on startup
 loadConfigFromFile();
@@ -100,6 +104,18 @@ export function getTotalResults(): number {
 export function getIsSearching(): boolean {
     return isSearching;
 }
+export function getIsLoadingMore(): boolean {
+    return isLoadingMore;
+}
+export function getHasMore(): boolean {
+    return totalPages > 0 && page < totalPages;
+}
+export function getCardSize(): CardSize {
+    return cardSize;
+}
+export function setCardSize(s: CardSize): void {
+    cardSize = s;
+}
 
 // --- Setters (all persist) ---
 export function setQuery(q: string): void {
@@ -155,15 +171,19 @@ export function togglePurity(index: number): void {
 // --- Actions ---
 export async function search(): Promise<void> {
     page = 1;
-    await doSearch();
+    await doSearch(false);
 }
 
-export async function searchPage(): Promise<void> {
-    await doSearch();
+export async function loadMore(): Promise<void> {
+    if (isSearching || isLoadingMore) return;
+    if (totalPages > 0 && page >= totalPages) return;
+    page = page + 1;
+    await doSearch(true);
 }
 
-async function doSearch(): Promise<void> {
-    isSearching = true;
+async function doSearch(append: boolean): Promise<void> {
+    if (append) isLoadingMore = true;
+    else isSearching = true;
     try {
         const {SearchWallhaven} = await import('../../../wailsjs/go/main/App');
         const result = await SearchWallhaven({
@@ -176,13 +196,21 @@ async function doSearch(): Promise<void> {
             atleast,
             colors: colorFilter,
         });
-        results = result.data || [];
+        const data = result.data || [];
+        if (append) {
+            const seen = new Set(results.map(r => r.id));
+            results = [...results, ...data.filter((r: any) => !seen.has(r.id))];
+        } else {
+            results = data;
+        }
         totalPages = result.meta?.last_page || 0;
         totalResults = result.meta?.total || 0;
     } catch (e) {
         console.error('Wallhaven search failed:', e);
-        results = [];
+        if (append) page = Math.max(1, page - 1);
+        else results = [];
     } finally {
-        isSearching = false;
+        if (append) isLoadingMore = false;
+        else isSearching = false;
     }
 }
