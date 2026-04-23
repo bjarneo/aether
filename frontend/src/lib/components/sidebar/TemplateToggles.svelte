@@ -3,7 +3,12 @@
 
     const toggles = [
         {key: 'includeNeovim', label: 'Neovim'},
-        {key: 'includeGtk', label: 'GTK'},
+        {
+            key: 'includeGtk',
+            label: 'GTK',
+            description:
+                'Writes ~/.config/gtk-{3,4}.0/gtk.css. Switching themes outside Aether leaves this applied — click Clear to revert.',
+        },
         {key: 'includeZed', label: 'Zed'},
         {key: 'includeVscode', label: 'VS Code'},
     ] as const;
@@ -17,11 +22,21 @@
     </h3>
     <div class="flex flex-col gap-2">
         {#each toggles as toggle}
-            <label class="flex cursor-pointer items-center justify-between">
-                <span class="text-fg-secondary text-[11px]">{toggle.label}</span
-                >
+            <label
+                class="flex cursor-pointer items-center justify-between gap-3"
+            >
+                <div>
+                    <span class="text-fg-secondary text-[11px]"
+                        >{toggle.label}</span
+                    >
+                    {#if 'description' in toggle && toggle.description}
+                        <p class="text-fg-dimmed text-[9px] leading-snug">
+                            {toggle.description}
+                        </p>
+                    {/if}
+                </div>
                 <button
-                    class="relative h-4 w-8 transition-colors duration-150
+                    class="relative h-4 w-8 shrink-0 transition-colors duration-150
             {getSettings()[toggle.key]
                         ? 'bg-accent'
                         : 'bg-bg-surface border-border border'}"
