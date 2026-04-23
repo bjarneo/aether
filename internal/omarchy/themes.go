@@ -20,21 +20,55 @@ type Theme struct {
 	IsAetherGenerated bool     `json:"isAetherGenerated"`
 }
 
-// LoadAllThemes discovers themes from user and system directories.
-func LoadAllThemes() ([]Theme, error) {
+// themeSearchDirs returns the user and system-wide directories where
+// omarchy looks up themes, in precedence order.
+func themeSearchDirs() []string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return nil, err
+		return nil
 	}
+	return []string{
+		filepath.Join(home, ".config", "omarchy", "themes"),
+		filepath.Join(home, ".local", "share", "omarchy", "themes"),
+	}
+}
 
-	userDir := filepath.Join(home, ".config", "omarchy", "themes")
-	sysDir := filepath.Join(home, ".local", "share", "omarchy", "themes")
+func isImageFile(name string) bool {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".jpg", ".jpeg", ".png", ".webp":
+		return true
+	}
+	return false
+}
+
+// listBackgrounds returns absolute paths of image files in dir, sorted
+// by name (os.ReadDir's default).
+func listBackgrounds(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var paths []string
+	for _, e := range entries {
+		if isImageFile(e.Name()) {
+			paths = append(paths, filepath.Join(dir, e.Name()))
+		}
+	}
+	return paths
+}
+
+// LoadAllThemes discovers themes from user and system directories.
+func LoadAllThemes() ([]Theme, error) {
+	dirs := themeSearchDirs()
+	if dirs == nil {
+		return nil, os.ErrNotExist
+	}
 	currentName := GetCurrentThemeName()
 
 	seen := make(map[string]bool)
 	var themes []Theme
 
-	for _, dir := range []string{userDir, sysDir} {
+	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue
@@ -59,41 +93,25 @@ func LoadAllThemes() ([]Theme, error) {
 				IsCurrentTheme: name == currentName,
 			}
 
-			// Check for symlink (ReadDir doesn't always report it)
-			if target, err := os.Readlink(themePath); err == nil {
+			// ReadDir doesn't always flag symlinks on the DirEntry.
+			if _, err := os.Readlink(themePath); err == nil {
 				theme.IsSymlink = true
-				_ = target
 			}
 
-			// Try colors.toml first
-			tomlPath := filepath.Join(themePath, "colors.toml")
-			if data, err := os.ReadFile(tomlPath); err == nil {
+			if data, err := os.ReadFile(filepath.Join(themePath, "colors.toml")); err == nil {
 				colors, bg, fg := ParseColorsToml(string(data))
 				theme.Colors = colors[:]
 				theme.Background = bg
 				theme.Foreground = fg
 				theme.IsAetherGenerated = true
-			} else {
-				// Fall back to kitty.conf
-				kittyPath := filepath.Join(themePath, "kitty.conf")
-				if data, err := os.ReadFile(kittyPath); err == nil {
-					colors, bg, fg := ParseKittyConf(string(data))
-					theme.Colors = colors[:]
-					theme.Background = bg
-					theme.Foreground = fg
-				}
+			} else if data, err := os.ReadFile(filepath.Join(themePath, "kitty.conf")); err == nil {
+				colors, bg, fg := ParseKittyConf(string(data))
+				theme.Colors = colors[:]
+				theme.Background = bg
+				theme.Foreground = fg
 			}
 
-			// Scan wallpapers
-			bgDir := filepath.Join(themePath, "backgrounds")
-			if entries, err := os.ReadDir(bgDir); err == nil {
-				for _, e := range entries {
-					ext := strings.ToLower(filepath.Ext(e.Name()))
-					if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
-						theme.Wallpapers = append(theme.Wallpapers, filepath.Join(bgDir, e.Name()))
-					}
-				}
-			}
+			theme.Wallpapers = listBackgrounds(filepath.Join(themePath, "backgrounds"))
 
 			themes = append(themes, theme)
 		}
@@ -107,40 +125,21 @@ func LoadAllThemes() ([]Theme, error) {
 }
 
 // TokyoNightDefaults loads the tokyo-night palette and its first
-// wallpaper from a local omarchy install, for use as Aether's
-// out-of-the-box defaults. Returns ok=false when the theme isn't
-// present (e.g. standalone installs without omarchy).
-func TokyoNightDefaults() (palette [16]string, bg, fg, wallpaper string, ok bool) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return
-	}
-	candidates := []string{
-		filepath.Join(home, ".config", "omarchy", "themes", "tokyo-night"),
-		filepath.Join(home, ".local", "share", "omarchy", "themes", "tokyo-night"),
-	}
-
-	for _, themeDir := range candidates {
+// wallpaper (the "0-" file, by omarchy's naming convention) from a
+// local omarchy install. Returns ok=false on standalone systems where
+// the theme isn't present.
+func TokyoNightDefaults() (palette [16]string, wallpaper string, ok bool) {
+	for _, root := range themeSearchDirs() {
+		themeDir := filepath.Join(root, "tokyo-night")
 		data, err := os.ReadFile(filepath.Join(themeDir, "colors.toml"))
 		if err != nil {
 			continue
 		}
-		palette, bg, fg = ParseColorsToml(string(data))
-
-		// os.ReadDir returns entries sorted by filename, so the first
-		// image is tokyo-night's "0-*" wallpaper by convention.
-		if entries, err := os.ReadDir(filepath.Join(themeDir, "backgrounds")); err == nil {
-			for _, e := range entries {
-				ext := strings.ToLower(filepath.Ext(e.Name()))
-				if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
-					wallpaper = filepath.Join(themeDir, "backgrounds", e.Name())
-					break
-				}
-			}
+		palette, _, _ = ParseColorsToml(string(data))
+		if bgs := listBackgrounds(filepath.Join(themeDir, "backgrounds")); len(bgs) > 0 {
+			wallpaper = bgs[0]
 		}
-
-		ok = true
-		return
+		return palette, wallpaper, true
 	}
 	return
 }

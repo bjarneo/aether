@@ -68,9 +68,8 @@ func (a *App) GetThemeColors() map[string]string {
 	return a.themeWatcher.CurrentColors()
 }
 
-// GetInitialState returns the backend-seeded theme state so the
-// frontend can show the right defaults on first paint (e.g. tokyo-night
-// palette + wallpaper on omarchy installs).
+// GetInitialState returns the current theme state snapshot. Frontend
+// pulls this on mount so stores pick up backend-seeded defaults.
 func (a *App) GetInitialState() theme.StateSnapshot {
 	return a.state.Snapshot()
 }
@@ -78,7 +77,7 @@ func (a *App) GetInitialState() theme.StateSnapshot {
 // NewApp creates a new App instance.
 func NewApp() *App {
 	return &App{
-		state:        theme.NewThemeState(),
+		state:        newSeededState(),
 		history:      theme.NewHistoryManager(),
 		writer:       theme.NewWriter(EmbeddedTemplates, "templates"),
 		blueprints:   blueprint.NewService(),
@@ -87,6 +86,18 @@ func NewApp() *App {
 		batch:        batch.NewProcessor(),
 		themeWatcher: theme.NewThemeWatcher(),
 	}
+}
+
+// newSeededState builds a ThemeState and, on omarchy systems, overlays
+// tokyo-night's palette and 0-* wallpaper as the out-of-the-box
+// defaults. Standalone installs get the unmodified DefaultPalette.
+func newSeededState() *theme.ThemeState {
+	s := theme.NewThemeState()
+	if palette, wallpaper, ok := omarchy.TokyoNightDefaults(); ok {
+		s.SetPalette(palette)
+		s.WallpaperPath = wallpaper
+	}
+	return s
 }
 
 // startup is called by Wails when the application starts.
@@ -1089,7 +1100,7 @@ func (a *App) GetTemplateColors() map[string][]string {
 // ResetState resets the theme state to defaults.
 func (a *App) ResetState() {
 	a.history.Push(*a.state)
-	*a.state = *theme.NewThemeState()
+	*a.state = *newSeededState()
 }
 
 // ---------------------------------------------------------------------------
