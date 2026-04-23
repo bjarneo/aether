@@ -40,8 +40,3 @@ export function pushRecentColor(hex: string): void {
     recent = next;
     persist(next);
 }
-
-export function clearRecentColors(): void {
-    recent = [];
-    persist([]);
-}

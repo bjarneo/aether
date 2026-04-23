@@ -74,7 +74,7 @@ export function hexToHsl(hex: string): {h: number; s: number; l: number} {
     return {h: h * 360, s: s * 100, l: l * 100};
 }
 
-export function hue2rgb(p: number, q: number, t: number): number {
+function hue2rgb(p: number, q: number, t: number): number {
     if (t < 0) t += 1;
     if (t > 1) t -= 1;
     if (t < 1 / 6) return p + (q - p) * 6 * t;
@@ -202,15 +202,6 @@ export function relativeLuminance(hex: string): number {
         return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
     };
     return 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
-}
-
-// WCAG 2.1 contrast ratio. Symmetric: caller doesn't need to pass lighter first.
-// Range is 1 (no contrast) to 21 (pure black on pure white).
-export function contrastRatio(a: string, b: string): number {
-    const la = relativeLuminance(a);
-    const lb = relativeLuminance(b);
-    const [hi, lo] = la > lb ? [la, lb] : [lb, la];
-    return (hi + 0.05) / (lo + 0.05);
 }
 
 /**

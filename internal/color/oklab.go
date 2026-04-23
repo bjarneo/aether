@@ -150,13 +150,3 @@ func OKLabDistance(a, b OKLab) float64 {
 	db := a.B - b.B
 	return math.Sqrt(dl*dl + da*da + db*db)
 }
-
-// OKLCHHueDistance calculates the circular hue distance between two OKLCH hues.
-// Returns a value between 0 and 180 degrees.
-func OKLCHHueDistance(h1, h2 float64) float64 {
-	diff := math.Abs(h1 - h2)
-	if diff > 180 {
-		diff = 360 - diff
-	}
-	return diff
-}

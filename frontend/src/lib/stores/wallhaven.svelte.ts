@@ -80,9 +80,6 @@ export function getSorting(): string {
 export function getOrder(): string {
     return order;
 }
-export function getPage(): number {
-    return page;
-}
 export function getAtleast(): string {
     return atleast;
 }
@@ -94,9 +91,6 @@ export function getApiKey(): string {
 }
 export function getResults(): any[] {
     return results;
-}
-export function getTotalPages(): number {
-    return totalPages;
 }
 export function getTotalResults(): number {
     return totalResults;
@@ -128,9 +122,6 @@ export function setSorting(s: string): void {
 export function setOrder(o: string): void {
     order = o;
     persist();
-}
-export function setPage(p: number): void {
-    page = p;
 }
 export function setAtleast(a: string): void {
     atleast = a;
