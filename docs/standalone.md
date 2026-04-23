@@ -22,7 +22,7 @@ When you click "Apply Theme", Aether generates all theme files to:
 ├── kitty.conf            # Kitty terminal theme
 ├── waybar.css            # Waybar stylesheet
 ├── gtk.css               # GTK theme (if enabled)
-├── aether.override.css   # Aether app theme
+├── colors.toml           # Palette source (read by Aether's own UI)
 ├── neovim.lua            # Neovim colorscheme (if enabled)
 ├── vscode.json           # VSCode color theme (if enabled)
 ├── aether.zed.json       # Zed editor theme (if enabled)

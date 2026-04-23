@@ -98,6 +98,10 @@ export function GetTemplateColors() {
     return window['go']['main']['App']['GetTemplateColors']();
 }
 
+export function GetThemeColors() {
+    return window['go']['main']['App']['GetThemeColors']();
+}
+
 export function GetThumbnail(arg1) {
     return window['go']['main']['App']['GetThumbnail'](arg1);
 }

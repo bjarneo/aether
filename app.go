@@ -62,6 +62,12 @@ func (a *App) IsMacOS() bool { return runtime.GOOS == "darwin" }
 // GetFocusTab returns the tab to focus on startup (empty = default editor).
 func (a *App) GetFocusTab() string { return a.focusTab }
 
+// GetThemeColors returns the current parsed colors.toml map. Frontend
+// pulls this on mount; the event-emit race means push alone isn't safe.
+func (a *App) GetThemeColors() map[string]string {
+	return a.themeWatcher.CurrentColors()
+}
+
 // NewApp creates a new App instance.
 func NewApp() *App {
 	return &App{

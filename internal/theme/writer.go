@@ -157,7 +157,6 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode)
 	w.processTemplates(variables, themeDir, settings, state.AppOverrides)
-	w.applyAetherThemeOverride(variables, themeDir)
 	w.applyEditorThemes(themeDir, settings, variables)
 
 	if err := HandleLightModeMarker(themeDir, state.LightMode); err != nil {
@@ -329,32 +328,6 @@ func (w *Writer) processTemplate(
 
 	if err := platform.WriteText(outputPath, processed); err != nil {
 		log.Printf("Error writing processed template %s: %v", fileName, err)
-	}
-}
-
-// applyAetherThemeOverride processes the aether.override.css template and
-// creates a symlink at ~/.config/aether/theme.override.css pointing to it.
-func (w *Writer) applyAetherThemeOverride(variables map[string]string, themeDir string) {
-	const fileName = "aether.override.css"
-
-	content, err := template.ReadTemplate(w.templatesFS, w.templatesDir, fileName)
-	if err != nil {
-		log.Printf("Error reading %s template: %v", fileName, err)
-		return
-	}
-
-	processed := template.ProcessTemplate(content, variables)
-	overridePath := filepath.Join(themeDir, fileName)
-
-	if err := platform.WriteText(overridePath, processed); err != nil {
-		log.Printf("Error writing %s: %v", fileName, err)
-		return
-	}
-
-	// Create symlink from ~/.config/aether/theme.override.css -> the generated file
-	symlinkPath := filepath.Join(platform.ConfigDir(), "theme.override.css")
-	if err := platform.CreateSymlink(overridePath, symlinkPath); err != nil {
-		log.Printf("Error creating theme override symlink: %v", err)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,103 +14,159 @@ import (
 	wailsrt "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// ThemeWatcher monitors the aether.override.css file for changes and
-// emits Wails events with the parsed color values so the frontend can
-// apply them as CSS custom properties.
-type ThemeWatcher struct {
-	ctx     context.Context
-	path    string
-	lastMod time.Time
-	stop    chan struct{}
+// Duplicated from template.semanticOrder; importing template here would
+// create a cycle via internal/theme -> internal/template -> internal/color.
+var semanticOrder = [16]string{
+	"black",
+	"red",
+	"green",
+	"yellow",
+	"blue",
+	"magenta",
+	"cyan",
+	"white",
+	"bright_black",
+	"bright_red",
+	"bright_green",
+	"bright_yellow",
+	"bright_blue",
+	"bright_magenta",
+	"bright_cyan",
+	"bright_white",
 }
 
-// NewThemeWatcher creates a watcher for the override CSS file.
+// ThemeWatcher polls colors.toml and emits a Wails event on change.
+// Prefers the active omarchy theme and falls back to Aether's own.
+type ThemeWatcher struct {
+	paths    []string
+	lastPath string
+	lastMod  time.Time
+	stop     chan struct{}
+}
+
 func NewThemeWatcher() *ThemeWatcher {
-	overridePath := filepath.Join(platform.ConfigDir(), "theme.override.css")
 	return &ThemeWatcher{
-		path: overridePath,
-		stop: make(chan struct{}),
+		paths: candidatePaths(),
+		stop:  make(chan struct{}),
 	}
+}
+
+func candidatePaths() []string {
+	paths := []string{}
+	if home, err := os.UserHomeDir(); err == nil {
+		paths = append(paths, filepath.Join(home, ".config", "omarchy", "current", "theme", "colors.toml"))
+	}
+	return append(paths, filepath.Join(platform.ThemeDir(), "colors.toml"))
+}
+
+// resolveAndParse stats each candidate in order, parses the first that
+// reads successfully, and returns its path, mtime, and color map. All
+// zero/nil values indicate nothing usable was found.
+func (w *ThemeWatcher) resolveAndParse() (string, time.Time, map[string]string) {
+	for _, p := range w.paths {
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		colors := parseColorsTOML(p)
+		if colors == nil {
+			continue
+		}
+		return p, info.ModTime(), colors
+	}
+	return "", time.Time{}, nil
+}
+
+// CurrentColors returns the current parsed color map. Returns nil if no
+// colors.toml is readable.
+func (w *ThemeWatcher) CurrentColors() map[string]string {
+	_, _, colors := w.resolveAndParse()
+	return colors
 }
 
 // Start begins polling the file for changes. Call from app.startup.
 func (w *ThemeWatcher) Start(ctx context.Context) {
-	w.ctx = ctx
-
-	// Emit initial colors
-	if colors := w.parseColors(); colors != nil {
+	if path, mtime, colors := w.resolveAndParse(); colors != nil {
+		w.lastPath = path
+		w.lastMod = mtime
 		wailsrt.EventsEmit(ctx, "theme-colors-changed", colors)
 	}
 
-	go func() {
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-w.stop:
-				return
-			case <-ticker.C:
-				info, err := os.Stat(w.path)
-				if err != nil {
-					continue
-				}
-				if info.ModTime().After(w.lastMod) {
-					w.lastMod = info.ModTime()
-					if colors := w.parseColors(); colors != nil {
-						wailsrt.EventsEmit(ctx, "theme-colors-changed", colors)
-					}
-				}
-			}
-		}
-	}()
+	go w.poll(ctx)
 }
 
-// Stop halts the watcher.
+func (w *ThemeWatcher) poll(ctx context.Context) {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-w.stop:
+			return
+		case <-ticker.C:
+			path, mtime, colors := w.resolveAndParse()
+			if colors == nil {
+				continue
+			}
+			if path == w.lastPath && !mtime.After(w.lastMod) {
+				continue
+			}
+			w.lastPath = path
+			w.lastMod = mtime
+			wailsrt.EventsEmit(ctx, "theme-colors-changed", colors)
+		}
+	}
+}
+
 func (w *ThemeWatcher) Stop() {
 	close(w.stop)
 }
 
-// parseColors reads the override CSS and extracts @define-color values.
-func (w *ThemeWatcher) parseColors() map[string]string {
-	data, err := os.ReadFile(w.path)
+// parseColorsTOML reads a colors.toml and returns a map keyed by both
+// color0-15 and semantic names (blue, red, …) so downstream consumers
+// can use either form.
+func parseColorsTOML(path string) map[string]string {
+	data, err := os.ReadFile(path)
 	if err != nil {
-		// Try the generated file in the theme dir
-		alt := filepath.Join(platform.ThemeDir(), "aether.override.css")
-		data, err = os.ReadFile(alt)
-		if err != nil {
-			return nil
-		}
+		return nil
 	}
 
 	colors := make(map[string]string)
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
-		if !strings.HasPrefix(line, "@define-color ") {
+		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		// @define-color name value;
-		rest := strings.TrimPrefix(line, "@define-color ")
-		rest = strings.TrimSuffix(rest, ";")
-		parts := strings.SplitN(rest, " ", 2)
+		parts := strings.SplitN(line, "=", 2)
 		if len(parts) != 2 {
 			continue
 		}
-		name := strings.TrimSpace(parts[0])
-		value := strings.TrimSpace(parts[1])
+		key := strings.TrimSpace(parts[0])
+		val := strings.TrimSpace(parts[1])
 
-		// Skip references like @background (not hex values)
-		if strings.HasPrefix(value, "@") || strings.HasPrefix(value, "alpha(") {
+		if idx := strings.Index(val, " #"); idx >= 0 {
+			val = strings.TrimSpace(val[:idx])
+		}
+		val = strings.Trim(val, `"'`)
+		if val == "" {
 			continue
 		}
 
-		colors[name] = value
+		colors[key] = val
+	}
+
+	for i, name := range semanticOrder {
+		if v, ok := colors["color"+strconv.Itoa(i)]; ok {
+			if _, set := colors[name]; !set {
+				colors[name] = v
+			}
+		}
 	}
 
 	if len(colors) == 0 {
 		return nil
 	}
 
-	log.Printf("[theme-watcher] Parsed %d colors from override CSS", len(colors))
+	log.Printf("[theme-watcher] Parsed %d colors from %s", len(colors), path)
 	return colors
 }

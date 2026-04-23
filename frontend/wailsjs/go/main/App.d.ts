@@ -72,6 +72,8 @@ export function GetSettings(): Promise<Record<string, any>>;
 
 export function GetTemplateColors(): Promise<Record<string, Array<string>>>;
 
+export function GetThemeColors(): Promise<Record<string, string>>;
+
 export function GetThumbnail(arg1: string): Promise<string>;
 
 export function GetWallhavenConfig(): Promise<Record<string, any>>;

@@ -195,69 +195,72 @@
                     '../wailsjs/runtime/runtime'
                 );
 
-                // Apply theme colors from aether.override.css as CSS custom properties
-                EventsOn(
-                    'theme-colors-changed',
-                    (colors: Record<string, string>) => {
-                        const root = document.documentElement;
-                        for (const [name, value] of Object.entries(colors)) {
-                            root.style.setProperty(`--aether-${name}`, value);
-                        }
-                        // Map key GTK colors to our Tailwind theme tokens
-                        if (colors.background) {
-                            root.style.setProperty(
-                                '--color-bg-primary',
-                                colors.background
-                            );
-                            root.style.setProperty(
-                                '--color-bg-secondary',
-                                colors.background
-                            );
-                            document.body.style.background = colors.background;
-                            // Update native window/titlebar color to match theme
-                            const rgb = hexToRgb(colors.background);
-                            WindowSetBackgroundColour(rgb.r, rgb.g, rgb.b, 255);
-                        }
-                        if (colors.foreground) {
-                            root.style.setProperty(
-                                '--color-fg-primary',
-                                colors.foreground
-                            );
-                            document.body.style.color = colors.foreground;
-                        }
-                        if (colors.blue) {
-                            root.style.setProperty(
-                                '--color-accent',
-                                colors.blue
-                            );
-                        }
-                        if (colors.red) {
-                            root.style.setProperty(
-                                '--color-destructive',
-                                colors.red
-                            );
-                        }
-                        if (colors.green) {
-                            root.style.setProperty(
-                                '--color-success',
-                                colors.green
-                            );
-                        }
-                        if (colors.yellow) {
-                            root.style.setProperty(
-                                '--color-warning',
-                                colors.yellow
-                            );
-                        }
-                        // Cache for instant restore on next launch
-                        try {
-                            localStorage.setItem(
-                                'aether-theme-colors',
-                                JSON.stringify(colors)
-                            );
-                        } catch {}
+                const applyThemeColors = (colors: Record<string, string>) => {
+                    const root = document.documentElement;
+                    for (const [name, value] of Object.entries(colors)) {
+                        root.style.setProperty(`--aether-${name}`, value);
                     }
-                );
+                    if (colors.background) {
+                        root.style.setProperty(
+                            '--color-bg-primary',
+                            colors.background
+                        );
+                        root.style.setProperty(
+                            '--color-bg-secondary',
+                            colors.background
+                        );
+                        document.body.style.background = colors.background;
+                        const rgb = hexToRgb(colors.background);
+                        WindowSetBackgroundColour(rgb.r, rgb.g, rgb.b, 255);
+                    }
+                    if (colors.foreground) {
+                        root.style.setProperty(
+                            '--color-fg-primary',
+                            colors.foreground
+                        );
+                        document.body.style.color = colors.foreground;
+                    }
+                    if (colors.blue) {
+                        root.style.setProperty('--color-accent', colors.blue);
+                    }
+                    if (colors.red) {
+                        root.style.setProperty(
+                            '--color-destructive',
+                            colors.red
+                        );
+                    }
+                    if (colors.green) {
+                        root.style.setProperty('--color-success', colors.green);
+                    }
+                    if (colors.yellow) {
+                        root.style.setProperty(
+                            '--color-warning',
+                            colors.yellow
+                        );
+                    }
+                    // Read synchronously by index.html at first paint to
+                    // avoid a flash before the Wails bridge is ready.
+                    try {
+                        localStorage.setItem(
+                            'aether-theme-colors',
+                            JSON.stringify(colors)
+                        );
+                    } catch {}
+                };
+
+                EventsOn('theme-colors-changed', applyThemeColors);
+
+                // Pull before subscribing-is-too-late: EventsOn attaches
+                // after the watcher's startup emit has already fired.
+                try {
+                    const {GetThemeColors} = await import(
+                        '../wailsjs/go/main/App'
+                    );
+                    const colors = await GetThemeColors();
+                    if (colors && Object.keys(colors).length > 0) {
+                        applyThemeColors(colors);
+                    }
+                } catch {}
 
                 // Listen for IPC remote control state changes
                 EventsOn(

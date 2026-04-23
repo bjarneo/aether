@@ -18,8 +18,7 @@ User settings and persistent data.
 │   └── *.conf               # Processed config files
 ├── favorites.json           # Favorited wallpapers list
 ├── settings.json            # App preferences
-├── wallhaven.json           # Wallhaven API key and settings
-└── theme.override.css       # Symlink to theme/aether.override.css
+└── wallhaven.json           # Wallhaven API key and settings
 ```
 
 ### Key Files
