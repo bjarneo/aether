@@ -7,6 +7,10 @@
         closeColorPicker,
         getEyedropperActive,
         setEyedropperActive,
+        getColorPickerModel,
+        setColorPickerModel,
+        COLOR_MODELS,
+        type ColorModel,
     } from '$lib/stores/ui.svelte';
     import {
         getPalette,
@@ -40,6 +44,8 @@
         pushRecentColor,
     } from '$lib/stores/recentColors.svelte';
     import ShadeGrid from './ShadeGrid.svelte';
+    import ChannelSlider from './ChannelSlider.svelte';
+    import LockIcon from '$lib/components/shared/LockIcon.svelte';
 
     const ROLE_LABELS: Record<string, string> = {
         background: 'Background',
@@ -186,11 +192,18 @@
 
     const HARMONY: {label: string; delta: number; title: string}[] = [
         {label: 'An−', delta: -30, title: 'Analogous −30°'},
-        {label: 'Tri', delta: 120, title: 'Triad +120°'},
+        {label: 'Tri+', delta: 120, title: 'Triad +120°'},
         {label: 'Comp', delta: 180, title: 'Complement +180°'},
-        {label: 'Tri', delta: 240, title: 'Triad +240°'},
+        {label: 'Tri−', delta: 240, title: 'Triad +240° (−120°)'},
         {label: 'An+', delta: 30, title: 'Analogous +30°'},
     ];
+
+    const MODEL_LABELS: Record<ColorModel, string> = {
+        rgb: 'RGB',
+        hsl: 'HSL',
+        oklch: 'OKLCH',
+    };
+    let activeModel = $derived(getColorPickerModel());
 
     let harmonyColors = $derived(
         HARMONY.map(h => ({
@@ -402,13 +415,21 @@
     <div class="space-y-4 p-4">
         <div class="flex gap-3">
             <label
-                class="border-border relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden border"
+                class="border-border relative h-20 w-20 shrink-0 overflow-hidden border {locked
+                    ? 'cursor-not-allowed'
+                    : 'cursor-pointer'}"
             >
                 <div
                     class="absolute inset-0"
                     style:background-color={currentColor}
                 ></div>
-                {#if !locked}
+                {#if locked}
+                    <div
+                        class="absolute inset-0 flex items-center justify-center bg-black/45 text-white"
+                    >
+                        <LockIcon locked={true} size="h-6 w-6" />
+                    </div>
+                {:else}
                     <input
                         type="color"
                         value={currentColor}
@@ -426,7 +447,7 @@
                     >
                     <input
                         type="text"
-                        class="text-fg-primary bg-bg-secondary w-full border px-2.5 py-1.5 font-mono text-[13px] outline-none
+                        class="text-fg-primary bg-bg-secondary w-full border px-2.5 py-1.5 font-mono text-[13px] outline-none disabled:cursor-not-allowed disabled:opacity-50
                           {isValid
                             ? 'focus:border-accent border-border'
                             : 'border-destructive'}"
@@ -440,7 +461,10 @@
                 </div>
                 {#if !isExtended && !isOverride}
                     <div class="mt-2 flex items-center justify-between">
-                        <span class="text-fg-dimmed text-[10px]">Locked</span>
+                        <span
+                            class="text-fg-dimmed text-[9px] uppercase tracking-wider"
+                            >Lock</span
+                        >
                         <button
                             class="relative h-5 w-9 transition-colors duration-150
                                 {locked
@@ -517,133 +541,59 @@
             </div>
         </div>
 
-        <div class="space-y-2">
-            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
-                >RGB Channels</span
-            >
-            {#each RGB_CHANNELS as channel}
-                <div class="flex items-center gap-2">
-                    <span class="text-fg-dimmed w-3 font-mono text-[10px]"
-                        >{RGB_LABELS[channel]}</span
+        <div class="space-y-2.5">
+            <div class="flex items-center gap-1">
+                {#each COLOR_MODELS as id}
+                    <button
+                        type="button"
+                        class="border px-2 py-0.5 text-[9px] uppercase tracking-wider transition-colors
+                        {activeModel === id
+                            ? 'text-accent border-accent bg-accent-muted'
+                            : 'text-fg-dimmed border-border hover:text-fg-secondary'}"
+                        onclick={() => setColorPickerModel(id)}
+                        aria-pressed={activeModel === id}
+                        >{MODEL_LABELS[id]}</button
                     >
-                    <div
-                        class="relative h-3 flex-1"
-                        style="background: {channelGradient(
-                            channel
-                        )}; border: 1px solid var(--color-border);"
-                    >
-                        <input
-                            type="range"
-                            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                            min="0"
-                            max="255"
-                            step="1"
-                            value={rgb[channel]}
-                            oninput={e =>
-                                handleRgbChange(
-                                    channel,
-                                    parseInt(e.currentTarget.value)
-                                )}
-                            disabled={locked}
-                        />
-                        <div
-                            class="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-sm"
-                            style:left="{(rgb[channel] / 255) * 100}%"
-                        ></div>
-                    </div>
-                    <span
-                        class="text-fg-dimmed w-7 text-right font-mono text-[10px]"
-                        >{rgb[channel]}</span
-                    >
-                </div>
-            {/each}
-        </div>
+                {/each}
+            </div>
 
-        <div class="space-y-2">
-            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
-                >HSL Channels</span
-            >
-            {#each HSL_CHANNELS as channel}
-                <div class="flex items-center gap-2">
-                    <span class="text-fg-dimmed w-3 font-mono text-[10px]"
-                        >{HSL_LABELS[channel]}</span
-                    >
-                    <div
-                        class="relative h-3 flex-1"
-                        style="background: {hslChannelGradient(
-                            channel
-                        )}; border: 1px solid var(--color-border);"
-                    >
-                        <input
-                            type="range"
-                            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                            min="0"
-                            max={HSL_MAX[channel]}
-                            step="1"
-                            value={hsl[channel]}
-                            oninput={e =>
-                                handleHslChange(
-                                    channel,
-                                    parseFloat(e.currentTarget.value)
-                                )}
-                            disabled={locked}
-                        />
-                        <div
-                            class="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-sm"
-                            style:left="{(hsl[channel] / HSL_MAX[channel]) *
-                                100}%"
-                        ></div>
-                    </div>
-                    <span
-                        class="text-fg-dimmed w-7 text-right font-mono text-[10px] tabular-nums"
-                        >{Math.round(hsl[channel])}{HSL_SUFFIX[channel]}</span
-                    >
-                </div>
-            {/each}
-        </div>
-
-        <div class="space-y-2">
-            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
-                >OKLCH Channels</span
-            >
-            {#each OKLCH_CHANNELS as channel}
-                <div class="flex items-center gap-2">
-                    <span class="text-fg-dimmed w-3 font-mono text-[10px]"
-                        >{OKLCH_LABELS[channel]}</span
-                    >
-                    <div
-                        class="relative h-3 flex-1"
-                        style="background: {oklchChannelGradient(
-                            channel
-                        )}; border: 1px solid var(--color-border);"
-                    >
-                        <input
-                            type="range"
-                            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                            min="0"
-                            max={OKLCH_MAX[channel]}
-                            step="1"
-                            value={oklchSlider[channel]}
-                            oninput={e =>
-                                handleOklchChange(
-                                    channel,
-                                    parseFloat(e.currentTarget.value)
-                                )}
-                            disabled={locked}
-                        />
-                        <div
-                            class="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-sm"
-                            style:left="{(oklchSlider[channel] /
-                                OKLCH_MAX[channel]) *
-                                100}%"
-                        ></div>
-                    </div>
-                    <span
-                        class="text-fg-dimmed w-10 text-right font-mono text-[10px] tabular-nums"
-                        >{formatOklch(channel)}</span
-                    >
-                </div>
-            {/each}
+            {#if activeModel === 'rgb'}
+                {#each RGB_CHANNELS as channel}
+                    <ChannelSlider
+                        label={RGB_LABELS[channel]}
+                        value={rgb[channel]}
+                        max={255}
+                        display={String(rgb[channel])}
+                        gradient={channelGradient(channel)}
+                        disabled={locked}
+                        onchange={v => handleRgbChange(channel, Math.round(v))}
+                    />
+                {/each}
+            {:else if activeModel === 'hsl'}
+                {#each HSL_CHANNELS as channel}
+                    <ChannelSlider
+                        label={HSL_LABELS[channel]}
+                        value={hsl[channel]}
+                        max={HSL_MAX[channel]}
+                        display={`${Math.round(hsl[channel])}${HSL_SUFFIX[channel]}`}
+                        gradient={hslChannelGradient(channel)}
+                        disabled={locked}
+                        onchange={v => handleHslChange(channel, v)}
+                    />
+                {/each}
+            {:else}
+                {#each OKLCH_CHANNELS as channel}
+                    <ChannelSlider
+                        label={OKLCH_LABELS[channel]}
+                        value={oklchSlider[channel]}
+                        max={OKLCH_MAX[channel]}
+                        display={formatOklch(channel)}
+                        gradient={oklchChannelGradient(channel)}
+                        disabled={locked}
+                        onchange={v => handleOklchChange(channel, v)}
+                    />
+                {/each}
+            {/if}
         </div>
 
         {#if getRecentColors().length > 0}
