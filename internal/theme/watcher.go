@@ -59,37 +59,35 @@ func candidatePaths() []string {
 	return append(paths, filepath.Join(platform.ThemeDir(), "colors.toml"))
 }
 
-// resolveAndParse stats each candidate in order, parses the first that
-// reads successfully, and returns its path, mtime, and color map. All
-// zero/nil values indicate nothing usable was found.
-func (w *ThemeWatcher) resolveAndParse() (string, time.Time, map[string]string) {
+// resolveAndStat returns the first candidate path that exists along
+// with its mtime. Empty values mean nothing was found.
+func (w *ThemeWatcher) resolveAndStat() (string, time.Time) {
 	for _, p := range w.paths {
-		info, err := os.Stat(p)
-		if err != nil {
-			continue
+		if info, err := os.Stat(p); err == nil {
+			return p, info.ModTime()
 		}
-		colors := parseColorsTOML(p)
-		if colors == nil {
-			continue
-		}
-		return p, info.ModTime(), colors
 	}
-	return "", time.Time{}, nil
+	return "", time.Time{}
 }
 
 // CurrentColors returns the current parsed color map. Returns nil if no
 // colors.toml is readable.
 func (w *ThemeWatcher) CurrentColors() map[string]string {
-	_, _, colors := w.resolveAndParse()
-	return colors
+	path, _ := w.resolveAndStat()
+	if path == "" {
+		return nil
+	}
+	return parseColorsTOML(path)
 }
 
 // Start begins polling the file for changes. Call from app.startup.
 func (w *ThemeWatcher) Start(ctx context.Context) {
-	if path, mtime, colors := w.resolveAndParse(); colors != nil {
+	if path, mtime := w.resolveAndStat(); path != "" {
 		w.lastPath = path
 		w.lastMod = mtime
-		wailsrt.EventsEmit(ctx, "theme-colors-changed", colors)
+		if colors := parseColorsTOML(path); colors != nil {
+			wailsrt.EventsEmit(ctx, "theme-colors-changed", colors)
+		}
 	}
 
 	go w.poll(ctx)
@@ -104,8 +102,8 @@ func (w *ThemeWatcher) poll(ctx context.Context) {
 		case <-w.stop:
 			return
 		case <-ticker.C:
-			path, mtime, colors := w.resolveAndParse()
-			if colors == nil {
+			path, mtime := w.resolveAndStat()
+			if path == "" {
 				continue
 			}
 			if path == w.lastPath && !mtime.After(w.lastMod) {
@@ -113,7 +111,9 @@ func (w *ThemeWatcher) poll(ctx context.Context) {
 			}
 			w.lastPath = path
 			w.lastMod = mtime
-			wailsrt.EventsEmit(ctx, "theme-colors-changed", colors)
+			if colors := parseColorsTOML(path); colors != nil {
+				wailsrt.EventsEmit(ctx, "theme-colors-changed", colors)
+			}
 		}
 	}
 }
