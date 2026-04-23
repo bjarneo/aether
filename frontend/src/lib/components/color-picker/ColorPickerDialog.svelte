@@ -46,6 +46,7 @@
     import ShadeGrid from './ShadeGrid.svelte';
     import ChannelSlider from './ChannelSlider.svelte';
     import LockIcon from '$lib/components/shared/LockIcon.svelte';
+    import {clamp} from '$lib/utils/math';
 
     const ROLE_LABELS: Record<string, string> = {
         background: 'Background',
@@ -204,6 +205,26 @@
         oklch: 'OKLCH',
     };
     let activeModel = $derived(getColorPickerModel());
+
+    function parseEditedNumber(raw: string): number | null {
+        const n = parseFloat(raw.replace(/[°%]/g, '').trim());
+        return Number.isFinite(n) ? n : null;
+    }
+
+    // Builds an `oncommit` handler for a ChannelSlider: parse → clamp → dispatch.
+    // `transform` lets OKLCH C map its 0..0.4 display value onto the 0..40 slider.
+    function makeCommitHandler<C extends string>(
+        channel: C,
+        handle: (c: C, value: number) => void,
+        max: number,
+        transform: (n: number) => number = n => n
+    ): (raw: string) => void {
+        return raw => {
+            const n = parseEditedNumber(raw);
+            if (n === null) return;
+            handle(channel, clamp(transform(n), 0, max));
+        };
+    }
 
     let harmonyColors = $derived(
         HARMONY.map(h => ({
@@ -567,6 +588,12 @@
                         gradient={channelGradient(channel)}
                         disabled={locked}
                         onchange={v => handleRgbChange(channel, Math.round(v))}
+                        oncommit={makeCommitHandler(
+                            channel,
+                            handleRgbChange,
+                            255,
+                            Math.round
+                        )}
                     />
                 {/each}
             {:else if activeModel === 'hsl'}
@@ -579,6 +606,11 @@
                         gradient={hslChannelGradient(channel)}
                         disabled={locked}
                         onchange={v => handleHslChange(channel, v)}
+                        oncommit={makeCommitHandler(
+                            channel,
+                            handleHslChange,
+                            HSL_MAX[channel]
+                        )}
                     />
                 {/each}
             {:else}
@@ -591,6 +623,13 @@
                         gradient={oklchChannelGradient(channel)}
                         disabled={locked}
                         onchange={v => handleOklchChange(channel, v)}
+                        oncommit={makeCommitHandler(
+                            channel,
+                            handleOklchChange,
+                            OKLCH_MAX[channel],
+                            // C displays 0..0.4 but slider is 0..40.
+                            channel === 'c' ? n => n * 100 : undefined
+                        )}
                     />
                 {/each}
             {/if}
