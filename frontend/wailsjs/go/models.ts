@@ -324,6 +324,63 @@ export namespace omarchy {
     }
 }
 
+export namespace template {
+    export class ColorRoles {
+        background: string;
+        foreground: string;
+        black: string;
+        red: string;
+        green: string;
+        yellow: string;
+        blue: string;
+        magenta: string;
+        cyan: string;
+        white: string;
+        bright_black: string;
+        bright_red: string;
+        bright_green: string;
+        bright_yellow: string;
+        bright_blue: string;
+        bright_magenta: string;
+        bright_cyan: string;
+        bright_white: string;
+        accent: string;
+        cursor: string;
+        selection_foreground: string;
+        selection_background: string;
+
+        static createFrom(source: any = {}) {
+            return new ColorRoles(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.background = source['background'];
+            this.foreground = source['foreground'];
+            this.black = source['black'];
+            this.red = source['red'];
+            this.green = source['green'];
+            this.yellow = source['yellow'];
+            this.blue = source['blue'];
+            this.magenta = source['magenta'];
+            this.cyan = source['cyan'];
+            this.white = source['white'];
+            this.bright_black = source['bright_black'];
+            this.bright_red = source['bright_red'];
+            this.bright_green = source['bright_green'];
+            this.bright_yellow = source['bright_yellow'];
+            this.bright_blue = source['bright_blue'];
+            this.bright_magenta = source['bright_magenta'];
+            this.bright_cyan = source['bright_cyan'];
+            this.bright_white = source['bright_white'];
+            this.accent = source['accent'];
+            this.cursor = source['cursor'];
+            this.selection_foreground = source['selection_foreground'];
+            this.selection_background = source['selection_background'];
+        }
+    }
+}
+
 export namespace theme {
     export class ApplyResult {
         success: boolean;
@@ -363,6 +420,57 @@ export namespace theme {
             this.selectedNeovimConfig = source['selectedNeovimConfig'];
             this.excludedApps = source['excludedApps'];
             this.videoCpuMode = source['videoCpuMode'];
+        }
+    }
+    export class StateSnapshot {
+        palette: string[];
+        wallpaperPath: string;
+        lightMode: boolean;
+        lockedColors: Record<number, boolean>;
+        colorRoles: template.ColorRoles;
+        extendedColors: Record<string, string>;
+        extractionMode: string;
+        additionalImages: string[];
+        appOverrides: Record<string, any>;
+
+        static createFrom(source: any = {}) {
+            return new StateSnapshot(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.palette = source['palette'];
+            this.wallpaperPath = source['wallpaperPath'];
+            this.lightMode = source['lightMode'];
+            this.lockedColors = source['lockedColors'];
+            this.colorRoles = this.convertValues(
+                source['colorRoles'],
+                template.ColorRoles
+            );
+            this.extendedColors = source['extendedColors'];
+            this.extractionMode = source['extractionMode'];
+            this.additionalImages = source['additionalImages'];
+            this.appOverrides = source['appOverrides'];
+        }
+
+        convertValues(a: any, classs: any, asMap: boolean = false): any {
+            if (!a) {
+                return a;
+            }
+            if (a.slice && a.map) {
+                return (a as any[]).map(elem =>
+                    this.convertValues(elem, classs)
+                );
+            } else if ('object' === typeof a) {
+                if (asMap) {
+                    for (const key of Object.keys(a)) {
+                        a[key] = new classs(a[key]);
+                    }
+                    return a;
+                }
+                return new classs(a);
+            }
+            return a;
         }
     }
 }

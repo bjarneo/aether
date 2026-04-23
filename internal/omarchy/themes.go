@@ -105,3 +105,42 @@ func LoadAllThemes() ([]Theme, error) {
 
 	return themes, nil
 }
+
+// TokyoNightDefaults loads the tokyo-night palette and its first
+// wallpaper from a local omarchy install, for use as Aether's
+// out-of-the-box defaults. Returns ok=false when the theme isn't
+// present (e.g. standalone installs without omarchy).
+func TokyoNightDefaults() (palette [16]string, bg, fg, wallpaper string, ok bool) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	candidates := []string{
+		filepath.Join(home, ".config", "omarchy", "themes", "tokyo-night"),
+		filepath.Join(home, ".local", "share", "omarchy", "themes", "tokyo-night"),
+	}
+
+	for _, themeDir := range candidates {
+		data, err := os.ReadFile(filepath.Join(themeDir, "colors.toml"))
+		if err != nil {
+			continue
+		}
+		palette, bg, fg = ParseColorsToml(string(data))
+
+		// os.ReadDir returns entries sorted by filename, so the first
+		// image is tokyo-night's "0-*" wallpaper by convention.
+		if entries, err := os.ReadDir(filepath.Join(themeDir, "backgrounds")); err == nil {
+			for _, e := range entries {
+				ext := strings.ToLower(filepath.Ext(e.Name()))
+				if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
+					wallpaper = filepath.Join(themeDir, "backgrounds", e.Name())
+					break
+				}
+			}
+		}
+
+		ok = true
+		return
+	}
+	return
+}

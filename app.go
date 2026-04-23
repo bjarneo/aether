@@ -68,6 +68,13 @@ func (a *App) GetThemeColors() map[string]string {
 	return a.themeWatcher.CurrentColors()
 }
 
+// GetInitialState returns the backend-seeded theme state so the
+// frontend can show the right defaults on first paint (e.g. tokyo-night
+// palette + wallpaper on omarchy installs).
+func (a *App) GetInitialState() theme.StateSnapshot {
+	return a.state.Snapshot()
+}
+
 // NewApp creates a new App instance.
 func NewApp() *App {
 	return &App{

@@ -2,6 +2,7 @@ package theme
 
 import (
 	"aether/internal/color"
+	"aether/internal/omarchy"
 	"aether/internal/template"
 )
 
@@ -41,10 +42,20 @@ var DefaultPalette = [16]string{
 }
 
 // NewThemeState returns a ThemeState initialised with default values.
+// On omarchy systems it seeds the palette and wallpaper from the
+// installed tokyo-night theme; standalone installs keep DefaultPalette.
 func NewThemeState() *ThemeState {
+	palette := DefaultPalette
+	var wallpaper string
+	if p, _, _, w, ok := omarchy.TokyoNightDefaults(); ok {
+		palette = p
+		wallpaper = w
+	}
+
 	s := &ThemeState{
-		Palette:          DefaultPalette,
-		BasePalette:      DefaultPalette,
+		Palette:          palette,
+		BasePalette:      palette,
+		WallpaperPath:    wallpaper,
 		LockedColors:     make(map[int]bool),
 		Adjustments:      color.DefaultAdjustments(),
 		ExtendedColors:   make(map[string]string),

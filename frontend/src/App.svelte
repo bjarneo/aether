@@ -111,6 +111,20 @@
             if (tab) setActiveTab(tab as any);
         } catch {}
 
+        // Seed stores from backend defaults (tokyo-night on omarchy, blank
+        // otherwise). Stores init to DEFAULT_PALETTE at module load, so
+        // this overwrites those before any user interaction.
+        try {
+            const {GetInitialState} = await import('../wailsjs/go/main/App');
+            const s = await GetInitialState();
+            if (s?.palette?.length >= 16) {
+                setPalette(s.palette, true);
+            }
+            if (s?.wallpaperPath) {
+                setWallpaperPath(s.wallpaperPath);
+            }
+        } catch {}
+
         initKeyboardShortcuts();
 
         registerShortcut('ctrl+z', undoAction);

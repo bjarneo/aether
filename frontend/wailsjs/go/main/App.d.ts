@@ -64,6 +64,8 @@ export function GetFavorites(): Promise<Array<favorites.Favorite>>;
 
 export function GetFocusTab(): Promise<string>;
 
+export function GetInitialState(): Promise<theme.StateSnapshot>;
+
 export function GetMediaURL(arg1: string): Promise<string>;
 
 export function GetPreview(arg1: string): Promise<string>;
