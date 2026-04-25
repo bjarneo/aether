@@ -98,18 +98,24 @@
 
 <ExpandableSection title="Extraction Mode" bind:expanded>
     <div class="flex flex-col gap-3">
+        {#if grouped.auto?.length}
+            {@render modeList(grouped.auto)}
+        {/if}
+
         {#each EXTRACTION_MODE_GROUPS as group}
-            {@const items = grouped[group.id]}
-            {#if items?.length}
-                {@const isOpen = openGroups[group.id]}
-                {@const active = activeInGroup(group.id)}
-                <ExpandableSection
-                    title={group.label}
-                    suffix={!isOpen && active ? active.label : ''}
-                    bind:expanded={openGroups[group.id]}
-                >
-                    {@render modeList(items)}
-                </ExpandableSection>
+            {#if group.id !== 'auto'}
+                {@const items = grouped[group.id]}
+                {#if items?.length}
+                    {@const isOpen = openGroups[group.id]}
+                    {@const active = activeInGroup(group.id)}
+                    <ExpandableSection
+                        title={group.label}
+                        suffix={!isOpen && active ? active.label : ''}
+                        bind:expanded={openGroups[group.id]}
+                    >
+                        {@render modeList(items)}
+                    </ExpandableSection>
+                {/if}
             {/if}
         {/each}
     </div>
