@@ -20,18 +20,22 @@ func extractChromaticHues(dominantColors []string, lightMode bool) [16]string {
 	// topColors is a prefix slice of dominantColors, so the index FindBackgroundColor
 	// returns is valid in the full dominantColors list.
 	bgColor, bgIndex := FindBackgroundColor(topColors, lightMode)
+	bgColor = synthesizeBgIfTooMid(bgColor, lightMode)
 	usedIndices := map[int]bool{bgIndex: true}
 
 	fgColor, fgIndex := FindForegroundColor(dominantColors, lightMode, bgColor, usedIndices)
-	usedIndices[fgIndex] = true
+	if fgIndex >= 0 {
+		usedIndices[fgIndex] = true
+	}
 
 	var palette [16]string
 	palette[0] = bgColor
 	palette[7] = fgColor
 
-	assignments := FindOptimalAnsiAssignment(dominantColors, usedIndices)
+	assignments := FindOptimalAnsiAssignment(dominantColors, usedIndices, lightMode)
 
 	var matchedColors []string
+	synthesizedSlots := [6]bool{}
 	for i := 0; i < 6; i++ {
 		assignment := assignments[i]
 		if assignment != nil && assignment.Score < SynthesisScoreThreshold {
@@ -43,17 +47,42 @@ func extractChromaticHues(dominantColors []string, lightMode bool) [16]string {
 				continue
 			}
 		}
-		palette[i+1] = ""
+		synthesizedSlots[i] = true
 	}
 
+	// Stagger synthesized slots so they don't all share the same lightness — without
+	// stagger, multiple synthesized slots end up at avgL with only hue differing,
+	// which is hard to distinguish at low chroma.
+	synthStagger := [6]float64{-0.06, +0.02, +0.07, -0.04, -0.02, +0.04}
 	for i := 0; i < 6; i++ {
-		if palette[i+1] == "" {
-			palette[i+1] = SynthesizeAnsiColor(OKLCHAnsiHues[i], matchedColors)
-			matchedColors = append(matchedColors, palette[i+1])
+		if !synthesizedSlots[i] {
+			continue
 		}
+		base := SynthesizeAnsiColor(OKLCHAnsiHues[i], matchedColors)
+		lch := color.HexToOKLCH(base)
+		lch.L = math.Max(0.30, math.Min(0.85, lch.L+synthStagger[i]))
+		palette[i+1] = color.OKLCHToHex(lch)
+		matchedColors = append(matchedColors, palette[i+1])
 	}
 
 	return palette
+}
+
+// synthesizeBgIfTooMid replaces a mid-lightness image bg with a synthesized OKLCH
+// color at a sane bg lightness, preserving hue. Without this, images with no truly
+// dark/light pixels (e.g. a sunset photo) produce muddy backgrounds.
+func synthesizeBgIfTooMid(bgColor string, lightMode bool) string {
+	lch := color.HexToOKLCH(bgColor)
+	if lightMode {
+		if lch.L >= 0.85 {
+			return bgColor
+		}
+		return color.OKLCHToHex(color.OKLCH{L: 0.94, C: math.Min(lch.C, 0.025), H: lch.H})
+	}
+	if lch.L <= 0.20 {
+		return bgColor
+	}
+	return color.OKLCHToHex(color.OKLCH{L: 0.12, C: math.Min(lch.C, 0.030), H: lch.H})
 }
 
 // GenerateChromaticPalette: vibrant chromatic palette from image-derived hues.

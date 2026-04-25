@@ -207,7 +207,7 @@ func GenerateMaterialPalette(dominantColors []string, lightMode bool) [16]string
 	}
 
 	for i := 0; i < len(OKLCHAnsiHues); i++ {
-		matchIndex := FindBestColorMatch(OKLCHAnsiHues[i], dominantColors, usedIndices)
+		matchIndex := FindBestColorMatch(OKLCHAnsiHues[i], dominantColors, usedIndices, lightMode)
 		matchedColor := dominantColors[matchIndex]
 		hsl := color.HexToHSL(matchedColor)
 

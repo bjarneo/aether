@@ -24,23 +24,42 @@ func CalculateHueDistance(hue1, hue2 float64) float64 {
 }
 
 // IsMonochromeImage detects whether the extracted colors are mostly monochrome/grayscale
-// using OKLCH chroma (perceptually accurate colorfulness metric).
-// Returns true if more than 70% of colors have chroma below the threshold.
+// or have very low hue diversity (e.g., a solid blue wallpaper). Returns true if the
+// achromatic share exceeds MonochromeImageThreshold OR if chromatic hues cluster
+// within a narrow arc on the wheel.
 func IsMonochromeImage(colors []string) bool {
 	if len(colors) == 0 {
 		return false
 	}
 
 	lowChromaCount := 0
+	var sinSum, cosSum float64
+	chromaticCount := 0
 
 	for _, c := range colors {
 		lch := color.HexToOKLCH(c)
 		if lch.C < MonochromeChromaThreshold {
 			lowChromaCount++
+			continue
 		}
+		rad := lch.H * math.Pi / 180
+		sinSum += math.Sin(rad)
+		cosSum += math.Cos(rad)
+		chromaticCount++
 	}
 
-	return float64(lowChromaCount)/float64(len(colors)) > MonochromeImageThreshold
+	if float64(lowChromaCount)/float64(len(colors)) > MonochromeImageThreshold {
+		return true
+	}
+
+	// Circular variance: |Σe^iθ|/N close to 1 = hues clustered tightly.
+	if chromaticCount >= 4 {
+		mag := math.Sqrt(sinSum*sinSum+cosSum*cosSum) / float64(chromaticCount)
+		if mag > HueClusterMagnitudeThreshold {
+			return true
+		}
+	}
+	return false
 }
 
 // findColorByPerceptualLightness finds a color by OKLab perceptual lightness extremity.
@@ -116,50 +135,50 @@ func FindForegroundColor(colors []string, lightMode bool, bgColor string, usedIn
 		return colors[candidates[0].index], candidates[0].index
 	}
 
-	// Fallback: adjust the original fg to meet contrast
+	// Fallback: synthesize a foreground at the right contrast. Returns -1 for index
+	// so callers don't lock a real pool color out of ANSI assignment based on a
+	// color that isn't actually the synthesized fg.
 	bgLab := color.HexToOKLab(bgColor)
 	fgLab := color.HexToOKLab(fgColor)
 	if bgLab.L < 0.5 {
-		// Dark bg: push fg lighter
 		fgLab.L = math.Min(1.0, bgLab.L+0.65)
 	} else {
-		// Light bg: push fg darker
 		fgLab.L = math.Max(0.0, bgLab.L-0.65)
 	}
-	adjustedHex := color.OKLabToHex(fgLab)
-	return adjustedHex, fgIndex
+	return color.OKLabToHex(fgLab), -1
 }
 
-// CalculateColorScore calculates a color quality score for ANSI color selection
-// using OKLCH perceptual color space. Lower score = better match.
-func CalculateColorScore(lch color.OKLCH, targetHue float64) float64 {
-	// Hue accuracy in perceptually uniform OKLCH space
+// CalculateColorScore scores a candidate color for an ANSI slot. Lower = better match.
+// The lightness ideal shifts based on lightMode so light-mode palettes pick darker
+// candidates (which actually contrast against a near-white bg).
+func CalculateColorScore(lch color.OKLCH, targetHue float64, lightMode bool) float64 {
 	hueScore := CalculateHueDistance(lch.H, targetHue) * 2.0
 
-	// Chroma preference - strongly prefer chromatic colors
 	var chromaScore float64
 	if lch.C < MinChromaForAnsiMatch {
-		chromaScore = 80 // Heavy penalty for near-gray
+		chromaScore = 80
 	} else if lch.C < LowChromaThreshold {
 		chromaScore = 40
 	} else if lch.C < IdealChromaMin {
 		chromaScore = 15
 	} else if lch.C <= IdealChromaMax {
-		chromaScore = 0 // Ideal range - no penalty
+		chromaScore = 0
 	} else {
-		chromaScore = (lch.C - IdealChromaMax) * 50 // Mild penalty for very vivid
+		chromaScore = (lch.C - IdealChromaMax) * 50
 	}
 
-	// Lightness suitability - prefer mid-range, penalize extremes
-	// OKLab L is perceptually linear, so these thresholds are meaningful
+	idealL := 0.60
+	if lightMode {
+		idealL = 0.45
+	}
+
 	var lightnessScore float64
 	if lch.L < TooDarkLightness {
 		lightnessScore = (TooDarkLightness - lch.L) * 200
 	} else if lch.L > TooBrightLightness {
 		lightnessScore = (lch.L - TooBrightLightness) * 150
 	} else {
-		// Slight preference for L around 0.55-0.65 (good readability zone)
-		lightnessScore = math.Abs(lch.L-0.60) * 20
+		lightnessScore = math.Abs(lch.L-idealL) * 20
 	}
 
 	return hueScore + chromaScore + lightnessScore
@@ -167,7 +186,7 @@ func CalculateColorScore(lch color.OKLCH, targetHue float64) float64 {
 
 // FindBestColorMatch finds the best matching color for a specific ANSI color role
 // using OKLCH-based scoring. Returns the index of the best match in colorPool.
-func FindBestColorMatch(targetHue float64, colorPool []string, usedIndices map[int]bool) int {
+func FindBestColorMatch(targetHue float64, colorPool []string, usedIndices map[int]bool, lightMode bool) int {
 	bestIndex := -1
 	bestScore := math.Inf(1)
 
@@ -177,7 +196,7 @@ func FindBestColorMatch(targetHue float64, colorPool []string, usedIndices map[i
 		}
 
 		lch := color.HexToOKLCH(colorPool[i])
-		score := CalculateColorScore(lch, targetHue)
+		score := CalculateColorScore(lch, targetHue, lightMode)
 
 		if score < bestScore {
 			bestScore = score
@@ -191,28 +210,26 @@ func FindBestColorMatch(targetHue float64, colorPool []string, usedIndices map[i
 	return 0
 }
 
-// GenerateBrightVersion generates a perceptually lighter version of a color for bright ANSI slots.
-// Works in OKLab space so the boost is perceptually uniform.
+// GenerateBrightVersion generates a perceptually distinct "bright" variant for ANSI
+// slots 9-14. For mid-lightness bases the variant is mostly L-boosted; for already-
+// bright bases (L >= 0.78, e.g. yellow) there's no L headroom, so the variant gets
+// a stronger chroma boost instead — otherwise bright yellow ≈ regular yellow.
 func GenerateBrightVersion(hex string) string {
 	lab := color.HexToOKLab(hex)
 	lch := color.OKLabToOKLCH(lab)
 
-	// Scale boost based on available headroom
+	if lab.L >= 0.78 {
+		newL := math.Min(0.94, lab.L+0.04)
+		newC := math.Min(0.32, math.Max(lch.C+0.04, lch.C*1.3))
+		return color.OKLCHToHex(color.OKLCH{L: newL, C: newC, H: lch.H})
+	}
+
 	headroom := 0.92 - lab.L
 	boost := math.Max(0.04, math.Min(BrightColorLightnessBoost, headroom*0.6))
 	newL := math.Min(0.92, lab.L+boost)
-
-	// Slight chroma boost for vibrancy
-	newC := math.Min(0.3, lch.C*BrightColorSaturationBoost)
+	newC := math.Min(0.30, lch.C*BrightColorSaturationBoost)
 
 	return color.OKLCHToHex(color.OKLCH{L: newL, C: newC, H: lch.H})
-}
-
-// AdjustColorLightness adjusts a color to the given target OKLab lightness (0-1).
-func AdjustColorLightness(hex string, targetLightness float64) string {
-	lab := color.HexToOKLab(hex)
-	lab.L = targetLightness
-	return color.OKLabToHex(lab)
 }
 
 // ColorLightnessInfo holds a color with its perceptual lightness and hue.
@@ -280,7 +297,7 @@ type AnsiAssignment struct {
 // global greedy matching. Instead of assigning colors sequentially, this finds the
 // globally best (ANSI slot, color) pair at each step, preventing earlier slots from
 // stealing good matches from later ones.
-func FindOptimalAnsiAssignment(colorPool []string, usedIndices map[int]bool) [6]*AnsiAssignment {
+func FindOptimalAnsiAssignment(colorPool []string, usedIndices map[int]bool, lightMode bool) [6]*AnsiAssignment {
 	type candidate struct {
 		poolIndex int
 		score     float64
@@ -296,7 +313,7 @@ func FindOptimalAnsiAssignment(colorPool []string, usedIndices map[int]bool) [6]
 				candidates[i] = &candidate{poolIndex: i, score: math.Inf(1)}
 			} else {
 				lch := color.HexToOKLCH(c)
-				candidates[i] = &candidate{poolIndex: i, score: CalculateColorScore(lch, targetHue)}
+				candidates[i] = &candidate{poolIndex: i, score: CalculateColorScore(lch, targetHue, lightMode)}
 			}
 		}
 		sort.Slice(candidates, func(i, j int) bool {
