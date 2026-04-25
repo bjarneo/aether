@@ -2,7 +2,7 @@ package extraction
 
 const (
 	ANSIPaletteSize   = 16
-	CacheVersion      = 7 // Bumped: mono bg synthesis + relaxed thresholds
+	CacheVersion      = 8 // Bumped: auto-extract no longer synthesizes canonical-hue fallbacks
 	ImageScaleSize    = 400
 	MinPixelsToSample = 1000
 	MaxPixelsToSample = 50000
@@ -26,13 +26,12 @@ const (
 	MonochromeTintStrength = 0.15
 
 	// OKLCH scoring thresholds
-	MinChromaForAnsiMatch   = 0.035 // Minimum OKLCH chroma for a valid ANSI color match
-	LowChromaThreshold      = 0.05  // Low but visible chroma (mild penalty in scoring)
-	IdealChromaMin          = 0.06  // Sweet spot for ANSI colors
-	IdealChromaMax          = 0.20
-	TooDarkLightness        = 0.25 // OKLab L below this is too dark for ANSI colors
-	TooBrightLightness      = 0.87 // OKLab L above this is too bright
-	SynthesisScoreThreshold = 150.0
+	MinChromaForAnsiMatch = 0.035 // Minimum OKLCH chroma for a valid ANSI color match
+	LowChromaThreshold    = 0.05  // Low but visible chroma (mild penalty in scoring)
+	IdealChromaMin        = 0.06  // Sweet spot for ANSI colors
+	IdealChromaMax        = 0.20
+	TooDarkLightness      = 0.25 // OKLab L below this is too dark for ANSI colors
+	TooBrightLightness    = 0.87 // OKLab L above this is too bright
 
 	// Contrast thresholds
 	MinContrastRatio     = 4.5 // WCAG AA minimum for normal text

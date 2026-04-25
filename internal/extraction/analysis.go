@@ -255,39 +255,6 @@ func SortColorsByLightness(colors []string) []ColorLightnessInfo {
 	return result
 }
 
-// SynthesizeAnsiColor synthesizes an ANSI color when no good match exists in the image.
-// Uses the average chroma and lightness of already-assigned colors (in OKLCH) to create
-// a color that fits the palette's visual mood.
-func SynthesizeAnsiColor(targetHue float64, existingColors []string) string {
-	var totalC, totalL float64
-	count := 0
-
-	for _, c := range existingColors {
-		if c == "" {
-			continue
-		}
-		lch := color.HexToOKLCH(c)
-		if lch.C >= MinChromaForAnsiMatch {
-			totalC += lch.C
-			totalL += lch.L
-			count++
-		}
-	}
-
-	avgC := 0.10 // Default chroma for synthesis
-	avgL := 0.60 // Default lightness
-	if count > 0 {
-		avgC = totalC / float64(count)
-		avgL = totalL / float64(count)
-	}
-
-	// Clamp to sane ranges
-	synC := math.Max(0.06, math.Min(0.18, avgC))
-	synL := math.Max(0.40, math.Min(0.75, avgL))
-
-	return color.OKLCHToHex(color.OKLCH{L: synL, C: synC, H: targetHue})
-}
-
 // AnsiAssignment represents the assignment of a pool color to an ANSI slot.
 type AnsiAssignment struct {
 	PoolIndex int
