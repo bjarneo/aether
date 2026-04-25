@@ -10,9 +10,7 @@ import (
 // colors. Slots 8 and 9-15 are left empty — pass through finalizePalette to fill them.
 // Mode transforms call this directly when they intend to overwrite bg/fg/ANSI in OKLCH,
 // avoiding wasted slot 8/9-15 generation that the full chromatic pipeline would do.
-//
-// Slot 1-6 hues are taken verbatim from the image's best matches (no synthesis at
-// canonical sRGB primary hues). NormalizeBrightness handles AA contrast downstream.
+// Slot 1-6 are taken verbatim from the image's best matches; no canonical-hue synthesis.
 func extractChromaticHues(dominantColors []string, lightMode bool) [16]string {
 	topCount := 12
 	if len(dominantColors) < topCount {
@@ -35,36 +33,15 @@ func extractChromaticHues(dominantColors []string, lightMode bool) [16]string {
 	palette[0] = bgColor
 	palette[7] = fgColor
 
+	// ExtractColors guarantees len(dominantColors) ≥ 8 and at most 2 are pre-claimed
+	// for bg/fg, so FindOptimalAnsiAssignment always fills all 6 ANSI slots.
 	assignments := FindOptimalAnsiAssignment(dominantColors, usedIndices, lightMode)
-
 	for i := 0; i < 6; i++ {
-		assignment := assignments[i]
-		if assignment != nil {
-			palette[i+1] = dominantColors[assignment.PoolIndex]
-			usedIndices[assignment.PoolIndex] = true
-			continue
-		}
-		// Pool exhausted — the optimal-assignment loop ran out of unused colors.
-		// Fall back to the next available pool entry rather than synthesizing a
-		// canonical-hue color that isn't in the image.
-		palette[i+1] = nextUnusedColor(dominantColors, usedIndices)
+		palette[i+1] = dominantColors[assignments[i].PoolIndex]
+		usedIndices[assignments[i].PoolIndex] = true
 	}
 
 	return palette
-}
-
-// nextUnusedColor returns the first dominant color not yet claimed by another slot,
-// marking it used. Returns the first pool entry as a last resort when the pool is
-// fully consumed (extremely degenerate — len(dominantColors) is bounded ≥ 8 by
-// ExtractColors).
-func nextUnusedColor(dominantColors []string, usedIndices map[int]bool) string {
-	for i, c := range dominantColors {
-		if !usedIndices[i] {
-			usedIndices[i] = true
-			return c
-		}
-	}
-	return dominantColors[0]
 }
 
 // synthesizeBgIfTooMid replaces a mid-lightness image bg with a synthesized OKLCH
@@ -86,10 +63,7 @@ func synthesizeBgIfTooMid(bgColor string, lightMode bool) string {
 }
 
 // GenerateChromaticPalette: vibrant chromatic palette from image-derived hues.
-// OKLCH-based optimal assignment for slots 1-6, contrast-aware bg/fg. Slots 1-6
-// always come from the image — the pipeline does not synthesize canonical-hue
-// fallbacks, so wallpapers without a strong red/green/etc. produce palettes
-// faithful to the source rather than to ANSI conventions.
+// OKLCH-based optimal assignment for slots 1-6, contrast-aware bg/fg.
 // finalizePalette derives slots 8/9-15 and enforces AA contrast.
 func GenerateChromaticPalette(dominantColors []string, lightMode bool) [16]string {
 	palette := extractChromaticHues(dominantColors, lightMode)
