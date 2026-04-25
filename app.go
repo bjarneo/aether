@@ -1118,11 +1118,16 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 		if req.Path == "" {
 			return ipc.Response{OK: false, Error: "extract requires a path"}
 		}
+		// Fall back to current state when request omits mode / light-mode, so a
+		// preceding `set-mode fire` or `toggle-light-mode` is honored on extract.
 		mode := req.Mode
+		if mode == "" {
+			mode = a.state.ExtractionMode
+		}
 		if mode == "" {
 			mode = "normal"
 		}
-		lightMode := false
+		lightMode := a.state.LightMode
 		if req.LightMode != nil {
 			lightMode = *req.LightMode
 		}
