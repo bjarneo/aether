@@ -70,19 +70,20 @@ func extractChromaticHues(dominantColors []string, lightMode bool) [16]string {
 
 // synthesizeBgIfTooMid replaces a mid-lightness image bg with a synthesized OKLCH
 // color at a sane bg lightness, preserving hue. Without this, images with no truly
-// dark/light pixels (e.g. a sunset photo) produce muddy backgrounds.
+// dark/light pixels (e.g. a sunset photo or a Nord-themed wallpaper) produce muddy
+// backgrounds. Chroma is loosely capped — saturated bg's stay visibly tinted.
 func synthesizeBgIfTooMid(bgColor string, lightMode bool) string {
 	lch := color.HexToOKLCH(bgColor)
 	if lightMode {
 		if lch.L >= 0.85 {
 			return bgColor
 		}
-		return color.OKLCHToHex(color.OKLCH{L: 0.94, C: math.Min(lch.C, 0.025), H: lch.H})
+		return color.OKLCHToHex(color.OKLCH{L: 0.94, C: math.Min(lch.C, 0.04), H: lch.H})
 	}
 	if lch.L <= 0.20 {
 		return bgColor
 	}
-	return color.OKLCHToHex(color.OKLCH{L: 0.12, C: math.Min(lch.C, 0.030), H: lch.H})
+	return color.OKLCHToHex(color.OKLCH{L: 0.12, C: math.Min(lch.C, 0.05), H: lch.H})
 }
 
 // GenerateChromaticPalette: vibrant chromatic palette from image-derived hues.

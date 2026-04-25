@@ -6,6 +6,24 @@ import (
 	"aether/internal/color"
 )
 
+// synthesizeMonoBgIfMuddy is a more conservative variant of synthesizeBgIfTooMid for
+// the monochrome path. It only kicks in when the image bg is clearly muddy
+// (L > 0.35 in dark mode, < 0.75 in light mode), preserving the iconic muted
+// backgrounds of themed wallpapers like Nord (L≈0.32) or Tokyo Night (L≈0.21).
+func synthesizeMonoBgIfMuddy(bgColor string, lightMode bool) string {
+	lch := color.HexToOKLCH(bgColor)
+	if lightMode {
+		if lch.L >= 0.75 {
+			return bgColor
+		}
+		return color.OKLCHToHex(color.OKLCH{L: 0.94, C: math.Min(lch.C, 0.04), H: lch.H})
+	}
+	if lch.L <= 0.35 {
+		return bgColor
+	}
+	return color.OKLCHToHex(color.OKLCH{L: 0.14, C: math.Min(lch.C, 0.06), H: lch.H})
+}
+
 // detectMonochromeTint detects the dominant tint hue from mostly-gray colors
 // using weighted circular mean in OKLCH space. Colors with more chroma get more weight.
 func detectMonochromeTint(colors []string) (hue float64, hasTint bool) {
@@ -51,23 +69,24 @@ func GenerateMonochromePalette(grayColors []string, lightMode bool) [16]string {
 
 	var palette [16]string
 
-	// Background and foreground from actual image extremes
-	palette[0] = darkest.Color
-	palette[7] = lightest.Color
+	// Mono path treats the image AS the theme — keep image-derived bg unless it's
+	// genuinely muddy (L > 0.35 dark / < 0.75 light), so themed wallpapers
+	// (Nord, Tokyo Night, etc.) keep their authentic colors.
 	if lightMode {
-		palette[0] = lightest.Color
+		palette[0] = synthesizeMonoBgIfMuddy(lightest.Color, lightMode)
 		palette[7] = darkest.Color
+	} else {
+		palette[0] = synthesizeMonoBgIfMuddy(darkest.Color, lightMode)
+		palette[7] = lightest.Color
 	}
 
-	// Ensure bg/fg have sufficient contrast
-	contrast := color.ContrastRatio(palette[0], palette[7])
-	if contrast < MinFgBgContrast {
+	if color.ContrastRatio(palette[0], palette[7]) < MinFgBgContrast {
 		bgLab := color.HexToOKLab(palette[0])
 		fgLab := color.HexToOKLab(palette[7])
 		if bgLab.L < 0.5 {
-			fgLab.L = math.Min(1.0, bgLab.L+0.65)
+			fgLab.L = 0.97
 		} else {
-			fgLab.L = math.Max(0.0, bgLab.L-0.65)
+			fgLab.L = 0.05
 		}
 		palette[7] = color.OKLabToHex(fgLab)
 	}

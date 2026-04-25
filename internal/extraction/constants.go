@@ -2,7 +2,7 @@ package extraction
 
 const (
 	ANSIPaletteSize   = 16
-	CacheVersion      = 6 // Bumped: auto-extract pipeline fixes (outlier loop, scoring, bg synth)
+	CacheVersion      = 7 // Bumped: mono bg synthesis + relaxed thresholds
 	ImageScaleSize    = 400
 	MinPixelsToSample = 1000
 	MaxPixelsToSample = 50000

@@ -135,15 +135,16 @@ func FindForegroundColor(colors []string, lightMode bool, bgColor string, usedIn
 		return colors[candidates[0].index], candidates[0].index
 	}
 
-	// Fallback: synthesize a foreground at the right contrast. Returns -1 for index
-	// so callers don't lock a real pool color out of ANSI assignment based on a
-	// color that isn't actually the synthesized fg.
+	// Fallback: synthesize a foreground at the contrast extreme. Absolute targets
+	// (0.97 / 0.05) guarantee 7:1+ contrast against any sane bg without conditional
+	// math. Returns -1 for index so callers don't lock a real pool color out of
+	// ANSI assignment based on a color that isn't actually the synthesized fg.
 	bgLab := color.HexToOKLab(bgColor)
 	fgLab := color.HexToOKLab(fgColor)
 	if bgLab.L < 0.5 {
-		fgLab.L = math.Min(1.0, bgLab.L+0.65)
+		fgLab.L = 0.97
 	} else {
-		fgLab.L = math.Max(0.0, bgLab.L-0.65)
+		fgLab.L = 0.05
 	}
 	return color.OKLabToHex(fgLab), -1
 }
