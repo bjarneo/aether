@@ -114,17 +114,7 @@ func GenerateMonochromePalette(grayColors []string, lightMode bool) [16]string {
 // the dominant hue from the image, with all colors sharing that hue at varying
 // chroma and lightness levels.
 func GenerateMonochromaticPalette(dominantColors []string, lightMode bool) [16]string {
-	// Find the most chromatic color's hue as the base
-	var baseHue float64
-	bestChroma := 0.0
-	for _, c := range dominantColors {
-		lch := color.HexToOKLCH(c)
-		if lch.C > bestChroma {
-			bestChroma = lch.C
-			baseHue = lch.H
-		}
-	}
-
+	baseHue := extractDominantHue(dominantColors)
 	sortedByLightness := SortColorsByLightness(dominantColors)
 	darkest := sortedByLightness[0]
 	lightest := sortedByLightness[len(sortedByLightness)-1]
@@ -139,15 +129,17 @@ func GenerateMonochromaticPalette(dominantColors []string, lightMode bool) [16]s
 		palette[7] = color.OKLCHToHex(color.OKLCH{L: math.Max(0.85, lightest.Lightness-0.05), C: 0.02, H: baseHue})
 	}
 
-	// Colors 1-6: varying chroma levels at the same hue
-	chromaLevels := [6]float64{0.08, 0.10, 0.09, 0.11, 0.085, 0.095}
-	lightnessBase := 0.58
+	// Colors 1-6: chroma stair from subtle to vivid, all at the same hue.
+	// Spread is 0.06–0.18 (well above OKLCH JND ~0.02) so slots are visibly distinct.
+	chromaLevels := [6]float64{0.06, 0.10, 0.14, 0.08, 0.12, 0.18}
+	lightnessOffsets := [6]float64{-0.08, -0.02, +0.04, +0.10, -0.05, +0.07}
+	lightnessBase := 0.62
 	if lightMode {
-		lightnessBase = 0.48
+		lightnessBase = 0.50
 	}
 
 	for i := 0; i < 6; i++ {
-		lightness := lightnessBase + (float64(i)-2.5)*0.04
+		lightness := math.Max(0.30, math.Min(0.85, lightnessBase+lightnessOffsets[i]))
 		palette[i+1] = color.OKLCHToHex(color.OKLCH{L: lightness, C: chromaLevels[i], H: baseHue})
 	}
 
@@ -155,22 +147,22 @@ func GenerateMonochromaticPalette(dominantColors []string, lightMode bool) [16]s
 	palette[8] = generateCommentColor(palette[0])
 
 	// Colors 9-14: brighter versions
-	brightChromaLevels := [6]float64{0.12, 0.14, 0.13, 0.15, 0.125, 0.135}
+	brightChromaLevels := [6]float64{0.09, 0.13, 0.17, 0.11, 0.15, 0.20}
 	for i := 0; i < 6; i++ {
-		baseLightness := lightnessBase + (float64(i)-2.5)*0.04
-		adjustment := 0.06
+		baseLightness := lightnessBase + lightnessOffsets[i]
+		adjustment := 0.10
 		if lightMode {
-			adjustment = -0.06
+			adjustment = -0.10
 		}
-		lightness := math.Max(0, math.Min(1, baseLightness+adjustment))
+		lightness := math.Max(0.20, math.Min(0.92, baseLightness+adjustment))
 		palette[i+9] = color.OKLCHToHex(color.OKLCH{L: lightness, C: brightChromaLevels[i], H: baseHue})
 	}
 
-	// Color 15
+	// Color 15: maximum-contrast endpoint (near-white in dark mode, near-black in light mode)
 	if lightMode {
-		palette[15] = color.OKLCHToHex(color.OKLCH{L: math.Min(0.25, darkest.Lightness+0.03), C: 0.05, H: baseHue})
+		palette[15] = color.OKLCHToHex(color.OKLCH{L: 0.08, C: 0.03, H: baseHue})
 	} else {
-		palette[15] = color.OKLCHToHex(color.OKLCH{L: math.Max(0.88, lightest.Lightness), C: 0.025, H: baseHue})
+		palette[15] = color.OKLCHToHex(color.OKLCH{L: 0.97, C: 0.015, H: baseHue})
 	}
 
 	return palette

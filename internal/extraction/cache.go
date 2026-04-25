@@ -103,6 +103,11 @@ func LoadCachedPalette(cacheKey string) ([16]string, bool) {
 		return [16]string{}, false
 	}
 
+	// Discard caches written by older algorithm versions
+	if data.Version != CacheVersion {
+		return [16]string{}, false
+	}
+
 	// Validate that we got a complete palette
 	for _, c := range data.Palette {
 		if c == "" {

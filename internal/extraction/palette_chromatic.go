@@ -6,29 +6,22 @@ import (
 	"aether/internal/color"
 )
 
-// GenerateChromaticPalette generates a vibrant chromatic palette from diverse colors.
-// Uses OKLCH-based optimal global assignment, contrast-aware bg/fg selection,
-// and synthesizes missing hues in OKLab space.
-func GenerateChromaticPalette(dominantColors []string, lightMode bool) [16]string {
-	// Select background from top-dominant colors for better representation
+// extractChromaticHues fills slots 0 (bg), 7 (fg), and 1-6 (ANSI) using image-derived
+// colors. Slots 8 and 9-15 are left empty — pass through finalizePalette to fill them.
+// Mode transforms call this directly when they intend to overwrite bg/fg/ANSI in OKLCH,
+// avoiding wasted slot 8/9-15 generation that the full chromatic pipeline would do.
+func extractChromaticHues(dominantColors []string, lightMode bool) [16]string {
 	topCount := 12
 	if len(dominantColors) < topCount {
 		topCount = len(dominantColors)
 	}
 	topColors := dominantColors[:topCount]
 
-	bgColor, _ := FindBackgroundColor(topColors, lightMode)
-	// Find bgIndex in the full dominant colors list
-	bgIndex := 0
-	for i, c := range dominantColors {
-		if c == bgColor {
-			bgIndex = i
-			break
-		}
-	}
+	// topColors is a prefix slice of dominantColors, so the index FindBackgroundColor
+	// returns is valid in the full dominantColors list.
+	bgColor, bgIndex := FindBackgroundColor(topColors, lightMode)
 	usedIndices := map[int]bool{bgIndex: true}
 
-	// Contrast-aware foreground selection
 	fgColor, fgIndex := FindForegroundColor(dominantColors, lightMode, bgColor, usedIndices)
 	usedIndices[fgIndex] = true
 
@@ -36,10 +29,8 @@ func GenerateChromaticPalette(dominantColors []string, lightMode bool) [16]strin
 	palette[0] = bgColor
 	palette[7] = fgColor
 
-	// Use OKLCH-based global optimal assignment for ANSI colors 1-6
 	assignments := FindOptimalAnsiAssignment(dominantColors, usedIndices)
 
-	// Apply assignments, collecting matched colors for synthesis reference
 	var matchedColors []string
 	for i := 0; i < 6; i++ {
 		assignment := assignments[i]
@@ -52,10 +43,9 @@ func GenerateChromaticPalette(dominantColors []string, lightMode bool) [16]strin
 				continue
 			}
 		}
-		palette[i+1] = "" // Mark for synthesis
+		palette[i+1] = ""
 	}
 
-	// Synthesize any missing ANSI colors in OKLCH space to match the palette's mood
 	for i := 0; i < 6; i++ {
 		if palette[i+1] == "" {
 			palette[i+1] = SynthesizeAnsiColor(OKLCHAnsiHues[i], matchedColors)
@@ -63,25 +53,15 @@ func GenerateChromaticPalette(dominantColors []string, lightMode bool) [16]strin
 		}
 	}
 
-	// Ensure all ANSI colors have sufficient contrast against background
-	for i := 1; i <= 6; i++ {
-		contrast := color.ContrastRatio(bgColor, palette[i])
-		if contrast < MinContrastRatio {
-			palette[i] = boostContrastAgainstBg(palette[i], bgColor)
-		}
-	}
+	return palette
+}
 
-	// Generate color8 (bright black/gray for comments) with guaranteed contrast
-	palette[8] = generateCommentColor(bgColor)
-
-	// Generate bright versions (9-14) of colors 1-6 in OKLab space
-	for i := 1; i <= 6; i++ {
-		palette[i+8] = GenerateBrightVersion(palette[i])
-	}
-
-	// Generate color15 (bright white)
-	palette[15] = GenerateBrightVersion(fgColor)
-
+// GenerateChromaticPalette: vibrant chromatic palette from image-derived hues.
+// OKLCH-based optimal assignment for slots 1-6, contrast-aware bg/fg, synthesized
+// missing hues. finalizePalette derives slots 8/9-15 and enforces AA contrast.
+func GenerateChromaticPalette(dominantColors []string, lightMode bool) [16]string {
+	palette := extractChromaticHues(dominantColors, lightMode)
+	finalizePalette(&palette)
 	return palette
 }
 
@@ -126,29 +106,27 @@ func generateCommentColor(bgColor string) string {
 	return commentColor
 }
 
-// boostContrastAgainstBg adjusts a color's OKLab lightness to meet minimum contrast
+// boostContrastAgainstBg adjusts a color's OKLab lightness until it meets targetRatio
 // against the background, preserving hue and chroma.
-func boostContrastAgainstBg(hex string, bgColor string) string {
+func boostContrastAgainstBg(hex, bgColor string, targetRatio float64) string {
 	lab := color.HexToOKLab(hex)
 	lch := color.OKLabToOKLCH(lab)
 	bgLab := color.HexToOKLab(bgColor)
 
 	step := 0.03
 	if bgLab.L < 0.5 {
-		// Dark bg: push color lighter
-		for lch.L < 0.90 {
+		for lch.L < 0.95 {
 			lch.L += step
 			candidate := color.OKLCHToHex(lch)
-			if color.ContrastRatio(bgColor, candidate) >= MinContrastRatio {
+			if color.ContrastRatio(bgColor, candidate) >= targetRatio {
 				return candidate
 			}
 		}
 	} else {
-		// Light bg: push color darker
-		for lch.L > 0.10 {
+		for lch.L > 0.05 {
 			lch.L -= step
 			candidate := color.OKLCHToHex(lch)
-			if color.ContrastRatio(bgColor, candidate) >= MinContrastRatio {
+			if color.ContrastRatio(bgColor, candidate) >= targetRatio {
 				return candidate
 			}
 		}

@@ -2,7 +2,7 @@ package extraction
 
 const (
 	ANSIPaletteSize   = 16
-	CacheVersion      = 3 // Bumped: OKLab-based extraction
+	CacheVersion      = 5 // Bumped: mood iteration (stronger character per mood) + midnight/aurora
 	ImageScaleSize    = 400
 	MinPixelsToSample = 1000
 	MaxPixelsToSample = 50000
@@ -34,6 +34,7 @@ const (
 	VeryDarkBgLightness  = 0.25 // OKLab L: very dark background
 	VeryLightBgLightness = 0.82 // OKLab L: very light background
 	MinContrastRatio     = 4.5  // WCAG AA minimum for normal text
+	MinHighContrastRatio = 7.0  // WCAG AAA target for the high-contrast mode
 	MinCommentContrast   = 3.0  // Minimum for color8 (comments)
 	MinFgBgContrast      = 7.0  // Target contrast for fg/bg pair
 

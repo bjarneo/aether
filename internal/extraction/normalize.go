@@ -45,7 +45,7 @@ func NormalizeBrightness(palette [16]string) [16]string {
 			contrast := color.ContrastRatio(palette[0], palette[ci.index])
 			if contrast < MinContrastRatio {
 				// Boost lightness until contrast is met
-				palette[ci.index] = boostContrastAgainstBg(palette[ci.index], palette[0])
+				palette[ci.index] = boostContrastAgainstBg(palette[ci.index], palette[0], MinContrastRatio)
 				palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
 			}
 		}
@@ -57,7 +57,7 @@ func NormalizeBrightness(palette [16]string) [16]string {
 		for _, ci := range ansiColors {
 			contrast := color.ContrastRatio(palette[0], palette[ci.index])
 			if contrast < MinContrastRatio {
-				palette[ci.index] = boostContrastAgainstBg(palette[ci.index], palette[0])
+				palette[ci.index] = boostContrastAgainstBg(palette[ci.index], palette[0], MinContrastRatio)
 				palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
 			}
 		}
@@ -90,7 +90,7 @@ func NormalizeBrightness(palette [16]string) [16]string {
 	for _, ci := range ansiColors {
 		contrast := color.ContrastRatio(palette[0], palette[ci.index])
 		if contrast < MinContrastRatio {
-			palette[ci.index] = boostContrastAgainstBg(palette[ci.index], palette[0])
+			palette[ci.index] = boostContrastAgainstBg(palette[ci.index], palette[0], MinContrastRatio)
 			palette[ci.index+8] = GenerateBrightVersion(palette[ci.index])
 		}
 	}

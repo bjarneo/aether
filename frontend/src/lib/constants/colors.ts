@@ -733,13 +733,173 @@ export const EXTENDED_COLOR_LABELS: Record<string, string> = Object.fromEntries(
     EXTENDED_COLOR_ROLES.map(r => [r.key, r.label])
 );
 
-export const EXTRACTION_MODES = [
-    {value: 'normal', label: 'Auto Detect'},
-    {value: 'monochromatic', label: 'Monochromatic'},
-    {value: 'analogous', label: 'Analogous'},
-    {value: 'pastel', label: 'Pastel'},
-    {value: 'material', label: 'Material'},
-    {value: 'colorful', label: 'Colorful'},
-    {value: 'muted', label: 'Muted'},
-    {value: 'bright', label: 'Bright'},
+export type ExtractionModeGroup =
+    | 'auto'
+    | 'theory'
+    | 'style'
+    | 'mood'
+    | 'practical';
+
+export interface ExtractionMode {
+    value: string;
+    label: string;
+    group: ExtractionModeGroup;
+    description: string;
+}
+
+export const EXTRACTION_MODES: ExtractionMode[] = [
+    {
+        value: 'normal',
+        label: 'Auto Detect',
+        group: 'auto',
+        description: 'Picks monochrome or chromatic based on image analysis',
+    },
+
+    {
+        value: 'monochromatic',
+        label: 'Monochromatic',
+        group: 'theory',
+        description: 'Single hue across all slots, varying lightness',
+    },
+    {
+        value: 'analogous',
+        label: 'Analogous',
+        group: 'theory',
+        description: 'Hues within ±30° of the dominant color',
+    },
+    {
+        value: 'complementary',
+        label: 'Complementary',
+        group: 'theory',
+        description: 'Base hue alternating with its 180° opposite',
+    },
+    {
+        value: 'triadic',
+        label: 'Triadic',
+        group: 'theory',
+        description: 'Three hues evenly spaced at 120°',
+    },
+    {
+        value: 'split-complementary',
+        label: 'Split-Complementary',
+        group: 'theory',
+        description: 'Base hue plus 150° and 210° (softer complement)',
+    },
+    {
+        value: 'tetradic',
+        label: 'Tetradic',
+        group: 'theory',
+        description: 'Four hues at 90° on the color wheel',
+    },
+
+    {
+        value: 'pastel',
+        label: 'Pastel',
+        group: 'style',
+        description: 'Soft, low chroma, high lightness',
+    },
+    {
+        value: 'muted',
+        label: 'Muted',
+        group: 'style',
+        description: 'Subdued, low chroma, lightness-staggered',
+    },
+    {
+        value: 'bright',
+        label: 'Bright',
+        group: 'style',
+        description: 'High lightness with healthy chroma',
+    },
+    {
+        value: 'colorful',
+        label: 'Colorful',
+        group: 'style',
+        description: 'Vivid, high chroma, mid lightness',
+    },
+    {
+        value: 'material',
+        label: 'Material',
+        group: 'style',
+        description: 'Material Design-inspired with fixed bg/fg',
+    },
+
+    {
+        value: 'fire',
+        label: 'Fire',
+        group: 'mood',
+        description: 'Bonfire warmth — deep dark, warm ANSI',
+    },
+    {
+        value: 'ocean',
+        label: 'Ocean',
+        group: 'mood',
+        description: 'Deep blue-black, cool-shifted ANSI',
+    },
+    {
+        value: 'forest',
+        label: 'Forest',
+        group: 'mood',
+        description: 'Dark green-black, sage-shifted ANSI',
+    },
+    {
+        value: 'earthtone',
+        label: 'Earthtone',
+        group: 'mood',
+        description: 'Warm browns and beiges, very low chroma',
+    },
+    {
+        value: 'neon',
+        label: 'Neon',
+        group: 'mood',
+        description: 'Cyberpunk: very dark bg, max chroma',
+    },
+    {
+        value: 'sunset',
+        label: 'Sunset',
+        group: 'mood',
+        description: 'Warm dark with magenta cast, peach fg',
+    },
+    {
+        value: 'vaporwave',
+        label: 'Vaporwave',
+        group: 'mood',
+        description: 'Pinks, purples, cyans on a soft dark',
+    },
+    {
+        value: 'midnight',
+        label: 'Midnight',
+        group: 'mood',
+        description: 'Peaceful deep indigo, subdued silver',
+    },
+    {
+        value: 'aurora',
+        label: 'Aurora',
+        group: 'mood',
+        description: 'Shimmery green-cyan glow on deep blue-night',
+    },
+
+    {
+        value: 'high-contrast',
+        label: 'High Contrast',
+        group: 'practical',
+        description: 'WCAG AAA (7:1) for maximum readability',
+    },
+    {
+        value: 'duotone',
+        label: 'Duotone',
+        group: 'practical',
+        description: 'Two hues only at varying lightness',
+    },
+];
+
+export const EXTRACTION_MODE_GROUPS: {
+    id: ExtractionModeGroup;
+    label: string;
+    defaultOpen: boolean;
+}[] = [
+    {id: 'auto', label: 'Auto', defaultOpen: true},
+    {id: 'style', label: 'Style', defaultOpen: true},
+    {id: 'theory', label: 'Color Theory', defaultOpen: false},
+    {id: 'mood', label: 'Mood', defaultOpen: false},
+    {id: 'practical', label: 'Practical', defaultOpen: false},
 ];

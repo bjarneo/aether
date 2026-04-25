@@ -217,6 +217,12 @@ var validModes = map[string]bool{
 	"normal": true, "monochromatic": true, "analogous": true,
 	"pastel": true, "material": true, "colorful": true,
 	"muted": true, "bright": true,
+	"complementary": true, "triadic": true,
+	"split-complementary": true, "tetradic": true,
+	"fire": true, "ocean": true, "forest": true,
+	"earthtone": true, "neon": true, "sunset": true, "vaporwave": true,
+	"midnight": true, "aurora": true,
+	"high-contrast": true, "duotone": true,
 }
 
 func expandHome(path string) string {

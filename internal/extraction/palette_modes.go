@@ -6,174 +6,198 @@ import (
 	"aether/internal/color"
 )
 
-// paletteRule defines how to transform a color in light and dark modes.
-type paletteRule struct {
-	light func(hsl color.HSL) string
-	dark  func(hsl color.HSL) string
+// oklchRule shapes an OKLCH color into a mode-specific output.
+// Implementations may use any combination of the input channels (typically the hue) and
+// return a fresh OKLCH; transformChromaticPalette converts back to hex.
+type oklchRule struct {
+	light func(lch color.OKLCH) color.OKLCH
+	dark  func(lch color.OKLCH) color.OKLCH
 }
 
-// transformChromaticPalette generates a chromatic palette then transforms each color
-// using the provided index-specific rules.
-func transformChromaticPalette(dominantColors []string, lightMode bool, rules map[int]*paletteRule, defaultRule *paletteRule) [16]string {
-	base := GenerateChromaticPalette(dominantColors, lightMode)
+// applyOklchRule selects the rule for the requested mode.
+func applyOklchRule(rule *oklchRule, lch color.OKLCH, lightMode bool) color.OKLCH {
+	if lightMode {
+		return rule.light(lch)
+	}
+	return rule.dark(lch)
+}
 
-	var result [16]string
-	for i := 0; i < 16; i++ {
-		hsl := color.HexToHSL(base[i])
-		rule := rules[i]
-		if rule == nil {
-			rule = defaultRule
-		}
-		if lightMode {
-			result[i] = rule.light(hsl)
-		} else {
-			result[i] = rule.dark(hsl)
+func clampF(v, lo, hi float64) float64 {
+	return math.Max(lo, math.Min(hi, v))
+}
+
+// finalizePalette regenerates derived slots (8, 9-14, 15) against the already-set bg/fg/ANSI
+// and enforces minimum contrast for ANSI colors against the background. Callers must set
+// slots 0, 7, and 1-6 before invoking.
+func finalizePalette(p *[16]string) {
+	p[8] = generateCommentColor(p[0])
+
+	for i := 1; i <= 6; i++ {
+		p[i+8] = GenerateBrightVersion(p[i])
+	}
+	p[15] = GenerateBrightVersion(p[7])
+
+	for i := 1; i <= 6; i++ {
+		if color.ContrastRatio(p[0], p[i]) < MinContrastRatio {
+			p[i] = boostContrastAgainstBg(p[i], p[0], MinContrastRatio)
+			p[i+8] = GenerateBrightVersion(p[i])
 		}
 	}
+}
 
+// pullHueToward shifts a hue toward target by strength (0..1) along the shorter arc.
+// strength=0 keeps the original; strength=1 returns the target.
+func pullHueToward(hue, target, strength float64) float64 {
+	diff := math.Mod(target-hue+540, 360) - 180
+	return math.Mod(hue+diff*strength+360, 360)
+}
+
+// extractDominantHue picks the OKLCH hue of the image's most chromatic dominant color —
+// the image's primary "color identity" used by schemes/moods to pivot palettes.
+// For fully achromatic images (all colors at C=0) it returns 0 (red); callers that
+// care about achromatic detection should run IsMonochromeImage first.
+func extractDominantHue(dominantColors []string) float64 {
+	var hue float64
+	bestChroma := 0.0
+	for _, c := range dominantColors {
+		lch := color.HexToOKLCH(c)
+		if lch.C > bestChroma {
+			bestChroma = lch.C
+			hue = lch.H
+		}
+	}
+	return hue
+}
+
+// transformChromaticPalette extracts image-derived hues and rebuilds the palette in OKLCH.
+// bgRule shapes slot 0, fgRule shapes slot 7, ansiRule shapes slots 1-6, then
+// ansiLightnessOffsets nudges each slot's lightness so colors stay distinguishable
+// above the perceptual JND threshold. finalizePalette derives slots 8/9-15 and enforces
+// AA contrast against the transformed background.
+func transformChromaticPalette(
+	dominantColors []string,
+	lightMode bool,
+	bgRule, fgRule, ansiRule *oklchRule,
+	ansiLightnessOffsets [6]float64,
+) [16]string {
+	base := extractChromaticHues(dominantColors, lightMode)
+
+	var result [16]string
+
+	bgLch := color.HexToOKLCH(base[0])
+	fgLch := color.HexToOKLCH(base[7])
+	result[0] = color.OKLCHToHex(applyOklchRule(bgRule, bgLch, lightMode))
+	result[7] = color.OKLCHToHex(applyOklchRule(fgRule, fgLch, lightMode))
+
+	for i := 0; i < 6; i++ {
+		slot := i + 1
+		lch := color.HexToOKLCH(base[slot])
+		shaped := applyOklchRule(ansiRule, lch, lightMode)
+		shaped.L = clampF(shaped.L+ansiLightnessOffsets[i], 0.05, 0.95)
+		result[slot] = color.OKLCHToHex(shaped)
+	}
+
+	finalizePalette(&result)
 	return result
 }
 
-// GeneratePastelPalette generates a pastel color palette (low saturation, high lightness).
+// Lightness stagger spreads are well above the OKLCH JND (~0.015) so slots remain
+// distinguishable when the mode flattens chroma.
+
 func GeneratePastelPalette(dominantColors []string, lightMode bool) [16]string {
-	return transformChromaticPalette(dominantColors, lightMode, map[int]*paletteRule{
-		0: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 10, 95) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 15, 20) },
+	bgRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.96, C: 0.012, H: lch.H} },
+		dark:  func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.20, C: 0.022, H: lch.H} },
+	}
+	fgRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.32, C: 0.05, H: lch.H} },
+		dark:  func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.85, C: 0.04, H: lch.H} },
+	}
+	ansiRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH {
+			return color.OKLCH{L: 0.55, C: clampF(lch.C, 0.045, 0.07), H: lch.H}
 		},
-		7: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 25, 35) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 20, 75) },
+		dark: func(lch color.OKLCH) color.OKLCH {
+			return color.OKLCH{L: 0.78, C: clampF(lch.C, 0.05, 0.075), H: lch.H}
 		},
-		15: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 25, 35) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 20, 75) },
-		},
-		8: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 15, 65) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 12, 45) },
-		},
-	}, &paletteRule{
-		light: func(hsl color.HSL) string {
-			return color.HSLToHex(hsl.H, math.Min(35, hsl.S), 50)
-		},
-		dark: func(hsl color.HSL) string {
-			return color.HSLToHex(hsl.H, math.Min(35, hsl.S), 70)
-		},
-	})
+	}
+	stagger := [6]float64{-0.04, +0.02, +0.05, -0.03, -0.01, +0.03}
+	return transformChromaticPalette(dominantColors, lightMode, bgRule, fgRule, ansiRule, stagger)
 }
 
-// GenerateColorfulPalette generates a highly saturated, vibrant colorful palette.
 func GenerateColorfulPalette(dominantColors []string, lightMode bool) [16]string {
-	return transformChromaticPalette(dominantColors, lightMode, map[int]*paletteRule{
-		0: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 8, 98) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 12, 8) },
+	bgRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.97, C: 0.012, H: lch.H} },
+		dark:  func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.10, C: 0.022, H: lch.H} },
+	}
+	fgRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.18, C: 0.04, H: lch.H} },
+		dark:  func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.92, C: 0.03, H: lch.H} },
+	}
+	ansiRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH {
+			return color.OKLCH{L: 0.50, C: clampF(math.Max(lch.C, 0.14), 0.14, 0.20), H: lch.H}
 		},
-		7: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 15, 10) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 10, 95) },
+		dark: func(lch color.OKLCH) color.OKLCH {
+			return color.OKLCH{L: 0.65, C: clampF(math.Max(lch.C, 0.14), 0.14, 0.20), H: lch.H}
 		},
-		15: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 15, 10) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 10, 95) },
-		},
-		8: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 20, 50) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 15, 55) },
-		},
-	}, &paletteRule{
-		light: func(hsl color.HSL) string {
-			return color.HSLToHex(hsl.H,
-				math.Max(75, math.Min(95, hsl.S+30)),
-				math.Max(35, math.Min(55, hsl.L)),
-			)
-		},
-		dark: func(hsl color.HSL) string {
-			return color.HSLToHex(hsl.H,
-				math.Max(75, math.Min(95, hsl.S+30)),
-				math.Max(55, math.Min(70, hsl.L)),
-			)
-		},
-	})
+	}
+	stagger := [6]float64{-0.05, +0.02, +0.06, -0.03, -0.02, +0.04}
+	return transformChromaticPalette(dominantColors, lightMode, bgRule, fgRule, ansiRule, stagger)
 }
 
-// GenerateMutedPalette generates a desaturated, muted palette with subdued colors.
+// GenerateMutedPalette: low-chroma, subdued. Widened lightness stagger because slots
+// can't lean on chroma differences for distinguishability.
 func GenerateMutedPalette(dominantColors []string, lightMode bool) [16]string {
-	return transformChromaticPalette(dominantColors, lightMode, map[int]*paletteRule{
-		0: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 5, 95) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 8, 15) },
+	bgRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.94, C: 0.010, H: lch.H} },
+		dark:  func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.16, C: 0.018, H: lch.H} },
+	}
+	fgRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.28, C: 0.045, H: lch.H} },
+		dark:  func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.84, C: 0.035, H: lch.H} },
+	}
+	ansiRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH {
+			return color.OKLCH{L: 0.48, C: clampF(lch.C*0.5, 0.035, 0.065), H: lch.H}
 		},
-		7: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 10, 20) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 8, 85) },
+		dark: func(lch color.OKLCH) color.OKLCH {
+			return color.OKLCH{L: 0.62, C: clampF(lch.C*0.5, 0.035, 0.065), H: lch.H}
 		},
-		15: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 10, 20) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 8, 85) },
-		},
-		8: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 8, 60) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 6, 50) },
-		},
-	}, &paletteRule{
-		light: func(hsl color.HSL) string {
-			return color.HSLToHex(hsl.H,
-				math.Max(15, math.Min(35, hsl.S*0.5)),
-				math.Max(40, math.Min(60, hsl.L)),
-			)
-		},
-		dark: func(hsl color.HSL) string {
-			return color.HSLToHex(hsl.H,
-				math.Max(15, math.Min(35, hsl.S*0.5)),
-				math.Max(50, math.Min(65, hsl.L)),
-			)
-		},
-	})
+	}
+	stagger := [6]float64{-0.10, -0.04, +0.04, +0.10, -0.07, +0.07}
+	return transformChromaticPalette(dominantColors, lightMode, bgRule, fgRule, ansiRule, stagger)
 }
 
-// GenerateBrightPalette generates a high-lightness bright palette with punchy colors.
 func GenerateBrightPalette(dominantColors []string, lightMode bool) [16]string {
-	return transformChromaticPalette(dominantColors, lightMode, map[int]*paletteRule{
-		0: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 6, 98) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 10, 6) },
+	bgRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.98, C: 0.010, H: lch.H} },
+		dark:  func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.10, C: 0.020, H: lch.H} },
+	}
+	fgRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.15, C: 0.04, H: lch.H} },
+		dark:  func(lch color.OKLCH) color.OKLCH { return color.OKLCH{L: 0.92, C: 0.025, H: lch.H} },
+	}
+	ansiRule := &oklchRule{
+		light: func(lch color.OKLCH) color.OKLCH {
+			return color.OKLCH{L: 0.42, C: clampF(math.Max(lch.C, 0.10), 0.10, 0.18), H: lch.H}
 		},
-		7: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 12, 15) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 8, 98) },
+		dark: func(lch color.OKLCH) color.OKLCH {
+			return color.OKLCH{L: 0.78, C: clampF(math.Max(lch.C, 0.10), 0.10, 0.18), H: lch.H}
 		},
-		15: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 12, 15) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 8, 98) },
-		},
-		8: {
-			light: func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 15, 55) },
-			dark:  func(hsl color.HSL) string { return color.HSLToHex(hsl.H, 12, 65) },
-		},
-	}, &paletteRule{
-		light: func(hsl color.HSL) string {
-			return color.HSLToHex(hsl.H,
-				math.Max(45, math.Min(70, hsl.S)),
-				math.Max(45, math.Min(65, hsl.L+10)),
-			)
-		},
-		dark: func(hsl color.HSL) string {
-			return color.HSLToHex(hsl.H,
-				math.Max(45, math.Min(70, hsl.S)),
-				math.Max(65, math.Min(80, hsl.L+15)),
-			)
-		},
-	})
+	}
+	stagger := [6]float64{-0.04, +0.01, +0.06, -0.03, -0.02, +0.03}
+	return transformChromaticPalette(dominantColors, lightMode, bgRule, fgRule, ansiRule, stagger)
 }
 
 // GenerateMaterialPalette generates a Material Design-inspired palette.
+// Intentionally uses HSL (not OKLCH like the other modes): Material specifies fixed
+// neutral bg/fg colors and a HSL-defined accent saturation/lightness contract, so
+// porting this to OKLCH would drift from the spec.
 func GenerateMaterialPalette(dominantColors []string, lightMode bool) [16]string {
 	var palette [16]string
 	usedIndices := make(map[int]bool)
 
-	// Material backgrounds
 	if lightMode {
 		palette[0] = "#fafafa"
 		palette[7] = "#212121"
@@ -182,7 +206,6 @@ func GenerateMaterialPalette(dominantColors []string, lightMode bool) [16]string
 		palette[7] = "#ffffff"
 	}
 
-	// Find best ANSI color matches from actual image colors using OKLCH hue targets
 	for i := 0; i < len(OKLCHAnsiHues); i++ {
 		matchIndex := FindBestColorMatch(OKLCHAnsiHues[i], dominantColors, usedIndices)
 		matchedColor := dominantColors[matchIndex]
@@ -227,20 +250,11 @@ func GenerateMaterialPalette(dominantColors []string, lightMode bool) [16]string
 	return palette
 }
 
-// GenerateAnalogousPalette generates an analogous color palette (adjacent hues on the color wheel).
-// Uses OKLCH for perceptually uniform hue spacing — ±30° in OKLCH produces evenly perceived differences.
+// GenerateAnalogousPalette generates an analogous palette (±30° in OKLCH around the dominant hue).
+// Lightness alternates between dim and bright slots with a perceptually meaningful spread,
+// so the six ANSI colors stay distinguishable when hues are close.
 func GenerateAnalogousPalette(dominantColors []string, lightMode bool) [16]string {
-	// Find most chromatic color as base (using OKLCH chroma)
-	var baseHue float64
-	bestChroma := 0.0
-	for _, c := range dominantColors {
-		lch := color.HexToOKLCH(c)
-		if lch.C > bestChroma {
-			bestChroma = lch.C
-			baseHue = lch.H
-		}
-	}
-
+	baseHue := extractDominantHue(dominantColors)
 	sortedByLightness := SortColorsByLightness(dominantColors)
 	darkest := sortedByLightness[0]
 	lightest := sortedByLightness[len(sortedByLightness)-1]
@@ -255,40 +269,35 @@ func GenerateAnalogousPalette(dominantColors []string, lightMode bool) [16]strin
 		palette[7] = color.OKLCHToHex(color.OKLCH{L: math.Max(0.88, lightest.Lightness-0.05), C: 0.025, H: baseHue})
 	}
 
-	// Analogous offsets: ±30° in OKLCH (perceptually uniform)
-	analogousOffsets := [6]float64{-30, -20, -10, 10, 20, 30}
-	chromaLevels := [6]float64{0.09, 0.10, 0.095, 0.105, 0.092, 0.10}
-	lightnessBase := 0.60
+	analogousOffsets := [6]float64{-30, -18, -6, 6, 18, 30}
+	chromaLevels := [6]float64{0.10, 0.13, 0.09, 0.14, 0.10, 0.12}
+	lightnessStagger := [6]float64{-0.06, +0.04, -0.04, +0.06, -0.05, +0.05}
+	lightnessBase := 0.62
 	if lightMode {
-		lightnessBase = 0.48
+		lightnessBase = 0.50
 	}
 
 	for i := 0; i < 6; i++ {
 		hue := math.Mod(baseHue+analogousOffsets[i]+360, 360)
-		lightness := lightnessBase - 0.02
-		if i%2 != 0 {
-			lightness = lightnessBase + 0.02
-		}
+		lightness := clampF(lightnessBase+lightnessStagger[i], 0.30, 0.85)
 		palette[i+1] = color.OKLCHToHex(color.OKLCH{L: lightness, C: chromaLevels[i], H: hue})
 	}
 
-	// Color 8: comment color with guaranteed contrast
 	palette[8] = generateCommentColor(palette[0])
 
-	// Bright versions (9-14)
 	for i := 0; i < 6; i++ {
 		hue := math.Mod(baseHue+analogousOffsets[i]+360, 360)
-		lightness := 0.70
+		brightL := clampF(lightnessBase+lightnessStagger[i]+0.10, 0.30, 0.92)
 		if lightMode {
-			lightness = 0.40
+			brightL = clampF(lightnessBase+lightnessStagger[i]-0.10, 0.20, 0.70)
 		}
-		palette[i+9] = color.OKLCHToHex(color.OKLCH{L: lightness, C: chromaLevels[i] + 0.02, H: hue})
+		palette[i+9] = color.OKLCHToHex(color.OKLCH{L: brightL, C: chromaLevels[i] + 0.02, H: hue})
 	}
 
 	if lightMode {
-		palette[15] = color.OKLCHToHex(color.OKLCH{L: 0.22, C: 0.03, H: baseHue})
+		palette[15] = color.OKLCHToHex(color.OKLCH{L: 0.10, C: 0.04, H: baseHue})
 	} else {
-		palette[15] = color.OKLCHToHex(color.OKLCH{L: 0.95, C: 0.015, H: baseHue})
+		palette[15] = color.OKLCHToHex(color.OKLCH{L: 0.97, C: 0.015, H: baseHue})
 	}
 
 	return palette
