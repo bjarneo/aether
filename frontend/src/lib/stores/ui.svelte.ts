@@ -9,12 +9,14 @@ export type Tab =
 export const COLOR_MODELS = ['rgb', 'hsl', 'oklch'] as const;
 export type ColorModel = (typeof COLOR_MODELS)[number];
 
+export type ToastAction = {label: string; run: () => void};
+
 // --- Reactive state ---
 let activeTab = $state<Tab>('editor');
 let sidebarVisible = $state<boolean>(true);
 let toastMessage = $state<string>('');
 let toastVisible = $state<boolean>(false);
-let toastAction = $state<{label: string; run: () => void} | null>(null);
+let toastAction = $state<ToastAction | null>(null);
 let liveApply = $state<boolean>(readBoolPref('aether-live-apply', false));
 let targetsVisible = $state<boolean>(
     readBoolPref('aether-targets-visible', true)
@@ -96,9 +98,7 @@ export function toggleSidebar(): void {
 
 export function showToast(
     msg: string,
-    durationOrOpts:
-        | number
-        | {duration?: number; action?: {label: string; run: () => void}} = 3000
+    durationOrOpts: number | {duration?: number; action?: ToastAction} = 3000
 ): void {
     const opts =
         typeof durationOrOpts === 'number'
@@ -114,7 +114,7 @@ export function showToast(
     }, duration);
 }
 
-export function getToastAction(): {label: string; run: () => void} | null {
+export function getToastAction(): ToastAction | null {
     return toastAction;
 }
 

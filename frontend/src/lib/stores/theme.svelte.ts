@@ -171,9 +171,6 @@ export function getThemeSignature(): string {
 }
 
 let lastAppliedSignature = $state<string>('');
-export function getLastAppliedSignature(): string {
-    return lastAppliedSignature;
-}
 export function markApplied(): void {
     lastAppliedSignature = getThemeSignature();
 }
@@ -257,10 +254,6 @@ export function setPaletteFromExtraction(path: string, colors: string[]): void {
     }
     lastExtractedPath = path;
     setPalette(colors);
-}
-
-export function getLastExtractedPath(): string {
-    return lastExtractedPath;
 }
 
 export function setLastExtractedPath(path: string): void {

@@ -64,6 +64,10 @@ export async function applyTheme(): Promise<void> {
     }
 }
 
+// Quieter undo-offering toast for live preview; long enough to react,
+// short enough not to pile up during rapid edits.
+const LIVE_APPLY_TOAST_MS = 2200;
+
 // Same backend call as applyTheme(), but with a quieter toast that offers
 // Undo. Used by the live-preview effect when the user flips on Live Apply.
 export async function applyThemeLive(): Promise<void> {
@@ -73,7 +77,7 @@ export async function applyThemeLive(): Promise<void> {
         const result = await runApply();
         if (result.success) {
             showToast('Live preview applied', {
-                duration: 2200,
+                duration: LIVE_APPLY_TOAST_MS,
                 action: {label: 'Undo', run: undoAction},
             });
         }

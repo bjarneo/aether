@@ -93,10 +93,12 @@
     // Live-preview apply. Tracks the snapshot signature so we don't fire
     // on object-identity churn. `null` baseline doubles as the
     // not-yet-armed flag — first read just records the signature.
+    // Long enough to coalesce slider drags but short enough to feel "live".
+    const LIVE_APPLY_DEBOUNCE_MS = 1500;
     let lastLiveSignature: string | null = null;
     const debouncedLiveApply = debounce(() => {
         applyThemeLive();
-    }, 1500);
+    }, LIVE_APPLY_DEBOUNCE_MS);
     $effect(() => {
         const enabled = getLiveApply();
         // Once armed, skip the JSON.stringify when the toggle is off.

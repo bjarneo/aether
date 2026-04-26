@@ -29,7 +29,7 @@ export const ALWAYS_INCLUDED_APPS = new Set(['colors']);
 
 // Pretty labels for known templates. Anything not listed falls back to a
 // title-cased version of the key.
-export const APP_LABELS: Record<string, string> = {
+const APP_LABELS: Record<string, string> = {
     gtk: 'GTK',
     zed: 'Zed',
     vscode: 'VS Code',
