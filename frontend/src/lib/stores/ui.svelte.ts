@@ -1,3 +1,5 @@
+import {STORAGE_KEYS} from '$lib/constants/storage';
+
 export type Tab =
     | 'editor'
     | 'wallhaven'
@@ -17,9 +19,9 @@ let sidebarVisible = $state<boolean>(true);
 let toastMessage = $state<string>('');
 let toastVisible = $state<boolean>(false);
 let toastAction = $state<ToastAction | null>(null);
-let liveApply = $state<boolean>(readBoolPref('aether-live-apply', false));
+let liveApply = $state<boolean>(readBoolPref(STORAGE_KEYS.liveApply, false));
 let targetsVisible = $state<boolean>(
-    readBoolPref('aether-targets-visible', true)
+    readBoolPref(STORAGE_KEYS.targetsVisible, true)
 );
 
 function readBoolPref(key: string, fallback: boolean): boolean {
@@ -123,7 +125,7 @@ export function getLiveApply(): boolean {
 }
 export function setLiveApply(v: boolean): void {
     liveApply = v;
-    writeBoolPref('aether-live-apply', v);
+    writeBoolPref(STORAGE_KEYS.liveApply, v);
 }
 
 export function getTargetsVisible(): boolean {
@@ -131,7 +133,7 @@ export function getTargetsVisible(): boolean {
 }
 export function setTargetsVisible(v: boolean): void {
     targetsVisible = v;
-    writeBoolPref('aether-targets-visible', v);
+    writeBoolPref(STORAGE_KEYS.targetsVisible, v);
 }
 export function toggleTargetsVisible(): void {
     setTargetsVisible(!targetsVisible);

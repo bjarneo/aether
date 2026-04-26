@@ -235,12 +235,16 @@
 
     // Debounced so slider drags don't flood the recents list with intermediate
     // hexes; only the value the user settles on is recorded.
+    const RECENT_RECORD_DELAY_MS = 600;
     let recordTimer: ReturnType<typeof setTimeout> | null = null;
     $effect(() => {
         const hex = currentColor;
         if (!isValidHex(hex)) return;
         if (recordTimer) clearTimeout(recordTimer);
-        recordTimer = setTimeout(() => pushRecentColor(hex), 600);
+        recordTimer = setTimeout(
+            () => pushRecentColor(hex),
+            RECENT_RECORD_DELAY_MS
+        );
     });
     onDestroy(() => {
         if (recordTimer) clearTimeout(recordTimer);

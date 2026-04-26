@@ -185,6 +185,7 @@
 
     // Rapid nudge clicks coalesce into a single undo entry — snapshot the
     // state before the first click in a burst, commit once the user stops.
+    const NUDGE_COMMIT_DELAY_MS = 500;
     let nudgeSnapshot: {
         palette: string[];
         ext: Record<string, string>;
@@ -218,7 +219,7 @@
                 );
                 nudgeSnapshot = null;
             }
-        }, 500);
+        }, NUDGE_COMMIT_DELAY_MS);
 
         const newAdj = {...current, [key]: next} as Adjustments;
         setAdjustments(newAdj);

@@ -18,6 +18,7 @@
     import {getPalette} from '$lib/stores/theme.svelte';
     import {isLightColor} from '$lib/utils/color';
     import {showToast} from '$lib/stores/ui.svelte';
+    import {STORAGE_KEYS} from '$lib/constants/storage';
 
     const MAX_PALETTE_STOPS = 4;
 
@@ -51,7 +52,8 @@
         imgEl?: HTMLImageElement | null;
     } = $props();
 
-    const debouncedPreview = debounce(() => onpreview(), 300);
+    const PREVIEW_DEBOUNCE_MS = 300;
+    const debouncedPreview = debounce(() => onpreview(), PREVIEW_DEBOUNCE_MS);
 
     const defaults: Record<string, number> =
         DEFAULT_FILTERS as unknown as Record<string, number>;
@@ -141,15 +143,13 @@
         debouncedPreview();
     }
 
-    // Custom presets persisted in localStorage.
-    const CUSTOM_PRESETS_KEY = 'aether.customPresets';
     type CustomPreset = {name: string; values: Partial<Filters>};
 
     let customPresets = $state<CustomPreset[]>(loadCustomPresets());
 
     function loadCustomPresets(): CustomPreset[] {
         try {
-            const raw = localStorage.getItem(CUSTOM_PRESETS_KEY);
+            const raw = localStorage.getItem(STORAGE_KEYS.customPresets);
             if (!raw) return [];
             const parsed = JSON.parse(raw);
             return Array.isArray(parsed) ? parsed : [];
@@ -161,7 +161,7 @@
     function persistCustomPresets() {
         try {
             localStorage.setItem(
-                CUSTOM_PRESETS_KEY,
+                STORAGE_KEYS.customPresets,
                 JSON.stringify(customPresets)
             );
         } catch {

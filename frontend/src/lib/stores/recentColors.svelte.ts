@@ -1,11 +1,11 @@
 import {isValidHex} from '$lib/utils/color';
+import {STORAGE_KEYS} from '$lib/constants/storage';
 
-const STORAGE_KEY = 'aether.recentColors';
 const MAX_RECENT = 12;
 
 function load(): string[] {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(STORAGE_KEYS.recentColors);
         if (!raw) return [];
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [];
@@ -17,7 +17,7 @@ function load(): string[] {
 
 function persist(colors: string[]) {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(colors));
+        localStorage.setItem(STORAGE_KEYS.recentColors, JSON.stringify(colors));
     } catch {
         // quota / storage disabled
     }

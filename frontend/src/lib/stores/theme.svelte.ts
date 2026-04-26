@@ -267,6 +267,11 @@ export function setAdjustedExtendedColors(
     extendedColors = {...colors};
 }
 
+// Window after the last edit during which subsequent edits are folded
+// into the same history snapshot. Long enough for paint-then-tweak,
+// short enough that a deliberate next edit gets its own undo step.
+const EDIT_SESSION_TIMEOUT_MS = 1000;
+
 // Debounced history push for individual color edits (picker drag)
 let colorEditTimer: ReturnType<typeof setTimeout> | null = null;
 let colorEditSnapshotPushed = false;
@@ -280,7 +285,7 @@ export function setColor(index: number, hex: string): void {
     if (colorEditTimer) clearTimeout(colorEditTimer);
     colorEditTimer = setTimeout(() => {
         colorEditSnapshotPushed = false;
-    }, 1000);
+    }, EDIT_SESSION_TIMEOUT_MS);
 
     palette[index] = hex;
     basePalette[index] = hex;
@@ -299,7 +304,7 @@ export function setExtendedColor(key: string, hex: string): void {
     if (extEditTimer) clearTimeout(extEditTimer);
     extEditTimer = setTimeout(() => {
         extEditSnapshotPushed = false;
-    }, 1000);
+    }, EDIT_SESSION_TIMEOUT_MS);
 
     extendedColors = {...extendedColors, [key]: hex};
     baseExtendedColors = {...baseExtendedColors, [key]: hex};

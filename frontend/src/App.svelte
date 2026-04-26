@@ -46,6 +46,7 @@
         setLastExtractedPath,
     } from '$lib/stores/theme.svelte';
     import {debounce} from '$lib/utils/debounce';
+    import {STORAGE_KEYS} from '$lib/constants/storage';
     import {pushState} from '$lib/stores/history.svelte';
     import {
         applyTheme,
@@ -76,13 +77,14 @@
     let themesSlider = $state(false);
 
     // Mirror editor state into Go (debounced) so `aether status` and other IPC
-    // readers reflect live edits without waiting for an Apply. 300ms covers
-    // slider drags; the first sync on mount posts the initial snapshot.
+    // readers reflect live edits without waiting for an Apply. Long enough
+    // to cover slider drags; first sync on mount posts the initial snapshot.
+    const STATE_SYNC_DEBOUNCE_MS = 300;
     const syncStateToBackend = debounce((snapshot: main.SyncStateRequest) => {
         import('../wailsjs/go/main/App')
             .then(({SyncState}) => SyncState(snapshot))
             .catch(() => {});
-    }, 300);
+    }, STATE_SYNC_DEBOUNCE_MS);
 
     $effect(() => {
         syncStateToBackend(
@@ -295,7 +297,7 @@
                     // avoid a flash before the Wails bridge is ready.
                     try {
                         localStorage.setItem(
-                            'aether-theme-colors',
+                            STORAGE_KEYS.themeColors,
                             JSON.stringify(colors)
                         );
                     } catch {}

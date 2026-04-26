@@ -84,13 +84,23 @@
     // decode. This is the perf-critical path: previously each slider tick
     // round-tripped through toDataURL + <img src=> decode which leaked
     // bitmap cache and got laggier over time.
+    // Maximum dimension (px) the preview canvas is downscaled to before
+    // applying filters. Big enough to look sharp in the editor pane,
+    // small enough that slider drags repaint smoothly.
+    const PREVIEW_RENDER_SIZE_PX = 1000;
+    // Slight delay so chained filter changes coalesce into one repaint.
+    const PREVIEW_RENDER_DELAY_MS = 80;
+    // Window after the last filter change before we commit it as a
+    // history step. Tunes how undo "chunks" rapid edits.
+    const HISTORY_COMMIT_DELAY_MS = 400;
+
     let previewTimer: ReturnType<typeof setTimeout> | null = null;
 
     function renderPreview() {
         if (!imgEl || !imgReady || !previewCanvasEl) return;
         if (cropMode) return; // canvas hidden; don't waste work
         if (!hasActiveFilters(filters)) return; // <img> shown instead
-        renderToCanvas(imgEl, filters, previewCanvasEl, 1000);
+        renderToCanvas(imgEl, filters, previewCanvasEl, PREVIEW_RENDER_SIZE_PX);
     }
 
     // onpreview from FilterControls is redundant — the $effect below already
@@ -108,7 +118,7 @@
         if (key === lastRenderedKey) return;
         lastRenderedKey = key;
         if (previewTimer) clearTimeout(previewTimer);
-        previewTimer = setTimeout(renderPreview, 80);
+        previewTimer = setTimeout(renderPreview, PREVIEW_RENDER_DELAY_MS);
     });
 
     // Debounced history commit. Fires once after user action settles. Compares
@@ -131,7 +141,7 @@
                 undoStack = undoStack.slice(-MAX_HISTORY);
             baseline = {...filters};
             redoStack = [];
-        }, 400);
+        }, HISTORY_COMMIT_DELAY_MS);
     });
 
     function handleUndo() {
