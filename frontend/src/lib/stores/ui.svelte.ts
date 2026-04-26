@@ -15,14 +15,26 @@ let sidebarVisible = $state<boolean>(true);
 let toastMessage = $state<string>('');
 let toastVisible = $state<boolean>(false);
 let toastAction = $state<{label: string; run: () => void} | null>(null);
-let liveApply = $state<boolean>(readLiveApply());
+let liveApply = $state<boolean>(readBoolPref('aether-live-apply', false));
+let targetsVisible = $state<boolean>(
+    readBoolPref('aether-targets-visible', true)
+);
 
-function readLiveApply(): boolean {
+function readBoolPref(key: string, fallback: boolean): boolean {
     try {
-        return localStorage.getItem('aether-live-apply') === '1';
+        const v = localStorage.getItem(key);
+        if (v === '1') return true;
+        if (v === '0') return false;
+        return fallback;
     } catch {
-        return false;
+        return fallback;
     }
+}
+
+function writeBoolPref(key: string, value: boolean): void {
+    try {
+        localStorage.setItem(key, value ? '1' : '0');
+    } catch {}
 }
 let colorPickerOpen = $state<boolean>(false);
 let colorPickerIndex = $state<number>(-1);
@@ -111,9 +123,18 @@ export function getLiveApply(): boolean {
 }
 export function setLiveApply(v: boolean): void {
     liveApply = v;
-    try {
-        localStorage.setItem('aether-live-apply', v ? '1' : '0');
-    } catch {}
+    writeBoolPref('aether-live-apply', v);
+}
+
+export function getTargetsVisible(): boolean {
+    return targetsVisible;
+}
+export function setTargetsVisible(v: boolean): void {
+    targetsVisible = v;
+    writeBoolPref('aether-targets-visible', v);
+}
+export function toggleTargetsVisible(): void {
+    setTargetsVisible(!targetsVisible);
 }
 
 export function openColorPicker(index: number): void {

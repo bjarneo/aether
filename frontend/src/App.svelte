@@ -30,6 +30,7 @@
         setKeymapOpen,
         toggleKeymap,
         getLiveApply,
+        getTargetsVisible,
     } from '$lib/stores/ui.svelte';
     import {
         setWallpaperPath,
@@ -408,7 +409,7 @@
                 </div>
             {/if}
         </main>
-        {#if activeTab === 'editor'}
+        {#if activeTab === 'editor' && getTargetsVisible()}
             <TargetAppsStrip />
         {/if}
         <ActionBar />

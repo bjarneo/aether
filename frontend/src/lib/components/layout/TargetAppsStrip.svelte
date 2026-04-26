@@ -6,7 +6,7 @@
         isAppExcluded,
         toggleAppExclusion,
     } from '$lib/stores/settings.svelte';
-    import {getAppOverrides} from '$lib/stores/theme.svelte';
+    import {setTargetsVisible} from '$lib/stores/ui.svelte';
     import {
         SPECIAL_APP_FLAGS,
         SPECIAL_APP_ORDER,
@@ -41,12 +41,6 @@
     });
 
     let settings = $derived(getSettings());
-    let overrideCount = $derived(
-        Object.values(getAppOverrides()).reduce(
-            (sum, o) => sum + Object.keys(o).length,
-            0
-        )
-    );
 
     function isOn(key: string): boolean {
         const flag = SPECIAL_APP_FLAGS[key];
@@ -91,11 +85,13 @@
             </button>
         {/each}
     </div>
-    <span class="text-fg-dimmed shrink-0 text-[10px]">
-        {#if overrideCount > 0}
-            {overrideCount} override{overrideCount === 1 ? '' : 's'}
-        {:else}
-            no overrides
-        {/if}
-    </span>
+    <button
+        type="button"
+        class="text-fg-dimmed hover:text-fg-secondary shrink-0 px-1 text-[14px] leading-none transition-colors"
+        onclick={() => setTargetsVisible(false)}
+        title="Hide targets"
+        aria-label="Hide targets"
+    >
+        ×
+    </button>
 </div>
