@@ -64,7 +64,9 @@ func HandleLightModeMarker(themeDir string, lightMode bool) error {
 		if err != nil {
 			return err
 		}
-		f.Close()
+		if err := f.Close(); err != nil {
+			return err
+		}
 		log.Println("Created light.mode marker file")
 		return nil
 	}

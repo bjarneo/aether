@@ -120,10 +120,13 @@ func (a *App) startup(ctx context.Context) {
 	}
 }
 
-// CloseIPC shuts down the IPC server. Called on app exit.
+// CloseIPC shuts down the IPC server and media server. Called on app exit.
 func (a *App) CloseIPC() {
 	if a.ipcServer != nil {
 		a.ipcServer.Close()
+	}
+	if a.media != nil {
+		a.media.Stop()
 	}
 }
 
@@ -277,15 +280,34 @@ func (a *App) SyncState(req SyncStateRequest) {
 	}
 }
 
-// ComputeVariables builds the full template variable map from the given
-// palette and extended colors. Returns all base + derived color values.
-func (a *App) ComputeVariables(paletteSlice []string, extendedColors map[string]string, lightMode bool) map[string]string {
+// ANSI 16-color palette positions. Names follow xterm convention; the role
+// defaults below tie e.g. accent=blue and foreground=white as our chosen mapping.
+const (
+	idxBlack       = 0
+	idxRed         = 1
+	idxGreen       = 2
+	idxYellow      = 3
+	idxBlue        = 4
+	idxMagenta     = 5
+	idxCyan        = 6
+	idxWhite       = 7
+	idxBrightBlack = 8
+)
+
+// buildColorRoles converts a palette slice into a fixed [16]string array plus
+// a populated template.ColorRoles, applying any user overrides from
+// extendedColors. Centralizes the palette → roles mapping shared by
+// ComputeVariables, ApplyTheme, and ExportTheme.
+func buildColorRoles(paletteSlice []string, extendedColors map[string]string) ([16]string, template.ColorRoles) {
 	var palette [16]string
 	for i := 0; i < 16 && i < len(paletteSlice); i++ {
 		palette[i] = paletteSlice[i]
 	}
 
-	accent, cursor, selFg, selBg := palette[4], palette[7], palette[0], palette[7]
+	accent := palette[idxBlue]
+	cursor := palette[idxWhite]
+	selFg := palette[idxBlack]
+	selBg := palette[idxWhite]
 	if v := extendedColors["accent"]; v != "" {
 		accent = v
 	}
@@ -300,16 +322,22 @@ func (a *App) ComputeVariables(paletteSlice []string, extendedColors map[string]
 	}
 
 	roles := template.ColorRoles{
-		Background: palette[0], Foreground: palette[7],
-		Black: palette[0], Red: palette[1], Green: palette[2], Yellow: palette[3],
-		Blue: palette[4], Magenta: palette[5], Cyan: palette[6], White: palette[7],
-		BrightBlack: palette[8], BrightRed: palette[9], BrightGreen: palette[10],
-		BrightYellow: palette[11], BrightBlue: palette[12], BrightMagenta: palette[13],
-		BrightCyan: palette[14], BrightWhite: palette[15],
+		Background: palette[idxBlack], Foreground: palette[idxWhite],
+		Black: palette[idxBlack], Red: palette[idxRed], Green: palette[idxGreen], Yellow: palette[idxYellow],
+		Blue: palette[idxBlue], Magenta: palette[idxMagenta], Cyan: palette[idxCyan], White: palette[idxWhite],
+		BrightBlack: palette[idxBrightBlack], BrightRed: palette[idxBrightBlack+1], BrightGreen: palette[idxBrightBlack+2],
+		BrightYellow: palette[idxBrightBlack+3], BrightBlue: palette[idxBrightBlack+4], BrightMagenta: palette[idxBrightBlack+5],
+		BrightCyan: palette[idxBrightBlack+6], BrightWhite: palette[idxBrightBlack+7],
 		Accent: accent, Cursor: cursor,
 		SelectionForeground: selFg, SelectionBackground: selBg,
 	}
+	return palette, roles
+}
 
+// ComputeVariables builds the full template variable map from the given
+// palette and extended colors. Returns all base + derived color values.
+func (a *App) ComputeVariables(paletteSlice []string, extendedColors map[string]string, lightMode bool) map[string]string {
+	_, roles := buildColorRoles(paletteSlice, extendedColors)
 	return template.BuildVariables(roles, lightMode)
 }
 
@@ -330,39 +358,7 @@ type ApplyThemeRequest struct {
 
 // ApplyTheme processes all templates and applies the theme to the system.
 func (a *App) ApplyTheme(req ApplyThemeRequest) (*theme.ApplyResult, error) {
-	var palette [16]string
-	for i := 0; i < 16 && i < len(req.Palette); i++ {
-		palette[i] = req.Palette[i]
-	}
-
-	// Use extended colors if provided, otherwise derive from palette
-	accent := palette[4]
-	cursor := palette[7]
-	selFg := palette[0]
-	selBg := palette[7]
-	if v, ok := req.ExtendedColors["accent"]; ok && v != "" {
-		accent = v
-	}
-	if v, ok := req.ExtendedColors["cursor"]; ok && v != "" {
-		cursor = v
-	}
-	if v, ok := req.ExtendedColors["selection_foreground"]; ok && v != "" {
-		selFg = v
-	}
-	if v, ok := req.ExtendedColors["selection_background"]; ok && v != "" {
-		selBg = v
-	}
-
-	roles := template.ColorRoles{
-		Background: palette[0], Foreground: palette[7],
-		Black: palette[0], Red: palette[1], Green: palette[2], Yellow: palette[3],
-		Blue: palette[4], Magenta: palette[5], Cyan: palette[6], White: palette[7],
-		BrightBlack: palette[8], BrightRed: palette[9], BrightGreen: palette[10],
-		BrightYellow: palette[11], BrightBlue: palette[12], BrightMagenta: palette[13],
-		BrightCyan: palette[14], BrightWhite: palette[15],
-		Accent: accent, Cursor: cursor,
-		SelectionForeground: selFg, SelectionBackground: selBg,
-	}
+	palette, roles := buildColorRoles(req.Palette, req.ExtendedColors)
 
 	appOverrides := req.AppOverrides
 	if appOverrides == nil {
@@ -538,17 +534,21 @@ func (a *App) DeleteBlueprint(name string) error {
 }
 
 // adjustmentsFromBlueprint converts a blueprint's stored adjustments map to a
-// typed Adjustments struct, falling back to defaults when the blueprint has none.
+// typed Adjustments struct, falling back to defaults when the blueprint has none
+// or when the round-trip fails (preserving defaults rather than half-applied state).
 func (a *App) adjustmentsFromBlueprint(bp *blueprint.Blueprint) color.Adjustments {
-	adj := color.DefaultAdjustments()
+	defaults := color.DefaultAdjustments()
 	if len(bp.Adjustments) == 0 {
-		return adj
+		return defaults
 	}
 	data, err := json.Marshal(bp.Adjustments)
 	if err != nil {
-		return adj
+		return defaults
 	}
-	_ = json.Unmarshal(data, &adj)
+	adj := defaults
+	if err := json.Unmarshal(data, &adj); err != nil {
+		return defaults
+	}
 	return adj
 }
 
@@ -869,38 +869,7 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	}
 
 	// Build theme state from the frontend's current palette
-	var palette [16]string
-	for i := 0; i < 16 && i < len(req.Palette); i++ {
-		palette[i] = req.Palette[i]
-	}
-
-	accent := palette[4]
-	cursor := palette[7]
-	selFg := palette[0]
-	selBg := palette[7]
-	if v, ok := req.ExtendedColors["accent"]; ok && v != "" {
-		accent = v
-	}
-	if v, ok := req.ExtendedColors["cursor"]; ok && v != "" {
-		cursor = v
-	}
-	if v, ok := req.ExtendedColors["selection_foreground"]; ok && v != "" {
-		selFg = v
-	}
-	if v, ok := req.ExtendedColors["selection_background"]; ok && v != "" {
-		selBg = v
-	}
-
-	roles := template.ColorRoles{
-		Background: palette[0], Foreground: palette[7],
-		Black: palette[0], Red: palette[1], Green: palette[2], Yellow: palette[3],
-		Blue: palette[4], Magenta: palette[5], Cyan: palette[6], White: palette[7],
-		BrightBlack: palette[8], BrightRed: palette[9], BrightGreen: palette[10],
-		BrightYellow: palette[11], BrightBlue: palette[12], BrightMagenta: palette[13],
-		BrightCyan: palette[14], BrightWhite: palette[15],
-		Accent: accent, Cursor: cursor,
-		SelectionForeground: selFg, SelectionBackground: selBg,
-	}
+	palette, roles := buildColorRoles(req.Palette, req.ExtendedColors)
 
 	exportOverrides := req.AppOverrides
 	if exportOverrides == nil {
@@ -1238,7 +1207,10 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 		if err != nil {
 			return ipc.Response{OK: false, Error: err.Error()}
 		}
-		data, _ := json.Marshal(bps)
+		data, err := json.Marshal(bps)
+		if err != nil {
+			return ipc.Response{OK: false, Error: fmt.Sprintf("marshal blueprints: %v", err)}
+		}
 		return ipc.Response{OK: true, Data: data}
 
 	case "set-wallpaper":
@@ -1251,7 +1223,10 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 
 	case "get-variables":
 		vars := a.ComputeVariables(a.state.Palette[:], a.state.ExtendedColors, a.state.LightMode)
-		data, _ := json.Marshal(vars)
+		data, err := json.Marshal(vars)
+		if err != nil {
+			return ipc.Response{OK: false, Error: fmt.Sprintf("marshal variables: %v", err)}
+		}
 		return ipc.Response{OK: true, Data: data}
 
 	default:

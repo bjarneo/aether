@@ -190,7 +190,7 @@ export function copyColor(hex: string): void {
     navigator.clipboard
         .writeText(hex)
         .then(() => showToast(`Copied ${hex}`))
-        .catch(() => {});
+        .catch(() => showToast(`Failed to copy ${hex}`));
 }
 
 // WCAG 2.1 relative luminance — gamma-decode sRGB channels, then weight by

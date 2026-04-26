@@ -103,7 +103,8 @@ func runContrast(args []string) int {
 	hex2 := normalizeHex(args[1])
 	ratio := color.ContrastRatio(hex1, hex2)
 
-	// WCAG grading
+	// WCAG grading. AAA-large shares the AA-normal threshold (4.5) by design;
+	// see WCAG 2.1 SC 1.4.3 / 1.4.6.
 	aaLarge := ratio >= 3.0
 	aa := ratio >= 4.5
 	aaaLarge := ratio >= 4.5

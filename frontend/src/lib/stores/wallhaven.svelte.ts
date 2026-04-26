@@ -2,7 +2,9 @@
 // Loads defaults from ~/.config/aether/wallhaven.json (via Go),
 // persists changes back to both localStorage and the config file.
 
-let configLoaded = false;
+import type {wallhaven} from '../../../wailsjs/go/models';
+
+type WallpaperInfo = wallhaven.WallpaperInfo;
 
 let query = $state('');
 let categories = $state('111');
@@ -14,7 +16,7 @@ let atleast = $state('1920x1080');
 let colorFilter = $state('');
 let apiKey = $state('');
 
-let results = $state<any[]>([]);
+let results = $state<WallpaperInfo[]>([]);
 let totalPages = $state(0);
 let totalResults = $state(0);
 let isSearching = $state(false);
@@ -42,7 +44,6 @@ async function loadConfigFromFile() {
             if (config.sorting) sorting = config.sorting;
             if (config.resolutions) atleast = config.resolutions;
             if (config.order) order = config.order;
-            configLoaded = true;
         }
     } catch {}
 }
@@ -89,7 +90,7 @@ export function getColorFilter(): string {
 export function getApiKey(): string {
     return apiKey;
 }
-export function getResults(): any[] {
+export function getResults(): WallpaperInfo[] {
     return results;
 }
 export function getTotalResults(): number {
@@ -190,7 +191,7 @@ async function doSearch(append: boolean): Promise<void> {
         const data = result.data || [];
         if (append) {
             const seen = new Set(results.map(r => r.id));
-            results = [...results, ...data.filter((r: any) => !seen.has(r.id))];
+            results = [...results, ...data.filter(r => !seen.has(r.id))];
         } else {
             results = data;
         }

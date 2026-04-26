@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // allowedMediaExts maps extensions to MIME types for files the handler may serve.
@@ -21,12 +24,16 @@ var allowedMediaExts = map[string]string{
 	".bmp":  "image/bmp",
 }
 
+// shutdownTimeout caps how long Stop will wait for in-flight requests.
+const shutdownTimeout = time.Second
+
 // MediaServer serves local media files over a real HTTP connection on localhost.
 // webkit2gtk uses GStreamer for <video> playback, and GStreamer only understands
 // http/https/file schemes — not the custom wails:// scheme.  By running a small
 // localhost server we get proper Range-request streaming for free.
 type MediaServer struct {
-	port int
+	port   int
+	server *http.Server
 }
 
 // Start listens on a random available port and serves in the background.
@@ -40,9 +47,24 @@ func (s *MediaServer) Start() error {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/media", s.handleMedia)
+	s.server = &http.Server{Handler: mux}
 
-	go http.Serve(ln, mux)
+	go func() {
+		if err := s.server.Serve(ln); err != nil && err != http.ErrServerClosed {
+			log.Printf("media server: %v", err)
+		}
+	}()
 	return nil
+}
+
+// Stop gracefully shuts the media server down. Safe to call multiple times.
+func (s *MediaServer) Stop() {
+	if s.server == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	_ = s.server.Shutdown(ctx)
 }
 
 // URL returns an http://localhost URL that the frontend can use in <video src>.

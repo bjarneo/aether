@@ -11,9 +11,9 @@
         setAdditionalImages,
         setLastExtractedPath,
     } from '$lib/stores/theme.svelte';
-    import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
+    import {DEFAULT_ADJUSTMENTS, type Blueprint} from '$lib/types/theme';
 
-    let blueprints = $state<any[]>([]);
+    let blueprints = $state<Blueprint[]>([]);
     let isLoading = $state(true);
     let showSaveDialog = $state(false);
 
@@ -24,17 +24,13 @@
     async function loadBlueprints() {
         isLoading = true;
         try {
-            const fn = (window as any)?.go?.main?.App?.ListBlueprints;
-            if (!fn) {
-                blueprints = [];
-                isLoading = false;
-                return;
-            }
-            const result = await fn();
-            blueprints = Array.isArray(result) ? result : [];
-            blueprints.sort(
-                (a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0)
+            const {ListBlueprints} = await import(
+                '../../../../wailsjs/go/main/App'
             );
+            const result = await ListBlueprints();
+            blueprints = (
+                Array.isArray(result) ? (result as unknown as Blueprint[]) : []
+            ).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         } catch {
             blueprints = [];
         } finally {
@@ -55,7 +51,7 @@
         }
     }
 
-    async function handleLoad(bp: any) {
+    async function handleLoad(bp: Blueprint) {
         try {
             if (bp.palette?.colors?.length >= 16) {
                 setPalette(bp.palette.colors);
@@ -68,7 +64,7 @@
                 );
                 await LoadBlueprint(bp.name);
             }
-            setAdjustments(bp.adjustments ?? {...DEFAULT_ADJUSTMENTS});
+            setAdjustments({...DEFAULT_ADJUSTMENTS, ...(bp.adjustments ?? {})});
             setAppOverrides(bp.appOverrides ?? {});
             setAdditionalImages(bp.palette?.additionalImages ?? []);
             // Anchor the extract baseline to the blueprint's wallpaper so a

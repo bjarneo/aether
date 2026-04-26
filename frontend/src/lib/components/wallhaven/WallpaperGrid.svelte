@@ -2,8 +2,11 @@
     import WallpaperCard from './WallpaperCard.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
     import {getCardSize, type CardSize} from '$lib/stores/wallhaven.svelte';
+    import type {wallhaven} from '../../../../wailsjs/go/models';
 
-    let {wallpapers}: {wallpapers: any[]} = $props();
+    type Wallpaper = wallhaven.WallpaperInfo;
+
+    let {wallpapers}: {wallpapers: Wallpaper[]} = $props();
     let previewIndex = $state(-1);
 
     const MIN_WIDTH_PX: Record<CardSize, number> = {
@@ -12,7 +15,7 @@
         large: 500,
     };
 
-    function getPreviewSrc(wp: any): string {
+    function getPreviewSrc(wp: Wallpaper): string {
         return wp.path || wp.thumbs?.original || wp.thumbs?.large;
     }
 </script>

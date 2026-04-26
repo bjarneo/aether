@@ -6,8 +6,11 @@
         getCachedThumbnail,
         loadThumbnail,
     } from '$lib/stores/imagecache.svelte';
+    import type {omarchy} from '../../../../wailsjs/go/models';
 
-    let themes = $state<any[]>([]);
+    type Theme = omarchy.Theme;
+
+    let themes = $state<Theme[]>([]);
     let isLoading = $state(true);
 
     onMount(() => {
@@ -17,13 +20,10 @@
     async function loadThemes() {
         isLoading = true;
         try {
-            const fn = (window as any)?.go?.main?.App?.LoadOmarchyThemes;
-            if (!fn) {
-                themes = [];
-                isLoading = false;
-                return;
-            }
-            const result = await fn();
+            const {LoadOmarchyThemes} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
+            const result = await LoadOmarchyThemes();
             themes = Array.isArray(result) ? result : [];
             // Load wallpaper previews into global cache
             for (const theme of themes) {
@@ -38,7 +38,7 @@
         }
     }
 
-    function loadThemeIntoState(theme: any): boolean {
+    function loadThemeIntoState(theme: Theme): boolean {
         if (theme.colors?.length < 16) return false;
         setPalette(theme.colors);
         if (theme.wallpapers?.length > 0) {
@@ -47,14 +47,14 @@
         return true;
     }
 
-    function handleEdit(theme: any) {
+    function handleEdit(theme: Theme) {
         if (loadThemeIntoState(theme)) {
             setActiveTab('editor');
             showToast(`Loaded theme: ${theme.name}`);
         }
     }
 
-    async function handleApply(theme: any) {
+    async function handleApply(theme: Theme) {
         loadThemeIntoState(theme);
         try {
             const {ApplyOmarchyThemeByName} = await import(

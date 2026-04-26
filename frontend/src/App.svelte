@@ -31,7 +31,19 @@
         toggleKeymap,
         getLiveApply,
         getTargetsVisible,
+        type Tab,
     } from '$lib/stores/ui.svelte';
+
+    const VALID_TABS: readonly Tab[] = [
+        'editor',
+        'wallhaven',
+        'local',
+        'favorites',
+        'blueprints',
+        'system',
+    ] as const;
+    const isValidTab = (t: string): t is Tab =>
+        (VALID_TABS as readonly string[]).includes(t);
     import {
         setWallpaperPath,
         setPalette,
@@ -140,7 +152,7 @@
         try {
             const {GetFocusTab} = await import('../wailsjs/go/main/App');
             const tab = await GetFocusTab();
-            if (tab) setActiveTab(tab as any);
+            if (tab && isValidTab(tab)) setActiveTab(tab);
         } catch {}
 
         // Overwrite module-load DEFAULT_PALETTE with backend defaults

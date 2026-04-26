@@ -1,8 +1,7 @@
 <script lang="ts">
     import {onMount} from 'svelte';
     import {showToast} from '$lib/stores/ui.svelte';
-
-    type Blueprint = {name: string; palette: {colors: string[]}};
+    import type {Blueprint} from '$lib/types/theme';
 
     let blueprints = $state<Blueprint[]>([]);
     let search = $state('');
@@ -19,7 +18,8 @@
             const {ListBlueprints} = await import(
                 '../../../../wailsjs/go/main/App'
             );
-            blueprints = ((await ListBlueprints()) || []) as Blueprint[];
+            const result = await ListBlueprints();
+            blueprints = (result || []) as unknown as Blueprint[];
         } catch {
             blueprints = [];
         }

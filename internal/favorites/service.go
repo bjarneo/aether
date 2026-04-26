@@ -2,6 +2,7 @@ package favorites
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -162,7 +163,10 @@ func (s *Service) load() {
 }
 
 func (s *Service) save() {
-	_ = platform.EnsureDir(filepath.Dir(s.configPath))
+	dir := filepath.Dir(s.configPath)
+	if err := platform.EnsureDir(dir); err != nil {
+		log.Printf("[favorites] ensure dir %s: %v", dir, err)
+	}
 
 	// Parse raw messages back to objects for clean output
 	var objects []interface{}

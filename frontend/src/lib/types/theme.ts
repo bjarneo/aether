@@ -38,6 +38,30 @@ export interface Adjustments {
     whitePoint: number;
 }
 
+// Blueprint shape returned by ListBlueprints (Go side returns untyped maps,
+// so this mirrors internal/blueprint.Blueprint by hand).
+export interface BlueprintPaletteData {
+    colors: string[];
+    wallpaper?: string;
+    wallpaperUrl?: string;
+    lightMode?: boolean;
+    lockedColors?: number[];
+    extendedColors?: Record<string, string>;
+    additionalImages?: string[];
+    wallpaperSource?: string;
+}
+
+export interface Blueprint {
+    name: string;
+    palette: BlueprintPaletteData;
+    adjustments?: Record<string, number>;
+    appOverrides?: Record<string, Record<string, string>>;
+    settings?: Record<string, unknown>;
+    timestamp: number;
+    path?: string;
+    filename?: string;
+}
+
 export interface Settings {
     includeGtk: boolean;
     includeZed: boolean;

@@ -41,7 +41,7 @@
     >
         <!-- Close button -->
         <button
-            class="text-fg-dimmed hover:text-fg-primary absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center transition-colors"
+            class="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center text-white/70 transition-colors hover:text-white"
             onclick={onclose}
             aria-label="Close preview"
         >
@@ -62,7 +62,7 @@
         <!-- Previous arrow -->
         {#if hasPrev}
             <button
-                class="text-fg-dimmed hover:text-fg-primary absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-black/40 transition-colors hover:bg-black/60"
+                class="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-black/40 text-white/70 transition-colors hover:bg-black/60 hover:text-white"
                 onclick={onprev}
                 aria-label="Previous image"
             >
@@ -83,7 +83,7 @@
         <!-- Next arrow -->
         {#if hasNext}
             <button
-                class="text-fg-dimmed hover:text-fg-primary absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-black/40 transition-colors hover:bg-black/60"
+                class="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-black/40 text-white/70 transition-colors hover:bg-black/60 hover:text-white"
                 onclick={onnext}
                 aria-label="Next image"
             >

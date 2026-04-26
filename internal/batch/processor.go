@@ -44,7 +44,8 @@ func (p *Processor) Start(appCtx context.Context, paths []string, lightMode bool
 		paths = paths[:MaxBatchSize]
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	// Derive from appCtx so app shutdown cancels in-flight batches.
+	ctx, cancel := context.WithCancel(appCtx)
 	p.cancel = cancel
 	p.running = true
 	p.mu.Unlock()

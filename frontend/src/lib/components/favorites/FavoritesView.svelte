@@ -17,8 +17,11 @@
     import {getLabels, getAssignments} from '$lib/stores/tags.svelte';
     import TagPicker from '$lib/components/shared/TagPicker.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
+    import type {favorites as favoritesNs} from '../../../../wailsjs/go/models';
 
-    let favorites = $state<any[]>([]);
+    type Favorite = favoritesNs.Favorite;
+
+    let favorites = $state<Favorite[]>([]);
     let isLoading = $state(true);
     let filterTag = $state<string>('');
     let previewIndex = $state(-1);
@@ -40,13 +43,10 @@
     async function loadFavorites() {
         isLoading = true;
         try {
-            const fn = (window as any)?.go?.main?.App?.GetFavorites;
-            if (!fn) {
-                favorites = [];
-                isLoading = false;
-                return;
-            }
-            const result = await fn();
+            const {GetFavorites} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
+            const result = await GetFavorites();
             favorites = Array.isArray(result) ? result : [];
             loadThumbnails();
         } catch {
@@ -71,7 +71,7 @@
         }
     }
 
-    async function handleSelect(fav: any) {
+    async function handleSelect(fav: Favorite) {
         let localPath = fav.path;
 
         if (
@@ -96,17 +96,17 @@
         showToast('Wallpaper selected — click Extract to generate palette');
     }
 
-    async function handleRemove(fav: any) {
+    async function handleRemove(fav: Favorite) {
         try {
             const {ToggleFavorite} = await import(
                 '../../../../wailsjs/go/main/App'
             );
-            await ToggleFavorite(fav.path, fav.type, {});
+            await ToggleFavorite(fav.path, fav.type ?? '', {});
             favorites = favorites.filter(f => f.path !== fav.path);
         } catch {}
     }
 
-    async function handleAddExtra(fav: any) {
+    async function handleAddExtra(fav: Favorite) {
         let localPath = fav.path;
 
         if (
@@ -134,7 +134,7 @@
         showToast('Added to additional images');
     }
 
-    async function resolvePreviewSrc(fav: any): Promise<string> {
+    async function resolvePreviewSrc(fav: Favorite): Promise<string> {
         if (fav.path?.startsWith('http')) return fav.path;
         const cached = getCachedFullImage(fav.path);
         return cached || (await loadFullImage(fav.path));

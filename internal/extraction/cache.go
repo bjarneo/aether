@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -138,5 +139,7 @@ func SavePaletteToCache(cacheKey string, palette [16]string) {
 		return
 	}
 
-	_ = os.WriteFile(cachePath, content, 0644)
+	if err := os.WriteFile(cachePath, content, 0644); err != nil {
+		log.Printf("[cache] write failed for %s: %v", cachePath, err)
+	}
 }

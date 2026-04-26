@@ -3,22 +3,24 @@
         getCachedThumbnail,
         loadThumbnail,
     } from '$lib/stores/imagecache.svelte';
+    import type {Blueprint} from '$lib/types/theme';
 
     let {
         blueprint,
         onload,
         ondelete,
     }: {
-        blueprint: any;
+        blueprint: Blueprint;
         onload: () => void;
         ondelete: () => void;
     } = $props();
 
     let confirmingDelete = $state(false);
 
+    let wallpaperPath = $derived(blueprint.palette?.wallpaper ?? '');
+
     $effect(() => {
-        const wp = blueprint.palette?.wallpaper;
-        if (wp) loadThumbnail(wp);
+        if (wallpaperPath) loadThumbnail(wallpaperPath);
     });
 
     function formatDate(ts: number): string {
@@ -36,9 +38,9 @@
     <div
         class="bg-bg-primary flex aspect-video items-center justify-center overflow-hidden"
     >
-        {#if getCachedThumbnail(blueprint.palette?.wallpaper)}
+        {#if wallpaperPath && getCachedThumbnail(wallpaperPath)}
             <img
-                src={getCachedThumbnail(blueprint.palette?.wallpaper)}
+                src={getCachedThumbnail(wallpaperPath)}
                 alt={blueprint.name}
                 class="h-full w-full object-cover"
             />

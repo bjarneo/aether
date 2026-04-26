@@ -18,18 +18,19 @@
     import LazyImage from '$lib/components/shared/LazyImage.svelte';
     import TagPicker from '$lib/components/shared/TagPicker.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
+    import type {wallpaper} from '../../../../wailsjs/go/models';
 
-    let wallpapers = $state<any[]>([]);
+    type Wallpaper = wallpaper.WallpaperInfo;
+
+    let wallpapers = $state<Wallpaper[]>([]);
     let isLoading = $state(true);
     let sortBy = $state<'name' | 'date' | 'size'>('date');
     let filterTag = $state<string>('');
     let previewIndex = $state(-1);
     let previewSrc = $state<string>('');
 
-    let scanned = false;
-
     onMount(() => {
-        if (!scanned) loadWallpapers();
+        loadWallpapers();
     });
 
     async function loadWallpapers() {
@@ -39,7 +40,6 @@
                 '../../../../wailsjs/go/main/App'
             );
             wallpapers = await ScanLocalWallpapers();
-            scanned = true;
         } catch {
             wallpapers = [];
         } finally {
@@ -68,7 +68,7 @@
         })()
     );
 
-    function handleSelect(wp: any) {
+    function handleSelect(wp: Wallpaper) {
         setWallpaperPath(wp.path);
         setActiveTab('editor');
         showToast('Wallpaper selected — click Extract to generate palette');

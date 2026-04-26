@@ -3,7 +3,6 @@ package cli
 import (
 	"embed"
 	"fmt"
-	"log"
 	"os"
 	"sort"
 
@@ -116,7 +115,7 @@ func resolveWallpaperCLI(palette blueprint.PaletteData) string {
 		client := wallhaven.NewClient()
 		localPath, err := client.DownloadFromURL(palette.WallpaperURL)
 		if err != nil {
-			log.Printf("Warning: could not download wallpaper from %s: %v", palette.WallpaperURL, err)
+			fmt.Fprintf(os.Stderr, "Warning: could not download wallpaper from %s: %v\n", palette.WallpaperURL, err)
 			return ""
 		}
 		fmt.Printf("Downloaded wallpaper: %s\n", localPath)

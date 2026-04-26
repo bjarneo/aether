@@ -14,6 +14,29 @@ import (
 	"aether/internal/theme"
 )
 
+// resolvePalette tries source as inline palette JSON first, then as a wallpaper
+// file path (with ~ expansion). Returns the populated palette or an error
+// describing what went wrong — caller decides how to surface it.
+func resolvePalette(source string, lightMode bool) ([16]string, error) {
+	var palette [16]string
+	colors, parseErr := parsePaletteArg(source)
+	if parseErr == nil && len(colors) >= 16 {
+		for i := 0; i < 16; i++ {
+			palette[i] = colors[i]
+		}
+		return palette, nil
+	}
+	path := expandHome(source)
+	if _, statErr := os.Stat(path); statErr != nil {
+		return palette, fmt.Errorf("source not found: %s", source)
+	}
+	extracted, err := extraction.ExtractColors(path, lightMode, "normal")
+	if err != nil {
+		return palette, fmt.Errorf("failed to extract colors: %w", err)
+	}
+	return extracted, nil
+}
+
 func runListApps(args []string, templatesFS embed.FS) int {
 	jsonOut, _ := stripJSON(args)
 
@@ -117,35 +140,13 @@ func runShowVariables(args []string, templatesFS embed.FS) int {
 	}
 
 	source := args[0]
-	var palette [16]string
-
-	// Try as palette JSON first, then blueprint, then wallpaper file
-	colors, err := parsePaletteArg(source)
-	if err == nil && len(colors) >= 16 {
-		for i := 0; i < 16; i++ {
-			palette[i] = colors[i]
+	palette, err := resolvePalette(source, lightMode)
+	if err != nil {
+		if jsonOut {
+			return printErrorJSON(err.Error())
 		}
-	} else {
-		// Try as wallpaper file
-		path := expandHome(source)
-		if _, statErr := os.Stat(path); statErr == nil {
-			palette, err = extraction.ExtractColors(path, lightMode, "normal")
-			if err != nil {
-				msg := fmt.Sprintf("Failed to extract colors: %v", err)
-				if jsonOut {
-					return printErrorJSON(msg)
-				}
-				fmt.Fprintln(os.Stderr, "Error:", msg)
-				return 1
-			}
-		} else if err != nil {
-			msg := fmt.Sprintf("Source not found: %s", source)
-			if jsonOut {
-				return printErrorJSON(msg)
-			}
-			fmt.Fprintln(os.Stderr, "Error:", msg)
-			return 1
-		}
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		return 1
 	}
 
 	roles := MapColorsToRoles(palette)
@@ -251,33 +252,13 @@ func runPreviewTemplate(args []string, templatesFS embed.FS) int {
 		return 1
 	}
 
-	// Get palette from source
-	var palette [16]string
-	colors, parseErr := parsePaletteArg(source)
-	if parseErr == nil && len(colors) >= 16 {
-		for i := 0; i < 16; i++ {
-			palette[i] = colors[i]
+	palette, palErr := resolvePalette(source, lightMode)
+	if palErr != nil {
+		if jsonOut {
+			return printErrorJSON(palErr.Error())
 		}
-	} else {
-		path := expandHome(source)
-		if _, statErr := os.Stat(path); statErr == nil {
-			palette, err = extraction.ExtractColors(path, lightMode, "normal")
-			if err != nil {
-				msg := fmt.Sprintf("Failed to extract colors: %v", err)
-				if jsonOut {
-					return printErrorJSON(msg)
-				}
-				fmt.Fprintln(os.Stderr, "Error:", msg)
-				return 1
-			}
-		} else {
-			msg := fmt.Sprintf("Source not found: %s", source)
-			if jsonOut {
-				return printErrorJSON(msg)
-			}
-			fmt.Fprintln(os.Stderr, "Error:", msg)
-			return 1
-		}
+		fmt.Fprintln(os.Stderr, "Error:", palErr)
+		return 1
 	}
 
 	roles := MapColorsToRoles(palette)

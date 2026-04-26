@@ -3,6 +3,7 @@ package blueprint
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +20,9 @@ type Service struct {
 // NewService creates a new blueprint service.
 func NewService() *Service {
 	dir := platform.BlueprintDir()
-	_ = platform.EnsureDir(dir)
+	if err := platform.EnsureDir(dir); err != nil {
+		log.Printf("[blueprint] ensure dir %s: %v", dir, err)
+	}
 	return &Service{dir: dir}
 }
 
