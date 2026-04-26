@@ -138,15 +138,25 @@ func (a *App) GetMediaURL(path string) string {
 // Color Extraction
 // ---------------------------------------------------------------------------
 
+// resolveImagePath returns a sample-able image path. For video files it
+// extracts a frame via ffmpeg; for images it returns the input unchanged.
+func resolveImagePath(path string) (string, error) {
+	if !theme.IsVideoFile(path) {
+		return path, nil
+	}
+	framePath, err := wallpaper.ExtractVideoFrame(path)
+	if err != nil {
+		return "", fmt.Errorf("video frame extraction failed: %w", err)
+	}
+	return framePath, nil
+}
+
 // ExtractColors extracts a 16-color ANSI palette from an image or video.
 // For video files, a frame is extracted first via ffmpeg.
 func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]string, error) {
-	if theme.IsVideoFile(path) {
-		framePath, err := wallpaper.ExtractVideoFrame(path)
-		if err != nil {
-			return [16]string{}, fmt.Errorf("video frame extraction failed: %w", err)
-		}
-		path = framePath
+	path, err := resolveImagePath(path)
+	if err != nil {
+		return [16]string{}, err
 	}
 	palette, err := extraction.ExtractColors(path, lightMode, mode)
 	if err != nil {
@@ -157,6 +167,18 @@ func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]strin
 	a.state.LightMode = lightMode
 	a.state.ExtractionMode = mode
 	return palette, nil
+}
+
+// PreviewExtractColors returns a palette for the given mode without mutating
+// app state. Used by the UI to render thumbnail strips for each extraction
+// mode. extraction.ExtractColors is content-hashed and cached, so repeated
+// calls for the same (path, lightMode, mode) tuple are cheap.
+func (a *App) PreviewExtractColors(path string, lightMode bool, mode string) ([16]string, error) {
+	path, err := resolveImagePath(path)
+	if err != nil {
+		return [16]string{}, err
+	}
+	return extraction.ExtractColors(path, lightMode, mode)
 }
 
 // ExtractFromImagesResult is the Wails-friendly return value for ExtractColorsFromImages.
@@ -178,16 +200,12 @@ func (a *App) ExtractColorsFromImages(paths []string, lightMode bool, mode strin
 			skipped++
 			continue
 		}
-		if theme.IsVideoFile(p) {
-			framePath, err := wallpaper.ExtractVideoFrame(p)
-			if err != nil {
-				skipped++
-				continue
-			}
-			resolved = append(resolved, framePath)
+		resolvedPath, err := resolveImagePath(p)
+		if err != nil {
+			skipped++
 			continue
 		}
-		resolved = append(resolved, p)
+		resolved = append(resolved, resolvedPath)
 	}
 
 	palette, extractionSkipped, err := extraction.ExtractColorsFromImages(resolved, lightMode, mode)

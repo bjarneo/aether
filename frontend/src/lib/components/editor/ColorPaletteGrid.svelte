@@ -11,7 +11,7 @@
         setPalette,
     } from '$lib/stores/theme.svelte';
     import {openColorPicker, showToast} from '$lib/stores/ui.svelte';
-    import {ANSI_COLOR_NAMES} from '$lib/constants/colors';
+    import {ANSI_COLOR_NAMES, ANSI_SLOT_ROLES} from '$lib/constants/colors';
     import {hslToHex} from '$lib/utils/color';
 
     let palette = $derived(getPalette());
@@ -43,7 +43,7 @@
             setPalette(result);
             showToast(`Random palette from ${seed}`);
         } catch {
-            showToast('Random generation failed');
+            showToast('Couldn’t generate a random palette');
         }
     }
 </script>
@@ -88,6 +88,8 @@
                     color={palette[i]}
                     index={i}
                     label={ANSI_COLOR_NAMES[i]}
+                    role={ANSI_SLOT_ROLES[i]}
+                    contrastAgainst={palette[0]}
                     locked={locked[i] || false}
                     selected={selected[i] || false}
                     onclick={() => openColorPicker(i)}
@@ -96,6 +98,8 @@
                     color={palette[i + 8]}
                     index={i + 8}
                     label={ANSI_COLOR_NAMES[i + 8]}
+                    role={ANSI_SLOT_ROLES[i + 8]}
+                    contrastAgainst={palette[0]}
                     locked={locked[i + 8] || false}
                     selected={selected[i + 8] || false}
                     onclick={() => openColorPicker(i + 8)}

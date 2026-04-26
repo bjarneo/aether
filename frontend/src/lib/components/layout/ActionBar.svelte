@@ -14,6 +14,8 @@
         getAdjustments,
         setAdjustments,
         setAdjustedExtendedColors,
+        markApplied,
+        isDirty,
         reset as resetTheme,
     } from '$lib/stores/theme.svelte';
     import {
@@ -25,7 +27,13 @@
         pushUndo,
     } from '$lib/stores/history.svelte';
     import {getSettings} from '$lib/stores/settings.svelte';
-    import {getActiveTab, setActiveTab, showToast} from '$lib/stores/ui.svelte';
+    import {
+        getActiveTab,
+        setActiveTab,
+        showToast,
+        getLiveApply,
+        setLiveApply,
+    } from '$lib/stores/ui.svelte';
     import {getApiKey, getTotalResults} from '$lib/stores/wallhaven.svelte';
     import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
     import type {main} from '../../../../wailsjs/go/models';
@@ -99,6 +107,8 @@
 
     let undoEnabled = $derived(getCanUndo());
     let redoEnabled = $derived(getCanRedo());
+    let liveApply = $derived(getLiveApply());
+    let dirty = $derived(isDirty());
 
     // --- Editor actions ---
 
@@ -124,13 +134,15 @@
                 } else {
                     document.documentElement.classList.remove('light-mode');
                 }
+                markApplied();
                 showToast('Theme applied');
             } else {
+                markApplied();
                 showToast('Theme files generated');
             }
         } catch (e: any) {
             console.error('ApplyTheme failed:', e);
-            showToast('Failed to apply theme');
+            showToast('Couldn’t apply theme — see logs for details');
         } finally {
             setIsApplying(false);
         }
@@ -162,9 +174,9 @@
                 '../../../../wailsjs/go/main/App'
             );
             await ClearTheme();
-            showToast('Theme cleared');
+            showToast('Reverted to system theme');
         } catch {
-            showToast('Failed to clear theme');
+            showToast('Couldn’t revert — see logs for details');
         }
     }
 
@@ -175,10 +187,10 @@
             );
             await ResetState();
             resetTheme();
-            showToast('State reset');
+            showToast('Editor reset');
         } catch {
             resetTheme();
-            showToast('State reset');
+            showToast('Editor reset');
         }
     }
 
@@ -329,21 +341,59 @@
         <div class="flex items-center gap-1">
             <button
                 class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={handleClear}>Clear</button
+                onclick={handleClear}
+                title="Revert system to its default theme">Revert</button
             >
             <button
                 class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={handleReset}>Reset</button
+                onclick={handleReset}
+                title="Reset the editor's in-memory state">Reset</button
             >
 
             <div class="bg-border mx-1 h-4 w-px"></div>
 
             <button
-                class="bg-accent text-bg-primary hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
+                type="button"
+                onclick={() => setLiveApply(!liveApply)}
+                class="flex items-center gap-1.5 border px-2 py-0.5 text-[11px] transition-colors duration-100 {liveApply
+                    ? 'bg-accent-muted border-accent text-accent'
+                    : 'border-border text-fg-dimmed hover:text-fg-secondary hover:border-border-focus'}"
+                role="switch"
+                aria-checked={liveApply}
+                title={liveApply
+                    ? 'Live preview on — every edit auto-applies (Ctrl+Z to revert)'
+                    : 'Auto-apply theme on every edit (debounced)'}
+            >
+                <span class="relative inline-flex h-1.5 w-1.5">
+                    {#if liveApply}
+                        <span
+                            class="bg-accent absolute inline-flex h-full w-full animate-ping opacity-60"
+                        ></span>
+                    {/if}
+                    <span
+                        class="relative inline-flex h-1.5 w-1.5 {liveApply
+                            ? 'bg-accent'
+                            : 'bg-fg-dimmed/40'}"
+                    ></span>
+                </span>
+                Live
+            </button>
+
+            <button
+                class="bg-accent text-bg-primary hover:bg-accent-hover relative px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
                 onclick={handleApply}
                 disabled={getIsApplying()}
+                title={dirty
+                    ? 'Unsaved changes — click to apply'
+                    : 'Apply theme to system'}
             >
                 {getIsApplying() ? 'Applying...' : 'Apply Theme'}
+                {#if dirty && !getIsApplying()}
+                    <span
+                        class="bg-warning absolute -right-1 -top-1 h-2 w-2 ring-2 ring-[var(--color-bg-secondary)]"
+                        aria-label="Unsaved changes"
+                    ></span>
+                {/if}
             </button>
         </div>
     {:else if activeTab === 'wallhaven'}

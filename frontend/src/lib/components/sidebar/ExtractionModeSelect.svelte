@@ -37,6 +37,52 @@
         return grouped[groupId]?.find(m => m.value === getExtractionMode());
     }
 
+    // Per-mode palette previews keyed by `${path}:${lightMode}:${mode}`.
+    // Populated lazily by a serial prefetch keyed to the current wallpaper.
+    let stripCache = $state<Record<string, string[]>>({});
+    let prefetchToken = 0;
+    let lastPrefetchKey = '';
+
+    function stripKey(path: string, lm: boolean, mode: string): string {
+        return `${path}:${lm ? 'L' : 'D'}:${mode}`;
+    }
+
+    async function prefetchStrips(path: string, lm: boolean) {
+        if (!path) return;
+        const myToken = ++prefetchToken;
+        const {PreviewExtractColors} = await import(
+            '../../../../wailsjs/go/main/App'
+        );
+        for (const mode of EXTRACTION_MODES) {
+            if (myToken !== prefetchToken) return;
+            const key = stripKey(path, lm, mode.value);
+            if (stripCache[key]) continue;
+            try {
+                const colors = await PreviewExtractColors(path, lm, mode.value);
+                if (myToken !== prefetchToken) return;
+                if (Array.isArray(colors) && colors.length >= 8) {
+                    stripCache = {...stripCache, [key]: colors};
+                }
+            } catch {
+                // ignore — leave the strip empty for this mode
+            }
+        }
+    }
+
+    $effect(() => {
+        const path = getWallpaperPath();
+        const lm = getLightMode();
+        const key = `${path}:${lm}`;
+        if (key === lastPrefetchKey) return;
+        lastPrefetchKey = key;
+        prefetchStrips(path, lm);
+    });
+
+    function getStrip(mode: string): string[] | null {
+        const key = stripKey(getWallpaperPath(), getLightMode(), mode);
+        return stripCache[key] || null;
+    }
+
     async function handleModeChange(mode: string) {
         if (mode === getExtractionMode()) return;
 
@@ -61,7 +107,7 @@
                 setPalette(colors);
                 showToast(`Re-extracted with ${mode} mode`);
             } catch {
-                showToast('Re-extraction failed');
+                showToast('Couldn’t re-extract — try a different mode');
             } finally {
                 setIsExtracting(false);
             }
@@ -73,23 +119,39 @@
     <ul class="flex flex-col">
         {#each items as mode}
             {@const isActive = getExtractionMode() === mode.value}
+            {@const strip = getStrip(mode.value)}
             <li>
                 <button
                     type="button"
                     onclick={() => handleModeChange(mode.value)}
                     title={mode.description}
                     aria-pressed={isActive}
-                    class="hover:bg-bg-hover flex w-full items-center justify-between px-2 py-1.5 text-left text-[11px] transition-colors duration-100 {isActive
+                    class="hover:bg-bg-hover flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-[11px] transition-colors duration-100 {isActive
                         ? 'bg-bg-elevated text-accent border-border-focus border-l-2'
                         : 'text-fg-primary border-l-2 border-transparent'}"
                 >
-                    <span class="truncate">{mode.label}</span>
-                    {#if isActive}
-                        <span
-                            class="text-accent ml-2 text-[10px]"
-                            aria-hidden="true">●</span
-                        >
-                    {/if}
+                    <span class="min-w-0 truncate">{mode.label}</span>
+                    <span class="flex shrink-0 items-center gap-1">
+                        {#if strip}
+                            <span
+                                class="border-border flex h-2.5 w-12 overflow-hidden border"
+                                aria-hidden="true"
+                            >
+                                {#each [0, 1, 2, 3, 4, 5, 6, 7] as i}
+                                    <span
+                                        class="flex-1"
+                                        style:background-color={strip[i]}
+                                    ></span>
+                                {/each}
+                            </span>
+                        {/if}
+                        {#if isActive}
+                            <span
+                                class="text-accent text-[10px]"
+                                aria-hidden="true">●</span
+                            >
+                        {/if}
+                    </span>
                 </button>
             </li>
         {/each}

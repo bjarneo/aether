@@ -19,7 +19,7 @@
                 );
             }
         } catch (e: any) {
-            showToast('Failed to open file');
+            showToast('Couldn’t open that file. Is it an image or video?');
         } finally {
             isBrowsing = false;
         }

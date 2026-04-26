@@ -14,6 +14,16 @@ let activeTab = $state<Tab>('editor');
 let sidebarVisible = $state<boolean>(true);
 let toastMessage = $state<string>('');
 let toastVisible = $state<boolean>(false);
+let toastAction = $state<{label: string; run: () => void} | null>(null);
+let liveApply = $state<boolean>(readLiveApply());
+
+function readLiveApply(): boolean {
+    try {
+        return localStorage.getItem('aether-live-apply') === '1';
+    } catch {
+        return false;
+    }
+}
 let colorPickerOpen = $state<boolean>(false);
 let colorPickerIndex = $state<number>(-1);
 let colorPickerExtKey = $state<string>(''); // non-empty = editing an extended color
@@ -72,12 +82,38 @@ export function toggleSidebar(): void {
     sidebarVisible = !sidebarVisible;
 }
 
-export function showToast(msg: string, duration = 3000): void {
+export function showToast(
+    msg: string,
+    durationOrOpts:
+        | number
+        | {duration?: number; action?: {label: string; run: () => void}} = 3000
+): void {
+    const opts =
+        typeof durationOrOpts === 'number'
+            ? {duration: durationOrOpts}
+            : durationOrOpts;
+    const duration = opts.duration ?? 3000;
     toastMessage = msg;
+    toastAction = opts.action ?? null;
     toastVisible = true;
     setTimeout(() => {
         toastVisible = false;
+        toastAction = null;
     }, duration);
+}
+
+export function getToastAction(): {label: string; run: () => void} | null {
+    return toastAction;
+}
+
+export function getLiveApply(): boolean {
+    return liveApply;
+}
+export function setLiveApply(v: boolean): void {
+    liveApply = v;
+    try {
+        localStorage.setItem('aether-live-apply', v ? '1' : '0');
+    } catch {}
 }
 
 export function openColorPicker(index: number): void {

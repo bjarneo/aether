@@ -21,6 +21,11 @@ let isApplying = $state<boolean>(false);
 let additionalImages = $state<string[]>([]);
 let appOverrides = $state<Record<string, Record<string, string>>>({});
 let paletteCurvePoints = $state<[number, number][]>([]);
+// Source path of the most recently extracted palette. Used to decide
+// whether per-app template overrides should be cleared on the next
+// extraction (a fresh image invalidates color choices made for the
+// previous palette).
+let lastExtractedPath = $state<string>('');
 
 // Extended colors — independent from palette, initialized from palette on extract/load
 let extendedColors = $state<Record<string, string>>({
@@ -151,6 +156,33 @@ export function getThemeSnapshot(): {
         additionalImages,
     };
 }
+
+// Snapshot signature is used as a cheap dirty-state and live-apply trigger.
+// Field order here is fixed so JSON.stringify is stable across calls.
+export function getThemeSignature(): string {
+    return JSON.stringify([
+        palette,
+        wallpaperPath,
+        lightMode,
+        extendedColors,
+        appOverrides,
+        additionalImages,
+    ]);
+}
+
+let lastAppliedSignature = $state<string>('');
+export function getLastAppliedSignature(): string {
+    return lastAppliedSignature;
+}
+export function markApplied(): void {
+    lastAppliedSignature = getThemeSignature();
+}
+export function isDirty(): boolean {
+    // Empty signature means nothing has been applied yet in this session,
+    // so suppress the dirty indicator until the first apply.
+    if (!lastAppliedSignature) return false;
+    return getThemeSignature() !== lastAppliedSignature;
+}
 export function getPaletteCurvePoints(): [number, number][] {
     return paletteCurvePoints;
 }
@@ -213,6 +245,26 @@ export function setPalette(colors: string[], skipHistory = false): void {
 // setAdjustedPalette sets only the display palette (from adjustment results).
 export function setAdjustedPalette(colors: string[]): void {
     palette = [...colors];
+}
+
+// setPaletteFromExtraction is the entry point used by extract flows. It
+// drops per-app template overrides when the source image changes, since
+// override hex values were chosen relative to the prior palette and tend
+// to look out of place on a different wallpaper.
+export function setPaletteFromExtraction(path: string, colors: string[]): void {
+    if (path && lastExtractedPath && path !== lastExtractedPath) {
+        appOverrides = {};
+    }
+    lastExtractedPath = path;
+    setPalette(colors);
+}
+
+export function getLastExtractedPath(): string {
+    return lastExtractedPath;
+}
+
+export function setLastExtractedPath(path: string): void {
+    lastExtractedPath = path;
 }
 
 // setAdjustedExtendedColors sets only the display extended colors (from adjustment results).

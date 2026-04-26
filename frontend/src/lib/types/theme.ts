@@ -45,6 +45,10 @@ export interface Settings {
     includeNeovim: boolean;
     selectedNeovimConfig: string;
     videoCpuMode: boolean;
+    // Per-app skip list. Keys are the app names returned by
+    // GetTemplateColors (alacritty, hyprland, …). True = skip the
+    // template during ApplyTheme / GenerateOnly.
+    excludedApps?: Record<string, boolean>;
 }
 
 export const DEFAULT_ADJUSTMENTS: Adjustments = {

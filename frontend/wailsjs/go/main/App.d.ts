@@ -112,6 +112,12 @@ export function LoadOmarchyThemes(): Promise<Array<omarchy.Theme>>;
 
 export function OpenFileDialog(): Promise<string>;
 
+export function PreviewExtractColors(
+    arg1: string,
+    arg2: boolean,
+    arg3: string
+): Promise<any>;
+
 export function ReadImageAsDataURL(arg1: string): Promise<string>;
 
 export function ResetState(): Promise<void>;

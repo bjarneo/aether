@@ -9,6 +9,7 @@
         setAdjustments,
         setAppOverrides,
         setAdditionalImages,
+        setLastExtractedPath,
     } from '$lib/stores/theme.svelte';
     import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
 
@@ -50,7 +51,7 @@
             blueprints = blueprints.filter(b => b.name !== name);
             showToast(`Deleted: ${name}`);
         } catch {
-            showToast('Failed to delete');
+            showToast('Couldn’t delete that theme');
         }
     }
 
@@ -70,10 +71,15 @@
             setAdjustments(bp.adjustments ?? {...DEFAULT_ADJUSTMENTS});
             setAppOverrides(bp.appOverrides ?? {});
             setAdditionalImages(bp.palette?.additionalImages ?? []);
+            // Anchor the extract baseline to the blueprint's wallpaper so a
+            // re-extract on it preserves the loaded overrides.
+            if (bp.palette?.wallpaper) {
+                setLastExtractedPath(bp.palette.wallpaper);
+            }
             setActiveTab('editor');
             showToast(`Loaded: ${bp.name}`);
         } catch {
-            showToast('Failed to load');
+            showToast('Couldn’t load that blueprint');
         }
     }
 </script>

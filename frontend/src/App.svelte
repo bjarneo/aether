@@ -2,6 +2,7 @@
     import {onMount} from 'svelte';
     import HeaderBar from '$lib/components/layout/HeaderBar.svelte';
     import ActionBar from '$lib/components/layout/ActionBar.svelte';
+    import TargetAppsStrip from '$lib/components/layout/TargetAppsStrip.svelte';
     import ThemeEditor from '$lib/components/editor/ThemeEditor.svelte';
     import WallhavenBrowser from '$lib/components/wallhaven/WallhavenBrowser.svelte';
     import LocalBrowser from '$lib/components/local/LocalBrowser.svelte';
@@ -28,6 +29,7 @@
         getKeymapOpen,
         setKeymapOpen,
         toggleKeymap,
+        getLiveApply,
     } from '$lib/stores/ui.svelte';
     import {
         setWallpaperPath,
@@ -39,11 +41,14 @@
         setLightMode,
         setExtractionMode,
         getThemeSnapshot,
+        getThemeSignature,
+        setLastExtractedPath,
     } from '$lib/stores/theme.svelte';
     import {debounce} from '$lib/utils/debounce';
     import {pushState} from '$lib/stores/history.svelte';
     import {
         applyTheme,
+        applyThemeLive,
         undoAction,
         redoAction,
     } from '$lib/actions/themeActions';
@@ -84,6 +89,28 @@
         );
     });
 
+    // Live-preview apply. Tracks the snapshot signature so we don't fire
+    // on object-identity churn. `null` baseline doubles as the
+    // not-yet-armed flag — first read just records the signature.
+    let lastLiveSignature: string | null = null;
+    const debouncedLiveApply = debounce(() => {
+        applyThemeLive();
+    }, 1500);
+    $effect(() => {
+        const enabled = getLiveApply();
+        // Once armed, skip the JSON.stringify when the toggle is off.
+        // The first run still reads sig to establish the baseline.
+        if (!enabled && lastLiveSignature !== null) return;
+        const sig = getThemeSignature();
+        if (lastLiveSignature === null) {
+            lastLiveSignature = sig;
+            return;
+        }
+        if (sig === lastLiveSignature) return;
+        lastLiveSignature = sig;
+        debouncedLiveApply();
+    });
+
     onMount(async () => {
         try {
             const {IsWidgetMode, IsSliderWidget, IsThemesSlider} = await import(
@@ -121,6 +148,9 @@
             }
             if (s?.wallpaperPath) {
                 setWallpaperPath(s.wallpaperPath);
+                // Treat the restored wallpaper as already-extracted so a
+                // re-extract on the same image doesn't clear overrides.
+                setLastExtractedPath(s.wallpaperPath);
             }
         } catch (e) {
             console.warn('GetInitialState failed:', e);
@@ -187,6 +217,11 @@
 
         // Ctrl+K - Show keymap
         registerShortcut('ctrl+k', () => {
+            toggleKeymap();
+        });
+
+        // ? - Show keymap (universal convention)
+        registerShortcut('shift+?', () => {
             toggleKeymap();
         });
 
@@ -373,6 +408,9 @@
                 </div>
             {/if}
         </main>
+        {#if activeTab === 'editor'}
+            <TargetAppsStrip />
+        {/if}
         <ActionBar />
         <AboutStrip />
         <Toast />

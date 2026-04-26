@@ -3,7 +3,7 @@
         getWallpaperPath,
         getIsExtracting,
         setIsExtracting,
-        setPalette,
+        setPaletteFromExtraction,
         setWallpaperPath,
         setColor,
         setExtendedColor,
@@ -244,10 +244,10 @@
                 getExtractionMode()
             );
             setAdjustments({...DEFAULT_ADJUSTMENTS});
-            setPalette(colors);
+            setPaletteFromExtraction(path, colors);
             showToast('Colors extracted');
         } catch {
-            showToast('Failed to extract colors');
+            showToast('Couldn’t extract colors from that image');
         } finally {
             setIsExtracting(false);
         }
@@ -269,7 +269,10 @@
                 getExtractionMode()
             );
             setAdjustments({...DEFAULT_ADJUSTMENTS});
-            setPalette(result.palette);
+            // Treat the primary wallpaper as the extraction source for the
+            // override-clear heuristic. Blends switch context too, so this
+            // matches the single-image behaviour.
+            setPaletteFromExtraction(paths[0], result.palette);
             const used = paths.length - result.skipped;
             const suffix =
                 result.skipped > 0 ? ` (${result.skipped} skipped)` : '';

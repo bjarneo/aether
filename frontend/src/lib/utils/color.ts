@@ -204,6 +204,8 @@ export function relativeLuminance(hex: string): number {
     return 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
 }
 
+export type ContrastLevel = 'AAA' | 'AA' | 'AA-L' | 'fail';
+
 /**
  * Categorize a WCAG contrast ratio. Thresholds per WCAG 2.1 SC 1.4.3 / 1.4.6:
  *   AAA       ≥ 7   (normal text)
@@ -211,9 +213,18 @@ export function relativeLuminance(hex: string): number {
  *   AA-large  ≥ 3   (large text only)
  *   fail      < 3
  */
-export function contrastLevel(ratio: number): 'AAA' | 'AA' | 'AA-L' | 'fail' {
+export function contrastLevel(ratio: number): ContrastLevel {
     if (ratio >= 7) return 'AAA';
     if (ratio >= 4.5) return 'AA';
     if (ratio >= 3) return 'AA-L';
     return 'fail';
+}
+
+// WCAG 2.1 contrast ratio between two hex colors.
+export function contrastRatio(a: string, b: string): number {
+    const la = relativeLuminance(a);
+    const lb = relativeLuminance(b);
+    const hi = Math.max(la, lb);
+    const lo = Math.min(la, lb);
+    return (hi + 0.05) / (lo + 0.05);
 }

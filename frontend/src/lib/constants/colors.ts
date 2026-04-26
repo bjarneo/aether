@@ -17,6 +17,30 @@ export const ANSI_COLOR_NAMES = [
     'Bright White (15)',
 ];
 
+// The role each ANSI slot conventionally fills in this app's mapping
+// (see `buildColorRoles` in stores/theme.svelte.ts). Slot 0 is the
+// theme background; slot 7 is the foreground/main text. Slots 1–6 +
+// 9–14 are the bright/normal pairs of accent hues. 8 and 15 are the
+// muted foreground and pure-white extremes.
+export const ANSI_SLOT_ROLES: string[] = [
+    'BG',
+    'RD',
+    'GR',
+    'YL',
+    'BL',
+    'MG',
+    'CY',
+    'FG',
+    'DIM',
+    'RD+',
+    'GR+',
+    'YL+',
+    'BL+',
+    'MG+',
+    'CY+',
+    'FG+',
+];
+
 export const ADJUSTMENT_LIMITS: Record<
     string,
     {min: number; max: number; step: number; default: number}

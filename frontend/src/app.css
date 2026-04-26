@@ -47,6 +47,20 @@ body {
     letter-spacing: 0.01em;
 }
 
+/* Smooth the light/dark swap and live theme-token updates from the
+ * `theme-colors-changed` event. Scoped to chrome surfaces so we don't
+ * fight existing per-element transitions on hover etc. */
+body,
+header,
+footer,
+aside,
+main {
+    transition:
+        background-color 180ms ease-out,
+        color 180ms ease-out,
+        border-color 180ms ease-out;
+}
+
 /* Transparent mode — applied via .transparent-widget on <html> */
 :root.transparent-widget,
 :root.transparent-widget body {

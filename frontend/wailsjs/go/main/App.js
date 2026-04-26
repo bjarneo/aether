@@ -178,6 +178,14 @@ export function OpenFileDialog() {
     return window['go']['main']['App']['OpenFileDialog']();
 }
 
+export function PreviewExtractColors(arg1, arg2, arg3) {
+    return window['go']['main']['App']['PreviewExtractColors'](
+        arg1,
+        arg2,
+        arg3
+    );
+}
+
 export function ReadImageAsDataURL(arg1) {
     return window['go']['main']['App']['ReadImageAsDataURL'](arg1);
 }

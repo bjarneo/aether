@@ -9,6 +9,7 @@ import {
     setWallpaperPath,
     getPalette,
     setPalette,
+    setPaletteFromExtraction,
     getLightMode,
     getAdditionalImages,
     getExtendedColors,
@@ -17,6 +18,7 @@ import {
     setAdjustments,
     setAdjustedExtendedColors,
     getExtractionMode,
+    markApplied,
 } from '$lib/stores/theme.svelte';
 import {getSettings} from '$lib/stores/settings.svelte';
 import {
@@ -27,23 +29,57 @@ import {
 } from '$lib/stores/history.svelte';
 import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
 
+async function runApply(): Promise<{success: boolean}> {
+    const {ApplyTheme} = await import('../../../wailsjs/go/main/App');
+    const result = await ApplyTheme({
+        palette: getPalette(),
+        wallpaperPath: getWallpaperPath(),
+        lightMode: getLightMode(),
+        additionalImages: getAdditionalImages(),
+        extendedColors: getExtendedColors(),
+        settings: getSettings(),
+        appOverrides: getAppOverrides(),
+    } as unknown as main.ApplyThemeRequest);
+    if (result.success) {
+        if (getLightMode()) {
+            document.documentElement.classList.add('light-mode');
+        } else {
+            document.documentElement.classList.remove('light-mode');
+        }
+        markApplied();
+    }
+    return {success: !!result.success};
+}
+
 export async function applyTheme(): Promise<void> {
     if (getIsApplying()) return;
     setIsApplying(true);
     try {
-        const {ApplyTheme} = await import('../../../wailsjs/go/main/App');
-        const result = await ApplyTheme({
-            palette: getPalette(),
-            wallpaperPath: getWallpaperPath(),
-            lightMode: getLightMode(),
-            additionalImages: getAdditionalImages(),
-            extendedColors: getExtendedColors(),
-            settings: getSettings(),
-            appOverrides: getAppOverrides(),
-        } as unknown as main.ApplyThemeRequest);
+        const result = await runApply();
         if (result.success) showToast('Theme applied');
     } catch {
-        showToast('Failed to apply theme');
+        showToast('Couldn’t apply theme — see logs for details');
+    } finally {
+        setIsApplying(false);
+    }
+}
+
+// Same backend call as applyTheme(), but with a quieter toast that offers
+// Undo. Used by the live-preview effect when the user flips on Live Apply.
+export async function applyThemeLive(): Promise<void> {
+    if (getIsApplying()) return;
+    setIsApplying(true);
+    try {
+        const result = await runApply();
+        if (result.success) {
+            showToast('Live preview applied', {
+                duration: 2200,
+                action: {label: 'Undo', run: undoAction},
+            });
+        }
+    } catch {
+        // Stay quiet on transient live-apply failures; the user can hit
+        // Apply manually if something is wrong.
     } finally {
         setIsApplying(false);
     }
@@ -76,7 +112,7 @@ export async function changeWallpaper(): Promise<void> {
             showToast('Wallpaper changed — click Extract to generate palette');
         }
     } catch {
-        showToast('Failed to change wallpaper');
+        showToast('Couldn’t open the wallpaper picker');
     }
 }
 
@@ -92,10 +128,10 @@ export async function extractColors(): Promise<void> {
             getExtractionMode()
         );
         setAdjustments({...DEFAULT_ADJUSTMENTS});
-        setPalette(colors);
+        setPaletteFromExtraction(path, colors);
         showToast('Colors extracted');
     } catch {
-        showToast('Failed to extract colors');
+        showToast('Couldn’t extract colors from that image');
     } finally {
         setIsExtracting(false);
     }
