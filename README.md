@@ -130,7 +130,7 @@ wails build
 
 ## Complementary Projects
 
-- [omarchy-theme-hook](https://github.com/imbypass/omarchy-theme-hook/) - A clean solution to extend your Omarchy theme to other apps.
+- [omarchy-theme-hook](https://github.com/OldJobobo/theme-hook-plugin-manager/) - A clean solution to extend your Omarchy theme to other apps.
 
 ## Contributing
 
