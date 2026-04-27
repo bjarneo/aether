@@ -78,7 +78,7 @@
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import CommandPalette from '$lib/components/shared/CommandPalette.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
-    import {hexToRgb} from '$lib/utils/color';
+    import {hexToRgb, isLightRgb} from '$lib/utils/color';
     import {buildCommands} from '$lib/commands/commands.svelte';
     import type {main} from '../wailsjs/go/models';
 
@@ -87,6 +87,19 @@
     let widgetMode = $state(false);
     let sliderWidget = $state(false);
     let themesSlider = $state(false);
+
+    // RGB step between bg-primary and bg-secondary so panels stay
+    // visually layered on any theme bg.
+    const BG_SECONDARY_SHIFT = 10;
+    // CSS tokens layered over bg-primary, paired with their alpha values
+    // for light and dark backgrounds. Order: [token, lightAlpha, darkAlpha].
+    const OVERLAY_TOKENS: ReadonlyArray<[string, number, number]> = [
+        ['--color-bg-surface', 0.03, 0.04],
+        ['--color-bg-elevated', 0.06, 0.07],
+        ['--color-bg-hover', 0.04, 0.05],
+        ['--color-border', 0.1, 0.08],
+        ['--color-border-focus', 0.2, 0.18],
+    ];
 
     // Mirror editor state into Go (debounced) so `aether status` and other IPC
     // readers reflect live edits without waiting for an Apply. Long enough
@@ -269,17 +282,12 @@
                     }
                     if (colors.background) {
                         const bg = hexToRgb(colors.background);
-                        // Luma threshold matches isLightColor() — a light
-                        // omarchy theme needs dark scrim/border overlays, a
-                        // dark theme needs the white-on-dark defaults.
-                        const isLightBg =
-                            (bg.r * 299 + bg.g * 587 + bg.b * 114) / 1000 > 128;
-                        const shift = isLightBg ? -10 : 10;
+                        const isLightBg = isLightRgb(bg.r, bg.g, bg.b);
+                        const shift = isLightBg
+                            ? -BG_SECONDARY_SHIFT
+                            : BG_SECONDARY_SHIFT;
                         const clamp = (n: number) =>
                             Math.max(0, Math.min(255, n));
-                        const bg2r = clamp(bg.r + shift);
-                        const bg2g = clamp(bg.g + shift);
-                        const bg2b = clamp(bg.b + shift);
                         const overlay = isLightBg ? '0, 0, 0' : '255, 255, 255';
                         root.style.setProperty(
                             '--color-bg-primary',
@@ -287,28 +295,14 @@
                         );
                         root.style.setProperty(
                             '--color-bg-secondary',
-                            `rgb(${bg2r}, ${bg2g}, ${bg2b})`
+                            `rgb(${clamp(bg.r + shift)}, ${clamp(bg.g + shift)}, ${clamp(bg.b + shift)})`
                         );
-                        root.style.setProperty(
-                            '--color-bg-surface',
-                            `rgba(${overlay}, ${isLightBg ? 0.03 : 0.04})`
-                        );
-                        root.style.setProperty(
-                            '--color-bg-elevated',
-                            `rgba(${overlay}, ${isLightBg ? 0.06 : 0.07})`
-                        );
-                        root.style.setProperty(
-                            '--color-bg-hover',
-                            `rgba(${overlay}, ${isLightBg ? 0.04 : 0.05})`
-                        );
-                        root.style.setProperty(
-                            '--color-border',
-                            `rgba(${overlay}, ${isLightBg ? 0.1 : 0.08})`
-                        );
-                        root.style.setProperty(
-                            '--color-border-focus',
-                            `rgba(${overlay}, ${isLightBg ? 0.2 : 0.18})`
-                        );
+                        for (const [token, lightA, darkA] of OVERLAY_TOKENS) {
+                            root.style.setProperty(
+                                token,
+                                `rgba(${overlay}, ${isLightBg ? lightA : darkA})`
+                            );
+                        }
                         document.body.style.background = colors.background;
                         WindowSetBackgroundColour(bg.r, bg.g, bg.b, 255);
                     }

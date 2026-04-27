@@ -6,9 +6,11 @@ import {showToast} from '$lib/stores/ui.svelte';
  */
 export function isLightColor(hex: string): boolean {
     if (!hex || hex.length < 7) return false;
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
+    const {r, g, b} = hexToRgb(hex);
+    return isLightRgb(r, g, b);
+}
+
+export function isLightRgb(r: number, g: number, b: number): boolean {
     return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
 
