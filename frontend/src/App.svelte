@@ -268,17 +268,49 @@
                         root.style.setProperty(`--aether-${name}`, value);
                     }
                     if (colors.background) {
+                        const bg = hexToRgb(colors.background);
+                        // Luma threshold matches isLightColor() — a light
+                        // omarchy theme needs dark scrim/border overlays, a
+                        // dark theme needs the white-on-dark defaults.
+                        const isLightBg =
+                            (bg.r * 299 + bg.g * 587 + bg.b * 114) / 1000 > 128;
+                        const shift = isLightBg ? -10 : 10;
+                        const clamp = (n: number) =>
+                            Math.max(0, Math.min(255, n));
+                        const bg2r = clamp(bg.r + shift);
+                        const bg2g = clamp(bg.g + shift);
+                        const bg2b = clamp(bg.b + shift);
+                        const overlay = isLightBg ? '0, 0, 0' : '255, 255, 255';
                         root.style.setProperty(
                             '--color-bg-primary',
                             colors.background
                         );
                         root.style.setProperty(
                             '--color-bg-secondary',
-                            colors.background
+                            `rgb(${bg2r}, ${bg2g}, ${bg2b})`
+                        );
+                        root.style.setProperty(
+                            '--color-bg-surface',
+                            `rgba(${overlay}, ${isLightBg ? 0.03 : 0.04})`
+                        );
+                        root.style.setProperty(
+                            '--color-bg-elevated',
+                            `rgba(${overlay}, ${isLightBg ? 0.06 : 0.07})`
+                        );
+                        root.style.setProperty(
+                            '--color-bg-hover',
+                            `rgba(${overlay}, ${isLightBg ? 0.04 : 0.05})`
+                        );
+                        root.style.setProperty(
+                            '--color-border',
+                            `rgba(${overlay}, ${isLightBg ? 0.1 : 0.08})`
+                        );
+                        root.style.setProperty(
+                            '--color-border-focus',
+                            `rgba(${overlay}, ${isLightBg ? 0.2 : 0.18})`
                         );
                         document.body.style.background = colors.background;
-                        const rgb = hexToRgb(colors.background);
-                        WindowSetBackgroundColour(rgb.r, rgb.g, rgb.b, 255);
+                        WindowSetBackgroundColour(bg.r, bg.g, bg.b, 255);
                     }
                     if (colors.foreground) {
                         root.style.setProperty(

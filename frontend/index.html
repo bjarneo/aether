@@ -20,13 +20,52 @@
                         );
                     }
                     if (colors.background) {
+                        // Match overlay tokens to bg luminance so panels,
+                        // hovers, and borders stay visible on light themes.
+                        var bgHex = colors.background.replace('#', '');
+                        var br = parseInt(bgHex.slice(0, 2), 16);
+                        var bgg = parseInt(bgHex.slice(2, 4), 16);
+                        var bb = parseInt(bgHex.slice(4, 6), 16);
+                        var isLightBg =
+                            (br * 299 + bgg * 587 + bb * 114) / 1000 > 128;
+                        var shift = isLightBg ? -10 : 10;
+                        var clamp = function (n) {
+                            return Math.max(0, Math.min(255, n));
+                        };
+                        var ov = isLightBg ? '0,0,0' : '255,255,255';
                         root.style.setProperty(
                             '--color-bg-primary',
                             colors.background
                         );
                         root.style.setProperty(
                             '--color-bg-secondary',
-                            colors.background
+                            'rgb(' +
+                                clamp(br + shift) +
+                                ',' +
+                                clamp(bgg + shift) +
+                                ',' +
+                                clamp(bb + shift) +
+                                ')'
+                        );
+                        root.style.setProperty(
+                            '--color-bg-surface',
+                            'rgba(' + ov + ',' + (isLightBg ? 0.03 : 0.04) + ')'
+                        );
+                        root.style.setProperty(
+                            '--color-bg-elevated',
+                            'rgba(' + ov + ',' + (isLightBg ? 0.06 : 0.07) + ')'
+                        );
+                        root.style.setProperty(
+                            '--color-bg-hover',
+                            'rgba(' + ov + ',' + (isLightBg ? 0.04 : 0.05) + ')'
+                        );
+                        root.style.setProperty(
+                            '--color-border',
+                            'rgba(' + ov + ',' + (isLightBg ? 0.1 : 0.08) + ')'
+                        );
+                        root.style.setProperty(
+                            '--color-border-focus',
+                            'rgba(' + ov + ',' + (isLightBg ? 0.2 : 0.18) + ')'
                         );
                         document.body.style.background = colors.background;
                     }
