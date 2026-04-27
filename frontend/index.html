@@ -35,6 +35,22 @@
                             '--color-fg-primary',
                             colors.foreground
                         );
+                        // Keep secondary/dimmed tokens in the foreground hue
+                        // so labels stay readable on light theme backgrounds.
+                        var hex = colors.foreground.replace('#', '');
+                        if (hex.length === 6) {
+                            var r = parseInt(hex.slice(0, 2), 16);
+                            var g = parseInt(hex.slice(2, 4), 16);
+                            var b = parseInt(hex.slice(4, 6), 16);
+                            root.style.setProperty(
+                                '--color-fg-secondary',
+                                'rgba(' + r + ',' + g + ',' + b + ',0.75)'
+                            );
+                            root.style.setProperty(
+                                '--color-fg-dimmed',
+                                'rgba(' + r + ',' + g + ',' + b + ',0.5)'
+                            );
+                        }
                         document.body.style.color = colors.foreground;
                     }
                     if (colors.blue) {

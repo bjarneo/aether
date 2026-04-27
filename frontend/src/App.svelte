@@ -285,6 +285,18 @@
                             '--color-fg-primary',
                             colors.foreground
                         );
+                        // Derive secondary/dimmed from foreground so labels
+                        // stay readable when the theme bg is light — the
+                        // default tokens are tuned for dark bg only.
+                        const fg = hexToRgb(colors.foreground);
+                        root.style.setProperty(
+                            '--color-fg-secondary',
+                            `rgba(${fg.r}, ${fg.g}, ${fg.b}, 0.75)`
+                        );
+                        root.style.setProperty(
+                            '--color-fg-dimmed',
+                            `rgba(${fg.r}, ${fg.g}, ${fg.b}, 0.5)`
+                        );
                         document.body.style.color = colors.foreground;
                     }
                     if (colors.blue) {
