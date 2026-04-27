@@ -1,6 +1,7 @@
 <script lang="ts">
     import {buildCurveLUT} from '$lib/utils/canvas-filters';
     import {getLightMode} from '$lib/stores/theme.svelte';
+    import {isLightColor} from '$lib/utils/color';
 
     const W = 256;
     const H = 192;
@@ -54,7 +55,13 @@
         const ch = canvasEl.height;
         ctx.clearRect(0, 0, cw, ch);
 
-        const light = getLightMode();
+        // Pick ink against the actually-painted bg, not just the user's
+        // light/dark toggle — a system Omarchy theme can apply a light bg
+        // while the toggle is still off, leaving white ink invisible.
+        const bgVar = getComputedStyle(document.documentElement)
+            .getPropertyValue('--color-bg-primary')
+            .trim();
+        const light = bgVar ? isLightColor(bgVar) : getLightMode();
         const ink = (alpha: number) =>
             light ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha})`;
         const outline = light ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
