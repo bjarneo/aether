@@ -199,11 +199,60 @@ export function copyColor(hex: string): void {
 // photopic luminous efficiency (Rec. 709). Returns 0..1.
 export function relativeLuminance(hex: string): number {
     const {r, g, b} = hexToRgb(hex);
+    return luminanceRgb(r, g, b);
+}
+
+function luminanceRgb(r: number, g: number, b: number): number {
     const chan = (v: number) => {
         const s = v / 255;
         return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
     };
     return 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
+}
+
+// Source-over composite of an RGB foreground at `alpha` over an opaque RGB
+// background. Returns the resulting opaque RGB.
+export function alphaBlend(
+    fg: {r: number; g: number; b: number},
+    bg: {r: number; g: number; b: number},
+    alpha: number
+): {r: number; g: number; b: number} {
+    const a = Math.max(0, Math.min(1, alpha));
+    return {
+        r: fg.r * a + bg.r * (1 - a),
+        g: fg.g * a + bg.g * (1 - a),
+        b: fg.b * a + bg.b * (1 - a),
+    };
+}
+
+// Smallest alpha in [designAlpha, 1] such that the alpha-blended fg over bg
+// meets `targetRatio`. Returns `designAlpha` if it already passes; returns 1
+// if even fully opaque can't reach the target (theme's own contrast is too
+// weak — caller decides what to do).
+export function wcagAlphaForContrast(
+    fg: {r: number; g: number; b: number},
+    bg: {r: number; g: number; b: number},
+    designAlpha: number,
+    targetRatio: number
+): number {
+    const lbg = luminanceRgb(bg.r, bg.g, bg.b);
+    const ratioAt = (a: number) => {
+        const c = alphaBlend(fg, bg, a);
+        const lc = luminanceRgb(c.r, c.g, c.b);
+        const hi = Math.max(lc, lbg);
+        const lo = Math.min(lc, lbg);
+        return (hi + 0.05) / (lo + 0.05);
+    };
+    if (ratioAt(designAlpha) >= targetRatio) return designAlpha;
+    if (ratioAt(1) < targetRatio) return 1;
+    let lo = designAlpha;
+    let hi = 1;
+    for (let i = 0; i < 14; i++) {
+        const mid = (lo + hi) / 2;
+        if (ratioAt(mid) >= targetRatio) hi = mid;
+        else lo = mid;
+    }
+    return hi;
 }
 
 export type ContrastLevel = 'AAA' | 'AA' | 'AA-L' | 'fail';

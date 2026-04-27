@@ -78,7 +78,7 @@
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import CommandPalette from '$lib/components/shared/CommandPalette.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
-    import {hexToRgb, isLightRgb} from '$lib/utils/color';
+    import {hexToRgb, isLightRgb, wcagAlphaForContrast} from '$lib/utils/color';
     import {buildCommands} from '$lib/commands/commands.svelte';
     import type {main} from '../wailsjs/go/models';
 
@@ -100,6 +100,12 @@
         ['--color-border', 0.1, 0.08],
         ['--color-border-focus', 0.2, 0.18],
     ];
+    // Design alpha for fg-secondary/dimmed; bumped at apply-time when needed
+    // to satisfy WCAG against the actual theme bg/fg pair.
+    const FG_SECONDARY_DESIGN_ALPHA = 0.75;
+    const FG_DIMMED_DESIGN_ALPHA = 0.5;
+    const WCAG_AA_RATIO = 4.5;
+    const WCAG_AA_LARGE_RATIO = 3;
 
     // Mirror editor state into Go (debounced) so `aether status` and other IPC
     // readers reflect live edits without waiting for an Apply. Long enough
@@ -311,17 +317,36 @@
                             '--color-fg-primary',
                             colors.foreground
                         );
-                        // Derive secondary/dimmed from foreground so labels
-                        // stay readable when the theme bg is light — the
-                        // default tokens are tuned for dark bg only.
+                        // Pick alpha that satisfies WCAG AA / AA-Large
+                        // against the actual theme bg, falling back to the
+                        // designed dim levels when contrast budget allows.
                         const fg = hexToRgb(colors.foreground);
+                        const bg = colors.background
+                            ? hexToRgb(colors.background)
+                            : null;
+                        const secondaryAlpha = bg
+                            ? wcagAlphaForContrast(
+                                  fg,
+                                  bg,
+                                  FG_SECONDARY_DESIGN_ALPHA,
+                                  WCAG_AA_RATIO
+                              )
+                            : FG_SECONDARY_DESIGN_ALPHA;
+                        const dimmedAlpha = bg
+                            ? wcagAlphaForContrast(
+                                  fg,
+                                  bg,
+                                  FG_DIMMED_DESIGN_ALPHA,
+                                  WCAG_AA_LARGE_RATIO
+                              )
+                            : FG_DIMMED_DESIGN_ALPHA;
                         root.style.setProperty(
                             '--color-fg-secondary',
-                            `rgba(${fg.r}, ${fg.g}, ${fg.b}, 0.75)`
+                            `rgba(${fg.r}, ${fg.g}, ${fg.b}, ${secondaryAlpha})`
                         );
                         root.style.setProperty(
                             '--color-fg-dimmed',
-                            `rgba(${fg.r}, ${fg.g}, ${fg.b}, 0.5)`
+                            `rgba(${fg.r}, ${fg.g}, ${fg.b}, ${dimmedAlpha})`
                         );
                         document.body.style.color = colors.foreground;
                     }
