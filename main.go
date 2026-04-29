@@ -139,8 +139,8 @@ func main() {
 		BackgroundColour: bgColour,
 		OnStartup:        app.startup,
 		DragAndDrop: &options.DragAndDrop{
-			EnableFileDrop:     true,
-			DisableWebViewDrop: false,
+			EnableFileDrop:     false,
+			DisableWebViewDrop: true,
 		},
 		Bind: []interface{}{
 			app,

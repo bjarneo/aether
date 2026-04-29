@@ -421,32 +421,6 @@
                 );
             } catch {}
         })();
-
-        // Wails native file drop handler
-        (async () => {
-            try {
-                const {OnFileDrop} = await import('../wailsjs/runtime/runtime');
-                OnFileDrop(async (x: number, y: number, paths: string[]) => {
-                    try {
-                        const {HandleDroppedFiles} = await import(
-                            '../wailsjs/go/main/App'
-                        );
-                        const path = await HandleDroppedFiles(paths);
-                        if (path) {
-                            setWallpaperPath(path);
-                            setActiveTab('editor');
-                            showToast(
-                                'Wallpaper selected — click Extract to generate palette'
-                            );
-                        }
-                    } catch (e: any) {
-                        showToast(
-                            'Drop failed: ' + (e?.message || 'unknown error')
-                        );
-                    }
-                }, true);
-            } catch {}
-        })();
     });
 </script>
 
