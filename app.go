@@ -88,16 +88,11 @@ func NewApp() *App {
 	}
 }
 
-// newSeededState builds a ThemeState and, on omarchy systems, overlays
-// tokyo-night's palette and 0-* wallpaper as the out-of-the-box
-// defaults. Standalone installs get the unmodified DefaultPalette.
+// newSeededState builds a ThemeState with the unmodified DefaultPalette
+// and no wallpaper, so first launch (and ResetState) lands on the empty
+// editor that walks new users through extracting and applying a theme.
 func newSeededState() *theme.ThemeState {
-	s := theme.NewThemeState()
-	if palette, wallpaper, ok := omarchy.TokyoNightDefaults(); ok {
-		s.SetPalette(palette)
-		s.WallpaperPath = wallpaper
-	}
-	return s
+	return theme.NewThemeState()
 }
 
 // startup is called by Wails when the application starts.
