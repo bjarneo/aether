@@ -53,7 +53,7 @@ func runListApps(args []string, templatesFS embed.FS) int {
 	apps := make([]string, 0, len(names))
 	seen := make(map[string]bool)
 	for _, name := range names {
-		if name == "copy.json" || name == "vscode.empty.json" {
+		if name == "copy.json" {
 			continue
 		}
 		app := theme.GetAppNameFromFileName(name)

@@ -18,9 +18,10 @@
 
     onMount(async () => {
         // Specials always appear: GetTemplateColors filters out apps whose
-        // templates have no color variables (vscode.empty.json) or whose
-        // filename mangles to a hidden internal name (aether.zed.json →
-        // "aether" → dropped). Inject them unconditionally.
+        // templates have no color variables (vscode.json — just a pointer
+        // to the bundled extension) or whose filename mangles to a hidden
+        // internal name (aether.zed.json → "aether" → dropped). Inject
+        // them unconditionally.
         try {
             const {GetTemplateColors} = await import(
                 '../../../../wailsjs/go/main/App'

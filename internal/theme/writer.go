@@ -253,16 +253,12 @@ func (w *Writer) processTemplates(
 			continue
 		}
 
-		outputPath := filepath.Join(outputDir, fileName)
-
-		// Handle vscode.empty.json: write as vscode.json when VSCode is disabled
-		if fileName == "vscode.empty.json" {
-			if !settings.IncludeVscode {
-				vscodeOutputPath := filepath.Join(outputDir, "vscode.json")
-				w.processTemplate(fileName, vscodeOutputPath, variables, appOverrides)
-			}
+		// Skip vscode.json if includeVscode is false
+		if fileName == "vscode.json" && !settings.IncludeVscode {
 			continue
 		}
+
+		outputPath := filepath.Join(outputDir, fileName)
 
 		// Handle neovim.lua with custom config selection
 		if fileName == "neovim.lua" && settings.SelectedNeovimConfig != "" {
