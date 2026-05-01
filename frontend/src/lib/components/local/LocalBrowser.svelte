@@ -26,6 +26,7 @@
     let isLoading = $state(true);
     let sortBy = $state<'name' | 'date' | 'size'>('date');
     let filterTag = $state<string>('');
+    let query = $state<string>('');
     let previewIndex = $state(-1);
     let previewSrc = $state<string>('');
 
@@ -58,6 +59,11 @@
                 wps = wps.filter(wp => allAssignments[wp.path] === filterTag);
             }
 
+            const q = query.trim().toLowerCase();
+            if (q) {
+                wps = wps.filter(wp => wp.name.toLowerCase().includes(q));
+            }
+
             wps.sort((a, b) => {
                 if (sortBy === 'name') return a.name.localeCompare(b.name);
                 if (sortBy === 'size') return b.size - a.size;
@@ -68,10 +74,22 @@
         })()
     );
 
-    function handleSelect(wp: Wallpaper) {
-        setWallpaperPath(wp.path);
+    function selectWallpaper(path: string) {
+        setWallpaperPath(path);
         setActiveTab('editor');
         showToast('Wallpaper selected — click Extract to generate palette');
+    }
+
+    async function handleBrowse() {
+        try {
+            const {OpenFileDialog} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
+            const path = await OpenFileDialog();
+            if (path) selectWallpaper(path);
+        } catch (err) {
+            console.error('OpenFileDialog failed', err);
+        }
     }
 
     function handleAddExtra(path: string) {
@@ -102,6 +120,32 @@
     <div
         class="bg-bg-secondary border-border flex flex-wrap items-center gap-1.5 border-b px-3 py-2"
     >
+        <button
+            class="bg-accent hover:bg-accent-hover px-2 py-0.5 text-[11px] font-medium text-[#111116] transition-colors"
+            onclick={handleBrowse}
+            title="Browse local files">Browse…</button
+        >
+
+        <span class="bg-border mx-1 h-4 w-px"></span>
+
+        <input
+            type="search"
+            bind:value={query}
+            placeholder="Search name or folder…"
+            class="bg-bg-primary text-fg-primary border-border focus:border-border-focus placeholder:text-fg-dimmed w-44 border px-2 py-0.5 text-[11px] outline-none transition-colors"
+        />
+
+        {#if query}
+            <button
+                class="text-fg-dimmed hover:text-fg-secondary px-1 text-[11px]"
+                onclick={() => (query = '')}
+                title="Clear search"
+                aria-label="Clear search">×</button
+            >
+        {/if}
+
+        <span class="bg-border mx-1 h-4 w-px"></span>
+
         <!-- Sort -->
         <span class="text-fg-dimmed text-[10px] uppercase tracking-wider"
             >Sort</span
@@ -162,9 +206,13 @@
         {:else if filtered.length === 0}
             <div class="flex h-32 items-center justify-center">
                 <span class="text-fg-dimmed text-[11px]">
-                    {filterTag
-                        ? 'No wallpapers with this label'
-                        : 'No wallpapers found in ~/Wallpapers'}
+                    {#if query}
+                        No matches for "{query}"
+                    {:else if filterTag}
+                        No wallpapers with this label
+                    {:else}
+                        No wallpapers found in ~/Wallpapers
+                    {/if}
                 </span>
             </div>
         {:else}
@@ -177,7 +225,7 @@
                     >
                         <button
                             class="w-full text-left"
-                            onclick={() => handleSelect(wp)}
+                            onclick={() => selectWallpaper(wp.path)}
                         >
                             <div
                                 class="bg-bg-primary aspect-video overflow-hidden"
@@ -226,7 +274,8 @@
                         >
                             <button
                                 class="bg-accent hover:bg-accent-hover pointer-events-auto px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors"
-                                onclick={() => handleSelect(wp)}>Use</button
+                                onclick={() => selectWallpaper(wp.path)}
+                                >Use</button
                             >
                             <button
                                 class="text-fg-primary bg-bg-elevated hover:bg-border-focus pointer-events-auto px-4 py-1.5 text-[11px] font-medium transition-colors"

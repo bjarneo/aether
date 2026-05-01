@@ -1,11 +1,12 @@
 package wallpaper
 
 import (
-	"os"
+	"io/fs"
 	"path/filepath"
 	"strings"
 
 	"aether/internal/platform"
+	"aether/internal/theme"
 )
 
 // WallpaperInfo describes a local wallpaper image file.
@@ -16,57 +17,67 @@ type WallpaperInfo struct {
 	ModTime int64  `json:"modTime"`
 }
 
-var imageExtensions = map[string]bool{
-	".jpg":  true,
-	".jpeg": true,
-	".png":  true,
-	".gif":  true,
-	".webp": true,
-	".bmp":  true,
-	".mp4":  true,
-	".webm": true,
-}
-
-// ScanDirectory scans a directory for image files and returns their info.
-// Only the immediate directory is scanned (no recursion).
+// ScanDirectory recursively scans a directory tree for image and video files.
+// Hidden directories (names starting with ".") and symlinked directories are
+// skipped. Files in subfolders are returned with a relative path as Name so
+// the UI can disambiguate files that share a basename across folders.
 func ScanDirectory(dir string) ([]WallpaperInfo, error) {
-	entries, err := os.ReadDir(dir)
+	root, err := filepath.Abs(dir)
 	if err != nil {
-		return nil, err
+		root = dir
 	}
 
 	var results []WallpaperInfo
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		ext := strings.ToLower(filepath.Ext(entry.Name()))
-		if !imageExtensions[ext] {
-			continue
-		}
-
-		info, err := entry.Info()
+	walkErr := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			continue
+			// Ignore unreadable entries; keep walking the rest of the tree.
+			if d != nil && d.IsDir() {
+				return fs.SkipDir
+			}
+			return nil
+		}
+
+		if d.IsDir() {
+			if path != root && strings.HasPrefix(d.Name(), ".") {
+				return fs.SkipDir
+			}
+			return nil
+		}
+
+		if !theme.IsImageFile(path) && !theme.IsVideoFile(path) {
+			return nil
+		}
+
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+
+		name := d.Name()
+		if rel, err := filepath.Rel(root, path); err == nil && rel != "." && !strings.HasPrefix(rel, "..") {
+			name = rel
 		}
 
 		results = append(results, WallpaperInfo{
-			Path:    filepath.Join(dir, entry.Name()),
-			Name:    entry.Name(),
+			Path:    path,
+			Name:    name,
 			Size:    info.Size(),
 			ModTime: info.ModTime().Unix(),
 		})
+		return nil
+	})
+	if walkErr != nil {
+		return nil, walkErr
 	}
 
 	return results, nil
 }
 
-// ScanDefaultDirs scans ~/Wallpapers for wallpaper images.
+// ScanDefaultDirs scans ~/Wallpapers (recursively), creating it if missing.
 func ScanDefaultDirs() ([]WallpaperInfo, error) {
 	dir := platform.WallpaperDir()
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return nil, nil
+	if err := platform.EnsureDir(dir); err != nil {
+		return nil, err
 	}
 	return ScanDirectory(dir)
 }
