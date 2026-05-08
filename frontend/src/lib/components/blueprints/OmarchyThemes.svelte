@@ -55,7 +55,9 @@
     }
 
     async function handleApply(theme: Theme) {
-        loadThemeIntoState(theme);
+        if (theme.colors?.length >= 16) {
+                loadThemeIntoState(theme);
+        }
         try {
             const {ApplyOmarchyThemeByName} = await import(
                 '../../../../wailsjs/go/main/App'
