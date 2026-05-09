@@ -39,11 +39,13 @@
     } from '$lib/stores/ui.svelte';
     import {getApiKey, getTotalResults} from '$lib/stores/wallhaven.svelte';
     import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
+    import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
     import type {main} from '../../../../wailsjs/go/models';
 
     let showImportMenu = $state(false);
     let showExportDialog = $state(false);
     let showSaveDialog = $state(false);
+    let confirmKind = $state<'revert' | 'reset' | null>(null);
     let exportName = $state('');
     let installToOmarchy = $state(false);
     let isOmarchy = $state(false);
@@ -379,12 +381,12 @@
             <div class="flex items-center gap-1">
                 <button
                     class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                    onclick={handleClear}
+                    onclick={() => (confirmKind = 'revert')}
                     title="Revert system to its default theme">Revert</button
                 >
                 <button
                     class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                    onclick={handleReset}
+                    onclick={() => (confirmKind = 'reset')}
                     title="Reset the editor's in-memory state">Reset</button
                 >
 
@@ -609,3 +611,28 @@
         onsave={() => (showSaveDialog = false)}
     />
 {/if}
+
+<ConfirmDialog
+    open={confirmKind === 'revert'}
+    title="Revert system theme?"
+    body="This will roll your desktop back to its default theme. Your editor state stays intact, so you can re-apply afterwards."
+    confirmLabel="Revert"
+    danger={true}
+    onconfirm={() => {
+        confirmKind = null;
+        handleClear();
+    }}
+    oncancel={() => (confirmKind = null)}
+/>
+<ConfirmDialog
+    open={confirmKind === 'reset'}
+    title="Reset editor?"
+    body="Clears the current palette, wallpaper, adjustments, and overrides from the editor. This does not change anything on disk."
+    confirmLabel="Reset"
+    danger={true}
+    onconfirm={() => {
+        confirmKind = null;
+        handleReset();
+    }}
+    oncancel={() => (confirmKind = null)}
+/>
