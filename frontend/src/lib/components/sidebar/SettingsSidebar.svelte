@@ -15,34 +15,44 @@
         <LightModeToggle />
     </section>
 
+    <h4
+        class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+    >
+        Generate
+    </h4>
     <section class="border-border border-b p-3">
         <ExtractionModeSelect />
     </section>
-
-    <section class="border-border border-b p-3">
-        <ColorAdjustments />
-    </section>
-
     <section class="border-border border-b p-3">
         <PresetsSection />
     </section>
-
+    <section class="border-border border-b p-3">
+        <PaletteFromColor />
+    </section>
     <section class="border-border border-b p-3">
         <GradientGenerator />
     </section>
 
+    <h4
+        class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+    >
+        Adjust
+    </h4>
     <section class="border-border border-b p-3">
-        <PaletteFromColor />
+        <ColorAdjustments />
     </section>
-
     <section class="border-border border-b p-3">
         <AccessibilityPanel />
     </section>
 
+    <h4
+        class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+    >
+        Targets
+    </h4>
     <section class="border-border border-b p-3">
         <NeovimThemes />
     </section>
-
     <section class="p-3">
         <TemplateToggles />
     </section>
