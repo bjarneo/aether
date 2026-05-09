@@ -1,6 +1,7 @@
 <script lang="ts">
     import {debounce} from '$lib/utils/debounce';
     import ExpandableSection from '$lib/components/shared/ExpandableSection.svelte';
+    import SectionLabel from '$lib/components/shared/SectionLabel.svelte';
     import CurvesEditor from './CurvesEditor.svelte';
     import {
         DEFAULT_FILTERS,
@@ -783,11 +784,7 @@
             </div>
         </section>
 
-        <h4
-            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
-        >
-            Tone
-        </h4>
+        <SectionLabel label="Tone" />
         <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Curves"
@@ -814,11 +811,7 @@
             </ExpandableSection>
         </section>
 
-        <h4
-            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
-        >
-            Color
-        </h4>
+        <SectionLabel label="Color" />
         <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Color"
@@ -972,11 +965,7 @@
             </ExpandableSection>
         </section>
 
-        <h4
-            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
-        >
-            Detail
-        </h4>
+        <SectionLabel label="Detail" />
         <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Detail"
@@ -987,11 +976,7 @@
             </ExpandableSection>
         </section>
 
-        <h4
-            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
-        >
-            Geometry
-        </h4>
+        <SectionLabel label="Geometry" />
         <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Transform"
@@ -1263,11 +1248,7 @@
             </ExpandableSection>
         </section>
 
-        <h4
-            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
-        >
-            Snapshots
-        </h4>
+        <SectionLabel label="Snapshots" />
         <section class="border-border border-b p-3">
             <ExpandableSection title="Presets" bind:expanded={presetsExpanded}>
                 <div class="space-y-3 pt-1">

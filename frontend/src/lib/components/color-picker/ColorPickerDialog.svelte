@@ -47,6 +47,7 @@
     import ShadeGrid from './ShadeGrid.svelte';
     import ChannelSlider from './ChannelSlider.svelte';
     import LockIcon from '$lib/components/shared/LockIcon.svelte';
+    import CloseIcon from '$lib/components/shared/CloseIcon.svelte';
     import {clamp} from '$lib/utils/math';
 
     const ROLE_LABELS: Record<string, string> = {
@@ -428,16 +429,7 @@
                 aria-label="Close color picker"
                 title="Close"
             >
-                <svg
-                    class="h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                >
-                    <path d="M18 6L6 18M6 6l12 12"></path>
-                </svg>
+                <CloseIcon />
             </button>
         </div>
     </header>

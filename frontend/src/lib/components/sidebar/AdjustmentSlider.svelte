@@ -1,4 +1,6 @@
 <script lang="ts">
+    import {onActivate} from '$lib/utils/keyboard';
+
     let {
         label,
         value,
@@ -99,12 +101,7 @@
                 tabindex="-1"
                 onclick={startEdit}
                 ondblclick={handleDblClick}
-                onkeydown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        startEdit();
-                    }
-                }}
+                onkeydown={onActivate(startEdit)}
                 title="Click to type · Double-click to reset"
             >
                 {step < 1 ? value.toFixed(1) : value}

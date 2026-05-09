@@ -6,6 +6,7 @@
         getToastQueueDepth,
         dismissCurrentToast,
     } from '$lib/stores/ui.svelte';
+    import CloseIcon from '$lib/components/shared/CloseIcon.svelte';
 
     let visible = $derived(getToastVisible());
     let message = $derived(getToastMessage());
@@ -47,17 +48,7 @@
             aria-label="Dismiss"
             title="Dismiss"
         >
-            <svg
-                class="h-3.5 w-3.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                aria-hidden="true"
-            >
-                <path d="M18 6L6 18M6 6l12 12"></path>
-            </svg>
+            <CloseIcon size="h-3.5 w-3.5" />
         </button>
     </div>
 {/if}

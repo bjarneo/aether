@@ -41,3 +41,14 @@ export function initKeyboardShortcuts() {
         }
     });
 }
+
+// Helper for role=button divs/spans: turn Enter and Space into a click,
+// matching native button behaviour. Use on `onkeydown=`.
+export function onActivate(handler: () => void) {
+    return (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handler();
+        }
+    };
+}

@@ -142,8 +142,7 @@
                     {nameError}
                 </p>
             {/if}
-            <div class="mb-3"></div>
-            <div class="flex justify-end gap-2">
+            <div class="mt-3 flex justify-end gap-2">
                 <button
                     class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px]"
                     onclick={onclose}>Cancel</button

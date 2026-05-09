@@ -1,4 +1,6 @@
 <script lang="ts">
+    import CloseIcon from './CloseIcon.svelte';
+
     let {open, onclose}: {open: boolean; onclose: () => void} = $props();
 
     const keybindings = [
@@ -87,16 +89,7 @@
                     aria-label="Close shortcuts"
                     title="Close"
                 >
-                    <svg
-                        class="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                    >
-                        <path d="M18 6L6 18M6 6l12 12"></path>
-                    </svg>
+                    <CloseIcon />
                 </button>
             </div>
             <div class="max-h-[60vh] overflow-y-auto p-4">

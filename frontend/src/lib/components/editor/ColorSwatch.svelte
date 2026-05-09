@@ -10,6 +10,7 @@
         contrastLevel,
     } from '$lib/utils/color';
     import {setEyedropperActive} from '$lib/stores/ui.svelte';
+    import {onActivate} from '$lib/utils/keyboard';
     import LockIcon from '$lib/components/shared/LockIcon.svelte';
     import ContextMenu from '$lib/components/shared/ContextMenu.svelte';
 
@@ -90,6 +91,10 @@
 
     function toggleLock(event: MouseEvent) {
         event.stopPropagation();
+        toggleLockBare();
+    }
+
+    function toggleLockBare() {
         setLockedColor(index, !locked);
     }
 
@@ -169,12 +174,7 @@
             : 'opacity-0 transition-opacity hover:!opacity-100 group-hover:opacity-30 ' +
               (light ? 'text-black' : 'text-white')}"
         onclick={toggleLock}
-        onkeydown={e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                toggleLock(e as unknown as MouseEvent);
-            }
-        }}
+        onkeydown={onActivate(toggleLockBare)}
         role="button"
         tabindex="0"
         title={locked ? 'Unlock color' : 'Lock color'}

@@ -44,6 +44,21 @@
     let showExportDialog = $state(false);
     let showSaveDialog = $state(false);
     let confirmKind = $state<'revert' | 'reset' | null>(null);
+
+    const CONFIRM_CONFIG = {
+        revert: {
+            title: 'Revert system theme?',
+            body: 'This will roll your desktop back to its default theme. Your editor state stays intact, so you can re-apply afterwards.',
+            confirmLabel: 'Revert',
+            run: () => handleClear(),
+        },
+        reset: {
+            title: 'Reset editor?',
+            body: 'Clears the current palette, wallpaper, adjustments, and overrides from the editor. This does not change anything on disk.',
+            confirmLabel: 'Reset',
+            run: () => handleReset(),
+        },
+    } as const;
     let exportName = $state('');
     let installToOmarchy = $state(false);
     let isOmarchy = $state(false);
@@ -587,27 +602,19 @@
     />
 {/if}
 
-<ConfirmDialog
-    open={confirmKind === 'revert'}
-    title="Revert system theme?"
-    body="This will roll your desktop back to its default theme. Your editor state stays intact, so you can re-apply afterwards."
-    confirmLabel="Revert"
-    danger={true}
-    onconfirm={() => {
-        confirmKind = null;
-        handleClear();
-    }}
-    oncancel={() => (confirmKind = null)}
-/>
-<ConfirmDialog
-    open={confirmKind === 'reset'}
-    title="Reset editor?"
-    body="Clears the current palette, wallpaper, adjustments, and overrides from the editor. This does not change anything on disk."
-    confirmLabel="Reset"
-    danger={true}
-    onconfirm={() => {
-        confirmKind = null;
-        handleReset();
-    }}
-    oncancel={() => (confirmKind = null)}
-/>
+{#if confirmKind}
+    {@const cfg = CONFIRM_CONFIG[confirmKind]}
+    <ConfirmDialog
+        open={true}
+        title={cfg.title}
+        body={cfg.body}
+        confirmLabel={cfg.confirmLabel}
+        danger={true}
+        onconfirm={() => {
+            const run = cfg.run;
+            confirmKind = null;
+            run();
+        }}
+        oncancel={() => (confirmKind = null)}
+    />
+{/if}

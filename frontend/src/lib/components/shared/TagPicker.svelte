@@ -8,6 +8,7 @@
         deleteLabel,
         LABEL_COLORS,
     } from '$lib/stores/tags.svelte';
+    import CloseIcon from './CloseIcon.svelte';
 
     let {path}: {path: string} = $props();
 
@@ -139,16 +140,7 @@
                                 }}
                                 title="Delete label"
                             >
-                                <svg
-                                    class="h-3 w-3"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                >
-                                    <path d="M18 6L6 18M6 6l12 12"></path>
-                                </svg>
+                                <CloseIcon size="h-3 w-3" />
                             </button>
                         </div>
                     {/each}

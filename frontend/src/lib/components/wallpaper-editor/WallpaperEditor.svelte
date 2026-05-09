@@ -1,6 +1,7 @@
 <script lang="ts">
     import FilterControls from './FilterControls.svelte';
     import CropOverlay from './CropOverlay.svelte';
+    import CloseIcon from '$lib/components/shared/CloseIcon.svelte';
     import {getWallpaperPath, setWallpaperPath} from '$lib/stores/theme.svelte';
     import {showToast} from '$lib/stores/ui.svelte';
     import {
@@ -445,17 +446,7 @@
                     aria-label="Close"
                     title="Close (Esc)"
                 >
-                    <svg
-                        class="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        aria-hidden="true"
-                    >
-                        <path d="M18 6L6 18M6 6l12 12"></path>
-                    </svg>
+                    <CloseIcon />
                 </button>
             </div>
         </div>

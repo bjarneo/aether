@@ -83,6 +83,7 @@
     import CommandPalette from '$lib/components/shared/CommandPalette.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
     import {hexToRgb, isLightRgb, wcagAlphaForContrast} from '$lib/utils/color';
+    import {prefersReducedMotion} from '$lib/utils/browser';
     import {buildCommands} from '$lib/commands/commands.svelte';
     import type {main} from '../wailsjs/go/models';
 
@@ -92,17 +93,7 @@
     let sliderWidget = $state(false);
     let themesSlider = $state(false);
 
-    // Skip the fade if the user has prefers-reduced-motion set; window match
-    // is read once at module load so the duration is stable across renders.
-    const TAB_FADE_DURATION = (() => {
-        try {
-            return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-                ? 0
-                : 100;
-        } catch {
-            return 100;
-        }
-    })();
+    const TAB_FADE_DURATION = prefersReducedMotion() ? 0 : 100;
 
     // RGB step between bg-primary and bg-secondary so panels stay
     // visually layered on any theme bg.
@@ -268,20 +259,10 @@
         registerShortcut('ctrl+-', zoomOut);
         registerShortcut('ctrl+0', resetZoom);
 
-        // Ctrl+B - Toggle settings sidebar
         registerShortcut('ctrl+b', toggleSidebar);
-
-        // Ctrl+K - Show keymap
-        registerShortcut('ctrl+k', () => {
-            toggleKeymap();
-        });
-
-        // ? - Show keymap (universal convention)
-        registerShortcut('shift+?', () => {
-            toggleKeymap();
-        });
-
-        // Ctrl+P - Command palette
+        registerShortcut('ctrl+k', toggleKeymap);
+        // ? mirrors Ctrl+K — universal convention for "show shortcuts".
+        registerShortcut('shift+?', toggleKeymap);
         registerShortcut('ctrl+p', () => {
             if (getCommandPaletteOpen()) closeCommandPalette();
             else openCommandPalette();

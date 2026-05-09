@@ -6,3 +6,11 @@ export async function openURL(url: string): Promise<void> {
         BrowserOpenURL(url);
     } catch {}
 }
+
+export function prefersReducedMotion(): boolean {
+    try {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+        return false;
+    }
+}

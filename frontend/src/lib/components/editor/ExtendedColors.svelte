@@ -9,6 +9,7 @@
         setEyedropperActive,
     } from '$lib/stores/ui.svelte';
     import {isLightColor, copyColor} from '$lib/utils/color';
+    import {onActivate} from '$lib/utils/keyboard';
     import {EXTENDED_COLOR_ROLES} from '$lib/constants/colors';
     import LockIcon from '$lib/components/shared/LockIcon.svelte';
     import ContextMenu from '$lib/components/shared/ContextMenu.svelte';
@@ -18,10 +19,14 @@
 
     let lockedExt = $state<Record<string, boolean>>({});
 
+    function toggleLockBare(key: string) {
+        lockedExt = {...lockedExt, [key]: !lockedExt[key]};
+    }
+
     function toggleLock(key: string, event: MouseEvent) {
         event.stopPropagation();
         event.preventDefault();
-        lockedExt = {...lockedExt, [key]: !lockedExt[key]};
+        toggleLockBare(key);
     }
 
     let menu = $state({open: false, x: 0, y: 0, key: ''});
@@ -125,15 +130,7 @@
                         role="button"
                         tabindex="-1"
                         onclick={e => toggleLock(role.key, e)}
-                        onkeydown={e => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                toggleLock(
-                                    role.key,
-                                    e as unknown as MouseEvent
-                                );
-                            }
-                        }}
+                        onkeydown={onActivate(() => toggleLockBare(role.key))}
                         title={locked ? 'Unlock' : 'Lock'}
                         aria-label={locked ? 'Unlock' : 'Lock'}
                     >
