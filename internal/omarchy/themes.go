@@ -3,9 +3,29 @@ package omarchy
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
+
+// slugInvalid matches anything that isn't a lowercase letter, digit, hyphen,
+// or underscore. Anything matching is replaced with a single hyphen.
+var slugInvalid = regexp.MustCompile(`[^a-z0-9_-]+`)
+
+// slugCollapse collapses multiple consecutive hyphens into one.
+var slugCollapse = regexp.MustCompile(`-+`)
+
+// SlugifyThemeName normalises a user-typed theme name into a value that's
+// safe to use as a directory/symlink name and that omarchy's menu can
+// select without quoting issues. Spaces and punctuation become hyphens;
+// the result is lowercase. Returns "" if the input has no usable
+// characters, so callers can reject empty slugs.
+func SlugifyThemeName(name string) string {
+	s := strings.ToLower(strings.TrimSpace(name))
+	s = slugInvalid.ReplaceAllString(s, "-")
+	s = slugCollapse.ReplaceAllString(s, "-")
+	return strings.Trim(s, "-_")
+}
 
 // Theme represents a discovered Omarchy theme.
 type Theme struct {

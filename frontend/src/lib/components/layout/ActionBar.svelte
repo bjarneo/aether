@@ -214,9 +214,13 @@
                 installToOmarchy,
                 appOverrides: getAppOverrides(),
             });
+            // Path ends with .../omarchy-{slug}-theme — pull the slug so the
+            // user can see what name actually went into Omarchy's menu.
+            const slug =
+                path.match(/omarchy-(.+)-theme$/)?.[1] ?? exportName.trim();
             showToast(
                 installToOmarchy
-                    ? `Exported and installed as Omarchy theme`
+                    ? `Installed as Omarchy theme: ${slug}`
                     : `Exported to ${path}`
             );
             showExportDialog = false;

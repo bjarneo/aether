@@ -856,6 +856,15 @@ var allExportableApps = map[string]bool{
 
 // ExportTheme exports the current theme to a user-chosen directory.
 func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
+	// Sanitize the user-typed name. Omarchy's menu chokes on spaces and
+	// punctuation when selecting an entry, so the directory and symlink
+	// names need to be a slug regardless of installToOmarchy — the
+	// resulting export folder is also more portable that way.
+	slug := omarchy.SlugifyThemeName(req.Name)
+	if slug == "" {
+		return "", fmt.Errorf("theme name must contain letters or digits")
+	}
+
 	dir, err := wailsrt.OpenDirectoryDialog(a.ctx, wailsrt.OpenDialogOptions{
 		Title: "Choose Export Directory",
 	})
@@ -902,13 +911,13 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 		ExcludedApps:  excluded,
 	}
 
-	exportDir := filepath.Join(dir, "omarchy-"+req.Name+"-theme")
+	exportDir := filepath.Join(dir, "omarchy-"+slug+"-theme")
 	if err := a.writer.GenerateOnly(state, settings, exportDir); err != nil {
 		return "", fmt.Errorf("export failed: %w", err)
 	}
 
 	if req.InstallToOmarchy && theme.IsOmarchyInstalled() {
-		linkPath := filepath.Join(platform.OmarchyThemesDir(), req.Name)
+		linkPath := filepath.Join(platform.OmarchyThemesDir(), slug)
 		if err := platform.CreateSymlink(exportDir, linkPath); err != nil {
 			log.Printf("Warning: could not symlink to omarchy themes: %v", err)
 		} else {
