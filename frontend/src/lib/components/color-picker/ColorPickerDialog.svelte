@@ -485,6 +485,10 @@
                         spellcheck={false}
                         disabled={locked}
                         aria-label="Hex value"
+                        aria-invalid={!isValid}
+                        aria-describedby={isValid
+                            ? undefined
+                            : 'hex-input-error'}
                     />
                     <button
                         type="button"
@@ -510,7 +514,14 @@
                     </button>
                 </div>
 
-                {#if contrastPills.length > 0}
+                {#if !isValid}
+                    <p
+                        id="hex-input-error"
+                        class="text-destructive text-[10px]"
+                    >
+                        Enter a 6-digit hex like #1a2b3c
+                    </p>
+                {:else if contrastPills.length > 0}
                     <div
                         class="text-fg-dimmed flex items-center gap-2 text-[10px] tabular-nums"
                     >

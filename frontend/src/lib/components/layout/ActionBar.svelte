@@ -47,6 +47,11 @@
     let exportName = $state('');
     let installToOmarchy = $state(false);
     let isOmarchy = $state(false);
+    let exportNameInput = $state<HTMLInputElement | null>(null);
+
+    $effect(() => {
+        if (showExportDialog) exportNameInput?.focus();
+    });
 
     let activeTab = $derived(getActiveTab());
     let wallpaperSelected = $derived(getWallpaperPath() !== '');
@@ -512,10 +517,12 @@
                 Export Theme
             </h3>
             <input
+                bind:this={exportNameInput}
                 type="text"
                 class="bg-bg-surface border-border text-fg-primary focus:border-border-focus mb-3 w-full border px-2 py-1.5 text-[11px] outline-none"
                 placeholder="Theme name..."
                 bind:value={exportName}
+                aria-label="Theme name"
             />
             <div class="mb-3 flex flex-col gap-2.5">
                 {#each exportAppGroups as group}

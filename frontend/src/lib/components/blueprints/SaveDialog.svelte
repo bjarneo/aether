@@ -14,9 +14,23 @@
     let name = $state('');
     let isSaving = $state(false);
     let showOverrideConfirm = $state(false);
+    let nameInput = $state<HTMLInputElement | null>(null);
+    let attemptedSubmit = $state(false);
+
+    $effect(() => {
+        if (!showOverrideConfirm) nameInput?.focus();
+    });
+
+    let nameError = $derived(
+        attemptedSubmit && !name.trim() ? 'Theme name is required' : ''
+    );
 
     async function handleSave() {
-        if (!name.trim()) return;
+        attemptedSubmit = true;
+        if (!name.trim()) {
+            nameInput?.focus();
+            return;
+        }
         isSaving = true;
         try {
             const {BlueprintExists} = await import(
@@ -108,11 +122,25 @@
                 Save Theme
             </h3>
             <input
+                bind:this={nameInput}
                 type="text"
-                class="bg-bg-surface border-border text-fg-primary focus:border-border-focus mb-3 w-full border px-2 py-1.5 text-[12px] outline-none"
+                class="bg-bg-surface text-fg-primary focus:border-border-focus w-full border px-2 py-1.5 text-[12px] outline-none {nameError
+                    ? 'border-destructive'
+                    : 'border-border'}"
                 placeholder="Theme name..."
                 bind:value={name}
+                aria-invalid={!!nameError}
+                aria-describedby={nameError ? 'save-name-error' : undefined}
             />
+            {#if nameError}
+                <p
+                    id="save-name-error"
+                    class="text-destructive mt-1 text-[10px]"
+                >
+                    {nameError}
+                </p>
+            {/if}
+            <div class="mb-3"></div>
             <div class="flex justify-end gap-2">
                 <button
                     class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px]"
