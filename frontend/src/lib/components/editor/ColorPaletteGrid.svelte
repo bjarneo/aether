@@ -3,6 +3,7 @@
     import {
         getPalette,
         getLockedColors,
+        setLockedColor,
         getSelectedColors,
         hasColorSelection,
         hasAnySelection,
@@ -12,12 +13,70 @@
     } from '$lib/stores/theme.svelte';
     import {openColorPicker, showToast} from '$lib/stores/ui.svelte';
     import {ANSI_COLOR_NAMES, ANSI_SLOT_ROLES} from '$lib/constants/colors';
-    import {hslToHex} from '$lib/utils/color';
+    import {hslToHex, copyColor} from '$lib/utils/color';
 
     let palette = $derived(getPalette());
     let locked = $derived(getLockedColors());
     let selected = $derived(getSelectedColors());
     let hasSelect = $derived(hasAnySelection());
+
+    let gridEl = $state<HTMLDivElement | null>(null);
+    let focusedIndex = $state(0);
+
+    // 8 cols × 2 rows; top row 0..7, bottom row 8..15.
+    function nextIndex(idx: number, key: string): number | null {
+        if (key === 'ArrowRight')
+            return idx === 7 ? 0 : idx === 15 ? 8 : idx + 1;
+        if (key === 'ArrowLeft')
+            return idx === 0 ? 7 : idx === 8 ? 15 : idx - 1;
+        if (key === 'ArrowDown') return idx < 8 ? idx + 8 : idx - 8;
+        if (key === 'ArrowUp') return idx >= 8 ? idx - 8 : idx + 8;
+        if (key === 'Home') return idx < 8 ? 0 : 8;
+        if (key === 'End') return idx < 8 ? 7 : 15;
+        return null;
+    }
+
+    function focusSwatch(idx: number) {
+        focusedIndex = idx;
+        queueMicrotask(() => {
+            gridEl
+                ?.querySelector<HTMLElement>(`[data-swatch-idx="${idx}"]`)
+                ?.focus();
+        });
+    }
+
+    function handleGridKey(e: KeyboardEvent) {
+        const tgt = e.target as HTMLElement;
+        const idxAttr = tgt.dataset?.swatchIdx;
+        if (idxAttr === undefined) return;
+        const idx = Number(idxAttr);
+
+        const next = nextIndex(idx, e.key);
+        if (next !== null) {
+            e.preventDefault();
+            focusSwatch(next);
+            return;
+        }
+
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (!locked[idx]) openColorPicker(idx);
+        } else if (
+            (e.key === 'l' || e.key === 'L') &&
+            !e.ctrlKey &&
+            !e.metaKey
+        ) {
+            e.preventDefault();
+            setLockedColor(idx, !locked[idx]);
+        } else if (
+            (e.key === 'c' || e.key === 'C') &&
+            !e.ctrlKey &&
+            !e.metaKey
+        ) {
+            e.preventDefault();
+            copyColor(palette[idx]);
+        }
+    }
 
     const labels = [
         'BG',
@@ -76,12 +135,22 @@
                     onclick={clearColorSelection}>Clear</button
                 >
             {/if}
-            <span class="text-fg-dimmed text-[9px]">Shift+click select</span>
+            <span class="text-fg-dimmed text-[9px]"
+                >Shift+click select · ←→↑↓ navigate · L lock · C copy</span
+            >
         </div>
     </div>
 
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- 8 columns, each has normal + bright stacked with label -->
-    <div class="grid grid-cols-8 gap-1.5">
+    <div
+        bind:this={gridEl}
+        class="grid grid-cols-8 gap-1.5"
+        role="grid"
+        tabindex={-1}
+        aria-label="Palette colours"
+        onkeydown={handleGridKey}
+    >
         {#each Array(8) as _, i}
             <div class="flex flex-col gap-1.5">
                 <ColorSwatch
@@ -92,6 +161,7 @@
                     contrastAgainst={palette[0]}
                     locked={locked[i] || false}
                     selected={selected[i] || false}
+                    focused={focusedIndex === i}
                     onclick={() => openColorPicker(i)}
                 />
                 <ColorSwatch
@@ -102,6 +172,7 @@
                     contrastAgainst={palette[0]}
                     locked={locked[i + 8] || false}
                     selected={selected[i + 8] || false}
+                    focused={focusedIndex === i + 8}
                     onclick={() => openColorPicker(i + 8)}
                 />
                 <span

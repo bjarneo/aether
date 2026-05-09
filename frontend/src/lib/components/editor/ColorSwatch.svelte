@@ -21,6 +21,7 @@
         contrastAgainst = '',
         locked,
         selected,
+        focused = false,
         onclick,
     }: {
         color: string;
@@ -30,6 +31,7 @@
         contrastAgainst?: string;
         locked: boolean;
         selected: boolean;
+        focused?: boolean;
         onclick: () => void;
     } = $props();
 
@@ -110,18 +112,21 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="group relative h-14 w-full border transition-all duration-150
+    class="focus-visible:ring-accent focus-visible:ring-offset-bg-primary group relative h-14 w-full border transition-all duration-150 focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-offset-1
     {locked
         ? 'border-border cursor-default'
         : selected
           ? 'border-accent cursor-pointer border-2'
           : 'hover:border-accent border-border cursor-pointer hover:z-10 hover:scale-[1.04] hover:shadow-lg'}"
     style:background-color={color}
+    role="button"
+    tabindex={focused ? 0 : -1}
+    data-swatch-idx={index}
     onclick={handleClick}
     oncontextmenu={handleContextMenu}
     title={`${label}${role ? ` · ${role}` : ''}\n${color}${
         showBadge ? `\nContrast vs BG: ${ratio.toFixed(2)}:1 (${level})` : ''
-    }\nClick edit · Ctrl+click copy · Shift+click select · Right-click for menu`}
+    }\nClick edit · Ctrl+click copy · Shift+click select · Right-click for menu\n← → ↑ ↓ navigate · Enter open · L lock · C copy`}
 >
     {#if selected}
         <span
