@@ -36,8 +36,9 @@
         hexToOklch,
         oklchToHex,
         isValidHex,
-        relativeLuminance,
+        contrastRatio,
         contrastLevel,
+        copyColor,
     } from '$lib/utils/color';
     import {
         getRecentColors,
@@ -100,20 +101,24 @@
 
     let computedVars = $state<Record<string, string>>({});
 
+    // Cache the import promise so each effect tick reuses the same module
+    // instance instead of allocating a new resolution chain.
+    const appModule = import('../../../../wailsjs/go/main/App');
+
+    // Token guards against stale ComputeVariables resolves clobbering newer
+    // results when the user flips between overrides quickly.
+    let computeToken = 0;
     $effect(() => {
-        if (isOverride) {
-            import('../../../../wailsjs/go/main/App')
-                .then(({ComputeVariables}) =>
-                    ComputeVariables(
-                        getPalette(),
-                        getExtendedColors(),
-                        false
-                    ).then(result => {
-                        computedVars = result || {};
-                    })
-                )
-                .catch(() => {});
-        }
+        if (!isOverride) return;
+        const token = ++computeToken;
+        appModule
+            .then(({ComputeVariables}) =>
+                ComputeVariables(getPalette(), getExtendedColors(), false)
+            )
+            .then(result => {
+                if (token === computeToken) computedVars = result || {};
+            })
+            .catch(() => {});
     });
 
     function getOverrideBaseColor(): string {
@@ -128,9 +133,8 @@
               : getPalette()[idx] || '#000000'
     );
 
-    let locked = $derived(
-        !isExtended && !isOverride ? getLockedColors()[idx] || false : false
-    );
+    let isAnsi = $derived(!isExtended && !isOverride);
+    let locked = $derived(isAnsi ? getLockedColors()[idx] || false : false);
 
     let title = $derived(
         isOverride
@@ -146,18 +150,16 @@
     let eyedropperActive = $derived(getEyedropperActive());
 
     let hexInput = $state('');
-    let isValid = $state(true);
+    let isValid = $derived(isValidHex(hexInput));
     let rgb = $derived(hexToRgb(currentColor));
 
     $effect(() => {
         hexInput = currentColor;
-        isValid = true;
     });
 
     function applyColor(hex: string) {
         if (locked) return;
         hexInput = hex;
-        isValid = true;
         if (isOverride) setAppOverride(overrideApp, overrideRole, hex);
         else if (isExtended) setExtendedColor(extKey, hex);
         else setColor(idx, hex);
@@ -165,16 +167,10 @@
 
     function handleHexInput(value: string) {
         hexInput = value;
-        if (/^#[0-9a-fA-F]{6}$/.test(value)) {
-            isValid = true;
-            if (!locked) {
-                if (isOverride)
-                    setAppOverride(overrideApp, overrideRole, value);
-                else if (isExtended) setExtendedColor(extKey, value);
-                else setColor(idx, value);
-            }
-        } else {
-            isValid = false;
+        if (!locked && isValidHex(value)) {
+            if (isOverride) setAppOverride(overrideApp, overrideRole, value);
+            else if (isExtended) setExtendedColor(extKey, value);
+            else setColor(idx, value);
         }
     }
 
@@ -211,8 +207,6 @@
         return Number.isFinite(n) ? n : null;
     }
 
-    // Builds an `oncommit` handler for a ChannelSlider: parse → clamp → dispatch.
-    // `transform` lets OKLCH C map its 0..0.4 display value onto the 0..40 slider.
     function makeCommitHandler<C extends string>(
         channel: C,
         handle: (c: C, value: number) => void,
@@ -233,8 +227,8 @@
         }))
     );
 
-    // Debounced so slider drags don't flood the recents list with intermediate
-    // hexes; only the value the user settles on is recorded.
+    // Debounce so a slider drag records only the value the user settles on,
+    // not every intermediate hex produced during the gesture.
     const RECENT_RECORD_DELAY_MS = 600;
     let recordTimer: ReturnType<typeof setTimeout> | null = null;
     $effect(() => {
@@ -250,8 +244,9 @@
         if (recordTimer) clearTimeout(recordTimer);
     });
 
-    // When editing an app override, prefer the role map's computed bg/fg so
-    // the ratio reflects what the target app will actually render against.
+    // For overrides, prefer the role map's computed bg/fg so the ratio
+    // reflects what the target app will actually render against. ANSI
+    // palette anchors fall back to slots 0/15 (black/white by convention).
     let contrastBg = $derived(
         (isOverride && computedVars['background']) ||
             getPalette()[0] ||
@@ -263,46 +258,35 @@
             '#ffffff'
     );
 
-    let isBgAnchor = $derived(!isExtended && !isOverride && idx === 0);
-    let isFgAnchor = $derived(!isExtended && !isOverride && idx === 15);
+    let ratioBg = $derived(contrastRatio(currentColor, contrastBg));
+    let ratioFg = $derived(contrastRatio(currentColor, contrastFg));
 
-    // Cache the current-color luminance so a slider tick doesn't gamma-decode
-    // it twice (once per ratio derived).
-    let currentLum = $derived(relativeLuminance(currentColor));
-    const ratio = (otherHex: string) => {
-        const l = relativeLuminance(otherHex);
-        const [hi, lo] = currentLum > l ? [currentLum, l] : [l, currentLum];
-        return (hi + 0.05) / (lo + 0.05);
-    };
-    let ratioBg = $derived(ratio(contrastBg));
-    let ratioFg = $derived(ratio(contrastFg));
-
-    const LEVEL_CLASSES: Record<ReturnType<typeof contrastLevel>, string> = {
-        AAA: 'text-success border-success/40',
-        AA: 'text-accent border-accent/40',
-        'AA-L': 'text-warning border-warning/40',
-        fail: 'text-destructive border-destructive/40',
+    const LEVEL_TEXT: Record<ReturnType<typeof contrastLevel>, string> = {
+        AAA: 'text-success',
+        AA: 'text-accent',
+        'AA-L': 'text-warning',
+        fail: 'text-destructive',
     };
 
     let contrastPills = $derived(
         [
             {
-                label: 'vs bg',
+                label: 'bg',
                 ratio: ratioBg,
                 anchor: contrastBg,
-                show: !isBgAnchor,
+                show: !(isAnsi && idx === 0),
             },
             {
-                label: 'vs fg',
+                label: 'fg',
                 ratio: ratioFg,
                 anchor: contrastFg,
-                show: !isFgAnchor,
+                show: !(isAnsi && idx === 15),
             },
         ].filter(p => p.show)
     );
 
     function toggleLock() {
-        if (!isExtended && !isOverride) setLockedColor(idx, !locked);
+        if (isAnsi) setLockedColor(idx, !locked);
     }
 
     function handleResetOverride() {
@@ -333,7 +317,6 @@
         if (channel === 's') {
             return `linear-gradient(to right, ${hslToHex(hsl.h, 0, hsl.l)}, ${hslToHex(hsl.h, 100, hsl.l)})`;
         }
-        // l: black → pure hue at 50% lightness → white
         return `linear-gradient(to right, #000, ${hslToHex(hsl.h, hsl.s, 50)}, #fff)`;
     }
 
@@ -343,8 +326,9 @@
 
     const OKLCH_CHANNELS: readonly OklchChannel[] = ['l', 'c', 'h'] as const;
     const OKLCH_LABELS: Record<OklchChannel, string> = {l: 'L', c: 'C', h: 'H'};
-    // Slider scaling: step=1 on the input element, so we map L 0..1 → 0..100
-    // and C 0..0.4 → 0..40 for smooth dragging, then convert back on change.
+    // Slider range stays integer (step=1) for smooth dragging: L 0..1 maps
+    // to 0..100, C 0..0.4 maps to 0..40, H stays 0..360. Convert back via
+    // OKLCH_FROM_SLIDER on each change.
     const OKLCH_MAX: Record<OklchChannel, number> = {l: 100, c: 40, h: 360};
     const OKLCH_FROM_SLIDER: Record<OklchChannel, number> = {
         l: 1 / 100,
@@ -384,33 +368,31 @@
         if (channel === 'c') return oklch.c.toFixed(2);
         return `${Math.round(oklch.h)}°`;
     }
+
+    let recents = $derived(getRecentColors());
 </script>
 
 <div class="flex h-full flex-col">
-    <div
-        class="border-border flex items-center justify-between border-b px-4 py-3"
+    <header
+        class="border-border flex items-center justify-between gap-2 border-b px-4 py-2.5"
     >
-        <div>
-            <span class="text-fg-primary text-[12px] font-medium">{title}</span>
-            <span class="text-fg-dimmed ml-2 text-[10px]">{subtitle}</span>
+        <div class="min-w-0">
+            <div class="text-fg-primary truncate text-[12px] font-medium">
+                {title}
+            </div>
+            <div class="text-fg-dimmed truncate text-[10px]">
+                {subtitle}
+            </div>
         </div>
-        <div class="flex items-center gap-2">
-            {#if isOverride && overrideValue}
-                <button
-                    class="text-destructive/60 hover:text-destructive text-[10px] transition-colors"
-                    onclick={handleResetOverride}
-                >
-                    Reset
-                </button>
-            {/if}
+        <div class="flex shrink-0 items-center gap-0.5">
             <button
-                class="flex h-6 w-6 items-center justify-center transition-colors {eyedropperActive
-                    ? 'text-accent'
-                    : 'text-fg-dimmed hover:text-fg-primary'}"
+                class="flex h-7 w-7 items-center justify-center transition-colors {eyedropperActive
+                    ? 'text-accent bg-accent-muted'
+                    : 'text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover'}"
                 onclick={() => setEyedropperActive(!eyedropperActive)}
                 aria-label="Pick color from wallpaper"
                 aria-pressed={eyedropperActive}
-                title="Pick color from wallpaper"
+                title="Pick from wallpaper"
             >
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                     <path
@@ -418,10 +400,33 @@
                     />
                 </svg>
             </button>
+            {#if isAnsi}
+                <button
+                    class="flex h-7 w-7 items-center justify-center transition-colors {locked
+                        ? 'text-accent bg-accent-muted'
+                        : 'text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover'}"
+                    onclick={toggleLock}
+                    role="switch"
+                    aria-checked={locked}
+                    title={locked ? 'Unlock color' : 'Lock color'}
+                >
+                    <LockIcon {locked} size="h-4 w-4" />
+                </button>
+            {/if}
+            {#if isOverride && overrideValue}
+                <button
+                    class="text-destructive/70 hover:text-destructive hover:bg-destructive/10 flex h-7 items-center justify-center px-2 text-[10px] uppercase tracking-wider transition-colors"
+                    onclick={handleResetOverride}
+                    title="Reset override to computed value"
+                >
+                    Reset
+                </button>
+            {/if}
             <button
-                class="text-fg-dimmed hover:text-fg-primary flex h-6 w-6 items-center justify-center transition-colors"
+                class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover flex h-7 w-7 items-center justify-center transition-colors"
                 onclick={closeColorPicker}
                 aria-label="Close color picker"
+                title="Close"
             >
                 <svg
                     class="h-4 w-4"
@@ -435,12 +440,12 @@
                 </svg>
             </button>
         </div>
-    </div>
+    </header>
 
-    <div class="space-y-4 p-4">
+    <div class="flex-1 space-y-4 overflow-y-auto p-4">
         <div class="flex gap-3">
             <label
-                class="border-border relative h-20 w-20 shrink-0 overflow-hidden border {locked
+                class="border-border relative h-16 w-16 shrink-0 overflow-hidden border {locked
                     ? 'cursor-not-allowed'
                     : 'cursor-pointer'}"
             >
@@ -452,7 +457,7 @@
                     <div
                         class="absolute inset-0 flex items-center justify-center bg-black/45 text-white"
                     >
-                        <LockIcon locked={true} size="h-6 w-6" />
+                        <LockIcon locked={true} size="h-5 w-5" />
                     </div>
                 {:else}
                     <input
@@ -460,19 +465,16 @@
                         value={currentColor}
                         oninput={e => applyColor(e.currentTarget.value)}
                         class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                        aria-label="Native color picker"
                     />
                 {/if}
             </label>
 
-            <div class="flex flex-1 flex-col justify-between">
-                <div>
-                    <span
-                        class="text-fg-dimmed mb-1 block text-[9px] uppercase tracking-wider"
-                        >Hex</span
-                    >
+            <div class="flex min-w-0 flex-1 flex-col justify-between gap-1.5">
+                <div class="relative">
                     <input
                         type="text"
-                        class="text-fg-primary bg-bg-secondary w-full border px-2.5 py-1.5 font-mono text-[13px] outline-none disabled:cursor-not-allowed disabled:opacity-50
+                        class="text-fg-primary bg-bg-secondary w-full border py-1.5 pl-2.5 pr-8 font-mono text-[13px] outline-none disabled:cursor-not-allowed disabled:opacity-50
                           {isValid
                             ? 'focus:border-accent border-border'
                             : 'border-destructive'}"
@@ -482,104 +484,75 @@
                         maxlength={7}
                         spellcheck={false}
                         disabled={locked}
+                        aria-label="Hex value"
                     />
+                    <button
+                        type="button"
+                        class="text-fg-dimmed hover:text-fg-primary absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center transition-colors"
+                        onclick={() => copyColor(currentColor)}
+                        title="Copy hex"
+                        aria-label="Copy hex"
+                    >
+                        <svg
+                            class="h-3.5 w-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect x="9" y="9" width="13" height="13"></rect>
+                            <path
+                                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                            ></path>
+                        </svg>
+                    </button>
                 </div>
-                {#if !isExtended && !isOverride}
-                    <div class="mt-2 flex items-center justify-between">
-                        <span
-                            class="text-fg-dimmed text-[9px] uppercase tracking-wider"
-                            >Lock</span
-                        >
-                        <button
-                            class="relative h-5 w-9 transition-colors duration-150
-                                {locked
-                                ? 'bg-accent'
-                                : 'border-border bg-bg-elevated border'}"
-                            onclick={toggleLock}
-                            role="switch"
-                            aria-checked={locked}
-                            aria-label="Lock color"
-                        >
+
+                {#if contrastPills.length > 0}
+                    <div
+                        class="text-fg-dimmed flex items-center gap-2 text-[10px] tabular-nums"
+                    >
+                        {#each contrastPills as pill}
+                            {@const level = contrastLevel(pill.ratio)}
                             <span
-                                class="bg-fg-primary absolute left-0.5 top-0.5 h-4 w-4 transition-transform duration-150
-                                    {locked
-                                    ? 'translate-x-4'
-                                    : 'translate-x-0'}"
-                            ></span>
-                        </button>
+                                class="flex items-baseline gap-1"
+                                title="Contrast against {pill.anchor}"
+                            >
+                                <span class="font-mono"
+                                    >{pill.ratio.toFixed(1)}</span
+                                >
+                                <span class="font-semibold {LEVEL_TEXT[level]}"
+                                    >{level}</span
+                                >
+                                <span>vs {pill.label}</span>
+                            </span>
+                        {/each}
                     </div>
                 {/if}
             </div>
         </div>
 
-        {#if contrastPills.length > 0}
-            <div class="space-y-1.5">
+        <section class="space-y-2">
+            <div class="flex items-center justify-between">
                 <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
-                    >Contrast</span
+                    >Channels</span
                 >
-                <div class="flex gap-1.5">
-                    {#each contrastPills as pill}
-                        {@const level = contrastLevel(pill.ratio)}
-                        <div
-                            class="flex flex-1 items-center justify-between border px-2 py-1 {LEVEL_CLASSES[
-                                level
-                            ]}"
-                            title="Contrast against {pill.anchor}"
+                <div class="flex items-center gap-px">
+                    {#each COLOR_MODELS as id}
+                        <button
+                            type="button"
+                            class="border px-1.5 py-0.5 text-[9px] uppercase tracking-wider transition-colors
+                            {activeModel === id
+                                ? 'text-accent border-accent bg-accent-muted'
+                                : 'text-fg-dimmed border-border hover:text-fg-secondary'}"
+                            onclick={() => setColorPickerModel(id)}
+                            aria-pressed={activeModel === id}
+                            >{MODEL_LABELS[id]}</button
                         >
-                            <span class="text-fg-dimmed text-[9px]"
-                                >{pill.label}</span
-                            >
-                            <span class="font-mono text-[10px] tabular-nums"
-                                >{pill.ratio.toFixed(1)}:1</span
-                            >
-                            <span class="text-[9px] font-semibold">{level}</span
-                            >
-                        </div>
                     {/each}
                 </div>
-            </div>
-        {/if}
-
-        <div class="space-y-1.5">
-            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
-                >Harmony</span
-            >
-            <div class="flex gap-1">
-                {#each harmonyColors as h}
-                    <button
-                        type="button"
-                        class="border-border hover:border-border-focus flex flex-1 flex-col items-stretch border transition-colors disabled:opacity-40"
-                        onclick={() => applyColor(h.hex)}
-                        disabled={locked}
-                        title="{h.title} · {h.hex}"
-                    >
-                        <div
-                            class="h-6 w-full"
-                            style:background-color={h.hex}
-                        ></div>
-                        <span
-                            class="text-fg-dimmed py-0.5 text-center text-[8px] tabular-nums leading-none"
-                            >{h.label}</span
-                        >
-                    </button>
-                {/each}
-            </div>
-        </div>
-
-        <div class="space-y-2.5">
-            <div class="flex items-center gap-1">
-                {#each COLOR_MODELS as id}
-                    <button
-                        type="button"
-                        class="border px-2 py-0.5 text-[9px] uppercase tracking-wider transition-colors
-                        {activeModel === id
-                            ? 'text-accent border-accent bg-accent-muted'
-                            : 'text-fg-dimmed border-border hover:text-fg-secondary'}"
-                        onclick={() => setColorPickerModel(id)}
-                        aria-pressed={activeModel === id}
-                        >{MODEL_LABELS[id]}</button
-                    >
-                {/each}
             </div>
 
             {#if activeModel === 'rgb'}
@@ -631,21 +604,53 @@
                             channel,
                             handleOklchChange,
                             OKLCH_MAX[channel],
-                            // C displays 0..0.4 but slider is 0..40.
                             channel === 'c' ? n => n * 100 : undefined
                         )}
                     />
                 {/each}
             {/if}
-        </div>
+        </section>
 
-        {#if getRecentColors().length > 0}
-            <div class="space-y-1.5">
+        <section class="space-y-1.5">
+            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
+                >Harmony</span
+            >
+            <div class="grid grid-cols-5 gap-1">
+                {#each harmonyColors as h}
+                    <button
+                        type="button"
+                        class="border-border hover:border-border-focus flex flex-col items-stretch border transition-colors disabled:opacity-40"
+                        onclick={() => applyColor(h.hex)}
+                        disabled={locked}
+                        title="{h.title} · {h.hex}"
+                    >
+                        <div
+                            class="h-7 w-full"
+                            style:background-color={h.hex}
+                        ></div>
+                        <span
+                            class="text-fg-dimmed py-0.5 text-center text-[9px] tabular-nums leading-none"
+                            >{h.label}</span
+                        >
+                    </button>
+                {/each}
+            </div>
+        </section>
+
+        <section class="space-y-1.5">
+            <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
+                >Tones</span
+            >
+            <ShadeGrid baseColor={currentColor} onselect={c => applyColor(c)} />
+        </section>
+
+        {#if recents.length > 0}
+            <section class="space-y-1.5">
                 <span class="text-fg-dimmed text-[9px] uppercase tracking-wider"
                     >Recent</span
                 >
                 <div class="grid grid-cols-12 gap-1">
-                    {#each getRecentColors() as hex}
+                    {#each recents as hex}
                         <button
                             type="button"
                             class="border-border hover:border-border-focus aspect-square border transition-colors disabled:opacity-40"
@@ -653,18 +658,11 @@
                             onclick={() => applyColor(hex)}
                             disabled={locked}
                             title={hex}
+                            aria-label="Apply {hex}"
                         ></button>
                     {/each}
                 </div>
-            </div>
+            </section>
         {/if}
-
-        <div>
-            <span
-                class="text-fg-dimmed mb-2 block text-[9px] uppercase tracking-wider"
-                >Shades & Tints</span
-            >
-            <ShadeGrid baseColor={currentColor} onselect={c => applyColor(c)} />
-        </div>
     </div>
 </div>
