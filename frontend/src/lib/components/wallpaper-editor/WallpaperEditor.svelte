@@ -328,13 +328,17 @@
         <div
             class="border-border bg-bg-secondary flex h-11 shrink-0 items-center justify-between border-b px-5"
         >
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
                 <span
                     class="text-fg-primary text-[12px] font-semibold tracking-wide"
                     >Image Editor</span
                 >
                 {#if hasChanges}
-                    <span class="text-accent text-[10px]">Modified</span>
+                    <span
+                        class="bg-accent inline-block h-1.5 w-1.5 rounded-full"
+                        title="Unsaved adjustments"
+                        aria-label="Unsaved adjustments"
+                    ></span>
                 {/if}
             </div>
             <div class="flex items-center gap-1">
@@ -416,22 +420,43 @@
                 <span class="bg-border mx-2 h-4 w-px"></span>
 
                 <button
-                    class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px] transition-colors"
+                    class="text-fg-dimmed hover:text-fg-secondary px-2 py-1 text-[11px] transition-colors disabled:opacity-30"
                     onclick={resetFilters}
-                    title="Reset all adjustments ( R )">Reset All</button
+                    disabled={!hasChanges}
+                    title="Reset all adjustments (R)">Reset</button
                 >
                 <button
-                    class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px] transition-colors"
-                    onclick={onclose}
-                    title="Cancel ( Esc )">Cancel</button
-                >
-                <button
-                    class="bg-accent hover:bg-accent-hover px-5 py-1.5 text-[11px] font-medium text-[#111116] transition-colors disabled:opacity-40"
+                    class="bg-accent hover:bg-accent-hover inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-[#111116] transition-colors disabled:opacity-40"
                     onclick={handleApply}
                     disabled={isProcessing || !hasChanges}
-                    title="Apply and close ( Ctrl+Enter )"
-                    >{isProcessing ? 'Exporting...' : 'Apply'}</button
+                    title="Apply and close (Ctrl+Enter)"
                 >
+                    <span>{isProcessing ? 'Exporting…' : 'Apply'}</span>
+                    {#if !isProcessing}
+                        <kbd
+                            class="border-bg-primary/30 bg-bg-primary/15 inline-flex items-center border px-1 font-mono text-[9px] leading-[1.4] opacity-90"
+                            aria-hidden="true">Ctrl+↵</kbd
+                        >
+                    {/if}
+                </button>
+                <button
+                    class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover ml-1 flex h-7 w-7 items-center justify-center transition-colors"
+                    onclick={onclose}
+                    aria-label="Close"
+                    title="Close (Esc)"
+                >
+                    <svg
+                        class="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                    >
+                        <path d="M18 6L6 18M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
         </div>
 

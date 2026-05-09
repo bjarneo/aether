@@ -783,6 +783,11 @@
             </div>
         </section>
 
+        <h4
+            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+        >
+            Tone
+        </h4>
         <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Curves"
@@ -809,6 +814,11 @@
             </ExpandableSection>
         </section>
 
+        <h4
+            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+        >
+            Color
+        </h4>
         <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Color"
@@ -962,6 +972,11 @@
             </ExpandableSection>
         </section>
 
+        <h4
+            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+        >
+            Detail
+        </h4>
         <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Detail"
@@ -972,6 +987,11 @@
             </ExpandableSection>
         </section>
 
+        <h4
+            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+        >
+            Geometry
+        </h4>
         <section class="border-border border-b p-3">
             <ExpandableSection
                 title="Transform"
@@ -1243,6 +1263,11 @@
             </ExpandableSection>
         </section>
 
+        <h4
+            class="bg-bg-surface text-fg-dimmed border-border mt-1 border-b border-t px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+        >
+            Snapshots
+        </h4>
         <section class="border-border border-b p-3">
             <ExpandableSection title="Presets" bind:expanded={presetsExpanded}>
                 <div class="space-y-3 pt-1">
