@@ -606,3 +606,18 @@ Aether respects standard XDG directories:
 - `~/.config/aether/` - Configuration and blueprints
 - `~/.cache/aether/` - Thumbnails and temporary files
 - `~/.local/share/aether/` - Downloaded wallpapers
+
+### `AETHER_EXTRA_THEME_DIRS`
+
+Colon-separated list of additional directories to scan for themes shown
+in the **System Themes** tab. These are searched **before** the omarchy
+defaults (`~/.config/omarchy/themes`, `~/.local/share/omarchy/themes`,
+`~/.config/themes`), so a theme with the same name in a custom directory
+wins.
+
+```bash
+AETHER_EXTRA_THEME_DIRS="$HOME/dotfiles/themes:$HOME/work/themes" aether
+```
+
+Useful if you keep themes in a non-omarchy location (e.g. your dotfiles
+repo) or run a distro that puts themes elsewhere.

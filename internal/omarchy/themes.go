@@ -40,17 +40,33 @@ type Theme struct {
 	IsAetherGenerated bool     `json:"isAetherGenerated"`
 }
 
-// themeSearchDirs returns the user and system-wide directories where
-// omarchy looks up themes, in precedence order.
+// AETHER_EXTRA_THEME_DIRS is a colon-separated list of additional
+// directories to scan for system themes, prepended to the omarchy
+// defaults. Empty entries are ignored.
+const extraThemeDirsEnv = "AETHER_EXTRA_THEME_DIRS"
+
+// themeSearchDirs returns the directories where the System Themes tab
+// scans for themes, in precedence order. AETHER_EXTRA_THEME_DIRS comes
+// first (so distro packagers / users can override), then the omarchy
+// defaults, then a generic ~/.config/themes for users on non-omarchy
+// systems who keep their themes in a neutral location.
 func themeSearchDirs() []string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil
 	}
-	return []string{
+	var dirs []string
+	for _, d := range filepath.SplitList(os.Getenv(extraThemeDirsEnv)) {
+		if d != "" {
+			dirs = append(dirs, d)
+		}
+	}
+	dirs = append(dirs,
 		filepath.Join(home, ".config", "omarchy", "themes"),
 		filepath.Join(home, ".local", "share", "omarchy", "themes"),
-	}
+		filepath.Join(home, ".config", "themes"),
+	)
+	return dirs
 }
 
 func isImageFile(name string) bool {
