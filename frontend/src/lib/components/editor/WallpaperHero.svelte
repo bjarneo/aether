@@ -34,13 +34,17 @@
     let {onedit, expanded = false}: {onedit?: () => void; expanded?: boolean} =
         $props();
 
-    let wallpaperImage = $derived(getCachedFullImage(getWallpaperPath()) || '');
-    let loading = $derived(isPending(getWallpaperPath()));
+    let wallpaperPath = $derived(getWallpaperPath());
+    let wallpaperImage = $derived(getCachedFullImage(wallpaperPath) || '');
+    let wallpaperName = $derived(wallpaperPath.split('/').pop() || '');
+    let loading = $derived(isPending(wallpaperPath));
     let isVideo = $derived(isVideoSource(wallpaperImage));
     let previewOpen = $state(false);
     let eyedropperActive = $derived(getEyedropperActive());
     let containerHeight = $derived(expanded ? 'h-[70vh]' : 'h-96');
     let objectFit = $derived(expanded ? 'object-contain' : 'object-cover');
+    let extraCount = $derived(getAdditionalImages().length);
+    let extracting = $derived(getIsExtracting());
 
     let imgEl = $state<HTMLImageElement | null>(null);
     let videoEl = $state<HTMLVideoElement | null>(null);
@@ -339,11 +343,11 @@
             <span class="text-fg-dimmed text-[11px]">No preview available</span>
         {/if}
 
-        {#if getIsExtracting()}
+        {#if extracting}
             <div
                 class="absolute inset-0 flex items-center justify-center bg-black/60"
             >
-                <span class="text-[11px] text-white">Extracting colors...</span>
+                <span class="text-[11px] text-white">Extracting colors…</span>
             </div>
         {/if}
 
@@ -358,43 +362,107 @@
 
     {#if !eyedropperActive}
         <div
-            class="absolute bottom-0 left-0 right-0 flex justify-end gap-2 bg-gradient-to-t from-black/70 to-transparent p-3"
+            class="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/65 to-transparent p-2.5"
         >
-            <button
-                class="bg-accent hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors duration-100"
-                onclick={handleExtractColors}
-                title="Extract a 16-color palette from the main wallpaper"
-                >Extract</button
+            <span
+                class="pointer-events-auto truncate font-mono text-[10px] text-white/70"
+                style="text-shadow: 0 1px 2px rgba(0,0,0,0.6);"
+                title={wallpaperPath}
             >
-            {#if getAdditionalImages().length > 0}
+                {wallpaperName}
+            </span>
+
+            <div class="pointer-events-auto flex shrink-0 items-center gap-1">
+                {#if wallpaperImage}
+                    <button
+                        class="flex h-7 w-7 items-center justify-center text-white/75 transition-colors hover:bg-white/15 hover:text-white"
+                        onclick={() => (previewOpen = true)}
+                        title="View full-size"
+                        aria-label="View full-size"
+                    >
+                        <svg
+                            class="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                            ></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                {/if}
+                {#if onedit}
+                    <button
+                        class="flex h-7 w-7 items-center justify-center text-white/75 transition-colors hover:bg-white/15 hover:text-white"
+                        onclick={onedit}
+                        title="Edit — crop, adjust, filters"
+                        aria-label="Edit wallpaper"
+                    >
+                        <svg
+                            class="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"
+                            ></path>
+                        </svg>
+                    </button>
+                {/if}
                 <button
-                    class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
-                    onclick={handleExtractAll}
-                    title="Blend a palette from the main wallpaper and all additional images"
-                    >Extract All</button
+                    class="flex h-7 w-7 items-center justify-center text-white/75 transition-colors hover:bg-white/15 hover:text-white"
+                    onclick={handleChange}
+                    title="Change wallpaper"
+                    aria-label="Change wallpaper"
                 >
-            {/if}
-            {#if wallpaperImage}
+                    <svg
+                        class="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path>
+                        <polyline points="21 3 21 8 16 8"></polyline>
+                    </svg>
+                </button>
+
+                <span class="mx-1 h-5 w-px bg-white/20"></span>
+
+                {#if extraCount > 0}
+                    <button
+                        class="bg-white/15 px-3 py-1 text-[11px] font-medium text-white transition-colors hover:bg-white/25 disabled:opacity-50"
+                        onclick={handleExtractAll}
+                        disabled={extracting}
+                        title="Blend palette from main + {extraCount} additional image{extraCount ===
+                        1
+                            ? ''
+                            : 's'}"
+                    >
+                        Extract All
+                        <span class="text-white/60">· {1 + extraCount}</span>
+                    </button>
+                {/if}
                 <button
-                    class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
-                    onclick={() => (previewOpen = true)}
-                    title="View the wallpaper in full-size mode">View</button
+                    class="bg-accent hover:bg-accent-hover px-3 py-1 text-[11px] font-medium text-[#111116] transition-colors disabled:opacity-50"
+                    onclick={handleExtractColors}
+                    disabled={extracting}
+                    title="Extract a 16-color palette from this wallpaper"
                 >
-            {/if}
-            {#if onedit}
-                <button
-                    class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
-                    onclick={onedit}
-                    title="Open the wallpaper editor to crop, adjust, and apply filters"
-                    >Edit</button
-                >
-            {/if}
-            <button
-                class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
-                onclick={handleChange}
-                title="Choose a different wallpaper from your files"
-                >Change</button
-            >
+                    Extract
+                </button>
+            </div>
         </div>
     {/if}
 </div>
