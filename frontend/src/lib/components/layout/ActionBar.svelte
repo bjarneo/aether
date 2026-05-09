@@ -34,9 +34,12 @@
         getLiveApply,
         setLiveApply,
         getLivePending,
+        getTargetsVisible,
+        toggleTargetsVisible,
     } from '$lib/stores/ui.svelte';
     import {getApiKey, getTotalResults} from '$lib/stores/wallhaven.svelte';
     import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
+    import {openURL} from '$lib/utils/browser';
     import type {main} from '../../../../wailsjs/go/models';
 
     let showImportMenu = $state(false);
@@ -111,6 +114,13 @@
     let liveApply = $derived(getLiveApply());
     let livePending = $derived(getLivePending());
     let dirty = $derived(isDirty());
+    let targetsVisible = $derived(getTargetsVisible());
+    let overrideCount = $derived(
+        Object.values(getAppOverrides()).reduce(
+            (sum, o) => sum + Object.keys(o).length,
+            0
+        )
+    );
 
     // --- Editor actions ---
 
@@ -267,219 +277,285 @@
 {/snippet}
 
 <footer
-    class="bg-bg-secondary border-border flex h-10 shrink-0 items-center justify-between border-t px-3"
+    class="bg-bg-secondary border-border flex h-10 shrink-0 items-center gap-3 border-t px-3"
 >
-    {#if activeTab === 'editor'}
-        <div class="flex items-center gap-1">
-            <button
-                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={async () => {
-                    showExportDialog = true;
-                    try {
-                        const {IsOmarchyInstalled} = await import(
-                            '../../../../wailsjs/go/main/App'
-                        );
-                        isOmarchy = await IsOmarchyInstalled();
-                    } catch {
-                        isOmarchy = false;
-                    }
-                }}>Export</button
-            >
+    <div class="text-fg-dimmed flex shrink-0 items-center gap-2 text-[10px]">
+        <span title="Aether version">v{__APP_VERSION__}</span>
+        {#if overrideCount > 0}
+            <span class="text-accent" title="Active per-app template overrides">
+                {overrideCount} override{overrideCount === 1 ? '' : 's'}
+            </span>
+        {/if}
+    </div>
 
-            <button
-                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={() => (showSaveDialog = true)}>Save</button
-            >
-
-            <div class="relative">
+    <div class="flex min-w-0 flex-1 items-center justify-between gap-1">
+        {#if activeTab === 'editor'}
+            <div class="flex items-center gap-1">
                 <button
                     class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                    onclick={() => (showImportMenu = !showImportMenu)}
-                    >Import</button
+                    onclick={async () => {
+                        showExportDialog = true;
+                        try {
+                            const {IsOmarchyInstalled} = await import(
+                                '../../../../wailsjs/go/main/App'
+                            );
+                            isOmarchy = await IsOmarchyInstalled();
+                        } catch {
+                            isOmarchy = false;
+                        }
+                    }}>Export</button
                 >
 
-                {#if showImportMenu}
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div
-                        class="fixed inset-0 z-30"
-                        onclick={() => (showImportMenu = false)}
-                    ></div>
-                    <div
-                        class="bg-bg-secondary border-border absolute bottom-full left-0 z-40 mb-1 min-w-[140px] border shadow-lg"
+                <button
+                    class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                    onclick={() => (showSaveDialog = true)}>Save</button
+                >
+
+                <div class="relative">
+                    <button
+                        class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                        onclick={() => (showImportMenu = !showImportMenu)}
+                        >Import</button
                     >
-                        <button
-                            class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
-                            onclick={() => handleImport('base16')}
-                            >Base16 (.yaml)</button
+
+                    {#if showImportMenu}
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <div
+                            class="fixed inset-0 z-30"
+                            onclick={() => (showImportMenu = false)}
+                        ></div>
+                        <div
+                            class="bg-bg-secondary border-border absolute bottom-full left-0 z-40 mb-1 min-w-[140px] border shadow-lg"
                         >
-                        <button
-                            class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
-                            onclick={() => handleImport('toml')}
-                            >Colors (.toml)</button
-                        >
-                        <button
-                            class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
-                            onclick={() => handleImport('blueprint')}
-                            >Blueprint (.json)</button
-                        >
-                    </div>
-                {/if}
+                            <button
+                                class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
+                                onclick={() => handleImport('base16')}
+                                >Base16 (.yaml)</button
+                            >
+                            <button
+                                class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
+                                onclick={() => handleImport('toml')}
+                                >Colors (.toml)</button
+                            >
+                            <button
+                                class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
+                                onclick={() => handleImport('blueprint')}
+                                >Blueprint (.json)</button
+                            >
+                        </div>
+                    {/if}
+                </div>
+
+                <div class="bg-border mx-1 h-4 w-px"></div>
+
+                <button
+                    class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
+                    onclick={handleUndo}
+                    disabled={!undoEnabled}
+                    title="Undo (Ctrl+Z)">Undo</button
+                >
+                <button
+                    class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
+                    onclick={handleRedo}
+                    disabled={!redoEnabled}
+                    title="Redo (Ctrl+Shift+Z)">Redo</button
+                >
             </div>
 
-            <div class="bg-border mx-1 h-4 w-px"></div>
+            <div class="flex items-center gap-1">
+                <button
+                    class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                    onclick={handleClear}
+                    title="Revert system to its default theme">Revert</button
+                >
+                <button
+                    class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                    onclick={handleReset}
+                    title="Reset the editor's in-memory state">Reset</button
+                >
 
-            <button
-                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
-                onclick={handleUndo}
-                disabled={!undoEnabled}
-                title="Undo (Ctrl+Z)">Undo</button
-            >
-            <button
-                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
-                onclick={handleRedo}
-                disabled={!redoEnabled}
-                title="Redo (Ctrl+Shift+Z)">Redo</button
-            >
-        </div>
+                <div class="bg-border mx-1 h-4 w-px"></div>
 
-        <div class="flex items-center gap-1">
-            <button
-                class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={handleClear}
-                title="Revert system to its default theme">Revert</button
-            >
-            <button
-                class="text-destructive/60 hover:text-destructive hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={handleReset}
-                title="Reset the editor's in-memory state">Reset</button
-            >
-
-            <div class="bg-border mx-1 h-4 w-px"></div>
-
-            <button
-                type="button"
-                onclick={() => setLiveApply(!liveApply)}
-                class="flex items-center gap-1.5 border px-2 py-0.5 text-[11px] transition-colors duration-100 {liveApply
-                    ? 'bg-accent-muted border-accent text-accent'
-                    : 'border-border text-fg-dimmed hover:text-fg-secondary hover:border-border-focus'}"
-                role="switch"
-                aria-checked={liveApply}
-                title={!liveApply
-                    ? 'Auto-apply theme on every edit (debounced)'
-                    : livePending
-                      ? 'Live preview — syncing changes…'
-                      : 'Live preview on — every edit auto-applies (Ctrl+Z to revert)'}
-            >
-                <span class="relative inline-flex h-1.5 w-1.5">
-                    {#if liveApply && livePending}
+                <button
+                    type="button"
+                    onclick={() => setLiveApply(!liveApply)}
+                    class="flex items-center gap-1.5 border px-2 py-0.5 text-[11px] transition-colors duration-100 {liveApply
+                        ? 'bg-accent-muted border-accent text-accent'
+                        : 'border-border text-fg-dimmed hover:text-fg-secondary hover:border-border-focus'}"
+                    role="switch"
+                    aria-checked={liveApply}
+                    title={!liveApply
+                        ? 'Auto-apply theme on every edit (debounced)'
+                        : livePending
+                          ? 'Live preview — syncing changes…'
+                          : 'Live preview on — every edit auto-applies (Ctrl+Z to revert)'}
+                >
+                    <span class="relative inline-flex h-1.5 w-1.5">
+                        {#if liveApply && livePending}
+                            <span
+                                class="bg-accent absolute inline-flex h-full w-full animate-ping opacity-70"
+                            ></span>
+                        {/if}
                         <span
-                            class="bg-accent absolute inline-flex h-full w-full animate-ping opacity-70"
+                            class="relative inline-flex h-1.5 w-1.5 {liveApply
+                                ? 'bg-accent'
+                                : 'bg-fg-dimmed/40'}"
+                        ></span>
+                    </span>
+                    {liveApply && livePending ? 'Syncing' : 'Live'}
+                </button>
+
+                <button
+                    class="bg-accent text-bg-primary hover:bg-accent-hover relative inline-flex items-center gap-2 px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
+                    onclick={handleApply}
+                    disabled={getIsApplying()}
+                    title={dirty
+                        ? 'Unsaved changes — click to apply (Ctrl+Enter)'
+                        : 'Apply theme to system (Ctrl+Enter)'}
+                >
+                    <span
+                        >{getIsApplying() ? 'Applying...' : 'Apply Theme'}</span
+                    >
+                    {#if !getIsApplying()}
+                        <kbd
+                            class="border-bg-primary/30 bg-bg-primary/15 inline-flex items-center border px-1 font-mono text-[9px] leading-[1.4] opacity-90"
+                            aria-hidden="true">Ctrl+↵</kbd
+                        >
+                    {/if}
+                    {#if dirty && !getIsApplying()}
+                        <span
+                            class="bg-warning absolute -right-1 -top-1 h-2 w-2 ring-2 ring-[var(--color-bg-secondary)]"
+                            aria-label="Unsaved changes"
                         ></span>
                     {/if}
-                    <span
-                        class="relative inline-flex h-1.5 w-1.5 {liveApply
-                            ? 'bg-accent'
-                            : 'bg-fg-dimmed/40'}"
-                    ></span>
-                </span>
-                {liveApply && livePending ? 'Syncing' : 'Live'}
-            </button>
-
-            <button
-                class="bg-accent text-bg-primary hover:bg-accent-hover relative inline-flex items-center gap-2 px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
-                onclick={handleApply}
-                disabled={getIsApplying()}
-                title={dirty
-                    ? 'Unsaved changes — click to apply (Ctrl+Enter)'
-                    : 'Apply theme to system (Ctrl+Enter)'}
-            >
-                <span>{getIsApplying() ? 'Applying...' : 'Apply Theme'}</span>
-                {#if !getIsApplying()}
-                    <kbd
-                        class="border-bg-primary/30 bg-bg-primary/15 inline-flex items-center border px-1 font-mono text-[9px] leading-[1.4] opacity-90"
-                        aria-hidden="true">Ctrl+↵</kbd
+                </button>
+            </div>
+        {:else if activeTab === 'wallhaven'}
+            <div class="flex items-center gap-2">
+                {#if apiKeySet}
+                    <span class="text-success text-[11px]">API key set</span>
+                {:else}
+                    <span class="text-fg-dimmed text-[11px]"
+                        >No API key (set in filters)</span
                     >
                 {/if}
-                {#if dirty && !getIsApplying()}
-                    <span
-                        class="bg-warning absolute -right-1 -top-1 h-2 w-2 ring-2 ring-[var(--color-bg-secondary)]"
-                        aria-label="Unsaved changes"
-                    ></span>
+                {#if totalResults > 0}
+                    <div class="bg-border mx-1 h-4 w-px"></div>
+                    <span class="text-fg-dimmed text-[11px]"
+                        >{totalResults.toLocaleString()} results</span
+                    >
                 {/if}
+            </div>
+            <div class="flex items-center gap-1">
+                {@render goToEditor()}
+            </div>
+        {:else if activeTab === 'local'}
+            <div class="flex items-center gap-1">
+                <button
+                    class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                    onclick={async () => {
+                        try {
+                            const {ScanLocalWallpapers} = await import(
+                                '../../../../wailsjs/go/main/App'
+                            );
+                            await ScanLocalWallpapers();
+                            showToast('Wallpapers rescanned');
+                            // Force LocalBrowser to remount so it re-reads the file list
+                            setActiveTab('editor');
+                            setTimeout(() => setActiveTab('local'), 0);
+                        } catch {
+                            showToast('Failed to rescan');
+                        }
+                    }}>Rescan</button
+                >
+            </div>
+            <div class="flex items-center gap-1">
+                {@render goToEditor()}
+            </div>
+        {:else if activeTab === 'favorites'}
+            <div class="flex items-center gap-1">
+                <span class="text-fg-dimmed text-[11px]"
+                    >Favorited wallpapers</span
+                >
+            </div>
+            <div class="flex items-center gap-1">
+                {@render goToEditor()}
+            </div>
+        {:else if activeTab === 'blueprints'}
+            <div class="flex items-center gap-1">
+                <button
+                    class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                    onclick={() => (showSaveDialog = true)}>Save Current</button
+                >
+                <button
+                    class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
+                    onclick={() => handleImport('blueprint')}
+                    >Import Blueprint</button
+                >
+            </div>
+            <div class="flex items-center gap-1">
+                {@render goToEditor()}
+            </div>
+        {:else if activeTab === 'system'}
+            <div class="flex items-center gap-1">
+                <span class="text-fg-dimmed text-[11px]">System themes</span>
+            </div>
+            <div class="flex items-center gap-1">
+                {@render goToEditor()}
+            </div>
+        {/if}
+    </div>
+
+    <div class="text-fg-dimmed flex shrink-0 items-center gap-2 text-[10px]">
+        {#if activeTab === 'editor'}
+            <button
+                class="hover:text-fg-secondary transition-colors {targetsVisible
+                    ? 'text-fg-secondary'
+                    : ''}"
+                onclick={toggleTargetsVisible}
+                title={targetsVisible
+                    ? 'Hide the Targets strip'
+                    : 'Show the Targets strip'}
+                aria-pressed={targetsVisible}
+            >
+                Targets
             </button>
-        </div>
-    {:else if activeTab === 'wallhaven'}
-        <div class="flex items-center gap-2">
-            {#if apiKeySet}
-                <span class="text-success text-[11px]">API key set</span>
-            {:else}
-                <span class="text-fg-dimmed text-[11px]"
-                    >No API key (set in filters)</span
-                >
-            {/if}
-            {#if totalResults > 0}
-                <div class="bg-border mx-1 h-4 w-px"></div>
-                <span class="text-fg-dimmed text-[11px]"
-                    >{totalResults.toLocaleString()} results</span
-                >
-            {/if}
-        </div>
-        <div class="flex items-center gap-1">
-            {@render goToEditor()}
-        </div>
-    {:else if activeTab === 'local'}
-        <div class="flex items-center gap-1">
-            <button
-                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={async () => {
-                    try {
-                        const {ScanLocalWallpapers} = await import(
-                            '../../../../wailsjs/go/main/App'
-                        );
-                        await ScanLocalWallpapers();
-                        showToast('Wallpapers rescanned');
-                        // Force LocalBrowser to remount so it re-reads the file list
-                        setActiveTab('editor');
-                        setTimeout(() => setActiveTab('local'), 0);
-                    } catch {
-                        showToast('Failed to rescan');
-                    }
-                }}>Rescan</button
+        {/if}
+        <button
+            class="hover:text-accent transition-colors"
+            onclick={() => openURL('https://github.com/bjarneo/aether')}
+            title="Open GitHub repository"
+            aria-label="GitHub"
+        >
+            <svg
+                class="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
             >
-        </div>
-        <div class="flex items-center gap-1">
-            {@render goToEditor()}
-        </div>
-    {:else if activeTab === 'favorites'}
-        <div class="flex items-center gap-1">
-            <span class="text-fg-dimmed text-[11px]">Favorited wallpapers</span>
-        </div>
-        <div class="flex items-center gap-1">
-            {@render goToEditor()}
-        </div>
-    {:else if activeTab === 'blueprints'}
-        <div class="flex items-center gap-1">
-            <button
-                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={() => (showSaveDialog = true)}>Save Current</button
+                <path
+                    d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.06 11.06 0 0 1 5.78 0c2.21-1.49 3.18-1.18 3.18-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.07.78 2.16v3.2c0 .31.21.68.8.56C20.21 21.39 23.5 17.07 23.5 12 23.5 5.65 18.35.5 12 .5Z"
+                ></path>
+            </svg>
+        </button>
+        <button
+            class="hover:text-accent transition-colors"
+            onclick={() => openURL('https://x.com/iamdothash')}
+            title="Open X / Twitter profile"
+            aria-label="X / Twitter"
+        >
+            <svg
+                class="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
             >
-            <button
-                class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
-                onclick={() => handleImport('blueprint')}
-                >Import Blueprint</button
-            >
-        </div>
-        <div class="flex items-center gap-1">
-            {@render goToEditor()}
-        </div>
-    {:else if activeTab === 'system'}
-        <div class="flex items-center gap-1">
-            <span class="text-fg-dimmed text-[11px]">System themes</span>
-        </div>
-        <div class="flex items-center gap-1">
-            {@render goToEditor()}
-        </div>
-    {/if}
+                <path
+                    d="M18.244 2H21.5l-7.494 8.567L23 22h-6.793l-5.32-6.957L4.8 22H1.54l8.014-9.166L1 2h6.96l4.806 6.353L18.244 2Zm-2.378 18.16h1.84L7.21 3.74H5.236l10.63 16.42Z"
+                ></path>
+            </svg>
+        </button>
+    </div>
 </footer>
 
 <!-- Export Dialog -->

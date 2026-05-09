@@ -75,7 +75,6 @@
         getZoom,
     } from '$lib/utils/zoom';
     import Toast from '$lib/components/shared/Toast.svelte';
-    import AboutStrip from '$lib/components/layout/AboutStrip.svelte';
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import CommandPalette from '$lib/components/shared/CommandPalette.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
@@ -468,7 +467,6 @@
             <TargetAppsStrip />
         {/if}
         <ActionBar />
-        <AboutStrip />
         <Toast />
         <KeymapDialog
             open={getKeymapOpen()}
