@@ -30,6 +30,7 @@
         getKeymapOpen,
         setKeymapOpen,
         toggleKeymap,
+        toggleSidebar,
         getLiveApply,
         setLivePending,
         getTargetsVisible,
@@ -253,6 +254,9 @@
         registerShortcut('ctrl++', zoomIn);
         registerShortcut('ctrl+-', zoomOut);
         registerShortcut('ctrl+0', resetZoom);
+
+        // Ctrl+B - Toggle settings sidebar
+        registerShortcut('ctrl+b', toggleSidebar);
 
         // Ctrl+K - Show keymap
         registerShortcut('ctrl+k', () => {

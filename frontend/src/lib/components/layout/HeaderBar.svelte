@@ -87,7 +87,9 @@
         class="text-fg-dimmed hover:text-fg-primary mx-3 flex h-6 w-6 items-center justify-center transition-colors duration-100"
         class:mb-0.5={isMac}
         onclick={toggleSidebar}
-        title={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
+        title={sidebarVisible
+            ? 'Hide sidebar (Ctrl+B)'
+            : 'Show sidebar (Ctrl+B)'}
         aria-label="Toggle sidebar"
         style="--wails-draggable:no-drag"
     >

@@ -7,6 +7,7 @@
             binds: [
                 {keys: 'Ctrl+P', desc: 'Command palette'},
                 {keys: 'Ctrl+K', desc: 'Show keyboard shortcuts'},
+                {keys: 'Ctrl+B', desc: 'Toggle sidebar'},
                 {keys: 'Ctrl+Enter', desc: 'Apply theme'},
                 {keys: 'Ctrl+S', desc: 'Save blueprint'},
                 {keys: 'Ctrl+Z', desc: 'Undo'},
