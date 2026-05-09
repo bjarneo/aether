@@ -8,6 +8,7 @@
     } from '$lib/stores/imagecache.svelte';
     import type {omarchy} from '../../../../wailsjs/go/models';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
+    import LoadingState from '$lib/components/shared/LoadingState.svelte';
 
     type Theme = omarchy.Theme;
 
@@ -72,11 +73,7 @@
 </script>
 
 {#if isLoading}
-    <div
-        class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
-    >
-        Loading system themes…
-    </div>
+    <LoadingState message="Loading system themes…" />
 {:else if themes.length === 0}
     <EmptyState
         title="No system themes found"

@@ -19,6 +19,7 @@
     import TagPicker from '$lib/components/shared/TagPicker.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
+    import LoadingState from '$lib/components/shared/LoadingState.svelte';
     import type {wallpaper} from '../../../../wailsjs/go/models';
 
     type Wallpaper = wallpaper.WallpaperInfo;
@@ -199,11 +200,7 @@
 
     <div class="flex-1 overflow-y-auto p-3">
         {#if isLoading}
-            <div
-                class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
-            >
-                Scanning ~/Wallpapers…
-            </div>
+            <LoadingState message="Scanning ~/Wallpapers…" />
         {:else if filtered.length === 0}
             {#if query || filterTag}
                 <EmptyState

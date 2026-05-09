@@ -1,13 +1,13 @@
 <script lang="ts">
     type MenuItem =
         | {
+              kind: 'item';
               label: string;
               onSelect: () => void;
               danger?: boolean;
               kbd?: string;
-              divider?: false;
           }
-        | {divider: true};
+        | {kind: 'divider'};
 
     let {
         open,
@@ -74,25 +74,24 @@
         role="menu"
     >
         {#each items as item}
-            {#if 'divider' in item && item.divider}
+            {#if item.kind === 'divider'}
                 <div class="bg-border my-1 h-px"></div>
-            {:else if !('divider' in item) || !item.divider}
-                {@const it = item as Exclude<MenuItem, {divider: true}>}
+            {:else}
                 <button
                     type="button"
                     role="menuitem"
-                    class="flex w-full items-center justify-between gap-3 px-3 py-1.5 text-left text-[11px] transition-colors {it.danger
+                    class="flex w-full items-center justify-between gap-3 px-3 py-1.5 text-left text-[11px] transition-colors {item.danger
                         ? 'text-destructive/80 hover:text-destructive hover:bg-destructive/10'
                         : 'text-fg-secondary hover:text-fg-primary hover:bg-bg-hover'}"
                     onclick={() => {
-                        it.onSelect();
+                        item.onSelect();
                         onclose();
                     }}
                 >
-                    <span>{it.label}</span>
-                    {#if it.kbd}
+                    <span>{item.label}</span>
+                    {#if item.kbd}
                         <span class="text-fg-dimmed font-mono text-[9px]"
-                            >{it.kbd}</span
+                            >{item.kbd}</span
                         >
                     {/if}
                 </button>

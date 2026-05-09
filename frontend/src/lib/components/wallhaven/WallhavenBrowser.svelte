@@ -13,6 +13,7 @@
     } from '$lib/stores/wallhaven.svelte';
     import {observeIntersection} from '$lib/utils/intersection';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
+    import LoadingState from '$lib/components/shared/LoadingState.svelte';
 
     let scrollContainer = $state<HTMLDivElement | null>(null);
     let sentinel = $state<HTMLDivElement | null>(null);
@@ -53,11 +54,7 @@
 
     <div class="flex-1 overflow-y-auto p-3" bind:this={scrollContainer}>
         {#if getIsSearching() && getResults().length === 0}
-            <div
-                class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
-            >
-                Searching wallhaven…
-            </div>
+            <LoadingState message="Searching wallhaven…" />
         {:else if getResults().length === 0}
             <EmptyState
                 title={getQuery()

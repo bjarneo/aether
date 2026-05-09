@@ -33,40 +33,41 @@
         onclick: () => void;
     } = $props();
 
-    let menuOpen = $state(false);
-    let menuX = $state(0);
-    let menuY = $state(0);
+    let menu = $state({open: false, x: 0, y: 0});
 
     function handleContextMenu(e: MouseEvent) {
         e.preventDefault();
-        menuX = e.clientX;
-        menuY = e.clientY;
-        menuOpen = true;
+        menu = {open: true, x: e.clientX, y: e.clientY};
     }
 
     let menuItems = $derived([
         {
+            kind: 'item' as const,
             label: 'Edit color…',
             onSelect: onclick,
             kbd: 'Click',
         },
         {
+            kind: 'item' as const,
             label: 'Copy hex',
             onSelect: () => copyColor(color),
             kbd: 'Ctrl+Click',
         },
-        {divider: true as const},
+        {kind: 'divider' as const},
         {
+            kind: 'item' as const,
             label: locked ? 'Unlock' : 'Lock',
             onSelect: () => setLockedColor(index, !locked),
         },
         {
+            kind: 'item' as const,
             label: selected ? 'Deselect' : 'Add to selection',
             onSelect: () => toggleColorSelection(index),
             kbd: 'Shift+Click',
         },
-        {divider: true as const},
+        {kind: 'divider' as const},
         {
+            kind: 'item' as const,
             label: 'Pick from wallpaper',
             onSelect: () => {
                 onclick();
@@ -184,9 +185,9 @@
 </div>
 
 <ContextMenu
-    open={menuOpen}
-    x={menuX}
-    y={menuY}
+    open={menu.open}
+    x={menu.x}
+    y={menu.y}
     items={menuItems}
-    onclose={() => (menuOpen = false)}
+    onclose={() => (menu = {...menu, open: false})}
 />

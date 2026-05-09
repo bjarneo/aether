@@ -113,6 +113,7 @@
     let redoEnabled = $derived(getCanRedo());
     let liveApply = $derived(getLiveApply());
     let livePending = $derived(getLivePending());
+    let applying = $derived(getIsApplying());
     let dirty = $derived(isDirty());
     let targetsVisible = $derived(getTargetsVisible());
     let overrideCount = $derived(
@@ -456,21 +457,19 @@
                 <button
                     class="bg-accent text-bg-primary hover:bg-accent-hover relative inline-flex items-center gap-2 px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
                     onclick={handleApply}
-                    disabled={getIsApplying()}
+                    disabled={applying}
                     title={dirty
                         ? 'Unsaved changes — click to apply (Ctrl+Enter)'
                         : 'Apply theme to system (Ctrl+Enter)'}
                 >
-                    <span
-                        >{getIsApplying() ? 'Applying...' : 'Apply Theme'}</span
-                    >
-                    {#if !getIsApplying()}
+                    <span>{applying ? 'Applying...' : 'Apply Theme'}</span>
+                    {#if !applying}
                         <kbd
                             class="border-bg-primary/30 bg-bg-primary/15 inline-flex items-center border px-1 font-mono text-[9px] leading-[1.4] opacity-90"
                             aria-hidden="true">Ctrl+↵</kbd
                         >
                     {/if}
-                    {#if dirty && !getIsApplying()}
+                    {#if dirty && !applying}
                         <span
                             class="bg-warning absolute -right-1 -top-1 h-2 w-2 ring-2 ring-[var(--color-bg-secondary)]"
                             aria-label="Unsaved changes"

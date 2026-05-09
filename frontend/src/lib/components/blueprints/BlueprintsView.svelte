@@ -13,6 +13,7 @@
     } from '$lib/stores/theme.svelte';
     import {DEFAULT_ADJUSTMENTS, type Blueprint} from '$lib/types/theme';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
+    import LoadingState from '$lib/components/shared/LoadingState.svelte';
 
     let blueprints = $state<Blueprint[]>([]);
     let isLoading = $state(true);
@@ -97,11 +98,7 @@
 
     <div class="flex-1 overflow-y-auto p-3">
         {#if isLoading}
-            <div
-                class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
-            >
-                Loading themes…
-            </div>
+            <LoadingState message="Loading themes…" />
         {:else if blueprints.length === 0}
             <EmptyState
                 title="No themes saved yet"

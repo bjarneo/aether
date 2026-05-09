@@ -18,6 +18,7 @@
     import TagPicker from '$lib/components/shared/TagPicker.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
+    import LoadingState from '$lib/components/shared/LoadingState.svelte';
     import type {favorites as favoritesNs} from '../../../../wailsjs/go/models';
 
     type Favorite = favoritesNs.Favorite;
@@ -198,11 +199,7 @@
 
     <div class="flex-1 overflow-y-auto p-3">
         {#if isLoading}
-            <div
-                class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
-            >
-                Loading favorites…
-            </div>
+            <LoadingState message="Loading favorites…" />
         {:else if filtered.length === 0}
             {#if filterTag}
                 <EmptyState

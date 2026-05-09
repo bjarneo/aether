@@ -24,60 +24,53 @@
         lockedExt = {...lockedExt, [key]: !lockedExt[key]};
     }
 
-    let menuOpen = $state(false);
-    let menuX = $state(0);
-    let menuY = $state(0);
-    let menuKey = $state('');
+    let menu = $state({open: false, x: 0, y: 0, key: ''});
 
     function openMenu(e: MouseEvent, key: string) {
         e.preventDefault();
-        menuX = e.clientX;
-        menuY = e.clientY;
-        menuKey = key;
-        menuOpen = true;
+        menu = {open: true, x: e.clientX, y: e.clientY, key};
     }
 
-    let menuItems = $derived(
-        menuKey
-            ? [
-                  {
-                      label: 'Edit color…',
-                      onSelect: () => openExtendedColorPicker(menuKey),
-                      kbd: 'Click',
-                  },
-                  {
-                      label: 'Copy hex',
-                      onSelect: () =>
-                          copyColor(extColors[menuKey] || '#000000'),
-                      kbd: 'Ctrl+Click',
-                  },
-                  {divider: true as const},
-                  {
-                      label: lockedExt[menuKey] ? 'Unlock' : 'Lock',
-                      onSelect: () =>
-                          (lockedExt = {
-                              ...lockedExt,
-                              [menuKey]: !lockedExt[menuKey],
-                          }),
-                  },
-                  {
-                      label: selectedExt[menuKey]
-                          ? 'Deselect'
-                          : 'Add to selection',
-                      onSelect: () => toggleExtColorSelection(menuKey),
-                      kbd: 'Shift+Click',
-                  },
-                  {divider: true as const},
-                  {
-                      label: 'Pick from wallpaper',
-                      onSelect: () => {
-                          openExtendedColorPicker(menuKey);
-                          setEyedropperActive(true);
-                      },
-                  },
-              ]
-            : []
-    );
+    let menuItems = $derived.by(() => {
+        const key = menu.key;
+        if (!key) return [];
+        return [
+            {
+                kind: 'item' as const,
+                label: 'Edit color…',
+                onSelect: () => openExtendedColorPicker(key),
+                kbd: 'Click',
+            },
+            {
+                kind: 'item' as const,
+                label: 'Copy hex',
+                onSelect: () => copyColor(extColors[key] || '#000000'),
+                kbd: 'Ctrl+Click',
+            },
+            {kind: 'divider' as const},
+            {
+                kind: 'item' as const,
+                label: lockedExt[key] ? 'Unlock' : 'Lock',
+                onSelect: () =>
+                    (lockedExt = {...lockedExt, [key]: !lockedExt[key]}),
+            },
+            {
+                kind: 'item' as const,
+                label: selectedExt[key] ? 'Deselect' : 'Add to selection',
+                onSelect: () => toggleExtColorSelection(key),
+                kbd: 'Shift+Click',
+            },
+            {kind: 'divider' as const},
+            {
+                kind: 'item' as const,
+                label: 'Pick from wallpaper',
+                onSelect: () => {
+                    openExtendedColorPicker(key);
+                    setEyedropperActive(true);
+                },
+            },
+        ];
+    });
 </script>
 
 <div class="mt-4">
@@ -155,9 +148,9 @@
 </div>
 
 <ContextMenu
-    open={menuOpen}
-    x={menuX}
-    y={menuY}
+    open={menu.open}
+    x={menu.x}
+    y={menu.y}
     items={menuItems}
-    onclose={() => (menuOpen = false)}
+    onclose={() => (menu = {...menu, open: false})}
 />
