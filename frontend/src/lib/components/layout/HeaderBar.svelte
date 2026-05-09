@@ -5,11 +5,15 @@
         setActiveTab,
         getSidebarVisible,
         toggleSidebar,
+        toggleKeymap,
+        openCommandPalette,
         type Tab,
     } from '$lib/stores/ui.svelte';
+    import {getLightMode, setLightMode} from '$lib/stores/theme.svelte';
     import {openURL} from '$lib/utils/browser';
 
     let sidebarVisible = $derived(getSidebarVisible());
+    let lightMode = $derived(getLightMode());
     let isMac = $state(false);
 
     onMount(async () => {
@@ -134,4 +138,83 @@
             </button>
         {/each}
     </nav>
+
+    <div
+        class="ml-2 flex items-center gap-0.5"
+        style="--wails-draggable:no-drag"
+    >
+        <button
+            class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover flex h-7 w-7 items-center justify-center transition-colors"
+            class:mb-0.5={isMac}
+            onclick={() => setLightMode(!lightMode)}
+            role="switch"
+            aria-checked={lightMode}
+            aria-label="Toggle light mode"
+            title={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
+        >
+            {#if lightMode}
+                <svg
+                    class="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                    ></path>
+                </svg>
+            {:else}
+                <svg
+                    class="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path
+                        d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"
+                    ></path>
+                </svg>
+            {/if}
+        </button>
+        <button
+            class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover flex h-7 w-7 items-center justify-center transition-colors"
+            class:mb-0.5={isMac}
+            onclick={openCommandPalette}
+            aria-label="Open command palette"
+            title="Command palette (Ctrl+P)"
+        >
+            <svg
+                class="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+            >
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
+            </svg>
+        </button>
+        <button
+            class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover flex h-7 w-7 items-center justify-center transition-colors"
+            class:mb-0.5={isMac}
+            onclick={toggleKeymap}
+            aria-label="Show keyboard shortcuts"
+            title="Keyboard shortcuts (Ctrl+K or ?)"
+        >
+            <span class="font-mono text-[12px] font-semibold leading-none"
+                >?</span
+            >
+        </button>
+    </div>
 </header>
