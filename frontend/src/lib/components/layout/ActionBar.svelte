@@ -1,7 +1,6 @@
 <script lang="ts">
     import {
         getIsApplying,
-        setIsApplying,
         setPalette,
         getPalette,
         getWallpaperPath,
@@ -14,7 +13,6 @@
         getAdjustments,
         setAdjustments,
         setAdjustedExtendedColors,
-        markApplied,
         isDirty,
         reset as resetTheme,
     } from '$lib/stores/theme.svelte';
@@ -38,9 +36,9 @@
         toggleTargetsVisible,
     } from '$lib/stores/ui.svelte';
     import {getApiKey, getTotalResults} from '$lib/stores/wallhaven.svelte';
+    import {applyTheme} from '$lib/actions/themeActions';
     import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
     import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
-    import type {main} from '../../../../wailsjs/go/models';
 
     let showImportMenu = $state(false);
     let showExportDialog = $state(false);
@@ -126,41 +124,7 @@
 
     // --- Editor actions ---
 
-    async function handleApply() {
-        setIsApplying(true);
-        try {
-            const {ApplyTheme} = await import(
-                '../../../../wailsjs/go/main/App'
-            );
-            const result = await ApplyTheme({
-                palette: getPalette(),
-                wallpaperPath: getWallpaperPath(),
-                lightMode: getLightMode(),
-                additionalImages: getAdditionalImages(),
-                extendedColors: getExtendedColors(),
-                settings: getSettings(),
-                appOverrides: getAppOverrides(),
-            } as unknown as main.ApplyThemeRequest);
-            if (result.success) {
-                // Only sync light/dark mode to UI after backend confirms apply
-                if (getLightMode()) {
-                    document.documentElement.classList.add('light-mode');
-                } else {
-                    document.documentElement.classList.remove('light-mode');
-                }
-                markApplied();
-                showToast('Theme applied');
-            } else {
-                markApplied();
-                showToast('Theme files generated');
-            }
-        } catch (e: any) {
-            console.error('ApplyTheme failed:', e);
-            showToast('Couldn’t apply theme — see logs for details');
-        } finally {
-            setIsApplying(false);
-        }
-    }
+    const handleApply = applyTheme;
 
     function handleUndo() {
         const snapshot = undo();

@@ -21,6 +21,8 @@ import {
     markApplied,
 } from '$lib/stores/theme.svelte';
 import {getSettings} from '$lib/stores/settings.svelte';
+import {SPECIAL_APP_FLAGS} from '$lib/constants/apps';
+import type {Settings} from '$lib/types/theme';
 import {
     undo as historyUndo,
     redo as historyRedo,
@@ -28,6 +30,37 @@ import {
     pushUndo,
 } from '$lib/stores/history.svelte';
 import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
+
+// Cache the template-apps list — Go side is deterministic per build, so
+// no need to re-fetch.
+let templateAppKeysCache: string[] | null = null;
+async function getTemplateAppKeys(): Promise<string[]> {
+    if (templateAppKeysCache) return templateAppKeysCache;
+    try {
+        const {GetTemplateColors} = await import(
+            '../../../wailsjs/go/main/App'
+        );
+        const result = await GetTemplateColors();
+        templateAppKeysCache = Object.keys(result || {});
+        return templateAppKeysCache;
+    } catch {
+        return [];
+    }
+}
+
+function countTargetedApps(allApps: string[], settings: Settings): number {
+    const excluded = settings.excludedApps ?? {};
+    let count = 0;
+    for (const app of allApps) {
+        const flag = SPECIAL_APP_FLAGS[app];
+        if (flag) {
+            if (settings[flag]) count++;
+        } else if (!excluded[app]) {
+            count++;
+        }
+    }
+    return count;
+}
 
 async function runApply(): Promise<{success: boolean}> {
     const {ApplyTheme} = await import('../../../wailsjs/go/main/App');
@@ -46,7 +79,6 @@ async function runApply(): Promise<{success: boolean}> {
         } else {
             document.documentElement.classList.remove('light-mode');
         }
-        markApplied();
     }
     return {success: !!result.success};
 }
@@ -56,7 +88,15 @@ export async function applyTheme(): Promise<void> {
     setIsApplying(true);
     try {
         const result = await runApply();
-        if (result.success) showToast('Theme applied');
+        const apps = await getTemplateAppKeys();
+        const count = countTargetedApps(apps, getSettings());
+        markApplied();
+        const apps_label = `${count} app${count === 1 ? '' : 's'}`;
+        if (result.success) {
+            showToast(`Theme applied to ${apps_label}`);
+        } else {
+            showToast(`Theme files generated for ${apps_label}`);
+        }
     } catch {
         showToast('Couldn’t apply theme — see logs for details');
     } finally {
@@ -79,7 +119,10 @@ export async function applyThemeLive(): Promise<void> {
     try {
         const result = await runApply();
         if (result.success) {
-            showToast('Live preview applied', {
+            markApplied();
+            const apps = await getTemplateAppKeys();
+            const count = countTargetedApps(apps, getSettings());
+            showToast(`Live preview applied to ${count} apps`, {
                 duration: LIVE_APPLY_TOAST_MS,
                 action: {label: 'Undo', run: undoAction},
             });
