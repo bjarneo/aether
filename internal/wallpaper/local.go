@@ -27,7 +27,7 @@ func ScanDirectory(dir string) ([]WallpaperInfo, error) {
 		root = dir
 	}
 
-	var results []WallpaperInfo
+	results := make([]WallpaperInfo, 0)
 	walkErr := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			// Ignore unreadable entries; keep walking the rest of the tree.

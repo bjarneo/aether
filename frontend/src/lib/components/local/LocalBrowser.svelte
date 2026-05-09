@@ -43,7 +43,8 @@
             const {ScanLocalWallpapers} = await import(
                 '../../../../wailsjs/go/main/App'
             );
-            wallpapers = await ScanLocalWallpapers();
+            const result = await ScanLocalWallpapers();
+            wallpapers = Array.isArray(result) ? result : [];
         } catch {
             wallpapers = [];
         } finally {
