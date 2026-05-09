@@ -214,9 +214,7 @@
             <!-- Color swatches for this app's template variables -->
             {#if appColors.length > 0}
                 <div
-                    class="grid gap-1"
-                    style:grid-template-columns="repeat(auto-fill, minmax(60px,
-                    1fr))"
+                    class="grid gap-1 [grid-template-columns:repeat(auto-fill,minmax(60px,1fr))]"
                 >
                     {#each appColors as role}
                         {@const display = getDisplayColor(role)}

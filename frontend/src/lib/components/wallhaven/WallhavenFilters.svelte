@@ -51,20 +51,21 @@
 </script>
 
 <form class="bg-bg-secondary border-border border-b" onsubmit={handleSubmit}>
-    <!-- Row 1: Search + Sort + Search button -->
-    <div class="flex gap-2 p-3 pb-0">
+    <!-- Row 1: search + primary controls -->
+    <div class="flex items-center gap-2 px-3 pb-1.5 pt-2.5">
         <input
             type="text"
             class="bg-bg-surface border-border text-fg-primary focus:border-border-focus min-w-[160px] flex-1 border px-2 py-1.5 text-[12px] outline-none"
-            placeholder="Search wallpapers..."
+            placeholder="Search wallpapers…"
             value={getQuery()}
             oninput={e => setQuery(e.currentTarget.value)}
         />
 
         <select
-            class="px-2 py-1.5 text-[12px] outline-none"
+            class="bg-bg-surface border-border text-fg-secondary focus:border-border-focus border px-2 py-1.5 text-[11px] outline-none"
             value={getSorting()}
             onchange={e => setSorting(e.currentTarget.value)}
+            title="Sort order"
         >
             <option value="date_added">Latest</option>
             <option value="relevance">Relevance</option>
@@ -74,27 +75,26 @@
             <option value="toplist">Top List</option>
         </select>
 
-        <select
-            class="px-2 py-1.5 text-[12px] outline-none"
-            value={getOrder()}
-            onchange={e => setOrder(e.currentTarget.value)}
+        <button
+            type="button"
+            class="border-border bg-bg-surface text-fg-secondary hover:border-border-focus flex h-[30px] w-[30px] items-center justify-center border text-[14px] transition-colors"
+            onclick={() => setOrder(getOrder() === 'desc' ? 'asc' : 'desc')}
+            title={getOrder() === 'desc' ? 'Descending' : 'Ascending'}
+            aria-label="Toggle sort direction"
         >
-            <option value="desc">Desc</option>
-            <option value="asc">Asc</option>
-        </select>
+            {getOrder() === 'desc' ? '↓' : '↑'}
+        </button>
 
         <button
             type="submit"
-            class="bg-accent hover:bg-accent-hover px-3 py-1.5 text-[12px] font-medium text-[#111116] transition-colors"
+            class="bg-accent hover:bg-accent-hover px-3 py-1.5 text-[11px] font-medium text-[#111116] transition-colors"
             >Search</button
         >
     </div>
 
-    <!-- Row 2: Categories + Purity + Resolution + Filters toggle -->
-    <div class="flex items-center gap-3 px-3 py-2">
-        <!-- Categories -->
-        <div class="flex items-center gap-1">
-            <span class="text-fg-dimmed mr-1 text-[10px]">Cat:</span>
+    <!-- Row 2: filter chips + meta -->
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2">
+        <div class="flex items-center gap-1" title="Category">
             {#each categoryLabels as label, i}
                 <button
                     type="button"
@@ -102,16 +102,15 @@
             {getCategories()[i] === '1'
                         ? 'text-accent border-accent bg-accent-muted'
                         : 'text-fg-dimmed border-border hover:text-fg-secondary'}"
-                    onclick={() => {
-                        toggleCategory(i);
-                    }}>{label}</button
+                    onclick={() => toggleCategory(i)}
+                    aria-pressed={getCategories()[i] === '1'}>{label}</button
                 >
             {/each}
         </div>
 
-        <!-- Purity -->
-        <div class="flex items-center gap-1">
-            <span class="text-fg-dimmed mr-1 text-[10px]">Purity:</span>
+        <span class="bg-border h-3.5 w-px"></span>
+
+        <div class="flex items-center gap-1" title="Purity">
             {#each purityLabels as label, i}
                 <button
                     type="button"
@@ -126,6 +125,7 @@
                                 : 'text-destructive border-destructive bg-destructive/10'
                           : 'text-fg-dimmed border-border hover:text-fg-secondary'}"
                     onclick={() => togglePurity(i)}
+                    aria-pressed={getPurity()[i] === '1'}
                     title={i === 2 && !getApiKey()
                         ? 'NSFW requires API key'
                         : ''}>{label}</button
@@ -133,21 +133,23 @@
             {/each}
         </div>
 
-        <!-- Resolution -->
+        <span class="bg-border h-3.5 w-px"></span>
+
         <select
-            class="px-1.5 py-0.5 text-[10px] outline-none"
+            class="bg-bg-surface border-border text-fg-dimmed hover:text-fg-secondary focus:border-border-focus border px-1.5 py-0.5 text-[10px] outline-none"
             value={getAtleast()}
             onchange={e => setAtleast(e.currentTarget.value)}
+            title="Minimum resolution"
         >
-            <option value="">Any Res</option>
-            <option value="1920x1080">1920x1080+</option>
-            <option value="2560x1440">2560x1440+</option>
-            <option value="3840x2160">3840x2160+</option>
+            <option value="">Any res</option>
+            <option value="1920x1080">1920×1080+</option>
+            <option value="2560x1440">2560×1440+</option>
+            <option value="3840x2160">3840×2160+</option>
         </select>
 
-        <!-- Card size -->
-        <div class="flex items-center gap-1">
-            <span class="text-fg-dimmed mr-1 text-[10px]">Size:</span>
+        <span class="bg-border h-3.5 w-px"></span>
+
+        <div class="flex items-center gap-0.5" title="Card size">
             {#each sizeOptions as opt}
                 <button
                     type="button"
@@ -156,70 +158,74 @@
                         ? 'text-accent border-accent bg-accent-muted'
                         : 'text-fg-dimmed border-border hover:text-fg-secondary'}"
                     onclick={() => setCardSize(opt.value)}
-                    title={opt.title}>{opt.label}</button
+                    title={opt.title}
+                    aria-pressed={getCardSize() === opt.value}
+                    >{opt.label}</button
                 >
             {/each}
         </div>
 
-        <button
-            type="button"
-            class="text-fg-dimmed hover:text-fg-secondary ml-auto text-[10px] transition-colors"
-            onclick={() => (showAdvanced = !showAdvanced)}
-            >{showAdvanced ? 'Less' : 'More'}</button
-        >
-
-        {#if getTotalResults() > 0}
-            <span class="text-fg-dimmed text-[10px]"
-                >{getTotalResults().toLocaleString()} results</span
+        <div class="ml-auto flex items-center gap-3">
+            {#if getTotalResults() > 0}
+                <span class="text-fg-dimmed text-[10px] tabular-nums"
+                    >{getTotalResults().toLocaleString()} results</span
+                >
+            {/if}
+            <button
+                type="button"
+                class="hover:text-fg-secondary text-[10px] transition-colors {showAdvanced
+                    ? 'text-accent'
+                    : 'text-fg-dimmed'}"
+                onclick={() => (showAdvanced = !showAdvanced)}
+                aria-expanded={showAdvanced}
+                >{showAdvanced ? 'Less' : 'More'}</button
             >
-        {/if}
+        </div>
     </div>
 
-    <!-- Advanced: Color filter + API key -->
     {#if showAdvanced}
-        <div class="border-border space-y-2 border-t px-3 pb-3 pt-2">
-            <!-- Color filter -->
-            <div>
-                <span class="text-fg-dimmed mb-1 block text-[10px]"
-                    >Color Filter</span
-                >
-                <div class="flex items-center gap-1">
-                    {#each colorPresets as cp}
-                        <button
-                            type="button"
-                            class="h-5 w-5 border transition-all
+        <div
+            class="border-border flex flex-wrap items-center gap-x-4 gap-y-2 border-t px-3 py-2.5"
+        >
+            <div class="flex items-center gap-1.5">
+                <span class="text-fg-dimmed text-[10px]">Color</span>
+                {#each colorPresets as cp}
+                    <button
+                        type="button"
+                        class="h-5 w-5 border transition-all
                 {getColorFilter() === cp.hex
-                                ? 'border-fg-primary scale-110'
-                                : 'border-border hover:border-fg-dimmed'}"
-                            style:background-color="#{cp.hex}"
-                            onclick={() =>
-                                setColorFilter(
-                                    getColorFilter() === cp.hex ? '' : cp.hex
-                                )}
-                            title={cp.label}
-                        ></button>
-                    {/each}
-                    {#if getColorFilter()}
-                        <button
-                            type="button"
-                            class="text-fg-dimmed hover:text-fg-secondary ml-1 text-[10px]"
-                            onclick={() => setColorFilter('')}>Clear</button
-                        >
-                    {/if}
-                </div>
+                            ? 'border-fg-primary scale-110'
+                            : 'border-border hover:border-fg-dimmed'}"
+                        style:background-color="#{cp.hex}"
+                        onclick={() =>
+                            setColorFilter(
+                                getColorFilter() === cp.hex ? '' : cp.hex
+                            )}
+                        title={cp.label}
+                        aria-label="Filter by {cp.label}"
+                        aria-pressed={getColorFilter() === cp.hex}
+                    ></button>
+                {/each}
+                {#if getColorFilter()}
+                    <button
+                        type="button"
+                        class="text-fg-dimmed hover:text-fg-secondary ml-1 text-[10px]"
+                        onclick={() => setColorFilter('')}>Clear</button
+                    >
+                {/if}
             </div>
 
-            <!-- API Key -->
-            <div>
-                <span class="text-fg-dimmed mb-1 block text-[10px]"
-                    >API Key <span class="text-fg-dimmed/50"
-                        >(for NSFW + more results)</span
-                    ></span
+            <div class="flex min-w-[200px] flex-1 items-center gap-2">
+                <span
+                    class="text-fg-dimmed shrink-0 text-[10px]"
+                    title="Required for NSFW + larger result pages"
                 >
+                    API key
+                </span>
                 <input
                     type="password"
-                    class="bg-bg-surface border-border text-fg-primary focus:border-border-focus w-full border px-2 py-1 text-[11px] outline-none"
-                    placeholder="wallhaven API key..."
+                    class="bg-bg-surface border-border text-fg-primary focus:border-border-focus min-w-0 flex-1 border px-2 py-1 text-[11px] outline-none"
+                    placeholder="wallhaven API key…"
                     value={getApiKey()}
                     oninput={e => setApiKey(e.currentTarget.value)}
                 />
