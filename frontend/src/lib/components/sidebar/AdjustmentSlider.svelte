@@ -21,6 +21,14 @@
 
     let editing = $state(false);
     let editValue = $state('');
+    let editInput = $state<HTMLInputElement | null>(null);
+
+    $effect(() => {
+        if (editing) {
+            editInput?.focus();
+            editInput?.select();
+        }
+    });
 
     function handleDblClick() {
         oninput(defaultValue);
@@ -55,12 +63,12 @@
         {#if editing}
             <div class="flex items-center gap-1">
                 <input
+                    bind:this={editInput}
                     type="text"
                     class="text-fg-primary bg-bg-surface border-accent w-10 border px-1 py-0 text-right font-mono text-[10px] outline-none"
                     bind:value={editValue}
                     onblur={commitEdit}
                     onkeydown={handleEditKeydown}
-                    autofocus
                 />
                 <button
                     class="text-accent hover:text-accent-hover text-[10px]"
@@ -91,6 +99,12 @@
                 tabindex="-1"
                 onclick={startEdit}
                 ondblclick={handleDblClick}
+                onkeydown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        startEdit();
+                    }
+                }}
                 title="Click to type · Double-click to reset"
             >
                 {step < 1 ? value.toFixed(1) : value}

@@ -5,6 +5,7 @@
 
     let blueprints = $state<Blueprint[]>([]);
     let search = $state('');
+    let searchInput = $state<HTMLInputElement | null>(null);
     let filtered = $derived(
         search
             ? blueprints.filter(b =>
@@ -14,6 +15,7 @@
     );
 
     onMount(async () => {
+        searchInput?.focus();
         try {
             const {ListBlueprints} = await import(
                 '../../../../wailsjs/go/main/App'
@@ -73,11 +75,11 @@
     <!-- Search -->
     <div class="px-3 py-2">
         <input
+            bind:this={searchInput}
             type="text"
             class="bg-bg-surface border-border text-fg-primary focus:border-accent w-full border px-2 py-1.5 text-[11px] outline-none"
             placeholder="Search..."
             bind:value={search}
-            autofocus
         />
     </div>
 

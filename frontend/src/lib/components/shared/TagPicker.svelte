@@ -16,6 +16,11 @@
     let open = $state(false);
     let creating = $state(false);
     let newName = $state('');
+    let newNameInput = $state<HTMLInputElement | null>(null);
+
+    $effect(() => {
+        if (creating) newNameInput?.focus();
+    });
     let newColor = $state(LABEL_COLORS[0]);
     let anchorEl: HTMLElement;
 
@@ -84,6 +89,7 @@
 
     {#if open}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div
             class="fixed inset-0 z-40"
             onclick={e => {
@@ -91,6 +97,7 @@
                 open = false;
                 creating = false;
             }}
+            role="presentation"
         ></div>
         <div
             class="border-border-focus bg-bg-secondary absolute bottom-full left-0 z-50 mb-1 min-w-[160px] border shadow-xl"
@@ -159,10 +166,11 @@
 
             <div class="border-border border-t p-1">
                 {#if creating}
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
                     <div
                         class="space-y-1.5 px-1.5 py-1"
                         onclick={e => e.stopPropagation()}
+                        role="presentation"
                     >
                         <!-- Color selection -->
                         <div class="flex flex-wrap gap-1">
@@ -177,6 +185,8 @@
                                         e.stopPropagation();
                                         newColor = c;
                                     }}
+                                    aria-label="Pick color {c}"
+                                    aria-pressed={newColor === c}
                                 ></button>
                             {/each}
                         </div>
@@ -187,6 +197,7 @@
                                 style:background-color={newColor}
                             ></span>
                             <input
+                                bind:this={newNameInput}
                                 type="text"
                                 class="text-fg-primary focus:border-accent border-border-focus bg-bg-secondary flex-1 border px-2 py-1 text-[11px] outline-none"
                                 placeholder="Name..."
@@ -196,7 +207,7 @@
                                     if (e.key === 'Enter') handleCreate();
                                     if (e.key === 'Escape') creating = false;
                                 }}
-                                autofocus
+                                aria-label="Label name"
                             />
                             <button
                                 class="text-accent hover:text-accent-hover p-1"
@@ -204,6 +215,8 @@
                                     e.stopPropagation();
                                     handleCreate();
                                 }}
+                                aria-label="Create label"
+                                title="Create label"
                             >
                                 <svg
                                     class="h-4 w-4"
@@ -211,6 +224,7 @@
                                     fill="none"
                                     stroke="currentColor"
                                     stroke-width="2.5"
+                                    aria-hidden="true"
                                 >
                                     <polyline points="20 6 9 17 4 12"
                                     ></polyline>

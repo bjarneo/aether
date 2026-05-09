@@ -84,6 +84,8 @@
                 <button
                     class="text-fg-dimmed hover:text-fg-primary flex h-6 w-6 items-center justify-center transition-colors"
                     onclick={onclose}
+                    aria-label="Close shortcuts"
+                    title="Close"
                 >
                     <svg
                         class="h-4 w-4"

@@ -85,8 +85,8 @@
             {@const locked = lockedExt[role.key] || false}
             {@const sel = selectedExt[role.key] || false}
             {@const light = isLightColor(hex)}
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="flex flex-col gap-1">
+                <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
                 <div
                     class="group relative h-10 overflow-hidden border transition-all duration-150
             {locked
@@ -95,6 +95,8 @@
                           ? 'border-accent cursor-pointer border-2'
                           : 'hover:border-accent border-border cursor-pointer hover:z-10 hover:scale-[1.04]'}"
                     style:background-color={hex}
+                    role="button"
+                    tabindex="0"
                     onclick={e => {
                         if (e.ctrlKey || e.metaKey) {
                             e.preventDefault();
@@ -112,7 +114,6 @@
                             class="bg-accent absolute bottom-0.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2"
                         ></span>
                     {/if}
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <span
                         class="absolute right-0.5 top-0.5 z-10 flex h-5 w-5 cursor-pointer items-center justify-center
               {locked
@@ -124,6 +125,17 @@
                         role="button"
                         tabindex="-1"
                         onclick={e => toggleLock(role.key, e)}
+                        onkeydown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                toggleLock(
+                                    role.key,
+                                    e as unknown as MouseEvent
+                                );
+                            }
+                        }}
+                        title={locked ? 'Unlock' : 'Lock'}
+                        aria-label={locked ? 'Unlock' : 'Lock'}
                     >
                         <LockIcon {locked} size="w-3 h-3" />
                     </span>

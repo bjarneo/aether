@@ -305,9 +305,11 @@
 
                     {#if showImportMenu}
                         <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <div
                             class="fixed inset-0 z-30"
                             onclick={() => (showImportMenu = false)}
+                            role="presentation"
                         ></div>
                         <div
                             class="bg-bg-secondary border-border absolute bottom-full left-0 z-40 mb-1 min-w-[140px] border shadow-lg"
@@ -500,11 +502,13 @@
 <!-- Export Dialog -->
 {#if showExportDialog}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
         onclick={e => {
             if (e.target === e.currentTarget) showExportDialog = false;
         }}
+        role="presentation"
     >
         <div
             class="bg-bg-secondary border-border max-h-[80vh] w-80 overflow-y-auto border p-4 shadow-xl"

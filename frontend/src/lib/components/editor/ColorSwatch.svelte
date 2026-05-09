@@ -110,7 +110,8 @@
     let light = $derived(isLightColor(color));
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- Keyboard handling lives on the parent ColorPaletteGrid (roving tabindex). -->
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div
     class="focus-visible:ring-accent focus-visible:ring-offset-bg-primary group relative h-14 w-full border transition-all duration-150 focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-offset-1
     {locked
@@ -159,7 +160,6 @@
         </span>
     {/if}
 
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <span
         class="absolute right-1 top-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center
       {locked
@@ -169,6 +169,12 @@
             : 'opacity-0 transition-opacity hover:!opacity-100 group-hover:opacity-30 ' +
               (light ? 'text-black' : 'text-white')}"
         onclick={toggleLock}
+        onkeydown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleLock(e as unknown as MouseEvent);
+            }
+        }}
         role="button"
         tabindex="0"
         title={locked ? 'Unlock color' : 'Lock color'}
