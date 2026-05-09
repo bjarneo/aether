@@ -331,12 +331,14 @@
             <button
                 class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
                 onclick={handleUndo}
-                disabled={!undoEnabled}>Undo</button
+                disabled={!undoEnabled}
+                title="Undo (Ctrl+Z)">Undo</button
             >
             <button
                 class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100 disabled:cursor-default disabled:opacity-25"
                 onclick={handleRedo}
-                disabled={!redoEnabled}>Redo</button
+                disabled={!redoEnabled}
+                title="Redo (Ctrl+Shift+Z)">Redo</button
             >
         </div>
 
@@ -384,14 +386,20 @@
             </button>
 
             <button
-                class="bg-accent text-bg-primary hover:bg-accent-hover relative px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
+                class="bg-accent text-bg-primary hover:bg-accent-hover relative inline-flex items-center gap-2 px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
                 onclick={handleApply}
                 disabled={getIsApplying()}
                 title={dirty
-                    ? 'Unsaved changes — click to apply'
-                    : 'Apply theme to system'}
+                    ? 'Unsaved changes — click to apply (Ctrl+Enter)'
+                    : 'Apply theme to system (Ctrl+Enter)'}
             >
-                {getIsApplying() ? 'Applying...' : 'Apply Theme'}
+                <span>{getIsApplying() ? 'Applying...' : 'Apply Theme'}</span>
+                {#if !getIsApplying()}
+                    <kbd
+                        class="border-bg-primary/30 bg-bg-primary/15 inline-flex items-center border px-1 font-mono text-[9px] leading-[1.4] opacity-90"
+                        aria-hidden="true">Ctrl+↵</kbd
+                    >
+                {/if}
                 {#if dirty && !getIsApplying()}
                     <span
                         class="bg-warning absolute -right-1 -top-1 h-2 w-2 ring-2 ring-[var(--color-bg-secondary)]"

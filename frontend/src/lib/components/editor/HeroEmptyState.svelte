@@ -1,6 +1,7 @@
 <script lang="ts">
     import {showToast, setActiveTab} from '$lib/stores/ui.svelte';
     import {setWallpaperPath} from '$lib/stores/theme.svelte';
+    import Kbd from '$lib/components/shared/Kbd.svelte';
 
     let isBrowsing = $state(false);
 
@@ -121,11 +122,8 @@
                             >Apply the theme.</span
                         >
                         Click <span class="text-fg-primary">Apply</span>
-                        (or press
-                        <kbd
-                            class="border-border bg-bg-surface text-fg-primary border px-1 text-[10px]"
-                            >Ctrl+Enter</kbd
-                        >) to push colors and the wallpaper out to your apps.
+                        (or press <Kbd>Ctrl+Enter</Kbd>) to push colors and the
+                        wallpaper out to your apps.
                     </span>
                 </li>
             </ol>
@@ -136,12 +134,7 @@
                     onclick={() => setActiveTab('blueprints')}
                     >Blueprints</button
                 >
-                tab. Press
-                <kbd
-                    class="border-border bg-bg-surface text-fg-primary border px-1 text-[10px]"
-                    >?</kbd
-                >
-                anytime for keyboard shortcuts.
+                tab. Press <Kbd>?</Kbd> anytime for keyboard shortcuts.
             </p>
         </div>
     </div>
