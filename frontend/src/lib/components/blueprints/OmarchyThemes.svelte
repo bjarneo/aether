@@ -7,6 +7,7 @@
         loadThumbnail,
     } from '$lib/stores/imagecache.svelte';
     import type {omarchy} from '../../../../wailsjs/go/models';
+    import EmptyState from '$lib/components/shared/EmptyState.svelte';
 
     type Theme = omarchy.Theme;
 
@@ -56,7 +57,7 @@
 
     async function handleApply(theme: Theme) {
         if (theme.colors?.length >= 16) {
-                loadThemeIntoState(theme);
+            loadThemeIntoState(theme);
         }
         try {
             const {ApplyOmarchyThemeByName} = await import(
@@ -72,16 +73,33 @@
 
 {#if isLoading}
     <div
-        class="text-fg-dimmed flex h-32 items-center justify-center text-[12px]"
+        class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
     >
-        Loading system themes...
+        Loading system themes…
     </div>
 {:else if themes.length === 0}
-    <div
-        class="text-fg-dimmed flex h-32 items-center justify-center text-[12px]"
+    <EmptyState
+        title="No system themes found"
+        body="Install Omarchy to use bundled system themes, or save your own theme as a Blueprint."
     >
-        No system themes found
-    </div>
+        {#snippet icon()}
+            <svg
+                class="h-12 w-12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M18.37 2.63a2.12 2.12 0 0 1 3 3L14 13l-4 1 1-4z"
+                ></path>
+                <path
+                    d="M9 14.5A3.5 3.5 0 0 0 5.5 18c-1.2 0-2.5.7-2.5 2 2 0 4.5-1 5.5-3.5"
+                ></path>
+            </svg>
+        {/snippet}
+    </EmptyState>
 {:else}
     <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
         {#each themes as theme, i (theme.name + '_' + i)}

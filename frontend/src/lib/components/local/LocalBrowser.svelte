@@ -18,6 +18,7 @@
     import LazyImage from '$lib/components/shared/LazyImage.svelte';
     import TagPicker from '$lib/components/shared/TagPicker.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
+    import EmptyState from '$lib/components/shared/EmptyState.svelte';
     import type {wallpaper} from '../../../../wailsjs/go/models';
 
     type Wallpaper = wallpaper.WallpaperInfo;
@@ -198,23 +199,63 @@
 
     <div class="flex-1 overflow-y-auto p-3">
         {#if isLoading}
-            <div class="flex h-32 items-center justify-center">
-                <span class="text-fg-dimmed text-[11px]"
-                    >Scanning ~/Wallpapers...</span
-                >
+            <div
+                class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
+            >
+                Scanning ~/Wallpapers…
             </div>
         {:else if filtered.length === 0}
-            <div class="flex h-32 items-center justify-center">
-                <span class="text-fg-dimmed text-[11px]">
-                    {#if query}
-                        No matches for "{query}"
-                    {:else if filterTag}
-                        No wallpapers with this label
-                    {:else}
-                        No wallpapers found in ~/Wallpapers
-                    {/if}
-                </span>
-            </div>
+            {#if query || filterTag}
+                <EmptyState
+                    title={query
+                        ? `No matches for "${query}"`
+                        : 'No wallpapers with this label'}
+                    body="Adjust your search or filters to see more wallpapers."
+                    actionLabel="Clear filters"
+                    onaction={() => {
+                        query = '';
+                        filterTag = '';
+                    }}
+                >
+                    {#snippet icon()}
+                        <svg
+                            class="h-12 w-12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
+                        </svg>
+                    {/snippet}
+                </EmptyState>
+            {:else}
+                <EmptyState
+                    title="No wallpapers in ~/Wallpapers"
+                    body="Drop images into ~/Wallpapers (or any subfolder), or browse to pick a single file."
+                    actionLabel="Browse for a file…"
+                    onaction={handleBrowse}
+                >
+                    {#snippet icon()}
+                        <svg
+                            class="h-12 w-12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                            ></path>
+                        </svg>
+                    {/snippet}
+                </EmptyState>
+            {/if}
         {:else}
             <div
                 class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2"

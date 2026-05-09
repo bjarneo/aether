@@ -6,10 +6,13 @@
         getIsSearching,
         getIsLoadingMore,
         getHasMore,
+        getQuery,
+        setQuery,
         search,
         loadMore,
     } from '$lib/stores/wallhaven.svelte';
     import {observeIntersection} from '$lib/utils/intersection';
+    import EmptyState from '$lib/components/shared/EmptyState.svelte';
 
     let scrollContainer = $state<HTMLDivElement | null>(null);
     let sentinel = $state<HTMLDivElement | null>(null);
@@ -49,16 +52,43 @@
     <WallhavenFilters />
 
     <div class="flex-1 overflow-y-auto p-3" bind:this={scrollContainer}>
-        {#if getIsSearching()}
-            <div class="flex h-32 items-center justify-center">
-                <span class="text-fg-dimmed text-sm"
-                    >Searching wallhaven...</span
-                >
+        {#if getIsSearching() && getResults().length === 0}
+            <div
+                class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
+            >
+                Searching wallhaven…
             </div>
         {:else if getResults().length === 0}
-            <div class="flex h-32 items-center justify-center">
-                <span class="text-fg-dimmed text-sm">No results found</span>
-            </div>
+            <EmptyState
+                title={getQuery()
+                    ? 'No matches found'
+                    : 'No wallpapers to show'}
+                body={getQuery()
+                    ? `Nothing on wallhaven matches "${getQuery()}" with the current filters. Try a different query or reset filters.`
+                    : 'Try a search term, or browse by category and purity to discover wallpapers.'}
+                actionLabel={getQuery() ? 'Clear search' : undefined}
+                onaction={getQuery()
+                    ? () => {
+                          setQuery('');
+                          search();
+                      }
+                    : undefined}
+            >
+                {#snippet icon()}
+                    <svg
+                        class="h-12 w-12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
+                    </svg>
+                {/snippet}
+            </EmptyState>
         {:else}
             <WallpaperGrid wallpapers={getResults()} />
 

@@ -12,6 +12,7 @@
         setLastExtractedPath,
     } from '$lib/stores/theme.svelte';
     import {DEFAULT_ADJUSTMENTS, type Blueprint} from '$lib/types/theme';
+    import EmptyState from '$lib/components/shared/EmptyState.svelte';
 
     let blueprints = $state<Blueprint[]>([]);
     let isLoading = $state(true);
@@ -82,14 +83,14 @@
 
 <div class="flex h-full flex-col">
     <div
-        class="bg-bg-secondary border-border flex items-center gap-2 border-b p-3"
+        class="bg-bg-secondary border-border flex flex-wrap items-center gap-1.5 border-b px-3 py-2"
     >
         <span
-            class="text-fg-dimmed text-[12px] font-medium uppercase tracking-wider"
+            class="text-fg-dimmed text-[10px] font-medium uppercase tracking-wider"
             >My Themes</span
         >
         <button
-            class="bg-accent hover:bg-accent-hover ml-auto px-3 py-1 text-[11px] font-medium text-[#111116]"
+            class="bg-accent hover:bg-accent-hover ml-auto px-2 py-0.5 text-[11px] font-medium text-[#111116] transition-colors"
             onclick={() => (showSaveDialog = true)}>Save Current</button
         >
     </div>
@@ -97,16 +98,33 @@
     <div class="flex-1 overflow-y-auto p-3">
         {#if isLoading}
             <div
-                class="text-fg-dimmed flex h-32 items-center justify-center text-[12px]"
+                class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
             >
-                Loading themes...
+                Loading themes…
             </div>
         {:else if blueprints.length === 0}
-            <div
-                class="text-fg-dimmed flex h-32 items-center justify-center text-[12px]"
+            <EmptyState
+                title="No themes saved yet"
+                body="Save the current palette, adjustments, overrides, and wallpaper as a Blueprint to revisit later."
+                actionLabel="Save current theme"
+                onaction={() => (showSaveDialog = true)}
             >
-                No themes saved yet
-            </div>
+                {#snippet icon()}
+                    <svg
+                        class="h-12 w-12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                {/snippet}
+            </EmptyState>
         {:else}
             <div
                 class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3"

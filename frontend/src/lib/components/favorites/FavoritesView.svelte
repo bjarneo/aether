@@ -17,6 +17,7 @@
     import {getLabels, getAssignments} from '$lib/stores/tags.svelte';
     import TagPicker from '$lib/components/shared/TagPicker.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
+    import EmptyState from '$lib/components/shared/EmptyState.svelte';
     import type {favorites as favoritesNs} from '../../../../wailsjs/go/models';
 
     type Favorite = favoritesNs.Favorite;
@@ -197,19 +198,61 @@
 
     <div class="flex-1 overflow-y-auto p-3">
         {#if isLoading}
-            <div class="flex h-32 items-center justify-center">
-                <span class="text-fg-dimmed text-[11px]"
-                    >Loading favorites...</span
-                >
+            <div
+                class="text-fg-dimmed flex h-full items-center justify-center text-[12px]"
+            >
+                Loading favorites…
             </div>
         {:else if filtered.length === 0}
-            <div class="flex h-32 items-center justify-center text-center">
-                <p class="text-fg-dimmed text-[11px]">
-                    {filterTag
-                        ? 'No favorites with this label'
-                        : 'No favorites yet'}
-                </p>
-            </div>
+            {#if filterTag}
+                <EmptyState
+                    title="No favorites with this label"
+                    body="Try a different label or remove the filter to see all favorites."
+                    actionLabel="Clear filter"
+                    onaction={() => (filterTag = '')}
+                >
+                    {#snippet icon()}
+                        <svg
+                            class="h-12 w-12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                            ></path>
+                        </svg>
+                    {/snippet}
+                </EmptyState>
+            {:else}
+                <EmptyState
+                    title="No favorites yet"
+                    body="Tap the heart on any wallpaper in Wallhaven or Local to save it here for quick access."
+                    actionLabel="Browse Wallhaven"
+                    onaction={() => setActiveTab('wallhaven')}
+                    secondaryLabel="Browse Local"
+                    onsecondary={() => setActiveTab('local')}
+                >
+                    {#snippet icon()}
+                        <svg
+                            class="h-12 w-12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                            ></path>
+                        </svg>
+                    {/snippet}
+                </EmptyState>
+            {/if}
         {:else}
             <div
                 class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2"
