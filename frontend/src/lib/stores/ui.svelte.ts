@@ -100,6 +100,34 @@ export function toggleSidebar(): void {
     sidebarVisible = !sidebarVisible;
 }
 
+type ToastEntry = {
+    message: string;
+    action: ToastAction | null;
+    duration: number;
+};
+
+const toastQueue: ToastEntry[] = [];
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showCurrentToast(): void {
+    const entry = toastQueue[0];
+    if (!entry) {
+        toastVisible = false;
+        toastMessage = '';
+        toastAction = null;
+        return;
+    }
+    toastMessage = entry.message;
+    toastAction = entry.action;
+    toastVisible = true;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toastTimer = null;
+        toastQueue.shift();
+        showCurrentToast();
+    }, entry.duration);
+}
+
 export function showToast(
     msg: string,
     durationOrOpts: number | {duration?: number; action?: ToastAction} = 3000
@@ -108,18 +136,37 @@ export function showToast(
         typeof durationOrOpts === 'number'
             ? {duration: durationOrOpts}
             : durationOrOpts;
-    const duration = opts.duration ?? 3000;
-    toastMessage = msg;
-    toastAction = opts.action ?? null;
-    toastVisible = true;
-    setTimeout(() => {
-        toastVisible = false;
-        toastAction = null;
-    }, duration);
+    const entry: ToastEntry = {
+        message: msg,
+        action: opts.action ?? null,
+        duration: opts.duration ?? 3000,
+    };
+    // Same-message rapid retrigger: reset the timer rather than queueing
+    // a duplicate that would just play the same toast twice.
+    if (toastQueue[0] && toastQueue[0].message === msg) {
+        toastQueue[0] = entry;
+        showCurrentToast();
+        return;
+    }
+    toastQueue.push(entry);
+    if (toastQueue.length === 1) showCurrentToast();
+}
+
+export function dismissCurrentToast(): void {
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+    }
+    toastQueue.shift();
+    showCurrentToast();
 }
 
 export function getToastAction(): ToastAction | null {
     return toastAction;
+}
+
+export function getToastQueueDepth(): number {
+    return toastQueue.length;
 }
 
 export function getLiveApply(): boolean {
