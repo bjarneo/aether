@@ -1,5 +1,6 @@
 <script lang="ts">
     import {onMount} from 'svelte';
+    import {fade} from 'svelte/transition';
     import HeaderBar from '$lib/components/layout/HeaderBar.svelte';
     import ActionBar from '$lib/components/layout/ActionBar.svelte';
     import TargetAppsStrip from '$lib/components/layout/TargetAppsStrip.svelte';
@@ -90,6 +91,18 @@
     let widgetMode = $state(false);
     let sliderWidget = $state(false);
     let themesSlider = $state(false);
+
+    // Skip the fade if the user has prefers-reduced-motion set; window match
+    // is read once at module load so the duration is stable across renders.
+    const TAB_FADE_DURATION = (() => {
+        try {
+            return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                ? 0
+                : 100;
+        } catch {
+            return 100;
+        }
+    })();
 
     // RGB step between bg-primary and bg-secondary so panels stay
     // visually layered on any theme bg.
@@ -453,23 +466,27 @@
     <div class="bg-bg-primary flex h-screen flex-col">
         <HeaderBar />
         <main class="flex-1 overflow-hidden">
-            {#if activeTab === 'editor'}
-                <ThemeEditor />
-            {:else if activeTab === 'wallhaven'}
-                <WallhavenBrowser />
-            {:else if activeTab === 'local'}
-                <LocalBrowser />
-            {:else if activeTab === 'favorites'}
-                <FavoritesView />
-            {:else if activeTab === 'blueprints'}
-                <BlueprintsView />
-            {:else if activeTab === 'system'}
-                <div class="h-full overflow-y-auto p-3">
-                    <OmarchyThemes />
+            {#key activeTab}
+                <div class="h-full" in:fade={{duration: TAB_FADE_DURATION}}>
+                    {#if activeTab === 'editor'}
+                        <ThemeEditor />
+                    {:else if activeTab === 'wallhaven'}
+                        <WallhavenBrowser />
+                    {:else if activeTab === 'local'}
+                        <LocalBrowser />
+                    {:else if activeTab === 'favorites'}
+                        <FavoritesView />
+                    {:else if activeTab === 'blueprints'}
+                        <BlueprintsView />
+                    {:else if activeTab === 'system'}
+                        <div class="h-full overflow-y-auto p-3">
+                            <OmarchyThemes />
+                        </div>
+                    {:else if activeTab === 'about'}
+                        <AboutView />
+                    {/if}
                 </div>
-            {:else if activeTab === 'about'}
-                <AboutView />
-            {/if}
+            {/key}
         </main>
         {#if activeTab === 'editor' && getTargetsVisible()}
             <TargetAppsStrip />
