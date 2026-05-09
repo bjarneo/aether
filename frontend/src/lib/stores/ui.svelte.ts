@@ -6,7 +6,8 @@ export type Tab =
     | 'local'
     | 'favorites'
     | 'blueprints'
-    | 'system';
+    | 'system'
+    | 'about';
 
 export const COLOR_MODELS = ['rgb', 'hsl', 'oklch'] as const;
 export type ColorModel = (typeof COLOR_MODELS)[number];

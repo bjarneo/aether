@@ -10,6 +10,7 @@
     import BlueprintsView from '$lib/components/blueprints/BlueprintsView.svelte';
     import BlueprintWidget from '$lib/components/blueprints/BlueprintWidget.svelte';
     import OmarchyThemes from '$lib/components/blueprints/OmarchyThemes.svelte';
+    import AboutView from '$lib/components/layout/AboutView.svelte';
     import WallpaperSlider from '$lib/components/slider/WallpaperSlider.svelte';
     import {
         getActiveTab,
@@ -42,6 +43,7 @@
         'favorites',
         'blueprints',
         'system',
+        'about',
     ] as const;
     const isValidTab = (t: string): t is Tab =>
         (VALID_TABS as readonly string[]).includes(t);
@@ -461,6 +463,8 @@
                 <div class="h-full overflow-y-auto p-3">
                     <OmarchyThemes />
                 </div>
+            {:else if activeTab === 'about'}
+                <AboutView />
             {/if}
         </main>
         {#if activeTab === 'editor' && getTargetsVisible()}
