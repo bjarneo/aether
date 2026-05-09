@@ -33,6 +33,7 @@
         showToast,
         getLiveApply,
         setLiveApply,
+        getLivePending,
     } from '$lib/stores/ui.svelte';
     import {getApiKey, getTotalResults} from '$lib/stores/wallhaven.svelte';
     import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
@@ -108,6 +109,7 @@
     let undoEnabled = $derived(getCanUndo());
     let redoEnabled = $derived(getCanRedo());
     let liveApply = $derived(getLiveApply());
+    let livePending = $derived(getLivePending());
     let dirty = $derived(isDirty());
 
     // --- Editor actions ---
@@ -360,14 +362,16 @@
                     : 'border-border text-fg-dimmed hover:text-fg-secondary hover:border-border-focus'}"
                 role="switch"
                 aria-checked={liveApply}
-                title={liveApply
-                    ? 'Live preview on — every edit auto-applies (Ctrl+Z to revert)'
-                    : 'Auto-apply theme on every edit (debounced)'}
+                title={!liveApply
+                    ? 'Auto-apply theme on every edit (debounced)'
+                    : livePending
+                      ? 'Live preview — syncing changes…'
+                      : 'Live preview on — every edit auto-applies (Ctrl+Z to revert)'}
             >
                 <span class="relative inline-flex h-1.5 w-1.5">
-                    {#if liveApply}
+                    {#if liveApply && livePending}
                         <span
-                            class="bg-accent absolute inline-flex h-full w-full animate-ping opacity-60"
+                            class="bg-accent absolute inline-flex h-full w-full animate-ping opacity-70"
                         ></span>
                     {/if}
                     <span
@@ -376,7 +380,7 @@
                             : 'bg-fg-dimmed/40'}"
                     ></span>
                 </span>
-                Live
+                {liveApply && livePending ? 'Syncing' : 'Live'}
             </button>
 
             <button

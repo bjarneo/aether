@@ -20,6 +20,7 @@ let toastMessage = $state<string>('');
 let toastVisible = $state<boolean>(false);
 let toastAction = $state<ToastAction | null>(null);
 let liveApply = $state<boolean>(readBoolPref(STORAGE_KEYS.liveApply, false));
+let livePending = $state<boolean>(false);
 let targetsVisible = $state<boolean>(
     readBoolPref(STORAGE_KEYS.targetsVisible, true)
 );
@@ -126,6 +127,14 @@ export function getLiveApply(): boolean {
 export function setLiveApply(v: boolean): void {
     liveApply = v;
     writeBoolPref(STORAGE_KEYS.liveApply, v);
+    if (!v) livePending = false;
+}
+
+export function getLivePending(): boolean {
+    return livePending;
+}
+export function setLivePending(v: boolean): void {
+    livePending = v;
 }
 
 export function getTargetsVisible(): boolean {

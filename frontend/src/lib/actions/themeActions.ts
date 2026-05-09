@@ -1,5 +1,5 @@
 import type {main} from '../../../wailsjs/go/models';
-import {showToast} from '$lib/stores/ui.svelte';
+import {showToast, setLivePending} from '$lib/stores/ui.svelte';
 import {
     getIsApplying,
     setIsApplying,
@@ -71,7 +71,10 @@ const LIVE_APPLY_TOAST_MS = 2200;
 // Same backend call as applyTheme(), but with a quieter toast that offers
 // Undo. Used by the live-preview effect when the user flips on Live Apply.
 export async function applyThemeLive(): Promise<void> {
-    if (getIsApplying()) return;
+    if (getIsApplying()) {
+        setLivePending(false);
+        return;
+    }
     setIsApplying(true);
     try {
         const result = await runApply();
@@ -86,6 +89,7 @@ export async function applyThemeLive(): Promise<void> {
         // Apply manually if something is wrong.
     } finally {
         setIsApplying(false);
+        setLivePending(false);
     }
 }
 

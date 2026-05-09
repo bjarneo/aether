@@ -30,6 +30,7 @@
         setKeymapOpen,
         toggleKeymap,
         getLiveApply,
+        setLivePending,
         getTargetsVisible,
         type Tab,
     } from '$lib/stores/ui.svelte';
@@ -144,6 +145,7 @@
         }
         if (sig === lastLiveSignature) return;
         lastLiveSignature = sig;
+        setLivePending(true);
         debouncedLiveApply();
     });
 
