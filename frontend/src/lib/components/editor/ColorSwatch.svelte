@@ -9,7 +9,9 @@
         contrastRatio,
         contrastLevel,
     } from '$lib/utils/color';
+    import {setEyedropperActive} from '$lib/stores/ui.svelte';
     import LockIcon from '$lib/components/shared/LockIcon.svelte';
+    import ContextMenu from '$lib/components/shared/ContextMenu.svelte';
 
     let {
         color,
@@ -30,6 +32,48 @@
         selected: boolean;
         onclick: () => void;
     } = $props();
+
+    let menuOpen = $state(false);
+    let menuX = $state(0);
+    let menuY = $state(0);
+
+    function handleContextMenu(e: MouseEvent) {
+        e.preventDefault();
+        menuX = e.clientX;
+        menuY = e.clientY;
+        menuOpen = true;
+    }
+
+    let menuItems = $derived([
+        {
+            label: 'Edit color…',
+            onSelect: onclick,
+            kbd: 'Click',
+        },
+        {
+            label: 'Copy hex',
+            onSelect: () => copyColor(color),
+            kbd: 'Ctrl+Click',
+        },
+        {divider: true as const},
+        {
+            label: locked ? 'Unlock' : 'Lock',
+            onSelect: () => setLockedColor(index, !locked),
+        },
+        {
+            label: selected ? 'Deselect' : 'Add to selection',
+            onSelect: () => toggleColorSelection(index),
+            kbd: 'Shift+Click',
+        },
+        {divider: true as const},
+        {
+            label: 'Pick from wallpaper',
+            onSelect: () => {
+                onclick();
+                setEyedropperActive(true);
+            },
+        },
+    ]);
 
     let ratio = $derived(
         contrastAgainst ? contrastRatio(color, contrastAgainst) : 0
@@ -73,9 +117,10 @@
           : 'hover:border-accent border-border cursor-pointer hover:z-10 hover:scale-[1.04] hover:shadow-lg'}"
     style:background-color={color}
     onclick={handleClick}
+    oncontextmenu={handleContextMenu}
     title={`${label}${role ? ` · ${role}` : ''}\n${color}${
         showBadge ? `\nContrast vs BG: ${ratio.toFixed(2)}:1 (${level})` : ''
-    }\nCtrl+click to copy · Shift+click to select\nShift+C copy · Shift+V paste (when open)`}
+    }\nClick edit · Ctrl+click copy · Shift+click select · Right-click for menu`}
 >
     {#if selected}
         <span
@@ -137,3 +182,11 @@
         {color}
     </span>
 </div>
+
+<ContextMenu
+    open={menuOpen}
+    x={menuX}
+    y={menuY}
+    items={menuItems}
+    onclose={() => (menuOpen = false)}
+/>

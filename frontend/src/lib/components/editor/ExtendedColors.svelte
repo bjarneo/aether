@@ -1,14 +1,17 @@
 <script lang="ts">
     import {
         getExtendedColors,
-        setExtendedColor,
         getSelectedExtColors,
         toggleExtColorSelection,
     } from '$lib/stores/theme.svelte';
-    import {openExtendedColorPicker} from '$lib/stores/ui.svelte';
+    import {
+        openExtendedColorPicker,
+        setEyedropperActive,
+    } from '$lib/stores/ui.svelte';
     import {isLightColor, copyColor} from '$lib/utils/color';
     import {EXTENDED_COLOR_ROLES} from '$lib/constants/colors';
     import LockIcon from '$lib/components/shared/LockIcon.svelte';
+    import ContextMenu from '$lib/components/shared/ContextMenu.svelte';
 
     let extColors = $derived(getExtendedColors());
     let selectedExt = $derived(getSelectedExtColors());
@@ -20,6 +23,61 @@
         event.preventDefault();
         lockedExt = {...lockedExt, [key]: !lockedExt[key]};
     }
+
+    let menuOpen = $state(false);
+    let menuX = $state(0);
+    let menuY = $state(0);
+    let menuKey = $state('');
+
+    function openMenu(e: MouseEvent, key: string) {
+        e.preventDefault();
+        menuX = e.clientX;
+        menuY = e.clientY;
+        menuKey = key;
+        menuOpen = true;
+    }
+
+    let menuItems = $derived(
+        menuKey
+            ? [
+                  {
+                      label: 'Edit color…',
+                      onSelect: () => openExtendedColorPicker(menuKey),
+                      kbd: 'Click',
+                  },
+                  {
+                      label: 'Copy hex',
+                      onSelect: () =>
+                          copyColor(extColors[menuKey] || '#000000'),
+                      kbd: 'Ctrl+Click',
+                  },
+                  {divider: true as const},
+                  {
+                      label: lockedExt[menuKey] ? 'Unlock' : 'Lock',
+                      onSelect: () =>
+                          (lockedExt = {
+                              ...lockedExt,
+                              [menuKey]: !lockedExt[menuKey],
+                          }),
+                  },
+                  {
+                      label: selectedExt[menuKey]
+                          ? 'Deselect'
+                          : 'Add to selection',
+                      onSelect: () => toggleExtColorSelection(menuKey),
+                      kbd: 'Shift+Click',
+                  },
+                  {divider: true as const},
+                  {
+                      label: 'Pick from wallpaper',
+                      onSelect: () => {
+                          openExtendedColorPicker(menuKey);
+                          setEyedropperActive(true);
+                      },
+                  },
+              ]
+            : []
+    );
 </script>
 
 <div class="mt-4">
@@ -53,6 +111,8 @@
                             toggleExtColorSelection(role.key);
                         } else if (!locked) openExtendedColorPicker(role.key);
                     }}
+                    oncontextmenu={e => openMenu(e, role.key)}
+                    title={`${role.label}\n${hex}\nClick edit · Ctrl+click copy · Right-click for menu`}
                 >
                     {#if sel}
                         <span
@@ -93,3 +153,11 @@
         {/each}
     </div>
 </div>
+
+<ContextMenu
+    open={menuOpen}
+    x={menuX}
+    y={menuY}
+    items={menuItems}
+    onclose={() => (menuOpen = false)}
+/>
