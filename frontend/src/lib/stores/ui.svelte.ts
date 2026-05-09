@@ -46,7 +46,7 @@ let colorPickerExtKey = $state<string>(''); // non-empty = editing an extended c
 let colorPickerOverrideApp = $state<string>(''); // non-empty = editing an app override
 let colorPickerOverrideRole = $state<string>(''); // the color role being overridden
 let eyedropperActive = $state<boolean>(false);
-let colorPickerModel = $state<ColorModel>('rgb');
+let colorPickerModel = $state<ColorModel>('oklch');
 let commandPaletteOpen = $state<boolean>(false);
 let keymapOpen = $state<boolean>(false);
 let imageEditorOpen = $state<boolean>(false);
