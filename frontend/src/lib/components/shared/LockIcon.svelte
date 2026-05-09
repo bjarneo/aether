@@ -1,6 +1,9 @@
 <script lang="ts">
-    let {locked, size = 'w-3.5 h-3.5'}: {locked: boolean; size?: string} =
-        $props();
+    let {
+        locked,
+        size = 'w-3.5 h-3.5',
+        strokeWidth = 2,
+    }: {locked: boolean; size?: string; strokeWidth?: number} = $props();
 </script>
 
 <svg
@@ -8,7 +11,7 @@
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    stroke-width="2"
+    stroke-width={strokeWidth}
     stroke-linecap="round"
     stroke-linejoin="round"
 >

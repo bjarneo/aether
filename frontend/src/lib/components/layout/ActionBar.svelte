@@ -578,13 +578,11 @@
     </div>
 </Modal>
 
-<!-- Save Blueprint Dialog -->
-{#if showSaveDialog}
-    <SaveDialog
-        onclose={() => (showSaveDialog = false)}
-        onsave={() => (showSaveDialog = false)}
-    />
-{/if}
+<SaveDialog
+    open={showSaveDialog}
+    onclose={() => (showSaveDialog = false)}
+    onsave={() => (showSaveDialog = false)}
+/>
 
 {#if confirmKind}
     {@const cfg = CONFIRM_CONFIG[confirmKind]}

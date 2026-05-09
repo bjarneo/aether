@@ -11,7 +11,11 @@
     } from '$lib/stores/theme.svelte';
     import Modal from '$lib/components/shared/Modal.svelte';
 
-    let {onclose, onsave}: {onclose: () => void; onsave: () => void} = $props();
+    let {
+        open = true,
+        onclose,
+        onsave,
+    }: {open?: boolean; onclose: () => void; onsave: () => void} = $props();
     let name = $state('');
     let isSaving = $state(false);
     let showOverrideConfirm = $state(false);
@@ -19,33 +23,25 @@
     let attemptedSubmit = $state(false);
 
     $effect(() => {
-        if (!showOverrideConfirm) nameInput?.focus();
+        if (open && !showOverrideConfirm) nameInput?.focus();
     });
 
     let nameError = $derived(
         attemptedSubmit && !name.trim() ? 'Theme name is required' : ''
     );
 
-    // Enter on the form commits; Esc/backdrop dismissal goes through Modal's
-    // onclose, which we override below to step back from the override-confirm
-    // sub-panel before fully closing.
-    $effect(() => {
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Enter' && !showOverrideConfirm) {
-                e.preventDefault();
-                handleSave();
-            }
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    });
-
+    // Esc/backdrop dismissal goes through Modal's onclose, which we override
+    // to step back from the override-confirm sub-panel before fully closing.
     function handleClose() {
         if (showOverrideConfirm) {
             showOverrideConfirm = false;
         } else {
             onclose();
         }
+    }
+
+    function handleEnter() {
+        if (!showOverrideConfirm) handleSave();
     }
 
     async function handleSave() {
@@ -98,7 +94,7 @@
     }
 </script>
 
-<Modal open={true} onclose={handleClose} z="z-40">
+<Modal {open} onclose={handleClose} onenter={handleEnter} z="z-40">
     {#if showOverrideConfirm}
         <h3 class="text-fg-primary mb-3 text-[12px] font-medium">
             Override existing theme?

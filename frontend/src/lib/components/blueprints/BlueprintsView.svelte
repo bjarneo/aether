@@ -137,13 +137,12 @@
         {/if}
     </div>
 
-    {#if showSaveDialog}
-        <SaveDialog
-            onclose={() => (showSaveDialog = false)}
-            onsave={() => {
-                showSaveDialog = false;
-                loadBlueprints();
-            }}
-        />
-    {/if}
+    <SaveDialog
+        open={showSaveDialog}
+        onclose={() => (showSaveDialog = false)}
+        onsave={() => {
+            showSaveDialog = false;
+            loadBlueprints();
+        }}
+    />
 </div>

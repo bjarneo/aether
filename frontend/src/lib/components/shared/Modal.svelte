@@ -4,12 +4,14 @@
     let {
         open,
         onclose,
+        onenter,
         panelClass = 'w-80',
         z = 'z-50',
         children,
     }: {
         open: boolean;
         onclose: () => void;
+        onenter?: () => void;
         panelClass?: string;
         z?: string;
         children: Snippet;
@@ -21,6 +23,9 @@
             if (e.key === 'Escape') {
                 e.preventDefault();
                 onclose();
+            } else if (e.key === 'Enter' && onenter) {
+                e.preventDefault();
+                onenter();
             }
         };
         window.addEventListener('keydown', onKey);

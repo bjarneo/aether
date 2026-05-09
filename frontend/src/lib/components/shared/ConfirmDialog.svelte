@@ -24,20 +24,11 @@
     let confirmEl = $state<HTMLButtonElement | null>(null);
 
     $effect(() => {
-        if (!open) return;
-        confirmEl?.focus();
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                onconfirm();
-            }
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
+        if (open) confirmEl?.focus();
     });
 </script>
 
-<Modal {open} onclose={oncancel}>
+<Modal {open} onclose={oncancel} onenter={onconfirm}>
     <h3 class="text-fg-primary mb-1.5 text-[12px] font-medium">
         {title}
     </h3>
@@ -49,7 +40,7 @@
     <div class="flex justify-end gap-2">
         <button
             type="button"
-            class="text-fg-secondary border-border hover:bg-bg-hover border px-3 py-1 text-[11px] transition-colors"
+            class="text-fg-dimmed hover:text-fg-secondary px-3 py-1 text-[11px] transition-colors"
             onclick={oncancel}>{cancelLabel}</button
         >
         <button
