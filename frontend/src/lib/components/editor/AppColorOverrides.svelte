@@ -10,6 +10,7 @@
     import {openOverrideColorPicker} from '$lib/stores/ui.svelte';
     import {isLightColor, copyColor} from '$lib/utils/color';
     import ContextMenu from '$lib/components/shared/ContextMenu.svelte';
+    import ExpandableSection from '$lib/components/shared/ExpandableSection.svelte';
     import {appLabel} from '$lib/constants/apps';
 
     let expanded = $state(false);
@@ -148,32 +149,11 @@
 </script>
 
 <div>
-    <button
-        class="mb-2 flex w-full items-center justify-between"
-        onclick={() => (expanded = !expanded)}
+    <ExpandableSection
+        title="Template Overrides"
+        bind:expanded
+        suffix={totalOverrideCount > 0 ? ` (${totalOverrideCount})` : ''}
     >
-        <h3
-            class="text-fg-dimmed text-[10px] font-medium uppercase tracking-wider"
-        >
-            Template Overrides
-            {#if totalOverrideCount > 0}
-                <span class="text-accent ml-1">({totalOverrideCount})</span>
-            {/if}
-        </h3>
-        <svg
-            class="text-fg-dimmed h-3 w-3 transition-transform duration-150 {expanded
-                ? 'rotate-180'
-                : ''}"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-        >
-            <path d="M6 9l6 6 6-6"></path>
-        </svg>
-    </button>
-
-    {#if expanded}
         <div class="space-y-2.5">
             <!-- App chip picker -->
             <div class="flex flex-wrap items-center gap-1">
@@ -250,7 +230,7 @@
                 </p>
             {/if}
         </div>
-    {/if}
+    </ExpandableSection>
 </div>
 
 <ContextMenu

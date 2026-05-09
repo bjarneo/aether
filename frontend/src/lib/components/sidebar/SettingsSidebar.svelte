@@ -1,5 +1,4 @@
 <script lang="ts">
-    import LightModeToggle from './LightModeToggle.svelte';
     import ExtractionModeSelect from './ExtractionModeSelect.svelte';
     import ColorAdjustments from './ColorAdjustments.svelte';
     import PresetsSection from './PresetsSection.svelte';
@@ -12,10 +11,6 @@
 </script>
 
 <div class="flex h-full flex-col overflow-y-auto">
-    <section class="border-border border-b p-3">
-        <LightModeToggle />
-    </section>
-
     <SectionLabel label="Generate" />
     <section class="border-border border-b p-3">
         <ExtractionModeSelect />

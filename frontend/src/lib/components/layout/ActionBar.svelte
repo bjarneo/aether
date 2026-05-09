@@ -39,6 +39,8 @@
     import {applyTheme} from '$lib/actions/themeActions';
     import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
     import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+    import KbdInverse from '$lib/components/shared/KbdInverse.svelte';
+    import Modal from '$lib/components/shared/Modal.svelte';
 
     let showImportMenu = $state(false);
     let showExportDialog = $state(false);
@@ -417,10 +419,7 @@
                 >
                     <span>{applying ? 'Applying...' : 'Apply Theme'}</span>
                     {#if !applying}
-                        <kbd
-                            class="border-bg-primary/30 bg-bg-primary/15 inline-flex items-center border px-1 font-mono text-[9px] leading-[1.4] opacity-90"
-                            aria-hidden="true">Ctrl+↵</kbd
-                        >
+                        <KbdInverse>Ctrl+↵</KbdInverse>
                     {/if}
                     {#if dirty && !applying}
                         <span
@@ -514,85 +513,70 @@
     </div>
 </footer>
 
-<!-- Export Dialog -->
-{#if showExportDialog}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-        onclick={e => {
-            if (e.target === e.currentTarget) showExportDialog = false;
+<Modal
+    open={showExportDialog}
+    onclose={() => (showExportDialog = false)}
+    panelClass="w-80 max-h-[80vh] overflow-y-auto"
+>
+    <h3 class="text-fg-primary mb-3 text-[12px] font-medium">Export Theme</h3>
+    <input
+        bind:this={exportNameInput}
+        type="text"
+        class="bg-bg-surface border-border text-fg-primary focus:border-border-focus mb-3 w-full border px-2 py-1.5 text-[11px] outline-none"
+        placeholder="Theme name..."
+        bind:value={exportName}
+        onkeydown={e => {
+            if (e.key === 'Enter') handleExport();
         }}
-        role="presentation"
-    >
-        <div
-            class="bg-bg-secondary border-border max-h-[80vh] w-80 overflow-y-auto border p-4 shadow-xl"
-            onkeydown={e => {
-                if (e.key === 'Enter') handleExport();
-                if (e.key === 'Escape') showExportDialog = false;
-            }}
-        >
-            <h3 class="text-fg-primary mb-3 text-[12px] font-medium">
-                Export Theme
-            </h3>
-            <input
-                bind:this={exportNameInput}
-                type="text"
-                class="bg-bg-surface border-border text-fg-primary focus:border-border-focus mb-3 w-full border px-2 py-1.5 text-[11px] outline-none"
-                placeholder="Theme name..."
-                bind:value={exportName}
-                aria-label="Theme name"
-            />
-            <div class="mb-3 flex flex-col gap-2.5">
-                {#each exportAppGroups as group}
-                    <div>
-                        <span
-                            class="text-fg-dimmed text-[10px] uppercase tracking-wide"
-                            >{group.label}</span
+        aria-label="Theme name"
+    />
+    <div class="mb-3 flex flex-col gap-2.5">
+        {#each exportAppGroups as group}
+            <div>
+                <span class="text-fg-dimmed text-[10px] uppercase tracking-wide"
+                    >{group.label}</span
+                >
+                <div class="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
+                    {#each group.apps as app}
+                        <label
+                            class="text-fg-secondary flex cursor-pointer items-center gap-1.5 text-[11px]"
                         >
-                        <div class="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
-                            {#each group.apps as app}
-                                <label
-                                    class="text-fg-secondary flex cursor-pointer items-center gap-1.5 text-[11px]"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={exportApps[app.key]}
-                                        class="accent-accent"
-                                    />
-                                    {app.name}
-                                </label>
-                            {/each}
-                        </div>
-                    </div>
-                {/each}
+                            <input
+                                type="checkbox"
+                                bind:checked={exportApps[app.key]}
+                                class="accent-accent"
+                            />
+                            {app.name}
+                        </label>
+                    {/each}
+                </div>
             </div>
-            {#if isOmarchy}
-                <label
-                    class="text-fg-secondary mb-3 flex cursor-pointer items-center gap-1.5 text-[11px]"
-                >
-                    <input
-                        type="checkbox"
-                        bind:checked={installToOmarchy}
-                        class="accent-accent"
-                    />
-                    Install as Omarchy theme
-                </label>
-            {/if}
-            <div class="flex justify-end gap-2">
-                <button
-                    class="text-fg-dimmed hover:text-fg-secondary px-3 py-1 text-[11px]"
-                    onclick={() => (showExportDialog = false)}>Cancel</button
-                >
-                <button
-                    class="bg-accent text-bg-primary hover:bg-accent-hover px-3 py-1 text-[11px] font-medium disabled:opacity-50"
-                    onclick={handleExport}
-                    disabled={!exportName.trim()}>Export</button
-                >
-            </div>
-        </div>
+        {/each}
     </div>
-{/if}
+    {#if isOmarchy}
+        <label
+            class="text-fg-secondary mb-3 flex cursor-pointer items-center gap-1.5 text-[11px]"
+        >
+            <input
+                type="checkbox"
+                bind:checked={installToOmarchy}
+                class="accent-accent"
+            />
+            Install as Omarchy theme
+        </label>
+    {/if}
+    <div class="flex justify-end gap-2">
+        <button
+            class="text-fg-dimmed hover:text-fg-secondary px-3 py-1 text-[11px]"
+            onclick={() => (showExportDialog = false)}>Cancel</button
+        >
+        <button
+            class="bg-accent text-bg-primary hover:bg-accent-hover px-3 py-1 text-[11px] font-medium disabled:opacity-50"
+            onclick={handleExport}
+            disabled={!exportName.trim()}>Export</button
+        >
+    </div>
+</Modal>
 
 <!-- Save Blueprint Dialog -->
 {#if showSaveDialog}

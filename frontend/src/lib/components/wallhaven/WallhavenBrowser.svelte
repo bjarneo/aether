@@ -14,6 +14,7 @@
     import {observeIntersection} from '$lib/utils/intersection';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
     import LoadingState from '$lib/components/shared/LoadingState.svelte';
+    import SearchIcon from '$lib/components/shared/SearchIcon.svelte';
 
     let scrollContainer = $state<HTMLDivElement | null>(null);
     let sentinel = $state<HTMLDivElement | null>(null);
@@ -72,18 +73,7 @@
                     : undefined}
             >
                 {#snippet icon()}
-                    <svg
-                        class="h-12 w-12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <circle cx="11" cy="11" r="7"></circle>
-                        <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
-                    </svg>
+                    <SearchIcon size="h-12 w-12" strokeWidth={1.5} />
                 {/snippet}
             </EmptyState>
         {:else}

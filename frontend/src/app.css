@@ -61,6 +61,16 @@ main {
         border-color 180ms ease-out;
 }
 
+@media (prefers-reduced-motion: reduce) {
+    body,
+    header,
+    footer,
+    aside,
+    main {
+        transition: none;
+    }
+}
+
 /* Transparent mode — applied via .transparent-widget on <html> */
 :root.transparent-widget,
 :root.transparent-widget body {

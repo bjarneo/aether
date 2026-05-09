@@ -2,6 +2,7 @@
     import FilterControls from './FilterControls.svelte';
     import CropOverlay from './CropOverlay.svelte';
     import CloseIcon from '$lib/components/shared/CloseIcon.svelte';
+    import KbdInverse from '$lib/components/shared/KbdInverse.svelte';
     import {getWallpaperPath, setWallpaperPath} from '$lib/stores/theme.svelte';
     import {showToast} from '$lib/stores/ui.svelte';
     import {
@@ -434,10 +435,7 @@
                 >
                     <span>{isProcessing ? 'Exporting…' : 'Apply'}</span>
                     {#if !isProcessing}
-                        <kbd
-                            class="border-bg-primary/30 bg-bg-primary/15 inline-flex items-center border px-1 font-mono text-[9px] leading-[1.4] opacity-90"
-                            aria-hidden="true">Ctrl+↵</kbd
-                        >
+                        <KbdInverse>Ctrl+↵</KbdInverse>
                     {/if}
                 </button>
                 <button

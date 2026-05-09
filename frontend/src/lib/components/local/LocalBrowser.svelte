@@ -20,6 +20,7 @@
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
     import LoadingState from '$lib/components/shared/LoadingState.svelte';
+    import SearchIcon from '$lib/components/shared/SearchIcon.svelte';
     import type {wallpaper} from '../../../../wailsjs/go/models';
 
     type Wallpaper = wallpaper.WallpaperInfo;
@@ -215,18 +216,7 @@
                     }}
                 >
                     {#snippet icon()}
-                        <svg
-                            class="h-12 w-12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <circle cx="11" cy="11" r="7"></circle>
-                            <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
-                        </svg>
+                        <SearchIcon size="h-12 w-12" strokeWidth={1.5} />
                     {/snippet}
                 </EmptyState>
             {:else}

@@ -10,7 +10,7 @@
         type Tab,
     } from '$lib/stores/ui.svelte';
     import {getLightMode, setLightMode} from '$lib/stores/theme.svelte';
-    import {openURL} from '$lib/utils/browser';
+    import SearchIcon from '$lib/components/shared/SearchIcon.svelte';
 
     let sidebarVisible = $derived(getSidebarVisible());
     let lightMode = $derived(getLightMode());
@@ -84,8 +84,8 @@
         class:pb-1.5={isMac}
         class:ml-2={isMac}
         style="letter-spacing: 0.08em; --wails-draggable:no-drag"
-        onclick={() => openURL('https://github.com/bjarneo/aether')}
-        title="Open GitHub repository">AETHER</button
+        onclick={() => setActiveTab('editor')}
+        title="Editor">AETHER</button
     >
     <button
         class="text-fg-dimmed hover:text-fg-primary mx-3 flex h-6 w-6 items-center justify-center transition-colors duration-100"
@@ -191,19 +191,7 @@
             aria-label="Open command palette"
             title="Command palette (Ctrl+P)"
         >
-            <svg
-                class="h-3.5 w-3.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-            >
-                <circle cx="11" cy="11" r="7"></circle>
-                <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
-            </svg>
+            <SearchIcon />
         </button>
         <button
             class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover flex h-7 w-7 items-center justify-center transition-colors"
