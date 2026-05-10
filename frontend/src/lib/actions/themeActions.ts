@@ -104,6 +104,41 @@ export async function applyTheme(): Promise<void> {
     }
 }
 
+// Swap the wallpaper without re-extracting colors. Resolves remote URLs
+// (Wallhaven) by downloading first, then runs the standard apply path so
+// the new wallpaper goes out together with the current palette.
+export async function applyWallpaperOnly(originalPath: string): Promise<void> {
+    if (getIsApplying() || !originalPath) return;
+
+    let path = originalPath;
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+        try {
+            showToast('Downloading wallpaper…');
+            const {DownloadWallpaper} = await import(
+                '../../../wailsjs/go/main/App'
+            );
+            path = await DownloadWallpaper(path);
+        } catch {
+            showToast('Failed to download wallpaper');
+            return;
+        }
+    }
+    setWallpaperPath(path);
+
+    setIsApplying(true);
+    try {
+        const result = await runApply();
+        markApplied();
+        showToast(
+            result.success ? 'Wallpaper applied' : 'Wallpaper files generated'
+        );
+    } catch {
+        showToast('Couldn’t apply wallpaper — see logs for details');
+    } finally {
+        setIsApplying(false);
+    }
+}
+
 // Quieter undo-offering toast for live preview; long enough to react,
 // short enough not to pile up during rapid edits.
 const LIVE_APPLY_TOAST_MS = 2200;

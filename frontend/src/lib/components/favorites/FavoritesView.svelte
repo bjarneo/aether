@@ -19,6 +19,8 @@
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
     import LoadingState from '$lib/components/shared/LoadingState.svelte';
+    import {applyWallpaperOnly} from '$lib/actions/themeActions';
+    import {getIsApplying} from '$lib/stores/theme.svelte';
     import type {favorites as favoritesNs} from '../../../../wailsjs/go/models';
 
     type Favorite = favoritesNs.Favorite;
@@ -279,10 +281,19 @@
                         >
                             <button
                                 class="bg-accent hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors"
-                                onclick={() => handleSelect(fav)}>Use</button
+                                onclick={() => handleSelect(fav)}
+                                title="Set as wallpaper and open in editor"
+                                >Use</button
                             >
                             <button
-                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors"
+                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
+                                onclick={() => applyWallpaperOnly(fav.path)}
+                                disabled={getIsApplying()}
+                                title="Apply this wallpaper without changing the current palette"
+                                >Wallpaper only</button
+                            >
+                            <button
+                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-3 py-1.5 text-[11px] font-medium transition-colors"
                                 onclick={() => handlePreview(i)}>Preview</button
                             >
                         </div>

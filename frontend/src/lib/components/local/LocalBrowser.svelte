@@ -6,6 +6,8 @@
         getAdditionalImages,
     } from '$lib/stores/theme.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
+    import {applyWallpaperOnly} from '$lib/actions/themeActions';
+    import {getIsApplying} from '$lib/stores/theme.svelte';
     import {
         getLabels,
         getLabelForPath,
@@ -304,10 +306,18 @@
                             <button
                                 class="bg-accent hover:bg-accent-hover pointer-events-auto px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors"
                                 onclick={() => selectWallpaper(wp.path)}
+                                title="Set as wallpaper and open in editor"
                                 >Use</button
                             >
                             <button
-                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus pointer-events-auto px-4 py-1.5 text-[11px] font-medium transition-colors"
+                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus pointer-events-auto px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
+                                onclick={() => applyWallpaperOnly(wp.path)}
+                                disabled={getIsApplying()}
+                                title="Apply this wallpaper without changing the current palette"
+                                >Wallpaper only</button
+                            >
+                            <button
+                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus pointer-events-auto px-3 py-1.5 text-[11px] font-medium transition-colors"
                                 onclick={() => handlePreview(i)}>Preview</button
                             >
                         </div>
