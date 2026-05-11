@@ -1,7 +1,16 @@
 <script lang="ts">
     import {openURL} from '$lib/utils/browser';
+    import omarchyIcon from '../../../assets/omarchy.png';
 
-    const links = [
+    type Link = {
+        label: string;
+        url: string;
+        description: string;
+        icon: string;
+        image?: string;
+    };
+
+    const links: Link[] = [
         {
             label: 'GitHub',
             url: 'https://github.com/bjarneo/aether',
@@ -11,8 +20,15 @@
         {
             label: 'X / Twitter',
             url: 'https://x.com/iamdothash',
-            description: 'Updates, screenshots, dev log',
+            description: "Author's X",
             icon: 'M18.244 2H21.5l-7.494 8.567L23 22h-6.793l-5.32-6.957L4.8 22H1.54l8.014-9.166L1 2h6.96l4.806 6.353L18.244 2Zm-2.378 18.16h1.84L7.21 3.74H5.236l10.63 16.42Z',
+        },
+        {
+            label: 'Omarchy',
+            url: 'https://omarchy.org',
+            description: 'The Linux desktop Aether is built for',
+            icon: '',
+            image: omarchyIcon,
         },
     ];
 </script>
@@ -48,14 +64,23 @@
                     class="border-border hover:border-border-focus hover:bg-bg-hover group flex items-center gap-3 border px-3 py-2.5 text-left transition-colors"
                     onclick={() => openURL(link.url)}
                 >
-                    <svg
-                        class="text-fg-secondary group-hover:text-accent h-4 w-4 shrink-0 transition-colors"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                    >
-                        <path d={link.icon}></path>
-                    </svg>
+                    {#if link.image}
+                        <img
+                            src={link.image}
+                            alt=""
+                            class="h-4 w-4 shrink-0 object-contain"
+                            aria-hidden="true"
+                        />
+                    {:else}
+                        <svg
+                            class="text-fg-secondary group-hover:text-accent h-4 w-4 shrink-0 transition-colors"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path d={link.icon}></path>
+                        </svg>
+                    {/if}
                     <div class="min-w-0 flex-1">
                         <div class="text-fg-primary text-[12px] font-medium">
                             {link.label}
