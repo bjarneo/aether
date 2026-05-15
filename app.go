@@ -41,20 +41,8 @@ type App struct {
 	themeWatcher *theme.ThemeWatcher
 	media        *MediaServer
 	ipcServer    *ipc.Server
-	widgetMode   bool
-	sliderWidget bool
-	themesSlider bool
 	focusTab     string
 }
-
-// IsWidgetMode returns true when running in --widget-blueprint mode.
-func (a *App) IsWidgetMode() bool { return a.widgetMode }
-
-// IsSliderWidget returns true when running in --widget-wallpaper-slider mode.
-func (a *App) IsSliderWidget() bool { return a.sliderWidget }
-
-// IsThemesSlider returns true when running in --widget-themes-slider mode.
-func (a *App) IsThemesSlider() bool { return a.themesSlider }
 
 // IsMacOS returns true when running on macOS.
 func (a *App) IsMacOS() bool { return runtime.GOOS == "darwin" }

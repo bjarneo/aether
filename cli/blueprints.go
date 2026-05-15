@@ -12,11 +12,17 @@ import (
 	"aether/internal/wallhaven"
 )
 
-func runListBlueprints() int {
+func runListBlueprints(args []string) int {
+	jsonOut, _ := stripJSON(args)
+
 	svc := blueprint.NewService()
 	blueprints, err := svc.LoadAll()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error listing blueprints: %v\n", err)
+		msg := fmt.Sprintf("Error listing blueprints: %v", err)
+		if jsonOut {
+			return printErrorJSON(msg)
+		}
+		fmt.Fprintln(os.Stderr, msg)
 		return 1
 	}
 
@@ -24,6 +30,30 @@ func runListBlueprints() int {
 	sort.Slice(blueprints, func(i, j int) bool {
 		return blueprints[i].Timestamp > blueprints[j].Timestamp
 	})
+
+	if jsonOut {
+		type entry struct {
+			Name      string   `json:"name"`
+			Colors    []string `json:"colors"`
+			LightMode bool     `json:"lightMode"`
+			Wallpaper string   `json:"wallpaper,omitempty"`
+			Timestamp int64    `json:"timestamp"`
+		}
+		out := make([]entry, len(blueprints))
+		for i, bp := range blueprints {
+			out[i] = entry{
+				Name:      bp.Name,
+				Colors:    bp.Palette.Colors,
+				LightMode: bp.Palette.LightMode,
+				Wallpaper: bp.Palette.Wallpaper,
+				Timestamp: bp.Timestamp,
+			}
+		}
+		return printJSON(map[string]interface{}{
+			"blueprints": out,
+			"count":      len(out),
+		})
+	}
 
 	if len(blueprints) == 0 {
 		fmt.Println("No blueprints found.")

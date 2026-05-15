@@ -9,10 +9,8 @@
     import LocalBrowser from '$lib/components/local/LocalBrowser.svelte';
     import FavoritesView from '$lib/components/favorites/FavoritesView.svelte';
     import BlueprintsView from '$lib/components/blueprints/BlueprintsView.svelte';
-    import BlueprintWidget from '$lib/components/blueprints/BlueprintWidget.svelte';
     import OmarchyThemes from '$lib/components/blueprints/OmarchyThemes.svelte';
     import AboutView from '$lib/components/layout/AboutView.svelte';
-    import WallpaperSlider from '$lib/components/slider/WallpaperSlider.svelte';
     import {
         getActiveTab,
         setActiveTab,
@@ -89,9 +87,6 @@
 
     let activeTab = $derived(getActiveTab());
     let commands = $derived(buildCommands());
-    let widgetMode = $state(false);
-    let sliderWidget = $state(false);
-    let themesSlider = $state(false);
 
     const TAB_FADE_DURATION = prefersReducedMotion() ? 0 : 100;
 
@@ -156,24 +151,11 @@
     });
 
     onMount(async () => {
-        try {
-            const {IsWidgetMode, IsSliderWidget, IsThemesSlider} = await import(
-                '../wailsjs/go/main/App'
-            );
-            widgetMode = await IsWidgetMode();
-            sliderWidget = await IsSliderWidget();
-            themesSlider = await IsThemesSlider();
-        } catch {}
-
         // Show window now that the DOM is ready (started hidden to avoid white flash)
-        if (!sliderWidget && !themesSlider) {
-            try {
-                const {WindowShow} = await import('../wailsjs/runtime/runtime');
-                WindowShow();
-            } catch {}
-        }
-
-        if (widgetMode || sliderWidget || themesSlider) return;
+        try {
+            const {WindowShow} = await import('../wailsjs/runtime/runtime');
+            WindowShow();
+        } catch {}
 
         // Focus a specific tab if requested via --tab flag
         try {
@@ -425,63 +407,40 @@
     });
 </script>
 
-{#if widgetMode}
-    <BlueprintWidget />
-{:else if sliderWidget}
-    <WallpaperSlider
-        mode="wallpapers"
-        onclose={async () => {
-            const {Quit} = await import('../wailsjs/runtime/runtime');
-            Quit();
-        }}
+<div class="bg-bg-primary flex h-screen flex-col">
+    <HeaderBar />
+    <main class="flex-1 overflow-hidden">
+        {#key activeTab}
+            <div class="h-full" in:fade={{duration: TAB_FADE_DURATION}}>
+                {#if activeTab === 'editor'}
+                    <ThemeEditor />
+                {:else if activeTab === 'wallhaven'}
+                    <WallhavenBrowser />
+                {:else if activeTab === 'local'}
+                    <LocalBrowser />
+                {:else if activeTab === 'favorites'}
+                    <FavoritesView />
+                {:else if activeTab === 'blueprints'}
+                    <BlueprintsView />
+                {:else if activeTab === 'system'}
+                    <div class="h-full overflow-y-auto p-3">
+                        <OmarchyThemes />
+                    </div>
+                {:else if activeTab === 'about'}
+                    <AboutView />
+                {/if}
+            </div>
+        {/key}
+    </main>
+    {#if activeTab === 'editor' && getTargetsVisible()}
+        <TargetAppsStrip />
+    {/if}
+    <ActionBar />
+    <Toast />
+    <KeymapDialog open={getKeymapOpen()} onclose={() => setKeymapOpen(false)} />
+    <CommandPalette
+        open={getCommandPaletteOpen()}
+        {commands}
+        onclose={closeCommandPalette}
     />
-{:else if themesSlider}
-    <WallpaperSlider
-        mode="themes"
-        onclose={async () => {
-            const {Quit} = await import('../wailsjs/runtime/runtime');
-            Quit();
-        }}
-    />
-{:else}
-    <div class="bg-bg-primary flex h-screen flex-col">
-        <HeaderBar />
-        <main class="flex-1 overflow-hidden">
-            {#key activeTab}
-                <div class="h-full" in:fade={{duration: TAB_FADE_DURATION}}>
-                    {#if activeTab === 'editor'}
-                        <ThemeEditor />
-                    {:else if activeTab === 'wallhaven'}
-                        <WallhavenBrowser />
-                    {:else if activeTab === 'local'}
-                        <LocalBrowser />
-                    {:else if activeTab === 'favorites'}
-                        <FavoritesView />
-                    {:else if activeTab === 'blueprints'}
-                        <BlueprintsView />
-                    {:else if activeTab === 'system'}
-                        <div class="h-full overflow-y-auto p-3">
-                            <OmarchyThemes />
-                        </div>
-                    {:else if activeTab === 'about'}
-                        <AboutView />
-                    {/if}
-                </div>
-            {/key}
-        </main>
-        {#if activeTab === 'editor' && getTargetsVisible()}
-            <TargetAppsStrip />
-        {/if}
-        <ActionBar />
-        <Toast />
-        <KeymapDialog
-            open={getKeymapOpen()}
-            onclose={() => setKeymapOpen(false)}
-        />
-        <CommandPalette
-            open={getCommandPaletteOpen()}
-            {commands}
-            onclose={closeCommandPalette}
-        />
-    </div>
-{/if}
+</div>

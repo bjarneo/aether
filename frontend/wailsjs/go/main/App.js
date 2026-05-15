@@ -150,18 +150,6 @@ export function IsPreviewCached(arg1) {
     return window['go']['main']['App']['IsPreviewCached'](arg1);
 }
 
-export function IsSliderWidget() {
-    return window['go']['main']['App']['IsSliderWidget']();
-}
-
-export function IsThemesSlider() {
-    return window['go']['main']['App']['IsThemesSlider']();
-}
-
-export function IsWidgetMode() {
-    return window['go']['main']['App']['IsWidgetMode']();
-}
-
 export function ListBlueprints() {
     return window['go']['main']['App']['ListBlueprints']();
 }

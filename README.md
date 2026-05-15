@@ -125,6 +125,7 @@ wails build
 | [Custom Apps](docs/custom-apps.md) | Per-app template system |
 | [File System](docs/filesystem.md) | Where Aether stores files |
 | [Remote Control](docs/remote-control.md) | IPC commands and AI integration |
+| [Quickshell Widgets](docs/quickshell.md) | QML widgets for Hyprland-style bars |
 | [Standalone](docs/standalone.md) | Using Aether without Omarchy |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues |
 

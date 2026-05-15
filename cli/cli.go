@@ -23,7 +23,7 @@ func Run(args []string, templatesFS embed.FS) int {
 	case "--generate":
 		return runGenerate(args[1:], templatesFS)
 	case "--list-blueprints":
-		return runListBlueprints()
+		return runListBlueprints(args[1:])
 	case "--apply-blueprint":
 		return runApplyBlueprint(args[1:], templatesFS)
 	case "--import-blueprint":
@@ -156,7 +156,7 @@ Inspection:
 
 Wallpapers:
   aether --search-wallhaven <query>         Search wallhaven.cc
-  aether --list-wallpapers                  List local wallpapers
+  aether --list-wallpapers [--with-previews] List local wallpapers (cached 800px previews when flag set)
   aether --random-wallpaper                 Pick random local wallpaper
 
 Favorites:
@@ -177,9 +177,6 @@ Remote control (requires running Aether GUI):
   aether set-wallpaper <path>               Set wallpaper path
 
 GUI options:
-  aether --widget-blueprint                 Launch blueprint widget
-  aether --widget-wallpaper-slider          Launch wallpaper slider widget
-  aether --widget-themes-slider             Launch themes slider widget
   aether --tab <name>                       Open GUI with specific tab
 
 Global options:

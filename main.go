@@ -23,7 +23,7 @@ var assets embed.FS
 
 func main() {
 	// GUI flags that need the full Wails runtime (not CLI-only)
-	guiFlags := map[string]bool{"--widget-blueprint": true, "--widget-wallpaper-slider": true, "--widget-themes-slider": true, "--tab": true}
+	guiFlags := map[string]bool{"--tab": true}
 
 	// CLI mode: if first arg starts with -- and isn't a GUI flag, dispatch to CLI
 	if len(os.Args) > 1 && strings.HasPrefix(os.Args[1], "--") && !guiFlags[os.Args[1]] {
@@ -41,17 +41,7 @@ func main() {
 		os.Exit(cli.RunIPC(os.Args[1:]))
 	}
 
-	// Check for IPC socket conflict before launching GUI.
-	// Widget/slider modes are lightweight overlays — allow them even when
-	// the main Aether editor is already running.
-	isWidget := false
-	for _, a := range os.Args[1:] {
-		if guiFlags[a] {
-			isWidget = true
-			break
-		}
-	}
-	if !isWidget && ipc.IsRunning() {
+	if ipc.IsRunning() {
 		fmt.Fprintln(os.Stderr, "Aether is already running. Use IPC commands to control it.")
 		os.Exit(1)
 	}
@@ -66,77 +56,28 @@ func main() {
 	}
 
 	// Parse GUI-specific flags
-	widgetMode := false
-	sliderWidget := false
-	themesSlider := false
 	focusTab := ""
 	for i := 1; i < len(os.Args); i++ {
-		switch os.Args[i] {
-		case "--widget-blueprint":
-			widgetMode = true
-		case "--widget-wallpaper-slider":
-			sliderWidget = true
-		case "--widget-themes-slider":
-			themesSlider = true
-		case "--tab":
-			if i+1 < len(os.Args) {
-				focusTab = os.Args[i+1]
-				i++
-			}
+		if os.Args[i] == "--tab" && i+1 < len(os.Args) {
+			focusTab = os.Args[i+1]
+			i++
 		}
 	}
 
 	// GUI mode: launch Wails application
 	app := NewApp()
 	defer app.CloseIPC()
-	app.widgetMode = widgetMode
-	app.sliderWidget = sliderWidget
-	app.themesSlider = themesSlider
 	app.focusTab = focusTab
 
-	width, height := 900, 700
-	title := "Aether"
-	frameless := false
-	alwaysOnTop := false
-	if widgetMode {
-		width, height = 300, 420
-		title = "Aether Blueprints"
-		frameless = true
-		alwaysOnTop = true
-	} else if sliderWidget || themesSlider {
-		title = "Aether Slider"
-		frameless = true
-		alwaysOnTop = true
-		width, height = platform.MonitorSize()
-	}
-
-	isSliderMode := sliderWidget || themesSlider
-	bgColour := &options.RGBA{R: 30, G: 30, B: 46, A: 1}
-	programName := "Aether"
-	if isSliderMode {
-		programName = "aether-slider"
-		bgColour = &options.RGBA{R: 0, G: 0, B: 0, A: 0}
-	}
-	linuxOpts := &wailslinux.Options{
-		ProgramName:         programName,
-		WindowIsTranslucent: isSliderMode,
-	}
-
-	if isSliderMode {
-		platform.SetupOverlayWindow(programName)
-	}
-
 	err := wails.Run(&options.App{
-		Title:       title,
-		Width:       width,
-		Height:      height,
+		Title:       "Aether",
+		Width:       900,
+		Height:      700,
 		StartHidden: true,
-		Frameless:   frameless,
-		AlwaysOnTop: alwaysOnTop,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: bgColour,
+		BackgroundColour: &options.RGBA{R: 30, G: 30, B: 46, A: 1},
 		OnStartup:        app.startup,
 		DragAndDrop: &options.DragAndDrop{
 			EnableFileDrop:     false,
@@ -145,7 +86,9 @@ func main() {
 		Bind: []interface{}{
 			app,
 		},
-		Linux: linuxOpts,
+		Linux: &wailslinux.Options{
+			ProgramName: "Aether",
+		},
 		Mac: &wailsmac.Options{
 			TitleBar:             wailsmac.TitleBarHiddenInset(),
 			WebviewIsTransparent: true,

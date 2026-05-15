@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"sync"
 
 	"aether/internal/wallhaven"
 	"aether/internal/wallpaper"
@@ -80,7 +81,8 @@ func runSearchWallhaven(args []string) int {
 }
 
 func runListWallpapers(args []string) int {
-	jsonOut, _ := stripJSON(args)
+	jsonOut, args := stripJSON(args)
+	withPreviews, _ := hasFlag(args, "--with-previews")
 
 	wallpapers, err := wallpaper.ScanDefaultDirs()
 	if err != nil {
@@ -93,6 +95,12 @@ func runListWallpapers(args []string) int {
 	}
 
 	if jsonOut {
+		if withPreviews {
+			return printJSON(map[string]interface{}{
+				"wallpapers": buildWallpapersWithPreviews(wallpapers),
+				"count":      len(wallpapers),
+			})
+		}
 		return printJSON(map[string]interface{}{
 			"wallpapers": wallpapers,
 			"count":      len(wallpapers),
@@ -109,6 +117,45 @@ func runListWallpapers(args []string) int {
 		fmt.Printf("  %s\n", wp.Path)
 	}
 	return 0
+}
+
+// wallpaperWithPreview adds a previewPath field to the standard listing.
+// previewPath is populated by GetPreview, which writes an 800 px PNG to
+// ~/.cache/aether/thumbnails/ keyed by md5(path + "-preview"). Once cached
+// the call is a stat(); the first call per wallpaper takes a few hundred ms.
+type wallpaperWithPreview struct {
+	wallpaper.WallpaperInfo
+	PreviewPath string `json:"previewPath,omitempty"`
+}
+
+func buildWallpapersWithPreviews(wps []wallpaper.WallpaperInfo) []wallpaperWithPreview {
+	out := make([]wallpaperWithPreview, len(wps))
+	for i, wp := range wps {
+		out[i] = wallpaperWithPreview{WallpaperInfo: wp}
+	}
+
+	// Cap concurrency at 8 in-flight generations. Acquire the semaphore
+	// before spawning so we don't pile up hundreds of blocked goroutines
+	// for large wallpaper folders.
+	const workers = 8
+	sem := make(chan struct{}, workers)
+	var wg sync.WaitGroup
+	for i := range out {
+		if out[i].Size == 0 {
+			continue // skip broken/empty placeholders
+		}
+		sem <- struct{}{}
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if p, err := wallpaper.GetPreview(out[idx].Path); err == nil {
+				out[idx].PreviewPath = p
+			}
+		}(i)
+	}
+	wg.Wait()
+	return out
 }
 
 func runRandomWallpaper(args []string) int {
