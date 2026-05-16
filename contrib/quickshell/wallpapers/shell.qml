@@ -31,18 +31,6 @@ Scope {
         // so the wallpaper behind the scrim gets a compositor-side blur.
         WlrLayershell.namespace: "aether-slider"
 
-        // Ask the compositor to blur whatever is behind the entire panel
-        // surface, via the Wayland background-effect protocol. Hyprland's
-        // layerrule above does the same thing through its own mechanism;
-        // this is the protocol-level request so compositors that support
-        // it natively (KWin etc.) don't need extra config.
-        BackgroundEffect.blurRegion: Region {
-            x: 0
-            y: 0
-            width: panel.width
-            height: panel.height
-        }
-
         color: "transparent"
 
         WallpaperSlider {

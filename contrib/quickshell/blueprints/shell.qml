@@ -26,13 +26,6 @@ Scope {
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
         WlrLayershell.namespace: "aether-blueprints"
 
-        BackgroundEffect.blurRegion: Region {
-            x: 0
-            y: 0
-            width: panel.width
-            height: panel.height
-        }
-
         color: "transparent"
 
         Blueprints {

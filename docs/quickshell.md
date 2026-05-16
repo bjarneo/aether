@@ -54,7 +54,7 @@ layerrule = ignorezero, aether-blueprints
 
 Then `hyprctl reload` and re-launch.
 
-KWin and other compositors that implement the `ext-background-effect-v1` Wayland protocol get blur automatically (the widget requests it via `BackgroundEffect.blurRegion` at startup). Hyprland doesn't implement that protocol yet, hence the layerrule fallback. The harmless warning in the log at startup is from this protocol probe.
+For non-Hyprland compositors (KWin, etc.) you'd need to wire up their equivalent blur mechanism, or edit `shell.qml` to add a `BackgroundEffect.blurRegion: Region { ... }` block, which uses the `ext-background-effect-v1` Wayland protocol where supported.
 
 ## Wallpapers widget
 
