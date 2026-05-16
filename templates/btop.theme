@@ -10,23 +10,33 @@ theme[title]="{foreground}"
 # Highlight color for keyboard shortcuts
 theme[hi_fg]="{accent}"
 
-# Background color of selected item in processes box
-theme[selected_bg]="{selection}"
+# Background color of selected item in processes box. {selection} maps to
+# the foreground role in aether (terminal selection wants inverted contrast),
+# which renders as plain white on dark themes - indistinguishable from the
+# main text. {lighter_bg} gives a subtle highlight that still reads on a
+# dark background and is invisible-but-harmless on light backgrounds.
+theme[selected_bg]="{lighter_bg}"
 
-# Foreground color of selected item in processes box
-theme[selected_fg]="{accent}"
+# Foreground color of selected item in processes box. Use {foreground} so
+# the row text stays readable on the lighter_bg highlight; the previous
+# {accent} produced low-contrast blue-on-white in dark themes.
+theme[selected_fg]="{foreground}"
 
 # Color of inactive/disabled text
 theme[inactive_fg]="{muted}"
 
-# Color of text appearing on top of graphs, i.e uptime and current network graph scaling
-theme[graph_text]="{light_fg}"
+# Color of text appearing on top of graphs, i.e uptime and current network graph scaling.
+# {light_fg} caps at #ffffff when the foreground is already pure white, so we
+# just bind it to {foreground} directly.
+theme[graph_text]="{foreground}"
 
-# Background color of the percentage meters
-theme[meter_bg]="{selection}"
+# Background color of the percentage meters. Same fix as selected_bg - the
+# previous {selection} collapsed to the main fg.
+theme[meter_bg]="{lighter_bg}"
 
-# Misc colors for processes box including mini cpu graphs, details memory graph and details status text
-theme[proc_misc]="{light_fg}"
+# Misc colors for processes box including mini cpu graphs, details memory graph and details status text.
+# Use {cyan} for a distinct accent instead of {light_fg} which capped to white.
+theme[proc_misc]="{cyan}"
 
 # CPU, Memory, Network, Proc box outline colors
 theme[cpu_box]="{purple}"
@@ -81,13 +91,3 @@ theme[upload_end]="{blue}"
 theme[process_start]="{cyan}"
 theme[process_mid]="{blue}"
 theme[process_end]="{purple}"
-
-# Graph gradient colors (spectrum shades from background to foreground)
-theme[gradient_color_0]="{bg}"
-theme[gradient_color_1]="{lighter_bg}"
-theme[gradient_color_2]="{selection}"
-theme[gradient_color_3]="{muted}"
-theme[gradient_color_4]="{dark_fg}"
-theme[gradient_color_5]="{fg}"
-theme[gradient_color_6]="{light_fg}"
-theme[gradient_color_7]="{bright_fg}"
