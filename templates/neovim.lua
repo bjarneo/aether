@@ -42,12 +42,6 @@ return {
         selection_background = "{lighter_bg}",
       },
     },
-    -- set up hot reload
-    config = function(_, opts)
-      require("aether").setup(opts)
-      vim.cmd.colorscheme("aether")
-      require("aether.hotreload").setup()
-    end,
   },
   {
     "LazyVim/LazyVim",
