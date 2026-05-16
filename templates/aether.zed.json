@@ -15,21 +15,21 @@
         "border.transparent": "#00000000",
         "border.disabled": "{muted}30",
 
-        "elevated_surface.background": "{bg}",
-        "surface.background": "{bg}",
+        "elevated_surface.background": "{lighter_bg}",
+        "surface.background": "{lighter_bg}",
 
-        "element.background": "{muted}40",
-        "element.hover": "{muted}60",
+        "element.background": "{lighter_bg}",
+        "element.hover": "{muted}40",
         "element.active": "{accent}30",
-        "element.selected": "{accent}20",
+        "element.selected": "{accent}25",
         "element.disabled": "{muted}20",
 
         "drop_target.background": "{accent}20",
 
         "ghost_element.background": "#00000000",
-        "ghost_element.hover": "{muted}40",
+        "ghost_element.hover": "{lighter_bg}",
         "ghost_element.active": "{accent}30",
-        "ghost_element.selected": "{accent}20",
+        "ghost_element.selected": "{accent}25",
         "ghost_element.disabled": "{muted}20",
 
         "text": "{foreground}",
@@ -44,17 +44,17 @@
         "icon.placeholder": "{muted}",
         "icon.accent": "{accent}",
 
-        "status_bar.background": "{bg}",
-        "title_bar.background": "{bg}",
-        "title_bar.inactive_background": "{bg}",
+        "status_bar.background": "{lighter_bg}",
+        "title_bar.background": "{lighter_bg}",
+        "title_bar.inactive_background": "{lighter_bg}",
         "toolbar.background": "{background}",
-        "tab_bar.background": "{bg}",
-        "tab.inactive_background": "{bg}",
+        "tab_bar.background": "{lighter_bg}",
+        "tab.inactive_background": "{lighter_bg}",
         "tab.active_background": "{background}",
 
         "search.match_background": "{yellow}40",
 
-        "panel.background": "{background}",
+        "panel.background": "{lighter_bg}",
         "panel.focused_border": "{accent}",
 
         "pane.focused_border": "{accent}",
@@ -68,8 +68,8 @@
         "editor.foreground": "{foreground}",
         "editor.background": "{background}",
         "editor.gutter.background": "{background}",
-        "editor.subheader.background": "{bg}",
-        "editor.active_line.background": "{bg}60",
+        "editor.subheader.background": "{lighter_bg}",
+        "editor.active_line.background": "{lighter_bg}",
         "editor.highlighted_line.background": "{accent}15",
         "editor.line_number": "{muted}",
         "editor.active_line_number": "{foreground}",
