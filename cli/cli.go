@@ -125,6 +125,13 @@ Usage:
 
 Theme generation:
   aether --generate <wallpaper> [options]   Extract colors and apply theme
+    --light-mode                            Generate light variant
+    --no-apply                              Render templates without activating
+    --output <path>                         Output dir (defaults to ~/.config/aether/theme)
+    --gtk                                   Also render and install GTK CSS (default off)
+    --no-zed                                Skip Zed extension (default on)
+    --no-vscode                             Skip VSCode integration (default on)
+    --no-neovim                             Skip Neovim template (default on)
   aether --extract-palette <wallpaper>      Extract palette (read-only, no apply)
 
 Blueprint management:
