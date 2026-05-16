@@ -213,6 +213,85 @@ func (c *Client) DownloadFromURL(wallpaperURL string) (string, error) {
 	return c.Download(imageURL)
 }
 
+// DownloadThumb downloads a wallhaven thumbnail URL into the dedicated cache
+// dir under ~/.cache/aether/wallhaven-thumbs and returns the local path. Cached
+// hits skip the HTTP round-trip.
+func (c *Client) DownloadThumb(thumbURL string) (string, error) {
+	if thumbURL == "" {
+		return "", fmt.Errorf("empty thumbnail URL")
+	}
+
+	filename := filepath.Base(thumbURL)
+	if filename == "" || filename == "." || filename == "/" {
+		return "", fmt.Errorf("cannot determine filename from URL: %s", thumbURL)
+	}
+
+	destDir := filepath.Join(platform.CacheDir(), "wallhaven-thumbs")
+	if err := platform.EnsureDir(destDir); err != nil {
+		return "", fmt.Errorf("failed to create thumb dir: %w", err)
+	}
+
+	destPath := filepath.Join(destDir, filename)
+	if platform.FileExists(destPath) {
+		return destPath, nil
+	}
+
+	resp, err := c.http.Get(thumbURL)
+	if err != nil {
+		return "", fmt.Errorf("thumb download failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("thumb download returned HTTP %d for %s", resp.StatusCode, thumbURL)
+	}
+
+	out, err := os.Create(destPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file %s: %w", destPath, err)
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		_ = os.Remove(destPath)
+		return "", fmt.Errorf("failed to write thumb: %w", err)
+	}
+
+	return destPath, nil
+}
+
+// Info fetches metadata for a single wallpaper by its wallhaven ID.
+func (c *Client) Info(id string) (*WallpaperInfo, error) {
+	if id == "" {
+		return nil, fmt.Errorf("empty wallpaper id")
+	}
+
+	reqURL := baseURL + "/w/" + id
+	if c.apiKey != "" {
+		reqURL += "?apikey=" + url.QueryEscape(c.apiKey)
+	}
+
+	resp, err := c.http.Get(reqURL)
+	if err != nil {
+		return nil, fmt.Errorf("wallhaven API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("wallhaven API returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Data WallpaperInfo `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode wallhaven response: %w", err)
+	}
+
+	return &result.Data, nil
+}
+
 // Download downloads a wallpaper image to the local downloads directory.
 // Returns the local file path.
 func (c *Client) Download(imageURL string) (string, error) {

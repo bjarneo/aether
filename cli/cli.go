@@ -82,6 +82,12 @@ func Run(args []string, templatesFS embed.FS) int {
 	// --- Wallpapers ---
 	case "--search-wallhaven":
 		return runSearchWallhaven(args[1:])
+	case "--wallhaven-thumbs":
+		return runWallhavenThumbs(args[1:])
+	case "--wallhaven-download":
+		return runDownloadWallhaven(args[1:])
+	case "--wallhaven-info":
+		return runWallhavenInfo(args[1:])
 	case "--list-wallpapers":
 		return runListWallpapers(args[1:])
 	case "--random-wallpaper":
@@ -155,9 +161,22 @@ Inspection:
   aether --preview-template <app> <source>  Preview rendered template
 
 Wallpapers:
-  aether --search-wallhaven <query>         Search wallhaven.cc
+  aether --search-wallhaven <query>         Search wallhaven.cc (metadata only)
+  aether --wallhaven-thumbs <query>         Search + download small thumbnails to cache
+  aether --wallhaven-download <id|url>      Download full wallpaper by id or page URL
+  aether --wallhaven-info <id|url>          Show metadata for a single wallpaper
   aether --list-wallpapers [--with-previews] List local wallpapers (cached 800px previews when flag set)
   aether --random-wallpaper                 Pick random local wallpaper
+
+  Wallhaven search flags (apply to --search-wallhaven and --wallhaven-thumbs):
+    --page N                                Starting page number (default 1)
+    --pages N                               (--wallhaven-thumbs only) Fetch N consecutive pages concurrently
+    --categories 111                        Bitmask: General/Anime/People
+    --purity 100                            Bitmask: SFW/Sketchy/NSFW
+    --sorting date_added|relevance|random|views|favorites|toplist
+    --order desc|asc
+    --at-least 1920x1080                    Minimum resolution
+    --colors HEX                            Filter by wallhaven palette color
 
 Favorites:
   aether --list-favorites                   List all favorites
