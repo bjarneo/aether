@@ -132,6 +132,7 @@ wails build
 ## Complementary Projects
 
 - [omarchy-theme-hook](https://github.com/OldJobobo/theme-hook-plugin-manager/) - A clean solution to extend your Omarchy theme to other apps.
+- [waybar-themes](https://github.com/HANCORE-linux/waybar-themes) - Waybar themes by HANCORE.
 
 ## Contributing
 
