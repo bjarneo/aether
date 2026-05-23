@@ -38,6 +38,7 @@ const APP_LABELS: Record<string, string> = {
     btop: 'Btop',
     chromium: 'Chromium',
     colors: 'Colors (.toml)',
+    foot: 'Foot',
     ghostty: 'Ghostty',
     hyprland: 'Hyprland',
     hyprlock: 'Hyprlock',

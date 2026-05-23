@@ -836,7 +836,7 @@ type ExportThemeRequest struct {
 // allExportableApps is the full set of app names that can be exported.
 var allExportableApps = map[string]bool{
 	"alacritty": true, "btop": true, "chromium": true, "colors": true,
-	"ghostty": true, "gtk": true, "hyprland": true, "hyprlock": true,
+	"foot": true, "ghostty": true, "gtk": true, "hyprland": true, "hyprlock": true,
 	"icons": true, "kitty": true, "mako": true, "neovim": true,
 	"swayosd": true, "vencord": true, "vscode": true, "walker": true,
 	"warp": true, "waybar": true, "wofi": true, "zed": true,

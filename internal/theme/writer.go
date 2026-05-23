@@ -18,6 +18,7 @@ var templateAppNameMap = map[string]string{
 	"alacritty.toml":    "alacritty",
 	"btop.theme":        "btop",
 	"chromium.theme":    "chromium",
+	"foot.ini":          "foot",
 	"ghostty.conf":      "ghostty",
 	"hyprland.conf":     "hyprland",
 	"hyprlock.conf":     "hyprlock",

@@ -88,6 +88,7 @@
             label: 'Terminals',
             apps: [
                 {key: 'alacritty', name: 'Alacritty'},
+                {key: 'foot', name: 'Foot'},
                 {key: 'ghostty', name: 'Ghostty'},
                 {key: 'kitty', name: 'Kitty'},
                 {key: 'warp', name: 'Warp'},
