@@ -33,7 +33,7 @@ func Run(args []string, templatesFS embed.FS) int {
 	case "--import-colors-toml":
 		return runImportColorsToml(args[1:], templatesFS)
 	case "--handle-url":
-		return runHandleURL(args[1:])
+		return runHandleURL(args[1:], templatesFS)
 
 	// --- Color utilities ---
 	case "--color-convert":

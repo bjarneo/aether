@@ -35,11 +35,11 @@ type ExternalImportPreview struct {
 	Mode             string   `json:"mode,omitempty"` // "light" | "dark" | ""
 }
 
-// loadPendingImport reads the staged file, stores it in memory, and either
-// emits "external-import-requested" (interactive — the dialog will pick it
-// up) or applies it immediately when imp.Silent is set. Safe to call from
-// startup and from the IPC handler — repeated calls just refresh the
-// in-memory snapshot.
+// loadPendingImport reads the staged file, stores it in memory, and emits
+// "external-import-requested" to the frontend. Safe to call from startup
+// and from the IPC handler — repeated calls just refresh the in-memory
+// snapshot and re-emit. Silent imports never reach the GUI (the CLI URL
+// handler applies them directly), so no branching is needed here.
 func (a *App) loadPendingImport() {
 	imp, err := pending.Read()
 	if err != nil {
@@ -53,17 +53,6 @@ func (a *App) loadPendingImport() {
 	a.pending.mu.Lock()
 	a.pending.curr = imp
 	a.pending.mu.Unlock()
-
-	if imp.Silent {
-		// Off the IPC/startup goroutine so the caller returns promptly;
-		// writer.ApplyTheme can take a moment when many target files exist.
-		go func() {
-			if err := a.ConfirmExternalImport(); err != nil {
-				log.Printf("pending-import: silent apply failed: %v", err)
-			}
-		}()
-		return
-	}
 
 	if a.ctx != nil {
 		preview := a.buildPreview(imp)

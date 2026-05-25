@@ -77,7 +77,11 @@ If Aether is closed when the link is clicked, the launch is automatic and the di
 
 ### `silent=true` — apply without confirming
 
-`silent=true` makes the click apply immediately, no dialog. Useful for in-app links where the user has already chosen the theme on the web side and doesn't need a second confirmation. The trade-off is real, though: any web page can produce a silent-apply link. Only mark links silent inside flows where the user has already opted in to the theme they're about to install (your own theme gallery, an in-app catalog), and prefer the default interactive flow for third-party content.
+`silent=true` makes the click apply immediately, no dialog. The URL handler runs the apply *itself*, in the same process — same code path as `aether --import-colors-toml URL`. No GUI is launched and no IPC happens; this works identically whether or not the Aether GUI is running. The downloaded files still land in `~/.cache/aether/web-imports/`, but the staging file and confirmation step are skipped.
+
+Wallpaper-only silent links preserve the current palette by reading the existing `colors.toml` on disk. Light/dark mode is controlled by `mode=light|dark`; omit it to default to dark, matching the existing CLI behavior.
+
+The trade-off is real, though: any web page can produce a silent-apply link. Only mark links silent inside flows where the user has already opted in to the theme they're about to install (your own theme gallery, an in-app catalog), and prefer the default interactive flow for third-party content.
 
 ## What's not supported
 

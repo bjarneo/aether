@@ -1,14 +1,20 @@
 package cli
 
 import (
+	"embed"
 	"fmt"
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"aether/internal/blueprint"
+	"aether/internal/omarchy"
 	"aether/internal/pending"
+	"aether/internal/platform"
+	"aether/internal/theme"
 	"aether/internal/wallpaper"
 	"aether/ipc"
 )
@@ -23,7 +29,7 @@ import (
 //	aether://apply?colors=https://…/colors.toml
 //	aether://apply?wallpaper=https://…/wp.jpg
 //	aether://apply?colors=…&wallpaper=…
-func runHandleURL(args []string) int {
+func runHandleURL(args []string, templatesFS embed.FS) int {
 	if len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "Usage: aether --handle-url <aether://...>")
 		return 1
@@ -92,6 +98,13 @@ func runHandleURL(args []string) int {
 		return 1
 	}
 
+	// Silent mode: apply directly in this process, no GUI, no dialog.
+	// Matches `aether --import-colors-toml` semantics — first-party flows
+	// only, since any web page can construct silent URLs.
+	if imp.Silent {
+		return runSilentApply(&imp, templatesFS)
+	}
+
 	if err := pending.Write(&imp); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
@@ -127,5 +140,80 @@ func runHandleURL(args []string) int {
 	}
 	_ = cmd.Process.Release()
 	fmt.Println("Launching Aether.")
+	return 0
+}
+
+// runSilentApply runs the equivalent of `--import-colors-toml URL` directly
+// inside the URL-handler process: parse the downloaded palette source, build
+// a ThemeState, and call writer.ApplyTheme. When only a wallpaper was given,
+// the current colors.toml on disk is reused so the existing palette is kept
+// instead of clobbered. Never touches the GUI or IPC.
+func runSilentApply(imp *pending.Import, templatesFS embed.FS) int {
+	var palette [16]string
+	var bp *blueprint.Blueprint
+	var err error
+
+	switch {
+	case imp.ExternalTheme != "":
+		bp, err = blueprint.ImportJSON(imp.ExternalTheme)
+	case imp.ColorsToml != "":
+		bp, err = blueprint.ImportColorsToml(imp.ColorsToml)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: parse: %v\n", err)
+		return 1
+	}
+
+	extended := map[string]string{}
+	if bp != nil {
+		for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
+			palette[i] = bp.Palette.Colors[i]
+		}
+		for k, v := range bp.Palette.ExtendedColors {
+			extended[k] = v
+		}
+	} else {
+		// Wallpaper-only silent apply: preserve current palette by reading
+		// the existing applied colors.toml. Falls back to a default-ish
+		// state when nothing has been applied yet.
+		existing := filepath.Join(platform.ThemeDir(), "colors.toml")
+		if data, err := os.ReadFile(existing); err == nil {
+			current, bg, fg := omarchy.ParseColorsToml(string(data))
+			palette = current
+			if bg != "" {
+				extended["background"] = bg
+			}
+			if fg != "" {
+				extended["foreground"] = fg
+			}
+		} else {
+			fmt.Fprintln(os.Stderr, "Warning: no existing colors.toml to preserve; palette will be empty")
+		}
+	}
+
+	// mode= is the only signal we have for light/dark in the silent CLI
+	// path. Omit → false (matches existing --import-colors-toml default).
+	lightMode := imp.Mode == "light"
+
+	colorRoles := MapColorsToRoles(palette)
+	writer := theme.NewWriter(templatesFS, "templates")
+	state := &theme.ThemeState{
+		Palette:        palette,
+		WallpaperPath:  imp.Wallpaper,
+		LightMode:      lightMode,
+		ColorRoles:     colorRoles,
+		ExtendedColors: extended,
+	}
+
+	fmt.Println("Applying theme silently...")
+	result, err := writer.ApplyTheme(state, theme.Settings{})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: apply: %v\n", err)
+		return 1
+	}
+	if result.Success {
+		fmt.Println("Theme applied successfully")
+	}
+	_ = pending.Clear() // best-effort cleanup of any prior staged file
 	return 0
 }
