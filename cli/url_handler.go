@@ -76,6 +76,16 @@ func runHandleURL(args []string) int {
 		}
 		imp.Wallpaper = p
 	}
+	if v := strings.ToLower(q.Get("mode")); v != "" {
+		if v != "light" && v != "dark" {
+			fmt.Fprintf(os.Stderr, "Error: mode must be 'light' or 'dark', got %q\n", v)
+			return 1
+		}
+		imp.Mode = v
+	}
+	if v := strings.ToLower(q.Get("silent")); v == "true" || v == "1" || v == "yes" {
+		imp.Silent = true
+	}
 
 	if imp.ExternalTheme == "" && imp.ColorsToml == "" && imp.Wallpaper == "" {
 		fmt.Fprintln(os.Stderr, "Error: URL has no external_theme=, colors=, or wallpaper= parameter")

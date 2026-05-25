@@ -20,6 +20,8 @@ type Import struct {
 	ExternalTheme string `json:"external_theme,omitempty"`
 	ColorsToml    string `json:"colors_toml,omitempty"`
 	Wallpaper     string `json:"wallpaper,omitempty"`
+	Mode          string `json:"mode,omitempty"`   // "light" | "dark" — empty leaves the current setting alone
+	Silent        bool   `json:"silent,omitempty"` // skip the confirm dialog and apply immediately
 	SourceURL     string `json:"source_url,omitempty"`
 	Timestamp     int64  `json:"ts,omitempty"`
 }

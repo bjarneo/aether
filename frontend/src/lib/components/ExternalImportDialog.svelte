@@ -21,6 +21,7 @@
         palette?: string[];
         wallpaper?: string;
         theme_name?: string;
+        mode?: string;
     };
 
     let preview = $state<Preview | null>(null);
@@ -61,12 +62,16 @@
 
     let assetKind = $derived(() => {
         if (!preview) return '';
-        if (preview.has_external_theme) return 'External theme';
-        if (preview.has_colors && preview.has_wallpaper)
-            return 'Colors + wallpaper';
-        if (preview.has_colors) return 'Colors';
-        if (preview.has_wallpaper) return 'Wallpaper';
-        return 'Theme';
+        const parts: string[] = [];
+        if (preview.has_external_theme) parts.push('External theme');
+        else if (preview.has_colors && preview.has_wallpaper)
+            parts.push('Colors + wallpaper');
+        else if (preview.has_colors) parts.push('Colors');
+        else if (preview.has_wallpaper) parts.push('Wallpaper');
+        else parts.push('Theme');
+        if (preview.mode === 'light') parts.push('light mode');
+        else if (preview.mode === 'dark') parts.push('dark mode');
+        return parts.join(' · ');
     });
 
     let displayHost = $derived(() => {

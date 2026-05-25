@@ -145,12 +145,17 @@ Blueprint management:
 
 Import commands:
   aether --import-blueprint <url|path>      Import blueprint from URL or file
-  aether --import-base16 <file.yaml>        Import Base16 color scheme
-  aether --import-colors-toml <file>        Import colors.toml color scheme
+  aether --import-base16 <url|file.yaml>    Import Base16 color scheme (URL or file)
+    --wallpaper <url|path>                  Set wallpaper from URL or local path
+    --light-mode                            Force light mode
+  aether --import-colors-toml <url|file>    Import colors.toml color scheme (URL or file)
+    --wallpaper <url|path>                  Set wallpaper from URL or local path
+    --light-mode                            Force light mode
   aether --handle-url <aether://...>        Handle an aether:// web link
                                               aether://apply?external_theme=URL
                                               aether://apply?colors=URL
                                               aether://apply?wallpaper=URL
+                                              aether://apply?mode=light|dark
 
 Color utilities:
   aether --color-info <hex>                 Show all color representations

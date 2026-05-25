@@ -8,7 +8,27 @@ import (
 
 	"aether/internal/blueprint"
 	"aether/internal/theme"
+	"aether/internal/wallpaper"
 )
+
+// isURL reports whether the source string is an http or https URL.
+func isURL(s string) bool {
+	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+}
+
+// resolveWallpaperArg returns a local wallpaper path. Empty inputs pass
+// through; URLs are downloaded into the web-imports cache; local paths get
+// ~ expanded.
+func resolveWallpaperArg(arg string) (string, error) {
+	if arg == "" {
+		return "", nil
+	}
+	if isURL(arg) {
+		fmt.Printf("Downloading wallpaper from: %s\n", arg)
+		return wallpaper.DownloadToCache(arg)
+	}
+	return expandHome(arg), nil
+}
 
 func runImportBlueprint(args []string, templatesFS embed.FS) int {
 	autoApply, args := hasFlag(args, "--auto-apply")
@@ -60,22 +80,34 @@ func runImportBlueprint(args []string, templatesFS embed.FS) int {
 }
 
 func runImportBase16(args []string, templatesFS embed.FS) int {
-	wallpaperPath, args := parseFlag(args, "--wallpaper")
+	wallpaperArg, args := parseFlag(args, "--wallpaper")
 	lightMode, args := hasFlag(args, "--light-mode")
 
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Error: Base16 file path is required")
-		fmt.Fprintln(os.Stderr, "Usage: aether --import-base16 <file.yaml> [--wallpaper <path>] [--light-mode]")
+		fmt.Fprintln(os.Stderr, "Error: Base16 source (URL or file path) is required")
+		fmt.Fprintln(os.Stderr, "Usage: aether --import-base16 <url|file.yaml> [--wallpaper <url|path>] [--light-mode]")
 		return 1
 	}
 
-	filePath := expandHome(args[0])
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Error: File not found: %s\n", filePath)
-		return 1
+	source := args[0]
+	var filePath string
+	if isURL(source) {
+		fmt.Printf("Downloading Base16 scheme from: %s\n", source)
+		dl, err := wallpaper.DownloadToCache(source)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: download base16: %v\n", err)
+			return 1
+		}
+		filePath = dl
+	} else {
+		filePath = expandHome(source)
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "Error: File not found: %s\n", filePath)
+			return 1
+		}
+		fmt.Printf("Importing Base16 scheme from: %s\n", filePath)
 	}
 
-	fmt.Printf("Importing Base16 scheme from: %s\n", filePath)
 	bp, err := blueprint.ImportBase16(filePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -89,11 +121,17 @@ func runImportBase16(args []string, templatesFS embed.FS) int {
 		palette[i] = bp.Palette.Colors[i]
 	}
 
+	wallpaperPath, err := resolveWallpaperArg(wallpaperArg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
 	colorRoles := MapColorsToRoles(palette)
 	writer := theme.NewWriter(templatesFS, "templates")
 	state := &theme.ThemeState{
 		Palette:       palette,
-		WallpaperPath: expandHome(wallpaperPath),
+		WallpaperPath: wallpaperPath,
 		LightMode:     lightMode,
 		ColorRoles:    colorRoles,
 	}
@@ -111,23 +149,30 @@ func runImportBase16(args []string, templatesFS embed.FS) int {
 }
 
 func runImportColorsToml(args []string, templatesFS embed.FS) int {
-	wallpaperPath, args := parseFlag(args, "--wallpaper")
+	wallpaperArg, args := parseFlag(args, "--wallpaper")
 	lightMode, args := hasFlag(args, "--light-mode")
 
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Error: colors.toml file path is required")
-		fmt.Fprintln(os.Stderr, "Usage: aether --import-colors-toml <file.toml> [--wallpaper <path>] [--light-mode]")
+		fmt.Fprintln(os.Stderr, "Error: colors.toml source (URL or file path) is required")
+		fmt.Fprintln(os.Stderr, "Usage: aether --import-colors-toml <url|file.toml> [--wallpaper <url|path>] [--light-mode]")
 		return 1
 	}
 
-	filePath := expandHome(args[0])
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Error: File not found: %s\n", filePath)
-		return 1
+	source := args[0]
+	var bp *blueprint.Blueprint
+	var err error
+	if isURL(source) {
+		fmt.Printf("Downloading colors.toml from: %s\n", source)
+		bp, err = blueprint.ImportColorsTomlFromURL(source)
+	} else {
+		filePath := expandHome(source)
+		if _, statErr := os.Stat(filePath); os.IsNotExist(statErr) {
+			fmt.Fprintf(os.Stderr, "Error: File not found: %s\n", filePath)
+			return 1
+		}
+		fmt.Printf("Importing colors.toml from: %s\n", filePath)
+		bp, err = blueprint.ImportColorsToml(filePath)
 	}
-
-	fmt.Printf("Importing colors.toml from: %s\n", filePath)
-	bp, err := blueprint.ImportColorsToml(filePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
@@ -140,11 +185,17 @@ func runImportColorsToml(args []string, templatesFS embed.FS) int {
 		palette[i] = bp.Palette.Colors[i]
 	}
 
+	wallpaperPath, err := resolveWallpaperArg(wallpaperArg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
 	colorRoles := MapColorsToRoles(palette)
 	writer := theme.NewWriter(templatesFS, "templates")
 	state := &theme.ThemeState{
 		Palette:       palette,
-		WallpaperPath: expandHome(wallpaperPath),
+		WallpaperPath: wallpaperPath,
 		LightMode:     lightMode,
 		ColorRoles:    colorRoles,
 	}
