@@ -26,6 +26,10 @@ export function CancelBatchProcessing() {
     return window['go']['main']['App']['CancelBatchProcessing']();
 }
 
+export function CancelExternalImport() {
+    return window['go']['main']['App']['CancelExternalImport']();
+}
+
 export function ClearTheme() {
     return window['go']['main']['App']['ClearTheme']();
 }
@@ -36,6 +40,10 @@ export function CloseIPC() {
 
 export function ComputeVariables(arg1, arg2, arg3) {
     return window['go']['main']['App']['ComputeVariables'](arg1, arg2, arg3);
+}
+
+export function ConfirmExternalImport() {
+    return window['go']['main']['App']['ConfirmExternalImport']();
 }
 
 export function ContrastRatio(arg1, arg2) {
@@ -88,6 +96,10 @@ export function GetInitialState() {
 
 export function GetMediaURL(arg1) {
     return window['go']['main']['App']['GetMediaURL'](arg1);
+}
+
+export function GetPendingExternalImport() {
+    return window['go']['main']['App']['GetPendingExternalImport']();
 }
 
 export function GetPreview(arg1) {

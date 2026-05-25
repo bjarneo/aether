@@ -32,6 +32,8 @@ func Run(args []string, templatesFS embed.FS) int {
 		return runImportBase16(args[1:], templatesFS)
 	case "--import-colors-toml":
 		return runImportColorsToml(args[1:], templatesFS)
+	case "--handle-url":
+		return runHandleURL(args[1:])
 
 	// --- Color utilities ---
 	case "--color-convert":
@@ -145,6 +147,10 @@ Import commands:
   aether --import-blueprint <url|path>      Import blueprint from URL or file
   aether --import-base16 <file.yaml>        Import Base16 color scheme
   aether --import-colors-toml <file>        Import colors.toml color scheme
+  aether --handle-url <aether://...>        Handle an aether:// web link
+                                              aether://apply?external_theme=URL
+                                              aether://apply?colors=URL
+                                              aether://apply?wallpaper=URL
 
 Color utilities:
   aether --color-info <hex>                 Show all color representations

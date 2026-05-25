@@ -26,6 +26,8 @@ export function BlueprintExists(arg1: string): Promise<boolean>;
 
 export function CancelBatchProcessing(): Promise<void>;
 
+export function CancelExternalImport(): Promise<void>;
+
 export function ClearTheme(): Promise<void>;
 
 export function CloseIPC(): Promise<void>;
@@ -35,6 +37,8 @@ export function ComputeVariables(
     arg2: Record<string, string>,
     arg3: boolean
 ): Promise<Record<string, string>>;
+
+export function ConfirmExternalImport(): Promise<void>;
 
 export function ContrastRatio(arg1: string, arg2: string): Promise<number>;
 
@@ -67,6 +71,8 @@ export function GetFocusTab(): Promise<string>;
 export function GetInitialState(): Promise<theme.StateSnapshot>;
 
 export function GetMediaURL(arg1: string): Promise<string>;
+
+export function GetPendingExternalImport(): Promise<main.ExternalImportPreview>;
 
 export function GetPreview(arg1: string): Promise<string>;
 

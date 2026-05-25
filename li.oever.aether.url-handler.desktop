@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Aether URL Handler
+Comment=Apply themes, colors, and wallpapers from aether:// web links
+Exec=aether --handle-url %u
+Icon=aether
+Terminal=false
+Type=Application
+NoDisplay=true
+MimeType=x-scheme-handler/aether;
+Categories=Utility;
+Keywords=theme;color;wallpaper;import;
+StartupNotify=false

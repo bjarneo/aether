@@ -23,6 +23,11 @@ ifeq ($(UNAME_S),Darwin)
 else
 	sudo cp build/bin/aether-wp /usr/bin/aether-wp
 	sudo cp build/bin/aether /usr/bin/aether
+	mkdir -p $(HOME)/.local/share/applications
+	cp li.oever.aether.desktop $(HOME)/.local/share/applications/
+	cp li.oever.aether.url-handler.desktop $(HOME)/.local/share/applications/
+	-update-desktop-database $(HOME)/.local/share/applications 2>/dev/null
+	-xdg-mime default li.oever.aether.url-handler.desktop x-scheme-handler/aether 2>/dev/null
 endif
 
 dev:

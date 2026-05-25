@@ -166,6 +166,47 @@ func ImportBase16(filePath string) (*Blueprint, error) {
 	return bp, nil
 }
 
+// ImportColorsTomlFromURL downloads a colors.toml file from a URL and parses
+// it into a blueprint. The downloaded file is written to a temp path so
+// ImportColorsToml can reuse its existing reader.
+func ImportColorsTomlFromURL(url string) (*Blueprint, error) {
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("download: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	tmp, err := os.CreateTemp("", "aether-colors-*.toml")
+	if err != nil {
+		return nil, fmt.Errorf("temp file: %w", err)
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return nil, fmt.Errorf("write temp: %w", err)
+	}
+	tmp.Close()
+
+	bp, err := ImportColorsToml(tmp.Name())
+	if err != nil {
+		return nil, err
+	}
+	if name := extractNameFromURL(url); name != "" && name != "imported_blueprint" {
+		bp.Name = strings.TrimSuffix(name, ".toml")
+	}
+	return bp, nil
+}
+
 // ImportColorsToml parses a colors.toml file into a blueprint.
 func ImportColorsToml(filePath string) (*Blueprint, error) {
 	data, err := os.ReadFile(filePath)

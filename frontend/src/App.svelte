@@ -79,6 +79,7 @@
     import Toast from '$lib/components/shared/Toast.svelte';
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import CommandPalette from '$lib/components/shared/CommandPalette.svelte';
+    import ExternalImportDialog from '$lib/components/ExternalImportDialog.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
     import {hexToRgb, isLightRgb, wcagAlphaForContrast} from '$lib/utils/color';
     import {prefersReducedMotion} from '$lib/utils/browser';
@@ -443,4 +444,5 @@
         {commands}
         onclose={closeCommandPalette}
     />
+    <ExternalImportDialog />
 </div>

@@ -116,7 +116,7 @@ func RunIPC(args []string) int {
 		}
 		req.Path = expandHome(rest[0])
 
-	case "status", "apply", "toggle-light-mode", "list-blueprints", "get-variables":
+	case "status", "apply", "toggle-light-mode", "list-blueprints", "get-variables", "pending-import":
 		// No extra args needed
 
 	default:

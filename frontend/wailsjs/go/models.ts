@@ -207,6 +207,30 @@ export namespace main {
             this.appOverrides = source['appOverrides'];
         }
     }
+    export class ExternalImportPreview {
+        has_external_theme: boolean;
+        has_colors: boolean;
+        has_wallpaper: boolean;
+        source_url: string;
+        palette?: string[];
+        wallpaper?: string;
+        theme_name?: string;
+
+        static createFrom(source: any = {}) {
+            return new ExternalImportPreview(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.has_external_theme = source['has_external_theme'];
+            this.has_colors = source['has_colors'];
+            this.has_wallpaper = source['has_wallpaper'];
+            this.source_url = source['source_url'];
+            this.palette = source['palette'];
+            this.wallpaper = source['wallpaper'];
+            this.theme_name = source['theme_name'];
+        }
+    }
     export class ExtractFromImagesResult {
         palette: string[];
         skipped: number;

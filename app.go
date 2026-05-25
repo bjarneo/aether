@@ -41,6 +41,7 @@ type App struct {
 	themeWatcher *theme.ThemeWatcher
 	media        *MediaServer
 	ipcServer    *ipc.Server
+	pending      pendingImportState
 	focusTab     string
 }
 
@@ -101,6 +102,10 @@ func (a *App) startup(ctx context.Context) {
 	} else {
 		a.ipcServer = srv
 	}
+
+	// Pick up a one-click import that was staged before the GUI started
+	// (e.g. browser clicked aether:// while Aether was closed).
+	a.loadPendingImport()
 }
 
 // CloseIPC shuts down the IPC server and media server. Called on app exit.
@@ -1220,6 +1225,10 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 			return ipc.Response{OK: false, Error: fmt.Sprintf("marshal variables: %v", err)}
 		}
 		return ipc.Response{OK: true, Data: data}
+
+	case "pending-import":
+		a.loadPendingImport()
+		return ipc.Response{OK: true}
 
 	default:
 		return ipc.Response{OK: false, Error: fmt.Sprintf("unknown command: %s", req.Cmd)}
