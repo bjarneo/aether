@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,6 +19,11 @@ import (
 	"aether/internal/wallpaper"
 	"aether/ipc"
 )
+
+// safeThemeName allows only filename-friendly characters in an omarchy theme
+// name. Reject path separators and shell metachars; the name is used both as
+// a directory name and as an argument to omarchy-theme-set.
+var safeThemeName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$`)
 
 // runHandleURL parses an aether:// URL, downloads any referenced HTTPS assets,
 // and either hands them to a running GUI (via IPC) or stages them in the
@@ -92,10 +98,24 @@ func runHandleURL(args []string, templatesFS embed.FS) int {
 	if v := strings.ToLower(q.Get("silent")); v == "true" || v == "1" || v == "yes" {
 		imp.Silent = true
 	}
+	if v := q.Get("as_omarchy_theme"); v != "" {
+		if !safeThemeName.MatchString(v) {
+			fmt.Fprintf(os.Stderr, "Error: as_omarchy_theme must match [A-Za-z0-9][A-Za-z0-9_.-]* (got %q)\n", v)
+			return 1
+		}
+		imp.OmarchyThemeName = v
+	}
 
 	if imp.ExternalTheme == "" && imp.ColorsToml == "" && imp.Wallpaper == "" {
 		fmt.Fprintln(os.Stderr, "Error: URL has no external_theme=, colors=, or wallpaper= parameter")
 		return 1
+	}
+
+	// Omarchy install: drop files into ~/.config/omarchy/themes/<name>/ and
+	// run omarchy-theme-set. Always silent — installing into a system
+	// location is the consent action by the publisher.
+	if imp.OmarchyThemeName != "" {
+		return runOmarchyInstall(&imp, templatesFS)
 	}
 
 	// Silent mode: apply directly in this process, no GUI, no dialog.
@@ -216,4 +236,106 @@ func runSilentApply(imp *pending.Import, templatesFS embed.FS) int {
 	}
 	_ = pending.Clear() // best-effort cleanup of any prior staged file
 	return 0
+}
+
+// runOmarchyInstall renders the imported theme directly into
+// ~/.config/omarchy/themes/<name>/ — colors.toml + backgrounds/<wp> + all
+// the per-app templates — and then runs `omarchy-theme-set <name>`. The
+// theme name has already been validated against safeThemeName, so it's safe
+// to use as both a filesystem path component and an argv argument.
+func runOmarchyInstall(imp *pending.Import, templatesFS embed.FS) int {
+	if !theme.IsOmarchyInstalled() {
+		fmt.Fprintln(os.Stderr, "Error: omarchy-theme-set not found in PATH; cannot install as an omarchy theme")
+		return 1
+	}
+
+	var palette [16]string
+	var bp *blueprint.Blueprint
+	var err error
+
+	switch {
+	case imp.ExternalTheme != "":
+		bp, err = blueprint.ImportJSON(imp.ExternalTheme)
+	case imp.ColorsToml != "":
+		bp, err = blueprint.ImportColorsToml(imp.ColorsToml)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: parse: %v\n", err)
+		return 1
+	}
+
+	extended := map[string]string{}
+	if bp != nil {
+		for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
+			palette[i] = bp.Palette.Colors[i]
+		}
+		for k, v := range bp.Palette.ExtendedColors {
+			extended[k] = v
+		}
+	} else {
+		// Wallpaper-only install: borrow the palette from the currently
+		// applied colors.toml so the rendered theme isn't blank.
+		existing := filepath.Join(platform.ThemeDir(), "colors.toml")
+		if data, err := os.ReadFile(existing); err == nil {
+			current, bg, fg := omarchy.ParseColorsToml(string(data))
+			palette = current
+			if bg != "" {
+				extended["background"] = bg
+			}
+			if fg != "" {
+				extended["foreground"] = fg
+			}
+		}
+	}
+
+	if !paletteHasColors(palette) {
+		fmt.Fprintln(os.Stderr, "Error: no palette to install (URL had no colors/external_theme and no existing colors.toml to borrow from)")
+		return 1
+	}
+
+	lightMode := imp.Mode == "light"
+
+	targetDir := filepath.Join(platform.OmarchyThemesDir(), imp.OmarchyThemeName)
+	if err := platform.EnsureDir(targetDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: create theme dir: %v\n", err)
+		return 1
+	}
+
+	colorRoles := MapColorsToRoles(palette)
+	writer := theme.NewWriter(templatesFS, "templates")
+	state := &theme.ThemeState{
+		Palette:        palette,
+		WallpaperPath:  imp.Wallpaper,
+		LightMode:      lightMode,
+		ColorRoles:     colorRoles,
+		ExtendedColors: extended,
+	}
+
+	fmt.Printf("Installing omarchy theme %q to: %s\n", imp.OmarchyThemeName, targetDir)
+	if err := writer.GenerateOnly(state, theme.Settings{}, targetDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: render templates: %v\n", err)
+		return 1
+	}
+
+	fmt.Printf("Activating: omarchy-theme-set %s\n", imp.OmarchyThemeName)
+	if out, err := platform.RunSync("omarchy-theme-set", imp.OmarchyThemeName); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: omarchy-theme-set failed: %v\n", err)
+		if out != "" {
+			fmt.Fprintln(os.Stderr, out)
+		}
+		return 1
+	}
+
+	fmt.Println("Omarchy theme installed and activated")
+	return 0
+}
+
+// paletteHasColors reports whether a palette has at least one non-empty slot.
+func paletteHasColors(p [16]string) bool {
+	for _, c := range p {
+		if c != "" {
+			return true
+		}
+	}
+	return false
 }
