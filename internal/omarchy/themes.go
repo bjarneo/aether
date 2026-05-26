@@ -1,6 +1,8 @@
 package omarchy
 
 import (
+	"aether/internal/platform"
+
 	"os"
 	"path/filepath"
 	"regexp"
@@ -93,6 +95,21 @@ func listBackgrounds(dir string) []string {
 	return paths
 }
 
+func isGeneratedAetherThemePath(themePath string) bool {
+	resolvedThemePath, err := filepath.EvalSymlinks(themePath)
+	if err != nil {
+		return false
+	}
+
+	generatedThemePath := platform.ThemeDir()
+	resolvedGeneratedPath, err := filepath.EvalSymlinks(generatedThemePath)
+	if err != nil {
+		return false
+	}
+
+	return filepath.Clean(resolvedThemePath) == filepath.Clean(resolvedGeneratedPath)
+}
+
 // LoadAllThemes discovers themes from user and system directories.
 func LoadAllThemes() ([]Theme, error) {
 	dirs := themeSearchDirs()
@@ -111,12 +128,16 @@ func LoadAllThemes() ([]Theme, error) {
 		}
 		for _, entry := range entries {
 			name := entry.Name()
+			themePath := filepath.Join(dir, name)
+
+			if isGeneratedAetherThemePath(themePath) {
+				continue
+			}
 			if seen[name] {
 				continue
 			}
 			seen[name] = true
 
-			themePath := filepath.Join(dir, name)
 			info, err := entry.Info()
 			if err != nil {
 				continue

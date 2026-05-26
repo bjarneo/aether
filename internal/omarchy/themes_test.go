@@ -58,3 +58,62 @@ func TestThemeSearchDirsNoEnv(t *testing.T) {
 		t.Errorf("expected 3 default dirs without env, got %d: %v", len(dirs), dirs)
 	}
 }
+
+func TestLoadAllThemesSkipsGeneratedAetherTheme(t *testing.T) {
+	tmp := t.TempDir()
+	configDir := filepath.Join(tmp, ".config")
+	t.Setenv("HOME", tmp)
+	t.Setenv("XDG_CONFIG_HOME", configDir)
+	t.Setenv(extraThemeDirsEnv, "")
+
+	generatedTheme := filepath.Join(configDir, "aether", "theme")
+	if err := os.MkdirAll(filepath.Join(generatedTheme, "backgrounds"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(generatedTheme, "colors.toml"), []byte("background = '#000000'\nforeground = '#ffffff'\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(generatedTheme, "backgrounds", "0-preview.jpg"), []byte("generated"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	omarchyThemes := filepath.Join(configDir, "omarchy", "themes")
+	if err := os.MkdirAll(omarchyThemes, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(generatedTheme, filepath.Join(omarchyThemes, "aether")); err != nil {
+		t.Fatal(err)
+	}
+
+	genericAether := filepath.Join(configDir, "themes", "aether")
+	if err := os.MkdirAll(filepath.Join(genericAether, "backgrounds"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(genericAether, "colors.toml"), []byte("background = '#111111'\nforeground = '#eeeeee'\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(genericAether, "backgrounds", "aether.png"), []byte("generic"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	themes, err := LoadAllThemes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var found []Theme
+	for _, theme := range themes {
+		if theme.Name == "aether" {
+			found = append(found, theme)
+		}
+	}
+	if len(found) != 1 {
+		t.Fatalf("expected one aether theme, got %d: %#v", len(found), found)
+	}
+	if found[0].Path != genericAether {
+		t.Fatalf("aether theme path = %q, want %q", found[0].Path, genericAether)
+	}
+	if len(found[0].Wallpapers) != 1 || !strings.HasSuffix(found[0].Wallpapers[0], "aether.png") {
+		t.Fatalf("aether wallpapers = %#v, want generic wallpaper", found[0].Wallpapers)
+	}
+}
