@@ -95,9 +95,19 @@ Load the colorscheme in your Neovim config:
 dofile(vim.fn.expand("~/.config/aether/theme/neovim.lua"))
 ```
 
-### Wallpaper (swaybg)
+### Wallpaper
 
-Set the wallpaper manually:
+On Wayland systems that use `awww`, Aether can set the wallpaper when you apply
+a theme. In Settings, choose **Wallpaper: Awww**.
+
+The generated wallpaper is still written to:
+
+```bash
+~/.config/aether/theme/backgrounds/
+```
+
+If you prefer to manage wallpapers yourself, choose **Wallpaper: None**. A
+manual `swaybg` setup still works:
 
 ```bash
 swaybg -i ~/.config/aether/theme/backgrounds/wallpaper.jpg -m fill

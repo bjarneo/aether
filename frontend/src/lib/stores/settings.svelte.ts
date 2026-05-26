@@ -8,6 +8,7 @@ const defaults: Settings = {
     includeNeovim: true,
     selectedNeovimConfig: '',
     videoCpuMode: false,
+    wallpaperBackend: 'auto',
     excludedApps: {},
 };
 

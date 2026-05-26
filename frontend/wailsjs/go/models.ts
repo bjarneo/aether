@@ -432,6 +432,7 @@ export namespace theme {
         selectedNeovimConfig: string;
         excludedApps?: Record<string, boolean>;
         videoCpuMode: boolean;
+        wallpaperBackend: string;
 
         static createFrom(source: any = {}) {
             return new Settings(source);
@@ -446,6 +447,7 @@ export namespace theme {
             this.selectedNeovimConfig = source['selectedNeovimConfig'];
             this.excludedApps = source['excludedApps'];
             this.videoCpuMode = source['videoCpuMode'];
+            this.wallpaperBackend = source['wallpaperBackend'];
         }
     }
     export class StateSnapshot {

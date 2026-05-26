@@ -52,6 +52,47 @@ func IsOmarchyInstalled() bool {
 	return err == nil
 }
 
+const (
+	WallpaperBackendAuto    = "auto"
+	WallpaperBackendOmarchy = "omarchy"
+	WallpaperBackendAwww    = "awww"
+	WallpaperBackendNone    = "none"
+)
+
+type wallpaperBackendAvailability struct {
+	Omarchy bool
+	Awww    bool
+}
+
+func normalizeWallpaperBackend(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", WallpaperBackendAuto:
+		return WallpaperBackendAuto
+	case WallpaperBackendOmarchy:
+		return WallpaperBackendOmarchy
+	case WallpaperBackendAwww:
+		return WallpaperBackendAwww
+	case WallpaperBackendNone:
+		return WallpaperBackendNone
+	default:
+		return WallpaperBackendAuto
+	}
+}
+
+func selectWallpaperBackend(requested string, availability wallpaperBackendAvailability) string {
+	backend := normalizeWallpaperBackend(requested)
+	if backend != WallpaperBackendAuto {
+		return backend
+	}
+	if availability.Omarchy {
+		return WallpaperBackendOmarchy
+	}
+	if availability.Awww {
+		return WallpaperBackendAwww
+	}
+	return WallpaperBackendNone
+}
+
 // HandleLightModeMarker creates or removes the light.mode marker file in
 // the theme directory. The presence of this file signals light mode to
 // consumers.
@@ -169,6 +210,18 @@ func IsAetherWpAvailable() bool {
 	return runtime.GOOS == "linux" && aetherWpPath() != ""
 }
 
+// IsAwwwAvailable returns true when awww is installed and its daemon responds.
+func IsAwwwAvailable() bool {
+	if runtime.GOOS != "linux" {
+		return false
+	}
+	if _, err := exec.LookPath("awww"); err != nil {
+		return false
+	}
+	_, err := platform.RunSync("awww", "query")
+	return err == nil
+}
+
 // stopAetherWp stops any running aether-wp instance using its --stop flag.
 // Runs synchronously so the old instance is fully gone before a new one starts.
 func stopAetherWp() {
@@ -219,13 +272,22 @@ func applyWallpaperSwaybg(symlinkPath string) error {
 	return nil
 }
 
-// ApplyWallpaper creates the background symlink at
-// ~/.config/omarchy/current/background pointing to wallpaperPath, then
-// uses aether-wp for animated files (.gif, .mp4, .webm) or swaybg for
-// static images. Only runs on Linux Omarchy systems.
-func ApplyWallpaper(wallpaperPath string, settings Settings) error {
-	if runtime.GOOS != "linux" || wallpaperPath == "" || !IsOmarchyInstalled() {
-		return nil
+func applyWallpaperAwww(wallpaperPath string) error {
+	if _, err := exec.LookPath("awww"); err != nil {
+		return fmt.Errorf("awww binary not found")
+	}
+	_ = platform.RunAsync("pkill", "-x", "swaybg")
+	stopAetherWp()
+	if _, err := platform.RunSync("awww", "img", wallpaperPath); err != nil {
+		return fmt.Errorf("failed to set wallpaper with awww: %w", err)
+	}
+	log.Printf("Set wallpaper with awww: %s", wallpaperPath)
+	return nil
+}
+
+func applyWallpaperOmarchy(wallpaperPath string, settings Settings) error {
+	if !IsOmarchyInstalled() {
+		return fmt.Errorf("omarchy-theme-set not found")
 	}
 
 	home, err := os.UserHomeDir()
@@ -247,6 +309,32 @@ func ApplyWallpaper(wallpaperPath string, settings Settings) error {
 		return applyWallpaperAetherWp(wallpaperPath, settings.VideoCpuMode)
 	}
 	return applyWallpaperSwaybg(symlinkPath)
+}
+
+// ApplyWallpaper sets wallpaperPath using Aether's configured wallpaper backend.
+// Auto keeps Omarchy behavior when available and uses awww on standalone Wayland
+// sessions where its daemon is already running.
+func ApplyWallpaper(wallpaperPath string, settings Settings) error {
+	if runtime.GOOS != "linux" || wallpaperPath == "" {
+		return nil
+	}
+
+	backend := selectWallpaperBackend(settings.WallpaperBackend, wallpaperBackendAvailability{
+		Omarchy: IsOmarchyInstalled(),
+		Awww:    IsAwwwAvailable(),
+	})
+
+	switch backend {
+	case WallpaperBackendOmarchy:
+		return applyWallpaperOmarchy(wallpaperPath, settings)
+	case WallpaperBackendAwww:
+		return applyWallpaperAwww(wallpaperPath)
+	case WallpaperBackendNone:
+		log.Println("Wallpaper application skipped")
+		return nil
+	default:
+		return nil
+	}
 }
 
 // ClearTheme removes GTK CSS files, the theme override symlink and CSS,
