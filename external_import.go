@@ -190,7 +190,7 @@ func (a *App) ConfirmExternalImport() error {
 		}
 	}
 
-	result, err := a.writer.ApplyTheme(a.state, theme.Settings{})
+	result, err := a.writer.ApplyTheme(a.state, theme.DefaultApplySettings())
 	if err != nil {
 		return fmt.Errorf("apply: %w", err)
 	}

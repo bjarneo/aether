@@ -229,7 +229,7 @@ func runSilentApply(imp *pending.Import, templatesFS embed.FS) int {
 	}
 
 	fmt.Println("Applying theme silently...")
-	result, err := writer.ApplyTheme(state, theme.Settings{})
+	result, err := writer.ApplyTheme(state, theme.DefaultApplySettings())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: apply: %v\n", err)
 		return 1
@@ -317,7 +317,7 @@ func runOmarchyInstall(imp *pending.Import, templatesFS embed.FS) int {
 	}
 
 	fmt.Printf("Installing omarchy theme %q to: %s\n", imp.OmarchyThemeName, targetDir)
-	if err := writer.GenerateOnly(state, theme.Settings{}, targetDir); err != nil {
+	if err := writer.GenerateOnly(state, theme.DefaultApplySettings(), targetDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: render templates: %v\n", err)
 		return 1
 	}

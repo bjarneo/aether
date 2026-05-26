@@ -61,6 +61,21 @@ type Settings struct {
 	VideoCpuMode         bool            `json:"videoCpuMode"`
 }
 
+// DefaultApplySettings returns the same defaults `aether --generate` uses:
+// Zed / VSCode / Neovim templates rendered, GTK opt-in. Use this anywhere
+// the user is applying a theme without picking per-app toggles explicitly
+// (CLI imports, web-handler silent path, blueprint apply, GUI confirm
+// dialog) so behavior is consistent — a bare `Settings{}` would silently
+// drop neovim.lua and aether.zed.json from the output.
+func DefaultApplySettings() Settings {
+	return Settings{
+		IncludeGtk:    false,
+		IncludeZed:    true,
+		IncludeVscode: true,
+		IncludeNeovim: true,
+	}
+}
+
 // ApplyResult is returned by ApplyTheme with the outcome of theme application.
 type ApplyResult struct {
 	Success   bool   `json:"success"`

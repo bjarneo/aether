@@ -120,7 +120,7 @@ func runApplyBlueprint(args []string, templatesFS embed.FS) int {
 		AppOverrides:  bp.AppOverrides,
 	}
 
-	settings := theme.Settings{}
+	settings := theme.DefaultApplySettings()
 	fmt.Printf("Applying blueprint: %s\n", bp.Name)
 	result, err := writer.ApplyTheme(state, settings)
 	if err != nil {
