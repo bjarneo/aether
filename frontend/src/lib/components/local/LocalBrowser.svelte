@@ -35,9 +35,40 @@
     let previewIndex = $state(-1);
     let previewSrc = $state<string>('');
 
+    // Viewport windowing: at 10k+ wallpapers, mounting every card freezes the
+    // renderer. We measure the scroll container, compute how many rows fit,
+    // and only mount the visible slice (plus a small buffer). Spacer divs at
+    // top/bottom preserve scrollbar position so scrolling feels native.
+    const MIN_CARD_WIDTH = 180; // matches grid's minmax(180px, 1fr)
+    const CARD_GAP = 8; // matches gap-2
+    const NAME_ROW_HEIGHT = 28; // TagPicker + name row
+    const BUFFER_ROWS = 3; // rows rendered above + below the viewport
+
+    let scrollContainer = $state<HTMLDivElement | null>(null);
+    let scrollTop = $state(0);
+    let containerHeight = $state(600);
+    let containerWidth = $state(800);
+
     onMount(() => {
         loadWallpapers();
     });
+
+    $effect(() => {
+        if (!scrollContainer) return;
+        const measure = () => {
+            if (!scrollContainer) return;
+            containerHeight = scrollContainer.clientHeight;
+            containerWidth = scrollContainer.clientWidth;
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(scrollContainer);
+        return () => ro.disconnect();
+    });
+
+    function handleScroll(e: Event) {
+        scrollTop = (e.currentTarget as HTMLDivElement).scrollTop;
+    }
 
     async function loadWallpapers() {
         isLoading = true;
@@ -78,6 +109,43 @@
 
             return wps;
         })()
+    );
+
+    // Available width is container minus horizontal padding (p-3 = 12px each side).
+    let innerWidth = $derived(Math.max(0, containerWidth - 24));
+    let columns = $derived(
+        Math.max(
+            1,
+            Math.floor((innerWidth + CARD_GAP) / (MIN_CARD_WIDTH + CARD_GAP))
+        )
+    );
+    let cardWidth = $derived(
+        columns > 0
+            ? (innerWidth - (columns - 1) * CARD_GAP) / columns
+            : MIN_CARD_WIDTH
+    );
+    // aspect-video thumb (16:9) + name row + bottom gap = one row's pitch.
+    let rowHeight = $derived(
+        Math.round((cardWidth * 9) / 16) + NAME_ROW_HEIGHT + CARD_GAP
+    );
+    let totalRows = $derived(Math.ceil(filtered.length / columns));
+    let firstVisibleRow = $derived(
+        Math.max(0, Math.floor(scrollTop / rowHeight) - BUFFER_ROWS)
+    );
+    let lastVisibleRow = $derived(
+        Math.min(
+            totalRows,
+            Math.ceil((scrollTop + containerHeight) / rowHeight) + BUFFER_ROWS
+        )
+    );
+    let visibleStart = $derived(firstVisibleRow * columns);
+    let visibleEnd = $derived(
+        Math.min(filtered.length, lastVisibleRow * columns)
+    );
+    let visibleSlice = $derived(filtered.slice(visibleStart, visibleEnd));
+    let topSpacer = $derived(firstVisibleRow * rowHeight);
+    let bottomSpacer = $derived(
+        Math.max(0, (totalRows - lastVisibleRow) * rowHeight)
     );
 
     function selectWallpaper(path: string) {
@@ -202,7 +270,11 @@
         >
     </div>
 
-    <div class="flex-1 overflow-y-auto p-3">
+    <div
+        class="flex-1 overflow-y-auto p-3"
+        bind:this={scrollContainer}
+        onscroll={handleScroll}
+    >
         {#if isLoading}
             <LoadingState message="Scanning ~/Wallpapers…" />
         {:else if filtered.length === 0}
@@ -247,10 +319,14 @@
                 </EmptyState>
             {/if}
         {:else}
+            {#if topSpacer > 0}
+                <div aria-hidden="true" style="height: {topSpacer}px"></div>
+            {/if}
             <div
                 class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2"
             >
-                {#each filtered as wp, i (wp.path)}
+                {#each visibleSlice as wp, sliceIdx (wp.path)}
+                    {@const i = visibleStart + sliceIdx}
                     <div
                         class="bg-bg-surface border-border hover:border-border-focus group relative border transition-colors duration-100"
                     >
@@ -331,6 +407,9 @@
                     </div>
                 {/each}
             </div>
+            {#if bottomSpacer > 0}
+                <div aria-hidden="true" style="height: {bottomSpacer}px"></div>
+            {/if}
         {/if}
     </div>
 </div>
