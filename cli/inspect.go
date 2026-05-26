@@ -183,7 +183,7 @@ func runCurrentTheme(args []string) int {
 		return 1
 	}
 
-	colors, bg, fg := omarchy.ParseColorsToml(string(data))
+	colors, bg, fg, _ := omarchy.ParseColorsToml(string(data))
 
 	if jsonOut {
 		colorSlice := colors[:]

@@ -15,7 +15,7 @@ aether://apply?<param>=<https-url>[&<param>=<https-url>...]
 | `external_theme` | URL to a theme JSON | Loads the palette and extended colors from a full Aether blueprint |
 | `colors` | URL to a `colors.toml` | Loads the 16-color palette verbatim, no extraction |
 | `wallpaper` | URL to an image | Sets the wallpaper (no re-extraction, even when used alone) |
-| `mode` | `light` or `dark` | Forces Aether into light or dark mode before applying. Omit to keep the current setting. |
+| `mode` | `light` or `dark` | Forces Aether into light or dark mode before applying. Omit to fall back to the colors.toml's own `mode = "..."` field, then to the current setting. |
 | `silent` | `true` | Skips the confirm dialog and applies immediately. Use with care: any web page can construct this URL. |
 | `as_omarchy_theme` | theme name | Installs into `~/.config/omarchy/themes/<name>/` and runs `omarchy-theme-set <name>`. Always silent. Name must match `[A-Za-z0-9][A-Za-z0-9_.-]*`. |
 
@@ -89,6 +89,17 @@ Renders the imported palette + wallpaper into `~/.config/omarchy/themes/<name>/`
 Always silent — installing into the system themes directory is the publisher's consent action. The name is restricted to `[A-Za-z0-9][A-Za-z0-9_.-]*` (max 64 chars) so it can be used as both a filesystem path and an argv argument. Requires `omarchy-theme-set` on PATH; the CLI errors out otherwise.
 
 Wallpaper-only `as_omarchy_theme` installs borrow the currently applied palette from `~/.config/aether/theme/colors.toml` so the rendered bundle isn't blank.
+
+### Light/dark from the colors.toml itself
+
+A published `colors.toml` can declare its own light/dark mode via:
+
+```toml
+mode = "light"          # or "dark"
+# light_mode = true      # also accepted; false → dark
+```
+
+Precedence: URL `mode=` (if set) wins, then the colors.toml's `mode` / `light_mode` field, then the current setting. So a publisher can ship a self-describing light theme and the URL doesn't need to carry `mode=light` to make it stick.
 
 ### `silent=true` — apply without confirming
 

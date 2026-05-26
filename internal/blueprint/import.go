@@ -214,7 +214,7 @@ func ImportColorsToml(filePath string) (*Blueprint, error) {
 		return nil, fmt.Errorf("read file: %w", err)
 	}
 
-	colors, bg, fg := omarchy.ParseColorsToml(string(data))
+	colors, bg, fg, parsedMode := omarchy.ParseColorsToml(string(data))
 
 	// Fill empty slots: use bg for dark colors (0,8), fg for light colors (7,15)
 	if bg == "" {
@@ -259,6 +259,7 @@ func ImportColorsToml(filePath string) (*Blueprint, error) {
 		Palette: PaletteData{
 			Colors:         colors[:],
 			ExtendedColors: ext,
+			LightMode:      parsedMode == "light",
 		},
 		Timestamp: time.Now().UnixMilli(),
 	}

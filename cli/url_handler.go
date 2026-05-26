@@ -171,6 +171,7 @@ func runHandleURL(args []string, templatesFS embed.FS) int {
 func runSilentApply(imp *pending.Import, templatesFS embed.FS) int {
 	var palette [16]string
 	var bp *blueprint.Blueprint
+	var parsedTomlMode string
 	var err error
 
 	switch {
@@ -198,7 +199,7 @@ func runSilentApply(imp *pending.Import, templatesFS embed.FS) int {
 		// state when nothing has been applied yet.
 		existing := filepath.Join(platform.ThemeDir(), "colors.toml")
 		if data, err := os.ReadFile(existing); err == nil {
-			current, bg, fg := omarchy.ParseColorsToml(string(data))
+			current, bg, fg, m := omarchy.ParseColorsToml(string(data))
 			palette = current
 			if bg != "" {
 				extended["background"] = bg
@@ -206,14 +207,16 @@ func runSilentApply(imp *pending.Import, templatesFS embed.FS) int {
 			if fg != "" {
 				extended["foreground"] = fg
 			}
+			parsedTomlMode = m
 		} else {
 			fmt.Fprintln(os.Stderr, "Warning: no existing colors.toml to preserve; palette will be empty")
 		}
 	}
 
-	// mode= is the only signal we have for light/dark in the silent CLI
-	// path. Omit → false (matches existing --import-colors-toml default).
-	lightMode := imp.Mode == "light"
+	// Light/dark precedence: explicit URL `mode=` wins, then the colors.toml's
+	// own `mode=` field (parsed via blueprint.LightMode or ParseColorsToml),
+	// then default to dark.
+	lightMode := resolveLightMode(imp.Mode, bp, parsedTomlMode)
 
 	colorRoles := MapColorsToRoles(palette)
 	writer := theme.NewWriter(templatesFS, "templates")
@@ -251,6 +254,7 @@ func runOmarchyInstall(imp *pending.Import, templatesFS embed.FS) int {
 
 	var palette [16]string
 	var bp *blueprint.Blueprint
+	var parsedTomlMode string
 	var err error
 
 	switch {
@@ -277,7 +281,7 @@ func runOmarchyInstall(imp *pending.Import, templatesFS embed.FS) int {
 		// applied colors.toml so the rendered theme isn't blank.
 		existing := filepath.Join(platform.ThemeDir(), "colors.toml")
 		if data, err := os.ReadFile(existing); err == nil {
-			current, bg, fg := omarchy.ParseColorsToml(string(data))
+			current, bg, fg, m := omarchy.ParseColorsToml(string(data))
 			palette = current
 			if bg != "" {
 				extended["background"] = bg
@@ -285,6 +289,7 @@ func runOmarchyInstall(imp *pending.Import, templatesFS embed.FS) int {
 			if fg != "" {
 				extended["foreground"] = fg
 			}
+			parsedTomlMode = m
 		}
 	}
 
@@ -293,7 +298,7 @@ func runOmarchyInstall(imp *pending.Import, templatesFS embed.FS) int {
 		return 1
 	}
 
-	lightMode := imp.Mode == "light"
+	lightMode := resolveLightMode(imp.Mode, bp, parsedTomlMode)
 
 	targetDir := filepath.Join(platform.OmarchyThemesDir(), imp.OmarchyThemeName)
 	if err := platform.EnsureDir(targetDir); err != nil {
@@ -336,6 +341,30 @@ func paletteHasColors(p [16]string) bool {
 		if c != "" {
 			return true
 		}
+	}
+	return false
+}
+
+// resolveLightMode picks the light/dark setting using a small precedence
+// ladder: explicit URL `mode=` first (publisher told the user what they
+// wanted), then the colors.toml's own `mode=` field (publisher signaled it
+// inside the file), then the imported blueprint's LightMode bool (used when
+// external_theme JSON declared it), then default dark.
+func resolveLightMode(urlMode string, bp *blueprint.Blueprint, parsedTomlMode string) bool {
+	switch urlMode {
+	case "light":
+		return true
+	case "dark":
+		return false
+	}
+	switch parsedTomlMode {
+	case "light":
+		return true
+	case "dark":
+		return false
+	}
+	if bp != nil && bp.Palette.LightMode {
+		return true
 	}
 	return false
 }

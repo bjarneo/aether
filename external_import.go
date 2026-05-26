@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"aether/internal/blueprint"
+	"aether/internal/omarchy"
 	"aether/internal/pending"
 	"aether/internal/theme"
 
@@ -159,11 +160,34 @@ func (a *App) ConfirmExternalImport() error {
 		}
 	}
 
+	// Light/dark precedence: explicit URL mode= wins. Otherwise, if the
+	// import was a colors.toml, re-parse to read its own `mode = "..."`
+	// line (handles both light and dark explicitly). Otherwise an
+	// external_theme JSON may have set LightMode=true. Otherwise leave
+	// the current setting alone.
 	switch imp.Mode {
 	case "light":
 		a.state.LightMode = true
 	case "dark":
 		a.state.LightMode = false
+	default:
+		applied := false
+		if imp.ColorsToml != "" {
+			if data, readErr := os.ReadFile(imp.ColorsToml); readErr == nil {
+				_, _, _, m := omarchy.ParseColorsToml(string(data))
+				switch m {
+				case "light":
+					a.state.LightMode = true
+					applied = true
+				case "dark":
+					a.state.LightMode = false
+					applied = true
+				}
+			}
+		}
+		if !applied && bp != nil && bp.Palette.LightMode {
+			a.state.LightMode = true
+		}
 	}
 
 	result, err := a.writer.ApplyTheme(a.state, theme.Settings{})

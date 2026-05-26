@@ -26,7 +26,10 @@ var semanticToIndex = map[string]int{
 
 // ParseColorsToml parses an Aether-generated colors.toml.
 // Supports both color0-15 and semantic name (black, red, etc.) formats.
-func ParseColorsToml(content string) (colors [16]string, bg, fg string) {
+// The `mode` return is "light" / "dark" when the file declares `mode = "…"`
+// (or `light_mode = true|false`); empty when the file is silent on it, so
+// callers can distinguish "publisher didn't say" from an explicit setting.
+func ParseColorsToml(content string) (colors [16]string, bg, fg, mode string) {
 	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -50,6 +53,18 @@ func ParseColorsToml(content string) (colors [16]string, bg, fg string) {
 			bg = val
 		case "foreground":
 			fg = val
+		case "mode":
+			v := strings.ToLower(val)
+			if v == "light" || v == "dark" {
+				mode = v
+			}
+		case "light_mode":
+			v := strings.ToLower(val)
+			if v == "true" || v == "1" || v == "yes" {
+				mode = "light"
+			} else if v == "false" || v == "0" || v == "no" {
+				mode = "dark"
+			}
 		case "color0":
 			colors[0] = val
 		case "color1":

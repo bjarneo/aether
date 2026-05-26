@@ -37,7 +37,7 @@ color13 = "#bb9af7"
 color14 = "#7dcfff"
 color15 = "#c0caf5"
 `
-	colors, bg, fg := ParseColorsToml(sample)
+	colors, bg, fg, _ := ParseColorsToml(sample)
 
 	if bg != "#1a1b26" {
 		t.Errorf("bg = %q, want #1a1b26", bg)
@@ -61,5 +61,26 @@ color15 = "#c0caf5"
 	}
 	if colors[15] != "#c0caf5" {
 		t.Errorf("color15 = %q, want #c0caf5", colors[15])
+	}
+}
+
+func TestParseColorsTomlMode(t *testing.T) {
+	cases := map[string]struct {
+		content string
+		want    string
+	}{
+		"explicit light":        {`mode = "light"` + "\nbackground = \"#fff\"\n", "light"},
+		"explicit dark":         {`mode = "dark"` + "\nbackground = \"#000\"\n", "dark"},
+		"light_mode true":       {`light_mode = true` + "\nbackground = \"#fff\"\n", "light"},
+		"light_mode false":      {"light_mode = false\nbackground = \"#000\"\n", "dark"},
+		"unspecified":           {"background = \"#000\"\n", ""},
+		"invalid mode ignored":  {`mode = "sepia"` + "\nbackground = \"#aaa\"\n", ""},
+		"case-insensitive mode": {`mode = "LIGHT"` + "\n", "light"},
+	}
+	for name, tc := range cases {
+		_, _, _, got := ParseColorsToml(tc.content)
+		if got != tc.want {
+			t.Errorf("%s: mode = %q, want %q", name, got, tc.want)
+		}
 	}
 }
