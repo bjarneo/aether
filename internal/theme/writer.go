@@ -27,6 +27,7 @@ var templateAppNameMap = map[string]string{
 	"mako.ini":          "mako",
 	"neovim.lua":        "neovim",
 	"swayosd.css":       "swayosd",
+	"triad.kdl":         "triad",
 	"walker.css":        "walker",
 	"waybar.css":        "waybar",
 	"wofi.css":          "wofi",

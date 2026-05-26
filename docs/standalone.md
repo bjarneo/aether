@@ -19,6 +19,7 @@ When you click "Apply Theme", Aether generates all theme files to:
 ├── backgrounds/          # Wallpaper copy
 │   └── wallpaper.jpg
 ├── hyprland.conf         # Hyprland color config
+├── triad.kdl             # Triad theme include
 ├── kitty.conf            # Kitty terminal theme
 ├── waybar.css            # Waybar stylesheet
 ├── gtk.css               # GTK theme (if enabled)
@@ -38,6 +39,23 @@ Source the generated config in your `~/.config/hypr/hyprland.conf`:
 ```conf
 source = ~/.config/aether/theme/hyprland.conf
 ```
+
+### Triad
+
+Include the generated theme file in your `~/.config/triad/config.kdl`:
+
+```kdl
+include optional=#true "~/.config/aether/theme/triad.kdl"
+```
+
+Aether writes `theme.accent-color` for Triad. Your explicit Triad colors still
+win, so you can keep custom border, tab, toast, or recent-window colors in your
+main config.
+
+The optional include lets Triad start before Aether has generated a theme. After
+the file exists, Triad watches it with the rest of your config. If you add the
+include for the first time during a running session, run `triad msg config-reload`
+once.
 
 ### Kitty Terminal
 

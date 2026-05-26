@@ -33,7 +33,7 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 - Export themes as shareable packages with selective app inclusion
 
 ### Application Support
-- 20+ pre-configured apps: Hyprland, Waybar, Kitty, Alacritty, Ghostty, Neovim, VS Code, Zed, btop, and more
+- 20+ pre-configured apps: Hyprland, Triad, Waybar, Kitty, Alacritty, Ghostty, Neovim, VS Code, Zed, btop, and more
 - Template system with hex, RGB, RGBA, and stripped format modifiers
 - Per-app overrides, reload hooks, and post-apply scripts
 - Add your own apps with custom templates
