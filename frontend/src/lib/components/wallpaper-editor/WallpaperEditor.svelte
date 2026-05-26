@@ -527,7 +527,7 @@
                             <div
                                 class="absolute inset-0 flex items-center justify-center bg-black/40"
                             >
-                                <span class="text-fg-dimmed text-[12px]"
+                                <span class="text-[12px] text-white/80"
                                     >Loading image...</span
                                 >
                             </div>
