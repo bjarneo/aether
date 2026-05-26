@@ -325,6 +325,8 @@ export namespace omarchy {
     export class Theme {
         name: string;
         path: string;
+        source: string;
+        applyMode: string;
         colors: string[];
         background: string;
         foreground: string;
@@ -341,6 +343,8 @@ export namespace omarchy {
             if ('string' === typeof source) source = JSON.parse(source);
             this.name = source['name'];
             this.path = source['path'];
+            this.source = source['source'];
+            this.applyMode = source['applyMode'];
             this.colors = source['colors'];
             this.background = source['background'];
             this.foreground = source['foreground'];

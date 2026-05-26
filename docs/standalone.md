@@ -1,8 +1,6 @@
-# Standalone Usage (Non-Omarchy Systems)
+# Standalone Wayland Usage
 
-Aether can be used on any Linux or macOS system, not just Omarchy. When running outside of Omarchy, theme files are generated to Aether's config directory and can be included by whichever desktop, terminal, editor, or widget system you use.
-
-On macOS, theme files are generated to `~/Library/Application Support/aether/theme/`.
+Aether does not require Omarchy. On a plain Wayland session, it writes theme files to Aether's config directory. Your compositor, terminal, bar, launcher, and editor can include those files directly.
 
 ## Theme Output Location
 
@@ -79,12 +77,12 @@ Or symlink it:
 ln -sf ~/.config/aether/theme/waybar.css ~/.config/waybar/colors.css
 ```
 
-### Rofi
+### Wofi
 
-Reference the theme in your rofi config:
+Use the generated stylesheet from your Wofi config:
 
-```conf
-@theme "~/.config/aether/theme/rofi.rasi"
+```css
+@import url("file:///home/YOUR_USER/.config/aether/theme/wofi.css");
 ```
 
 ### Neovim
@@ -97,8 +95,9 @@ dofile(vim.fn.expand("~/.config/aether/theme/neovim.lua"))
 
 ### Wallpaper
 
-On Wayland systems that use `awww`, Aether can set the wallpaper when you apply
-a theme. In Settings, choose **Wallpaper: Awww**.
+On Wayland systems, Aether can set the wallpaper when you apply a theme. In
+Settings, choose **Wallpaper: Awww** or **Wallpaper: Swaybg**. **Auto** uses
+Omarchy when it is installed, then `awww`, then `swaybg`.
 
 The generated wallpaper is still written to:
 
@@ -106,8 +105,8 @@ The generated wallpaper is still written to:
 ~/.config/aether/theme/backgrounds/
 ```
 
-If you prefer to manage wallpapers yourself, choose **Wallpaper: None**. A
-manual `swaybg` setup still works:
+If you prefer to manage wallpapers yourself, choose **Wallpaper: None**. A manual
+`swaybg` setup still works:
 
 ```bash
 swaybg -i ~/.config/aether/theme/backgrounds/wallpaper.jpg -m fill
@@ -134,8 +133,12 @@ aether-my-theme-theme-pack/
 └── ...                     # Selected app templates
 ```
 
-Theme packs are desktop-neutral. They can still be installed as Omarchy themes
-when Omarchy is available, but the exported directory does not require Omarchy.
+Theme packs are portable. They can still be installed as Omarchy themes when
+Omarchy is available, but the exported directory does not require Omarchy.
+
+Aether also scans `~/.config/themes` for portable packs. A pack placed there
+appears in the System Themes picker and applies through Aether's normal template
+and wallpaper path.
 
 To import one, choose **Import → Theme Pack** and select either
 `aether-theme-pack.json` or `blueprint.json` inside the pack. Wallpaper paths

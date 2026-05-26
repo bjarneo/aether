@@ -1,7 +1,9 @@
-package omarchy
+package omarchy_test
 
 import (
 	"testing"
+
+	"aether/internal/omarchy"
 )
 
 func TestParseColorsToml(t *testing.T) {
@@ -37,7 +39,7 @@ color13 = "#bb9af7"
 color14 = "#7dcfff"
 color15 = "#c0caf5"
 `
-	colors, bg, fg := ParseColorsToml(sample)
+	colors, bg, fg := omarchy.ParseColorsToml(sample)
 
 	if bg != "#1a1b26" {
 		t.Errorf("bg = %q, want #1a1b26", bg)

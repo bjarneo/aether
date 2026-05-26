@@ -32,6 +32,7 @@
         {value: 'auto', label: 'Auto'},
         {value: 'omarchy', label: 'Omarchy'},
         {value: 'awww', label: 'Awww'},
+        {value: 'swaybg', label: 'Swaybg'},
         {value: 'none', label: 'None'},
     ] as const;
 
@@ -125,7 +126,7 @@
         Wallpaper
     </h3>
     <div class="flex flex-col gap-2">
-        <div class="grid grid-cols-4 gap-1">
+        <div class="grid grid-cols-5 gap-1">
             {#each wallpaperBackends as backend}
                 {@const active = getSettings().wallpaperBackend === backend.value}
                 <button

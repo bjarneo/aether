@@ -1,4 +1,4 @@
-package theme
+package theme_test
 
 import (
 	"os"
@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"aether/internal/template"
+	"aether/internal/theme"
 )
 
 func TestTriadTemplateRendersAccentColor(t *testing.T) {
-	if got := GetAppNameFromFileName("triad.kdl"); got != "triad" {
+	if got := theme.GetAppNameFromFileName("triad.kdl"); got != "triad" {
 		t.Fatalf("GetAppNameFromFileName(triad.kdl) = %q, want triad", got)
 	}
 
@@ -32,7 +33,7 @@ func TestTriadTemplateRendersAccentColor(t *testing.T) {
 }
 
 func TestZellijTemplateMapsToZellijApp(t *testing.T) {
-	if got := GetAppNameFromFileName("zellij.kdl"); got != "zellij" {
+	if got := theme.GetAppNameFromFileName("zellij.kdl"); got != "zellij" {
 		t.Fatalf("GetAppNameFromFileName(zellij.kdl) = %q, want zellij", got)
 	}
 }

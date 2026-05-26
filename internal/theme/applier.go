@@ -1,13 +1,16 @@
 package theme
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"aether/internal/platform"
 )
@@ -48,7 +51,7 @@ func IsOmarchyInstalled() bool {
 	if runtime.GOOS != "linux" {
 		return false
 	}
-	_, err := platform.RunSync("which", "omarchy-theme-set")
+	_, err := exec.LookPath("omarchy-theme-set")
 	return err == nil
 }
 
@@ -56,12 +59,14 @@ const (
 	WallpaperBackendAuto    = "auto"
 	WallpaperBackendOmarchy = "omarchy"
 	WallpaperBackendAwww    = "awww"
+	WallpaperBackendSwaybg  = "swaybg"
 	WallpaperBackendNone    = "none"
 )
 
-type wallpaperBackendAvailability struct {
+type WallpaperBackendAvailability struct {
 	Omarchy bool
 	Awww    bool
+	Swaybg  bool
 }
 
 func normalizeWallpaperBackend(value string) string {
@@ -72,6 +77,8 @@ func normalizeWallpaperBackend(value string) string {
 		return WallpaperBackendOmarchy
 	case WallpaperBackendAwww:
 		return WallpaperBackendAwww
+	case WallpaperBackendSwaybg:
+		return WallpaperBackendSwaybg
 	case WallpaperBackendNone:
 		return WallpaperBackendNone
 	default:
@@ -79,7 +86,11 @@ func normalizeWallpaperBackend(value string) string {
 	}
 }
 
-func selectWallpaperBackend(requested string, availability wallpaperBackendAvailability) string {
+func NormalizeWallpaperBackend(value string) string {
+	return normalizeWallpaperBackend(value)
+}
+
+func selectWallpaperBackend(requested string, availability WallpaperBackendAvailability) string {
 	backend := normalizeWallpaperBackend(requested)
 	if backend != WallpaperBackendAuto {
 		return backend
@@ -90,7 +101,14 @@ func selectWallpaperBackend(requested string, availability wallpaperBackendAvail
 	if availability.Awww {
 		return WallpaperBackendAwww
 	}
+	if availability.Swaybg {
+		return WallpaperBackendSwaybg
+	}
 	return WallpaperBackendNone
+}
+
+func SelectWallpaperBackend(requested string, availability WallpaperBackendAvailability) string {
+	return selectWallpaperBackend(requested, availability)
 }
 
 // HandleLightModeMarker creates or removes the light.mode marker file in
@@ -125,29 +143,8 @@ func HandleLightModeMarker(themeDir string, lightMode bool) error {
 
 // CreateOmarchySymlink creates a symlink from
 // ~/.config/omarchy/themes/aether -> themeDir.
-// If the target already exists as a regular directory (not a symlink), it is
-// removed first.
 func CreateOmarchySymlink(themeDir string) error {
-	omarchyDir := platform.OmarchyThemeDir()
-	parentDir := filepath.Dir(omarchyDir)
-
-	if err := platform.EnsureDir(parentDir); err != nil {
-		return err
-	}
-
-	// Check if the path exists and is not a symlink
-	info, err := os.Lstat(omarchyDir)
-	if err == nil {
-		if info.Mode()&os.ModeSymlink == 0 && info.IsDir() {
-			// It's a real directory, remove it
-			if err := os.RemoveAll(omarchyDir); err != nil {
-				return err
-			}
-			log.Println("Removed existing omarchy theme directory")
-		}
-	}
-
-	return platform.CreateSymlink(themeDir, omarchyDir)
+	return platform.ReplaceSymlink(themeDir, platform.OmarchyThemeDir())
 }
 
 // animatedExtensions are file types handled by aether-wp instead of swaybg.
@@ -222,6 +219,92 @@ func IsAwwwAvailable() bool {
 	return err == nil
 }
 
+// IsSwaybgAvailable returns true when swaybg can be launched for static
+// wallpapers.
+func IsSwaybgAvailable() bool {
+	if runtime.GOOS != "linux" {
+		return false
+	}
+	_, err := exec.LookPath("swaybg")
+	return err == nil
+}
+
+func swaybgPIDPath() string {
+	return filepath.Join(platform.CacheDir(), "swaybg.pid")
+}
+
+type swaybgState struct {
+	PID       int    `json:"pid"`
+	Wallpaper string `json:"wallpaper"`
+}
+
+func recordSwaybgPID(pid int, wallpaperPath string) {
+	if err := platform.EnsureDir(platform.CacheDir()); err != nil {
+		log.Printf("Warning: could not create cache dir for swaybg PID: %v", err)
+		return
+	}
+	data, err := json.Marshal(swaybgState{PID: pid, Wallpaper: wallpaperPath})
+	if err != nil {
+		log.Printf("Warning: could not encode swaybg PID: %v", err)
+		return
+	}
+	if err := os.WriteFile(swaybgPIDPath(), append(data, '\n'), 0644); err != nil {
+		log.Printf("Warning: could not write swaybg PID: %v", err)
+	}
+}
+
+func processComm(pid int) string {
+	data, err := os.ReadFile(filepath.Join("/proc", strconv.Itoa(pid), "comm"))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func processCmdline(pid int) string {
+	data, err := os.ReadFile(filepath.Join("/proc", strconv.Itoa(pid), "cmdline"))
+	if err != nil {
+		return ""
+	}
+	return strings.ReplaceAll(string(data), "\x00", " ")
+}
+
+func stopAetherSwaybg() {
+	data, err := os.ReadFile(swaybgPIDPath())
+	if err != nil {
+		return
+	}
+	_ = os.Remove(swaybgPIDPath())
+
+	var state swaybgState
+	if err := json.Unmarshal(data, &state); err != nil {
+		pid, convErr := strconv.Atoi(strings.TrimSpace(string(data)))
+		if convErr != nil {
+			return
+		}
+		state.PID = pid
+	}
+	if state.PID <= 0 {
+		return
+	}
+	switch processComm(state.PID) {
+	case "swaybg", "uwsm-app":
+	default:
+		return
+	}
+	if state.Wallpaper != "" && !strings.Contains(processCmdline(state.PID), state.Wallpaper) {
+		return
+	}
+
+	process, err := os.FindProcess(state.PID)
+	if err != nil {
+		return
+	}
+	if err := process.Signal(syscall.SIGTERM); err != nil {
+		log.Printf("Warning: could not stop Aether swaybg process %d: %v", state.PID, err)
+	}
+}
+
 // stopAetherWp stops any running aether-wp instance using its --stop flag.
 // Runs synchronously so the old instance is fully gone before a new one starts.
 func stopAetherWp() {
@@ -240,7 +323,7 @@ func applyWallpaperAetherWp(mediaPath string, cpuMode bool) error {
 		return fmt.Errorf("aether-wp binary not found")
 	}
 
-	_ = platform.RunAsync("pkill", "-x", "swaybg")
+	stopAetherSwaybg()
 	stopAetherWp()
 
 	args := []string{wpBin}
@@ -260,14 +343,29 @@ func applyWallpaperAetherWp(mediaPath string, cpuMode bool) error {
 	return nil
 }
 
-// applyWallpaperSwaybg sets the wallpaper using swaybg (static images).
-func applyWallpaperSwaybg(symlinkPath string) error {
-	_ = platform.RunAsync("pkill", "-x", "swaybg")
+// applyWallpaperSwaybg sets the wallpaper using swaybg for static images.
+func applyWallpaperSwaybg(wallpaperPath string, preferUwsm bool) error {
+	if !IsSwaybgAvailable() {
+		return fmt.Errorf("swaybg binary not found")
+	}
+	stopAetherSwaybg()
 	stopAetherWp()
-	if err := platform.RunAsync("setsid", "uwsm-app", "--", "swaybg", "-i", symlinkPath, "-m", "fill"); err != nil {
+
+	name := "swaybg"
+	args := []string{"-i", wallpaperPath, "-m", "fill"}
+	if preferUwsm {
+		if _, err := exec.LookPath("uwsm-app"); err == nil {
+			name = "uwsm-app"
+			args = []string{"--", "swaybg", "-i", wallpaperPath, "-m", "fill"}
+		}
+	}
+
+	pid, err := platform.StartDetached(name, args...)
+	if err != nil {
 		log.Printf("Warning: could not restart swaybg: %v", err)
 		return err
 	}
+	recordSwaybgPID(pid, wallpaperPath)
 	log.Println("Swaybg restarted successfully")
 	return nil
 }
@@ -276,7 +374,7 @@ func applyWallpaperAwww(wallpaperPath string) error {
 	if _, err := exec.LookPath("awww"); err != nil {
 		return fmt.Errorf("awww binary not found")
 	}
-	_ = platform.RunAsync("pkill", "-x", "swaybg")
+	stopAetherSwaybg()
 	stopAetherWp()
 	if _, err := platform.RunSync("awww", "img", wallpaperPath); err != nil {
 		return fmt.Errorf("failed to set wallpaper with awww: %w", err)
@@ -300,7 +398,7 @@ func applyWallpaperOmarchy(wallpaperPath string, settings Settings) error {
 		return err
 	}
 
-	if err := platform.CreateSymlink(wallpaperPath, symlinkPath); err != nil {
+	if err := platform.ReplaceSymlink(wallpaperPath, symlinkPath); err != nil {
 		return err
 	}
 	log.Printf("Created wallpaper symlink: %s -> %s", symlinkPath, wallpaperPath)
@@ -308,20 +406,20 @@ func applyWallpaperOmarchy(wallpaperPath string, settings Settings) error {
 	if IsAnimatedWallpaper(wallpaperPath) && IsAetherWpAvailable() {
 		return applyWallpaperAetherWp(wallpaperPath, settings.VideoCpuMode)
 	}
-	return applyWallpaperSwaybg(symlinkPath)
+	return applyWallpaperSwaybg(symlinkPath, true)
 }
 
 // ApplyWallpaper sets wallpaperPath using Aether's configured wallpaper backend.
-// Auto keeps Omarchy behavior when available and uses awww on standalone Wayland
-// sessions where its daemon is already running.
+// Auto keeps Omarchy behavior when available, then tries awww, then swaybg.
 func ApplyWallpaper(wallpaperPath string, settings Settings) error {
 	if runtime.GOOS != "linux" || wallpaperPath == "" {
 		return nil
 	}
 
-	backend := selectWallpaperBackend(settings.WallpaperBackend, wallpaperBackendAvailability{
+	backend := selectWallpaperBackend(settings.WallpaperBackend, WallpaperBackendAvailability{
 		Omarchy: IsOmarchyInstalled(),
 		Awww:    IsAwwwAvailable(),
+		Swaybg:  IsSwaybgAvailable(),
 	})
 
 	switch backend {
@@ -329,6 +427,11 @@ func ApplyWallpaper(wallpaperPath string, settings Settings) error {
 		return applyWallpaperOmarchy(wallpaperPath, settings)
 	case WallpaperBackendAwww:
 		return applyWallpaperAwww(wallpaperPath)
+	case WallpaperBackendSwaybg:
+		if IsAnimatedWallpaper(wallpaperPath) && IsAetherWpAvailable() {
+			return applyWallpaperAetherWp(wallpaperPath, settings.VideoCpuMode)
+		}
+		return applyWallpaperSwaybg(wallpaperPath, false)
 	case WallpaperBackendNone:
 		log.Println("Wallpaper application skipped")
 		return nil
@@ -342,6 +445,7 @@ func ApplyWallpaper(wallpaperPath string, settings Settings) error {
 func ClearTheme() error {
 	// Stop any running animated wallpaper
 	stopAetherWp()
+	stopAetherSwaybg()
 
 	// Delete Aether override CSS file in theme dir (cross-platform)
 	overrideCss := filepath.Join(platform.ThemeDir(), "aether.override.css")
@@ -377,15 +481,16 @@ func ClearTheme() error {
 		log.Printf("Warning: could not delete theme override symlink: %v", err)
 	}
 
-	// Switch to tokyo-night theme
-	if err := platform.RunAsync("omarchy-theme-set", "tokyo-night"); err != nil {
-		log.Printf("Warning: could not switch to tokyo-night: %v", err)
-	} else {
-		log.Println("Cleared Aether theme and switched to tokyo-night")
-	}
+	if IsOmarchyInstalled() {
+		if err := platform.RunAsync("omarchy-theme-set", "tokyo-night"); err != nil {
+			log.Printf("Warning: could not switch to tokyo-night: %v", err)
+		} else {
+			log.Println("Cleared Aether theme and switched to tokyo-night")
+		}
 
-	// Restart xdg-desktop-portal-gtk (best-effort)
-	_ = platform.RunAsync("killall", "xdg-desktop-portal-gtk")
+		// Restart xdg-desktop-portal-gtk (best-effort)
+		_ = platform.RunAsync("killall", "xdg-desktop-portal-gtk")
+	}
 
 	return nil
 }

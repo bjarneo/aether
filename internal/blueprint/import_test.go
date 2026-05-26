@@ -1,6 +1,8 @@
-package blueprint
+package blueprint_test
 
 import (
+	"aether/internal/blueprint"
+
 	"os"
 	"path/filepath"
 	"testing"
@@ -41,7 +43,7 @@ color15 = "#c0caf5"
 `
 	os.WriteFile(path, []byte(content), 0644)
 
-	bp, err := ImportColorsToml(path)
+	bp, err := blueprint.ImportColorsToml(path)
 	if err != nil {
 		t.Fatalf("ImportColorsToml failed: %v", err)
 	}
@@ -74,7 +76,7 @@ func TestImportColorsTomlFromThemeDir(t *testing.T) {
 	data, _ := os.ReadFile(path)
 	t.Logf("File contents (first 300 bytes):\n%s", string(data)[:min(300, len(data))])
 
-	bp, err := ImportColorsToml(path)
+	bp, err := blueprint.ImportColorsToml(path)
 	if err != nil {
 		t.Fatalf("ImportColorsToml failed: %v", err)
 	}
@@ -106,7 +108,7 @@ func TestImportJSON_BoolLockedColors(t *testing.T) {
 	}`
 	os.WriteFile(path, []byte(content), 0644)
 
-	bp, err := ImportJSON(path)
+	bp, err := blueprint.ImportJSON(path)
 	if err != nil {
 		t.Fatalf("ImportJSON failed: %v", err)
 	}
@@ -138,7 +140,7 @@ func TestImportJSON_IntLockedColors(t *testing.T) {
 	}`
 	os.WriteFile(path, []byte(content), 0644)
 
-	bp, err := ImportJSON(path)
+	bp, err := blueprint.ImportJSON(path)
 	if err != nil {
 		t.Fatalf("ImportJSON failed: %v", err)
 	}
@@ -166,7 +168,7 @@ func TestImportJSON_AllFalseLockedColors(t *testing.T) {
 	}`
 	os.WriteFile(path, []byte(content), 0644)
 
-	bp, err := ImportJSON(path)
+	bp, err := blueprint.ImportJSON(path)
 	if err != nil {
 		t.Fatalf("ImportJSON failed: %v", err)
 	}
@@ -190,7 +192,7 @@ func TestImportJSON_NullLockedColors(t *testing.T) {
 	}`
 	os.WriteFile(path, []byte(content), 0644)
 
-	bp, err := ImportJSON(path)
+	bp, err := blueprint.ImportJSON(path)
 	if err != nil {
 		t.Fatalf("ImportJSON failed: %v", err)
 	}

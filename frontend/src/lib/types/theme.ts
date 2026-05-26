@@ -69,7 +69,7 @@ export interface Settings {
     includeNeovim: boolean;
     selectedNeovimConfig: string;
     videoCpuMode: boolean;
-    wallpaperBackend: 'auto' | 'omarchy' | 'awww' | 'none';
+    wallpaperBackend: 'auto' | 'omarchy' | 'awww' | 'swaybg' | 'none';
     // Per-app skip list. Keys are the app names returned by
     // GetTemplateColors (alacritty, hyprland, …). True = skip the
     // template during ApplyTheme / GenerateOnly.

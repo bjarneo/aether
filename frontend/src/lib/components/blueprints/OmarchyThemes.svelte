@@ -1,6 +1,10 @@
 <script lang="ts">
     import {onMount} from 'svelte';
-    import {setPalette, setWallpaperPath} from '$lib/stores/theme.svelte';
+    import {
+        setAdditionalImages,
+        setPalette,
+        setWallpaperPath,
+    } from '$lib/stores/theme.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
     import {
         getCachedThumbnail,
@@ -9,6 +13,7 @@
     import type {omarchy} from '../../../../wailsjs/go/models';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
     import LoadingState from '$lib/components/shared/LoadingState.svelte';
+    import {applyTheme} from '$lib/actions/themeActions';
 
     type Theme = omarchy.Theme;
 
@@ -45,6 +50,9 @@
         setPalette(theme.colors);
         if (theme.wallpapers?.length > 0) {
             setWallpaperPath(theme.wallpapers[0]);
+            setAdditionalImages(theme.wallpapers.slice(1));
+        } else {
+            setAdditionalImages([]);
         }
         return true;
     }
@@ -57,8 +65,17 @@
     }
 
     async function handleApply(theme: Theme) {
-        if (theme.colors?.length >= 16) {
-            loadThemeIntoState(theme);
+        if (theme.applyMode === 'aether') {
+            if (!loadThemeIntoState(theme)) {
+                showToast('Theme has no usable palette');
+                return;
+            }
+            await applyTheme();
+            return;
+        }
+        if (theme.applyMode !== 'omarchy') {
+            showToast('Theme has no usable apply path');
+            return;
         }
         try {
             const {ApplyOmarchyThemeByName} = await import(
@@ -77,7 +94,7 @@
 {:else if themes.length === 0}
     <EmptyState
         title="No system themes found"
-        body="Install Omarchy to use bundled system themes, or save your own theme as a Blueprint."
+        body="Add portable Aether theme packs to ~/.config/themes, or install Omarchy themes."
     >
         {#snippet icon()}
             <svg
@@ -144,6 +161,11 @@
                         {#if theme.isCurrentTheme}
                             <span class="text-accent ml-1 text-[10px]"
                                 >current</span
+                            >
+                        {/if}
+                        {#if theme.applyMode === 'aether'}
+                            <span class="text-fg-dimmed ml-1 text-[10px]"
+                                >pack</span
                             >
                         {/if}
                     </div>

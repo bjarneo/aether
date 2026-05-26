@@ -2,6 +2,7 @@ package platform
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -123,6 +124,28 @@ func CreateSymlink(target, link string) error {
 	}
 	// Remove existing link (or file) if present; ignore error if it doesn't exist.
 	_ = os.Remove(link)
+	return os.Symlink(target, link)
+}
+
+// ReplaceSymlink creates link -> target. If link already exists, it is only
+// replaced when the existing path is itself a symlink. Real files and
+// directories are left untouched so integrations cannot delete user-owned
+// config by accident.
+func ReplaceSymlink(target, link string) error {
+	if err := EnsureDir(filepath.Dir(link)); err != nil {
+		return err
+	}
+	info, err := os.Lstat(link)
+	if err == nil {
+		if info.Mode()&os.ModeSymlink == 0 {
+			return fmt.Errorf("refusing to replace non-symlink path: %s", link)
+		}
+		if err := os.Remove(link); err != nil {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
 	return os.Symlink(target, link)
 }
 

@@ -29,6 +29,13 @@ func RunSync(name string, args ...string) (string, error) {
 // RunAsync starts a command detached in the background and returns immediately.
 // LD_PRELOAD is stripped from the environment to prevent layer-shell conflicts.
 func RunAsync(name string, args ...string) error {
+	_, err := StartDetached(name, args...)
+	return err
+}
+
+// StartDetached starts a command detached in the background and returns its PID.
+// LD_PRELOAD is stripped from the environment to prevent layer-shell conflicts.
+func StartDetached(name string, args ...string) (int, error) {
 	cmd := exec.Command(name, args...)
 	cmd.Env = filteredEnv()
 
@@ -37,7 +44,10 @@ func RunAsync(name string, args ...string) error {
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 
-	return cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+	return cmd.Process.Pid, nil
 }
 
 // IsNvidiaWayland returns true if running on Wayland with an NVIDIA GPU.

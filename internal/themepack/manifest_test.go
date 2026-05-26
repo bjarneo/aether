@@ -1,4 +1,4 @@
-package themepack
+package themepack_test
 
 import (
 	"os"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"aether/internal/blueprint"
+	"aether/internal/themepack"
 )
 
 func TestWriteAndImportThemePackResolvesRelativeWallpaper(t *testing.T) {
@@ -27,15 +28,15 @@ func TestWriteAndImportThemePackResolvesRelativeWallpaper(t *testing.T) {
 			AdditionalImages: []string{"backgrounds/extra.png"},
 		},
 	}
-	manifest, err := NewManifest(dir, "Test Pack", "test-pack", []string{"triad", "zellij"}, false, "backgrounds/wallpaper.jpg", []string{"backgrounds/extra.png"})
+	manifest, err := themepack.NewManifest(dir, "Test Pack", "test-pack", []string{"triad", "zellij"}, false, "backgrounds/wallpaper.jpg", []string{"backgrounds/extra.png"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Write(dir, manifest, bp); err != nil {
+	if err := themepack.Write(dir, manifest, bp); err != nil {
 		t.Fatal(err)
 	}
 
-	imported, err := Import(filepath.Join(dir, ManifestFile))
+	imported, err := themepack.Import(filepath.Join(dir, themepack.ManifestFile))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +55,7 @@ func TestImportRejectsUnrecognizedFile(t *testing.T) {
 	if err := os.WriteFile(path, []byte("{}"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Import(path); err == nil {
+	if _, err := themepack.Import(path); err == nil {
 		t.Fatal("expected error for unrecognized file")
 	}
 }

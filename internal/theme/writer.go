@@ -169,9 +169,8 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 	if err := template.ProcessCustomApps(themeDir, variables); err != nil {
 		log.Printf("Warning: custom app processing failed: %v", err)
 	}
-	// Apply omarchy theme before wallpaper so that omarchy-theme-set's
-	// swaybg restart doesn't override aether-wp. For animated wallpapers,
-	// run synchronously so swaybg is fully started before we replace it.
+	// Apply Omarchy before wallpaper so omarchy-theme-set's wallpaper restart
+	// does not override aether-wp.
 	if isOmarchy {
 		sync := wallpaperDest != "" && IsAnimatedWallpaper(wallpaperDest)
 		if err := ApplyOmarchyTheme(sync); err != nil {

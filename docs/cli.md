@@ -261,7 +261,7 @@ Aether launches `aether-wp` automatically when you apply a theme with an animate
 
 **How it works:**
 
-- Renders on the background layer via `gtk-layer-shell` (replaces `swaybg`)
+- Renders on the background layer via `gtk-layer-shell`
 - GPU-accelerated playback using `gtkglsink` (OpenGL), auto-falls back to `gtksink` (CPU)
 - Frame rate capped at 30fps to reduce GPU load
 - Loops automatically on end-of-stream
@@ -280,7 +280,9 @@ Aether launches `aether-wp` automatically when you apply a theme with an animate
 1. Same directory as the `aether` binary
 2. `$PATH`
 
-When applying a static wallpaper, Aether automatically kills any running `aether-wp` process and falls back to `swaybg`.
+When applying a static wallpaper, Aether stops its own `aether-wp` process. If
+the wallpaper backend is `swaybg`, it also stops only the `swaybg` process that
+Aether started.
 
 ## Color Utilities
 
@@ -610,14 +612,15 @@ Aether respects standard XDG directories:
 ### `AETHER_EXTRA_THEME_DIRS`
 
 Colon-separated list of additional directories to scan for themes shown
-in the **System Themes** tab. These are searched **before** the omarchy
-defaults (`~/.config/omarchy/themes`, `~/.local/share/omarchy/themes`,
-`~/.config/themes`), so a theme with the same name in a custom directory
-wins.
+in the **System Themes** tab. These are searched before the default theme
+locations: `~/.config/omarchy/themes`, `~/.local/share/omarchy/themes`, and
+`~/.config/themes`.
 
 ```bash
 AETHER_EXTRA_THEME_DIRS="$HOME/dotfiles/themes:$HOME/work/themes" aether
 ```
 
-Useful if you keep themes in a non-omarchy location (e.g. your dotfiles
-repo) or run a distro that puts themes elsewhere.
+Use this when you keep portable Aether theme packs in a dotfiles repo or another
+nonstandard directory. Aether skips its own generated output at
+`~/.config/aether/theme`, so the picker shows real packs rather than the last
+theme Aether wrote.

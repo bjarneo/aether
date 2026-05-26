@@ -684,8 +684,8 @@ func (a *App) LoadOmarchyThemes() ([]omarchy.Theme, error) {
 	return omarchy.LoadAllThemes()
 }
 
-// ApplyOmarchyThemeByName activates an existing Omarchy theme directly
-// by running "omarchy-theme-set <name>" without processing through Aether templates.
+// ApplyOmarchyThemeByName activates an existing Omarchy theme directly.
+// Portable Aether packs use ApplyTheme instead.
 func (a *App) ApplyOmarchyThemeByName(name string) error {
 	_, err := platform.RunSync("omarchy-theme-set", name)
 	return err
@@ -937,7 +937,7 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 
 	if req.InstallToOmarchy && theme.IsOmarchyInstalled() {
 		linkPath := filepath.Join(platform.OmarchyThemesDir(), slug)
-		if err := platform.CreateSymlink(exportDir, linkPath); err != nil {
+		if err := platform.ReplaceSymlink(exportDir, linkPath); err != nil {
 			log.Printf("Warning: could not symlink to omarchy themes: %v", err)
 		} else {
 			log.Printf("Installed as omarchy theme: %s -> %s", linkPath, exportDir)

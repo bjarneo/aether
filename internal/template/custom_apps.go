@@ -103,11 +103,11 @@ func processCustomApp(appPath, appName, themeDir string, variables map[string]st
 
 	// Create destination symlink if configured
 	if config.Destination != "" {
-		destPath := expandHome(config.Destination)
+		destPath := ExpandHome(config.Destination)
 		if err := platform.EnsureDir(filepath.Dir(destPath)); err != nil {
 			return err
 		}
-		if err := platform.CreateSymlink(outputPath, destPath); err != nil {
+		if err := platform.ReplaceSymlink(outputPath, destPath); err != nil {
 			log.Printf("[%s] Error creating symlink to %s: %v", appName, destPath, err)
 		} else {
 			log.Printf("[%s] Symlinked -> %s", appName, destPath)
@@ -144,8 +144,8 @@ func ReadCustomOverride(fileName string) (string, bool) {
 	return content, true
 }
 
-// expandHome replaces a leading "~/" with the user's home directory.
-func expandHome(path string) string {
+// ExpandHome replaces a leading "~/" with the user's home directory.
+func ExpandHome(path string) string {
 	if strings.HasPrefix(path, "~/") {
 		home, err := os.UserHomeDir()
 		if err != nil {

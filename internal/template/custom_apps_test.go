@@ -1,12 +1,19 @@
-package template
+package template_test
 
 import (
+	"aether/internal/template"
+
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+type customAppConfig struct {
+	Template    string `json:"template"`
+	Destination string `json:"destination"`
+}
 
 func TestProcessCustomApps_NoDir(t *testing.T) {
 	themeDir := t.TempDir()
@@ -21,7 +28,7 @@ func TestProcessCustomApps_NoDir(t *testing.T) {
 		}
 	}()
 
-	err := ProcessCustomApps(themeDir, map[string]string{"background": "#1e1e2e"})
+	err := template.ProcessCustomApps(themeDir, map[string]string{"background": "#1e1e2e"})
 	if err != nil {
 		t.Fatalf("expected nil error for missing custom dir, got: %v", err)
 	}
@@ -36,7 +43,7 @@ func TestProcessCustomApps_EmptyDir(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", xdgConfig)
 
 	themeDir := t.TempDir()
-	err := ProcessCustomApps(themeDir, map[string]string{"background": "#1e1e2e"})
+	err := template.ProcessCustomApps(themeDir, map[string]string{"background": "#1e1e2e"})
 	if err != nil {
 		t.Fatalf("expected nil error for empty custom dir, got: %v", err)
 	}
@@ -55,7 +62,7 @@ func TestProcessCustomApps_SkipsFiles(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", xdgConfig)
 
 	themeDir := t.TempDir()
-	err := ProcessCustomApps(themeDir, map[string]string{})
+	err := template.ProcessCustomApps(themeDir, map[string]string{})
 	if err != nil {
 		t.Fatalf("expected nil error when skipping non-dir entries, got: %v", err)
 	}
@@ -101,7 +108,7 @@ rgba = {blue.rgba:0.7}
 		"blue":       "#89b4fa",
 	}
 
-	err := ProcessCustomApps(themeDir, variables)
+	err := template.ProcessCustomApps(themeDir, variables)
 	if err != nil {
 		t.Fatalf("ProcessCustomApps failed: %v", err)
 	}
@@ -143,7 +150,7 @@ func TestProcessCustomApps_MissingConfigJSON(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", xdgConfig)
 
 	themeDir := t.TempDir()
-	err := ProcessCustomApps(themeDir, map[string]string{})
+	err := template.ProcessCustomApps(themeDir, map[string]string{})
 	if err != nil {
 		t.Fatalf("expected nil error for missing config.json, got: %v", err)
 	}
@@ -165,7 +172,7 @@ func TestProcessCustomApps_EmptyTemplateField(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", xdgConfig)
 
 	themeDir := t.TempDir()
-	err := ProcessCustomApps(themeDir, map[string]string{})
+	err := template.ProcessCustomApps(themeDir, map[string]string{})
 	if err != nil {
 		t.Fatalf("expected nil error for empty template field, got: %v", err)
 	}
@@ -187,7 +194,7 @@ func TestProcessCustomApps_MissingTemplateFile(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", xdgConfig)
 
 	themeDir := t.TempDir()
-	err := ProcessCustomApps(themeDir, map[string]string{})
+	err := template.ProcessCustomApps(themeDir, map[string]string{})
 	if err != nil {
 		t.Fatalf("expected nil error for missing template file, got: %v", err)
 	}
@@ -212,7 +219,7 @@ func TestProcessCustomApps_NoDestination(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", xdgConfig)
 
 	themeDir := t.TempDir()
-	err := ProcessCustomApps(themeDir, map[string]string{"background": "#000000"})
+	err := template.ProcessCustomApps(themeDir, map[string]string{"background": "#000000"})
 	if err != nil {
 		t.Fatalf("expected nil error with no destination, got: %v", err)
 	}
@@ -246,7 +253,7 @@ func TestProcessCustomApps_MultipleApps(t *testing.T) {
 	}
 
 	themeDir := t.TempDir()
-	err := ProcessCustomApps(themeDir, map[string]string{"foreground": "#ffffff"})
+	err := template.ProcessCustomApps(themeDir, map[string]string{"foreground": "#ffffff"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -278,7 +285,7 @@ func TestReadCustomOverride_Found(t *testing.T) {
 	}
 	t.Setenv("XDG_CONFIG_HOME", xdgConfig)
 
-	content, found := ReadCustomOverride("kitty.conf")
+	content, found := template.ReadCustomOverride("kitty.conf")
 	if !found {
 		t.Fatal("expected override to be found")
 	}
@@ -295,7 +302,7 @@ func TestReadCustomOverride_NotFound(t *testing.T) {
 	}
 	t.Setenv("XDG_CONFIG_HOME", xdgConfig)
 
-	_, found := ReadCustomOverride("nonexistent.conf")
+	_, found := template.ReadCustomOverride("nonexistent.conf")
 	if found {
 		t.Fatal("expected override NOT to be found")
 	}
@@ -310,7 +317,7 @@ func TestReadCustomOverride_IgnoresDirectories(t *testing.T) {
 	}
 	t.Setenv("XDG_CONFIG_HOME", xdgConfig)
 
-	_, found := ReadCustomOverride("kitty.conf")
+	_, found := template.ReadCustomOverride("kitty.conf")
 	if found {
 		t.Fatal("expected directory to NOT be treated as an override")
 	}
@@ -319,7 +326,7 @@ func TestReadCustomOverride_IgnoresDirectories(t *testing.T) {
 func TestReadCustomOverride_CustomDirMissing(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), "nonexistent"))
 
-	_, found := ReadCustomOverride("kitty.conf")
+	_, found := template.ReadCustomOverride("kitty.conf")
 	if found {
 		t.Fatal("expected false when custom dir doesn't exist")
 	}
@@ -345,9 +352,9 @@ func TestExpandHome(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := expandHome(tt.in)
+			got := template.ExpandHome(tt.in)
 			if got != tt.want {
-				t.Errorf("expandHome(%q) = %q, want %q", tt.in, got, tt.want)
+				t.Errorf("template.ExpandHome(%q) = %q, want %q", tt.in, got, tt.want)
 			}
 		})
 	}
