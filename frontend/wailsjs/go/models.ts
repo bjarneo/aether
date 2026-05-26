@@ -187,6 +187,7 @@ export namespace main {
         lightMode: boolean;
         additionalImages: string[];
         extendedColors: Record<string, string>;
+        adjustments: Record<string, number>;
         installToOmarchy: boolean;
         appOverrides: Record<string, any>;
 
@@ -203,6 +204,7 @@ export namespace main {
             this.lightMode = source['lightMode'];
             this.additionalImages = source['additionalImages'];
             this.extendedColors = source['extendedColors'];
+            this.adjustments = source['adjustments'];
             this.installToOmarchy = source['installToOmarchy'];
             this.appOverrides = source['appOverrides'];
         }

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"aether/internal/batch"
 	"aether/internal/blueprint"
@@ -20,6 +21,7 @@ import (
 	"aether/internal/platform"
 	"aether/internal/template"
 	"aether/internal/theme"
+	"aether/internal/themepack"
 	"aether/internal/wallhaven"
 	"aether/internal/wallpaper"
 	"aether/ipc"
@@ -834,6 +836,7 @@ type ExportThemeRequest struct {
 	LightMode        bool                         `json:"lightMode"`
 	AdditionalImages []string                     `json:"additionalImages"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
+	Adjustments      map[string]float64           `json:"adjustments"`
 	InstallToOmarchy bool                         `json:"installToOmarchy"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 }
@@ -844,7 +847,7 @@ var allExportableApps = map[string]bool{
 	"foot": true, "ghostty": true, "gtk": true, "hyprland": true, "hyprlock": true,
 	"icons": true, "kitty": true, "mako": true, "neovim": true,
 	"swayosd": true, "triad": true, "vencord": true, "vscode": true, "walker": true,
-	"warp": true, "waybar": true, "wofi": true, "zed": true,
+	"warp": true, "waybar": true, "wofi": true, "zed": true, "zellij": true,
 }
 
 // ExportTheme exports the current theme to a user-chosen directory.
@@ -904,9 +907,32 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 		ExcludedApps:  excluded,
 	}
 
-	exportDir := filepath.Join(dir, "omarchy-"+slug+"-theme")
+	exportDir := filepath.Join(dir, "aether-"+slug+"-theme-pack")
 	if err := a.writer.GenerateOnly(state, settings, exportDir); err != nil {
 		return "", fmt.Errorf("export failed: %w", err)
+	}
+
+	packWallpaper := relativePackPath(req.WallpaperPath)
+	packImages := relativePackPaths(req.AdditionalImages)
+	packBlueprint := &blueprint.Blueprint{
+		Name: req.Name,
+		Palette: blueprint.PaletteData{
+			Colors:           req.Palette,
+			Wallpaper:        packWallpaper,
+			LightMode:        req.LightMode,
+			ExtendedColors:   req.ExtendedColors,
+			AdditionalImages: packImages,
+		},
+		Adjustments:  req.Adjustments,
+		AppOverrides: req.AppOverrides,
+		Timestamp:    time.Now().UnixMilli(),
+	}
+	manifest, err := themepack.NewManifest(exportDir, req.Name, slug, req.IncludedApps, req.LightMode, packWallpaper, packImages)
+	if err != nil {
+		return "", fmt.Errorf("theme pack manifest failed: %w", err)
+	}
+	if err := themepack.Write(exportDir, manifest, packBlueprint); err != nil {
+		return "", fmt.Errorf("theme pack metadata failed: %w", err)
 	}
 
 	if req.InstallToOmarchy && theme.IsOmarchyInstalled() {
@@ -919,6 +945,23 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	}
 
 	return exportDir, nil
+}
+
+func relativePackPath(src string) string {
+	if src == "" || strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+		return src
+	}
+	return filepath.ToSlash(filepath.Join("backgrounds", filepath.Base(src)))
+}
+
+func relativePackPaths(paths []string) []string {
+	out := make([]string, 0, len(paths))
+	for _, p := range paths {
+		if rel := relativePackPath(p); rel != "" {
+			out = append(out, rel)
+		}
+	}
+	return out
 }
 
 // ImportResult is returned by ImportFileDialog with the imported colors.
@@ -957,6 +1000,13 @@ func (a *App) ImportFileDialog(fileType string) (*ImportResult, error) {
 			{DisplayName: "JSON Files", Pattern: "*.json"},
 			{DisplayName: "All Files", Pattern: "*"},
 		}
+	case "theme-pack":
+		title = "Import Theme Pack"
+		filters = []wailsrt.FileFilter{
+			{DisplayName: "Aether Theme Pack", Pattern: "aether-theme-pack.json;blueprint.json"},
+			{DisplayName: "JSON Files", Pattern: "*.json"},
+			{DisplayName: "All Files", Pattern: "*"},
+		}
 	default:
 		return nil, fmt.Errorf("unknown file type: %s", fileType)
 	}
@@ -988,6 +1038,8 @@ func (a *App) importFile(path, fileType string) (*ImportResult, error) {
 		bp, err = blueprint.ImportColorsToml(path)
 	case "blueprint":
 		bp, err = blueprint.ImportJSON(path)
+	case "theme-pack":
+		bp, err = themepack.Import(path)
 	default:
 		return nil, fmt.Errorf("unknown type: %s", fileType)
 	}

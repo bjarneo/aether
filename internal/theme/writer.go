@@ -34,6 +34,7 @@ var templateAppNameMap = map[string]string{
 	"vencord.theme.css": "vencord",
 	"warp.yaml":         "warp",
 	"colors.toml":       "colors",
+	"zellij.kdl":        "zellij",
 }
 
 // getAppNameFromFileName returns the app name for a given template file name.

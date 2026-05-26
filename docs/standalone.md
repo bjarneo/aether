@@ -1,6 +1,6 @@
 # Standalone Usage (Non-Omarchy Systems)
 
-Aether can be used on any Linux or macOS system, not just Omarchy. When running outside of Omarchy, theme files are generated but not automatically applied system-wide.
+Aether can be used on any Linux or macOS system, not just Omarchy. When running outside of Omarchy, theme files are generated to Aether's config directory and can be included by whichever desktop, terminal, editor, or widget system you use.
 
 On macOS, theme files are generated to `~/Library/Application Support/aether/theme/`.
 
@@ -118,6 +118,28 @@ Or add to your Hyprland config:
 ```conf
 exec-once = swaybg -i ~/.config/aether/theme/backgrounds/wallpaper.jpg -m fill
 ```
+
+## Theme Packs
+
+The editor's **Export** action creates a portable Aether theme pack:
+
+```
+aether-my-theme-theme-pack/
+├── aether-theme-pack.json  # Pack manifest
+├── blueprint.json          # Palette, wallpaper reference, overrides, and adjustments
+├── colors.toml
+├── triad.kdl
+├── zellij.kdl
+├── backgrounds/
+└── ...                     # Selected app templates
+```
+
+Theme packs are desktop-neutral. They can still be installed as Omarchy themes
+when Omarchy is available, but the exported directory does not require Omarchy.
+
+To import one, choose **Import → Theme Pack** and select either
+`aether-theme-pack.json` or `blueprint.json` inside the pack. Wallpaper paths
+inside a pack are resolved relative to that pack directory.
 
 ## GTK Theming
 

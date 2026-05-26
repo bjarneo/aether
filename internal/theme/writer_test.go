@@ -30,3 +30,9 @@ func TestTriadTemplateRendersAccentColor(t *testing.T) {
 		t.Fatalf("rendered Triad template still has unresolved variable:\n%s", rendered)
 	}
 }
+
+func TestZellijTemplateMapsToZellijApp(t *testing.T) {
+	if got := GetAppNameFromFileName("zellij.kdl"); got != "zellij" {
+		t.Fatalf("GetAppNameFromFileName(zellij.kdl) = %q, want zellij", got)
+	}
+}
