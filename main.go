@@ -21,6 +21,17 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+const (
+	defaultWindowWidth  = 1200
+	defaultWindowHeight = 960
+	minWindowWidth      = 960
+	minWindowHeight     = 640
+
+	// Wails/GTK on Linux turns a zero max size into the current monitor bounds,
+	// which makes a normal resizable app refuse larger compositor layouts later.
+	noPracticalWindowMax = 16384
+)
+
 func main() {
 	// GUI flags that need the full Wails runtime (not CLI-only)
 	guiFlags := map[string]bool{"--tab": true}
@@ -71,8 +82,12 @@ func main() {
 
 	err := wails.Run(&options.App{
 		Title:       "Aether",
-		Width:       900,
-		Height:      700,
+		Width:       defaultWindowWidth,
+		Height:      defaultWindowHeight,
+		MinWidth:    minWindowWidth,
+		MinHeight:   minWindowHeight,
+		MaxWidth:    noPracticalWindowMax,
+		MaxHeight:   noPracticalWindowMax,
 		StartHidden: true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
