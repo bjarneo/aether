@@ -277,25 +277,34 @@
                         </div>
 
                         <div
-                            class="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                            class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
                         >
                             <button
-                                class="bg-accent hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors"
+                                class="bg-accent hover:bg-accent-hover text-accent-fg pointer-events-auto min-w-[7rem] px-4 py-1.5 text-[11px] font-medium transition-colors"
                                 onclick={() => handleSelect(fav)}
                                 title="Set as wallpaper and open in editor"
                                 >Use</button
                             >
-                            <button
-                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
-                                onclick={() => applyWallpaperOnly(fav.path)}
-                                disabled={getIsApplying()}
-                                title="Apply this wallpaper without changing the current palette"
-                                >Wallpaper only</button
+                            <div
+                                class="flex items-center gap-2 text-[10px] text-white/85"
                             >
-                            <button
-                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-3 py-1.5 text-[11px] font-medium transition-colors"
-                                onclick={() => handlePreview(i)}>Preview</button
-                            >
+                                <button
+                                    class="pointer-events-auto px-1 transition-colors hover:text-white disabled:opacity-50"
+                                    onclick={() => applyWallpaperOnly(fav.path)}
+                                    disabled={getIsApplying()}
+                                    title="Apply this wallpaper without changing the current palette"
+                                    >Wallpaper only</button
+                                >
+                                <span class="text-white/30" aria-hidden="true"
+                                    >·</span
+                                >
+                                <button
+                                    class="pointer-events-auto px-1 transition-colors hover:text-white"
+                                    onclick={() => handlePreview(i)}
+                                    title="Preview wallpaper full-size"
+                                    >Preview</button
+                                >
+                            </div>
                         </div>
 
                         <button

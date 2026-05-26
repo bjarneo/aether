@@ -184,30 +184,38 @@
 
     <!-- Hover overlay -->
     <div
-        class="absolute inset-0 flex flex-wrap items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+        class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
     >
         <button
-            class="bg-accent hover:bg-accent-hover px-3 py-1.5 text-[11px] font-medium text-[#111116] transition-colors disabled:opacity-50"
+            class="bg-accent hover:bg-accent-hover text-accent-fg pointer-events-auto min-w-[7rem] px-4 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
             onclick={handleUse}
             disabled={isDownloading}
             title="Download, set as wallpaper, and open in editor"
         >
             {isDownloading ? 'Loading…' : 'Use'}
         </button>
-        <button
-            class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
-            onclick={() => applyWallpaperOnly(wallpaper.path)}
-            disabled={isDownloading || getIsApplying()}
-            title="Apply this wallpaper without changing the current palette"
-            >Wallpaper only</button
+        <div
+            class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-2 text-[10px] text-white/85"
         >
-        <button
-            class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-3 py-1.5 text-[11px] font-medium transition-colors"
-            onclick={onpreview}>Preview</button
-        >
-        <button
-            class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-3 py-1.5 text-[11px] font-medium transition-colors"
-            onclick={handleVisit}>Visit</button
-        >
+            <button
+                class="pointer-events-auto px-1 transition-colors hover:text-white disabled:opacity-50"
+                onclick={() => applyWallpaperOnly(wallpaper.path)}
+                disabled={isDownloading || getIsApplying()}
+                title="Apply this wallpaper without changing the current palette"
+                >Wallpaper only</button
+            >
+            <span class="text-white/30" aria-hidden="true">·</span>
+            <button
+                class="pointer-events-auto px-1 transition-colors hover:text-white"
+                onclick={onpreview}
+                title="Preview wallpaper full-size">Preview</button
+            >
+            <span class="text-white/30" aria-hidden="true">·</span>
+            <button
+                class="pointer-events-auto px-1 transition-colors hover:text-white"
+                onclick={handleVisit}
+                title="Open wallhaven.cc page">Visit</button
+            >
+        </div>
     </div>
 </div>

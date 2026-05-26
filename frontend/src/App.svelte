@@ -96,12 +96,15 @@
     const BG_SECONDARY_SHIFT = 10;
     // CSS tokens layered over bg-primary, paired with their alpha values
     // for light and dark backgrounds. Order: [token, lightAlpha, darkAlpha].
+    // [token, lightBgAlpha, darkBgAlpha]. Light-bg alphas are roughly 2x dark
+    // because dark-on-light surfaces need more weight than light-on-dark to
+    // achieve equivalent visual separation from the page background.
     const OVERLAY_TOKENS: ReadonlyArray<[string, number, number]> = [
-        ['--color-bg-surface', 0.03, 0.04],
-        ['--color-bg-elevated', 0.06, 0.07],
-        ['--color-bg-hover', 0.04, 0.05],
-        ['--color-border', 0.1, 0.08],
-        ['--color-border-focus', 0.2, 0.18],
+        ['--color-bg-surface', 0.06, 0.04],
+        ['--color-bg-elevated', 0.09, 0.07],
+        ['--color-bg-hover', 0.07, 0.05],
+        ['--color-border', 0.16, 0.08],
+        ['--color-border-focus', 0.3, 0.18],
     ];
     // Design alpha for fg-secondary/dimmed; bumped at apply-time when needed
     // to satisfy WCAG against the actual theme bg/fg pair.
@@ -336,6 +339,13 @@
                     }
                     if (colors.blue) {
                         root.style.setProperty('--color-accent', colors.blue);
+                        // Pick black or white text for content sitting on
+                        // the accent button, based on accent luminance.
+                        const ac = hexToRgb(colors.blue);
+                        const accentFg = isLightRgb(ac.r, ac.g, ac.b)
+                            ? '#111116'
+                            : '#ffffff';
+                        root.style.setProperty('--color-accent-fg', accentFg);
                     }
                     if (colors.red) {
                         root.style.setProperty(

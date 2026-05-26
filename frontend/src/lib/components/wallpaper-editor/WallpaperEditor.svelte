@@ -428,7 +428,7 @@
                     title="Reset all adjustments (R)">Reset</button
                 >
                 <button
-                    class="bg-accent hover:bg-accent-hover inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-[#111116] transition-colors disabled:opacity-40"
+                    class="bg-accent hover:bg-accent-hover text-accent-fg inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-40"
                     onclick={handleApply}
                     disabled={isProcessing || !hasChanges}
                     title="Apply and close (Ctrl+Enter)"

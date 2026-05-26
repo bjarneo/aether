@@ -48,7 +48,7 @@
             bind:this={confirmEl}
             class="px-3 py-1 text-[11px] font-medium transition-colors {danger
                 ? 'bg-destructive hover:bg-destructive/85 text-white'
-                : 'bg-accent hover:bg-accent-hover text-[#111116]'}"
+                : 'bg-accent hover:bg-accent-hover text-accent-fg'}"
             onclick={onconfirm}>{confirmLabel}</button
         >
     </div>

@@ -455,7 +455,7 @@
                     </button>
                 {/if}
                 <button
-                    class="bg-accent hover:bg-accent-hover px-3 py-1 text-[11px] font-medium text-[#111116] transition-colors disabled:opacity-50"
+                    class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1 text-[11px] font-medium transition-colors disabled:opacity-50"
                     onclick={handleExtractColors}
                     disabled={extracting}
                     title="Extract a 16-color palette from this wallpaper"

@@ -21,7 +21,7 @@
 >
     <span class="text-fg-dimmed flex-1 text-[11px]">No wallpaper selected</span>
     <button
-        class="bg-accent hover:bg-accent-hover px-3 py-1 text-[10px] font-medium text-[#111116] transition-colors"
+        class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1 text-[10px] font-medium transition-colors"
         onclick={handleBrowse}>Browse</button
     >
     <button

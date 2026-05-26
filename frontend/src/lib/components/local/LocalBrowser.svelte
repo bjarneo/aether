@@ -195,7 +195,7 @@
         class="bg-bg-secondary border-border flex flex-wrap items-center gap-1.5 border-b px-3 py-2"
     >
         <button
-            class="bg-accent hover:bg-accent-hover px-2 py-0.5 text-[11px] font-medium text-[#111116] transition-colors"
+            class="bg-accent hover:bg-accent-hover text-accent-fg px-2 py-0.5 text-[11px] font-medium transition-colors"
             onclick={handleBrowse}
             title="Browse local files">Browse…</button
         >
@@ -380,7 +380,7 @@
                             class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
                         >
                             <button
-                                class="bg-accent hover:bg-accent-hover pointer-events-auto min-w-[7rem] px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors"
+                                class="bg-accent hover:bg-accent-hover text-accent-fg pointer-events-auto min-w-[7rem] px-4 py-1.5 text-[11px] font-medium transition-colors"
                                 onclick={() => selectWallpaper(wp.path)}
                                 title="Set as wallpaper and open in editor"
                                 >Use</button

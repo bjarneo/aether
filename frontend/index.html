@@ -34,12 +34,15 @@
                             return Math.max(0, Math.min(255, n));
                         };
                         var ov = isLightBg ? '0,0,0' : '255,255,255';
+                        // Mirrors OVERLAY_TOKENS in App.svelte. Light-bg
+                        // alphas are bumped so cards stay visually separable
+                        // from bg-primary; dark-bg alphas unchanged.
                         var overlayTokens = [
-                            ['--color-bg-surface', 0.03, 0.04],
-                            ['--color-bg-elevated', 0.06, 0.07],
-                            ['--color-bg-hover', 0.04, 0.05],
-                            ['--color-border', 0.1, 0.08],
-                            ['--color-border-focus', 0.2, 0.18],
+                            ['--color-bg-surface', 0.06, 0.04],
+                            ['--color-bg-elevated', 0.09, 0.07],
+                            ['--color-bg-hover', 0.07, 0.05],
+                            ['--color-border', 0.16, 0.08],
+                            ['--color-border-focus', 0.3, 0.18],
                         ];
                         root.style.setProperty(
                             '--color-bg-primary',
@@ -93,6 +96,20 @@
                     }
                     if (colors.blue) {
                         root.style.setProperty('--color-accent', colors.blue);
+                        // Pick contrast-correct text color for content
+                        // sitting on bg-accent. Mirrors App.svelte logic.
+                        var ac = colors.blue.replace('#', '');
+                        if (ac.length === 6) {
+                            var ar = parseInt(ac.slice(0, 2), 16);
+                            var ag = parseInt(ac.slice(2, 4), 16);
+                            var ab = parseInt(ac.slice(4, 6), 16);
+                            var aLight =
+                                (ar * 299 + ag * 587 + ab * 114) / 1000 > 128;
+                            root.style.setProperty(
+                                '--color-accent-fg',
+                                aLight ? '#111116' : '#ffffff'
+                            );
+                        }
                     }
                     if (colors.red) {
                         root.style.setProperty(
