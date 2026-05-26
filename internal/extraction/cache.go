@@ -54,8 +54,8 @@ func GetCacheKey(imagePath string, lightMode bool) string {
 // rebuilds at the new version. Bump when the generator output meaningfully
 // changes for a given mode.
 var modeCacheVersion = map[string]string{
-	"monochromatic": "v4", // strong-tint bg/fg now derived from image via synthesizeMonoBgIfMuddy
-	"normal":        "v5", // strong-tint routing threshold lowered + image-derived bg preserved
+	"monochromatic": "v5", // angular shift now capped so ANSI red stays red even on blue-tinted source
+	"normal":        "v6", // angular shift now capped so ANSI red stays red even on blue-tinted source
 }
 
 // buildCacheKey appends the mode suffix to a base cache key.

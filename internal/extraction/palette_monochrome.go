@@ -82,12 +82,24 @@ func applyTint(ansiHue, tintHue float64, hasTint bool) float64 {
 // 0 leaves the canonical ANSI hue alone and 1 snaps fully to the image hue.
 // The explicit `monochromatic` mode uses a higher strength to produce a
 // stronger unified mood while keeping ANSI slots distinguishable.
+//
+// The angular shift is capped at MaxAnsiTintShift degrees to preserve ANSI
+// identity when the image hue is far from the canonical hue. Without the
+// cap, a blue-tinted image (baseHue ~270°) at strength 0.65 would rotate
+// ANSI red (29°) by ~77°, landing in purple — losing the red→error,
+// green→success semantic meaning users expect from terminal colors.
 func applyTintStrength(ansiHue, tintHue float64, hasTint bool, strength float64) float64 {
 	if !hasTint {
 		return ansiHue
 	}
 	hueDiff := math.Mod(tintHue-ansiHue+540, 360) - 180
-	return math.Mod(ansiHue+hueDiff*strength+360, 360)
+	shift := hueDiff * strength
+	if shift > MaxAnsiTintShift {
+		shift = MaxAnsiTintShift
+	} else if shift < -MaxAnsiTintShift {
+		shift = -MaxAnsiTintShift
+	}
+	return math.Mod(ansiHue+shift+360, 360)
 }
 
 // GenerateMonochromePalette generates a palette for auto-detected monochrome

@@ -31,6 +31,13 @@ const (
 	MonochromeTintStrength    = 0.15
 	MonochromaticTintStrength = 0.65
 
+	// MaxAnsiTintShift caps how far any single ANSI hue can be rotated by
+	// the tint pull, in degrees. 30° is wide enough for a tinted-rainbow
+	// feel (sepia red still warm-red, blueprint green still cool-green)
+	// without being so wide that opposite-side hues collapse into the
+	// base hue (red rotating to purple on a blue-tinted source).
+	MaxAnsiTintShift = 30.0
+
 	// MinMeaningfulTintChroma: minimum *average* chroma across all dominant
 	// samples for `detectMonochromeTint` to consider the image actually
 	// tinted. JPEG compression can leave a few samples with chroma
