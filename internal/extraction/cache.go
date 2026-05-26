@@ -48,6 +48,16 @@ func GetCacheKey(imagePath string, lightMode bool) string {
 	return fmt.Sprintf("%x", hash)
 }
 
+// modeCacheVersion is an optional per-mode suffix that lets us invalidate
+// cached palettes when a mode's generator algorithm changes. Cached entries
+// for older versions become orphaned but harmless — the next extraction
+// rebuilds at the new version. Bump when the generator output meaningfully
+// changes for a given mode.
+var modeCacheVersion = map[string]string{
+	"monochromatic": "v4", // strong-tint bg/fg now derived from image via synthesizeMonoBgIfMuddy
+	"normal":        "v5", // strong-tint routing threshold lowered + image-derived bg preserved
+}
+
 // buildCacheKey appends the mode suffix to a base cache key.
 // Returns "" when the base is "" (no caching possible) or falls through for "normal" mode.
 func buildCacheKey(base, mode string) string {
@@ -55,9 +65,16 @@ func buildCacheKey(base, mode string) string {
 		return ""
 	}
 	if mode == "normal" {
+		if v, ok := modeCacheVersion["normal"]; ok {
+			return base + "_" + v
+		}
 		return base
 	}
-	return base + "_" + mode
+	key := base + "_" + mode
+	if v, ok := modeCacheVersion[mode]; ok {
+		key += "_" + v
+	}
+	return key
 }
 
 // GetMultiCacheKey generates a cache key for blended extraction across multiple images.

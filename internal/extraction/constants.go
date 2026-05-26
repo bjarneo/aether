@@ -22,8 +22,23 @@ const (
 	// Catches solid-color and near-monoharmonic wallpapers that aren't gray.
 	HueClusterMagnitudeThreshold = 0.85
 
-	// Monochrome tint
-	MonochromeTintStrength = 0.15
+	// Monochrome tint pulls the canonical ANSI hue targets toward the image's
+	// dominant hue. The auto-detected monochrome path uses a mild pull
+	// (`MonochromeTintStrength`) so colors stay recognisable. The explicit
+	// `monochromatic` mode uses a much stronger pull (`MonochromaticTintStrength`)
+	// to produce a more unified mood while keeping the 6 ANSI slots
+	// distinguishable for syntax highlighting.
+	MonochromeTintStrength    = 0.15
+	MonochromaticTintStrength = 0.65
+
+	// MinMeaningfulTintChroma: minimum *average* chroma across all dominant
+	// samples for `detectMonochromeTint` to consider the image actually
+	// tinted. JPEG compression can leave a few samples with chroma
+	// 0.003-0.008 in an otherwise-grayscale photo; without this floor the
+	// detector calls a strongly-clustered noise band "a tint" and produces
+	// a blue palette from a black-and-white image. Above this floor the
+	// image is treated as a unified mono mood; below, pure grayscale.
+	MinMeaningfulTintChroma = 0.008
 
 	// OKLCH scoring thresholds
 	MinChromaForAnsiMatch = 0.035 // Minimum OKLCH chroma for a valid ANSI color match
