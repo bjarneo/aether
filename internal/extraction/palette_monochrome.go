@@ -72,6 +72,37 @@ func detectMonochromeTint(colors []string) (hue float64, hasTint bool, tintStren
 	return avgHue, true, concentration * avgChroma
 }
 
+// meanDominantChroma returns the mean OKLCH chroma across the dominant colors,
+// a proxy for how colorful the source image is. Used by the tinted-mono path
+// to scale synthesized ANSI chroma toward the image's actual saturation.
+func meanDominantChroma(colors []string) float64 {
+	if len(colors) == 0 {
+		return 0
+	}
+	var sum float64
+	for _, c := range colors {
+		sum += color.HexToOKLCH(c).C
+	}
+	return sum / float64(len(colors))
+}
+
+func mean6(v [6]float64) float64 {
+	var sum float64
+	for _, x := range v {
+		sum += x
+	}
+	return sum / 6
+}
+
+// monoChromaFactor maps the source image's mean chroma to a [floor, 1.0] scale
+// applied to the canonical mono ANSI chroma arrays. refMean is the mean of those
+// arrays, so a source colorful enough to reach it yields factor 1.0 (unchanged
+// vivid output); grayer sources scale down toward MonoChromaFactorFloor.
+func monoChromaFactor(dominantColors []string, refMean float64) float64 {
+	srcChroma := meanDominantChroma(dominantColors)
+	return clampF(srcChroma*MonoChromaFidelityGain/refMean, MonoChromaFactorFloor, 1.0)
+}
+
 // applyTint applies tint influence to an OKLCH hue based on the image's
 // dominant tone, at the strength used by the auto-detected monochrome path.
 func applyTint(ansiHue, tintHue float64, hasTint bool) float64 {
@@ -230,8 +261,13 @@ func generateTintedMonochromaticPalette(dominantColors []string, lightMode bool,
 		palette[7] = color.OKLabToHex(fgLab)
 	}
 
-	// ANSI 1-6: canonical hues pulled strongly toward the base hue.
+	// ANSI 1-6: canonical hues pulled strongly toward the base hue. Chroma is
+	// scaled toward the source image's actual saturation (chromaFactor) so a
+	// near-grayscale image produces a muted palette instead of a fixed rainbow;
+	// strongly-tinted sources keep the full vivid levels (factor 1.0).
 	chromaLevels := [6]float64{0.09, 0.11, 0.13, 0.10, 0.12, 0.14}
+	brightChromaLevels := [6]float64{0.11, 0.14, 0.16, 0.12, 0.15, 0.17}
+	chromaFactor := monoChromaFactor(dominantColors, mean6(chromaLevels))
 	lightnessOffsets := [6]float64{-0.08, -0.02, +0.04, +0.10, -0.05, +0.07}
 	lightnessBase := 0.62
 	if lightMode {
@@ -241,12 +277,11 @@ func generateTintedMonochromaticPalette(dominantColors []string, lightMode bool,
 	for i := 0; i < 6; i++ {
 		lightness := math.Max(0.30, math.Min(0.85, lightnessBase+lightnessOffsets[i]))
 		hue := applyTintStrength(OKLCHAnsiHues[i], baseHue, true, MonochromaticTintStrength)
-		palette[i+1] = color.OKLCHToHex(color.OKLCH{L: lightness, C: chromaLevels[i], H: hue})
+		palette[i+1] = color.OKLCHToHex(color.OKLCH{L: lightness, C: chromaLevels[i] * chromaFactor, H: hue})
 	}
 
 	palette[8] = generateCommentColor(palette[0])
 
-	brightChromaLevels := [6]float64{0.11, 0.14, 0.16, 0.12, 0.15, 0.17}
 	for i := 0; i < 6; i++ {
 		baseLightness := lightnessBase + lightnessOffsets[i]
 		adjustment := 0.10
@@ -255,7 +290,7 @@ func generateTintedMonochromaticPalette(dominantColors []string, lightMode bool,
 		}
 		lightness := math.Max(0.20, math.Min(0.92, baseLightness+adjustment))
 		hue := applyTintStrength(OKLCHAnsiHues[i], baseHue, true, MonochromaticTintStrength)
-		palette[i+9] = color.OKLCHToHex(color.OKLCH{L: lightness, C: brightChromaLevels[i], H: hue})
+		palette[i+9] = color.OKLCHToHex(color.OKLCH{L: lightness, C: brightChromaLevels[i] * chromaFactor, H: hue})
 	}
 
 	if lightMode {

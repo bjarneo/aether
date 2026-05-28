@@ -38,6 +38,20 @@ const (
 	// base hue (red rotating to purple on a blue-tinted source).
 	MaxAnsiTintShift = 30.0
 
+	// Monochrome chroma fidelity: the tinted-mono ANSI slots scale their chroma
+	// toward the source image's actual chroma rather than a fixed vivid level, so
+	// a near-grayscale photo yields a muted palette that reads like the wallpaper
+	// instead of a forced rainbow. The source's mean dominant chroma is amplified
+	// by MonoChromaFidelityGain (sampled/averaged photo pixels read flatter than
+	// synthesized terminal slots, so a mild boost keeps hues legible), divided by
+	// the canonical chroma arrays' mean, then clamped to
+	// [MonoChromaFactorFloor, 1.0]. 1.0 reproduces the previous vivid output, so
+	// strongly-tinted sources (sepia, blueprint, Nord) are unchanged; only
+	// desaturated sources get pulled down. The floor keeps the 6 hues
+	// distinguishable for syntax highlighting even on near-gray images.
+	MonoChromaFidelityGain = 2.5
+	MonoChromaFactorFloor  = 0.4
+
 	// MinMeaningfulTintChroma: minimum *average* chroma across all dominant
 	// samples for `detectMonochromeTint` to consider the image actually
 	// tinted. JPEG compression can leave a few samples with chroma
