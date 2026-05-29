@@ -2,7 +2,7 @@ package extraction
 
 const (
 	ANSIPaletteSize   = 16
-	CacheVersion      = 8 // Bumped: auto-extract no longer synthesizes canonical-hue fallbacks
+	CacheVersion      = 9 // Bumped: graded chroma boost, dominance-aware bg/fg, CatmullRom sampling
 	ImageScaleSize    = 400
 	MinPixelsToSample = 1000
 	MaxPixelsToSample = 50000
@@ -10,9 +10,25 @@ const (
 	// Dominant color extraction
 	DominantColorsToExtract = 48
 
-	// Chromatic weighting: pixels with OKLCH chroma above this get boosted in sampling
-	ChromaBoostThreshold = 0.04
-	ChromaBoostFactor    = 2 // How many times to duplicate chromatic pixels
+	// Chromatic weighting: pixels with OKLCH chroma above ChromaBoostThreshold get
+	// duplicated in the median-cut pool so vivid accents aren't drowned out by large
+	// muted backgrounds. The boost is graded by chroma rather than a flat factor: a
+	// barely-chromatic pixel gets one extra copy (matching the old flat 2x), while the
+	// most vivid pixels get up to ChromaBoostMaxExtra copies. The ramp is linear in
+	// chroma over ChromaBoostRampChroma above the threshold. Grading (vs the old hard
+	// 2x cliff at the threshold) lets a small saturated highlight earn proportionally
+	// more representation, so the palette captures the image's actual "pop".
+	ChromaBoostThreshold  = 0.04 // OKLCH chroma above which a pixel gets boosted
+	ChromaBoostMaxExtra   = 3    // Max extra copies (=> up to 4x total) for the most vivid pixels
+	ChromaBoostRampChroma = 0.16 // Chroma span above threshold over which the boost ramps to max
+
+	// BackgroundDominanceWeight controls how much a candidate's coverage (share of
+	// sampled pixels) nudges background/foreground selection, on top of its perceptual
+	// lightness extremity. 0 reproduces the old "single most-extreme color" behavior;
+	// higher values prefer a color that actually fills the image. 0.6 is a balanced
+	// lean: lightness still leads (so a dark-mode bg stays dark), but a deep tone that
+	// covers 40% of the wall beats a near-black speck covering 0.5%.
+	BackgroundDominanceWeight = 0.6
 
 	// Monochrome detection (OKLCH chroma-based)
 	MonochromeChromaThreshold = 0.04 // OKLCH chroma below this = achromatic

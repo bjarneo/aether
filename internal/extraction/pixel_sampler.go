@@ -49,8 +49,14 @@ func LoadAndSamplePixels(imagePath string) ([]color.RGB, error) {
 		}
 	}
 
+	// CatmullRom (a 4x4 cubic kernel) preserves local contrast far better than the
+	// 2x2 ApproxBiLinear box: small vivid features (specular highlights, a flag, a
+	// neon sign) survive the downscale instead of being averaged into their muted
+	// surroundings, which is exactly the chroma the palette wants to capture. The
+	// kernel's slight overshoot is benign here — median-cut averages each bucket, so
+	// the few overshot pixels are pulled back toward real cluster centers.
 	dst := image.NewNRGBA(image.Rect(0, 0, dstW, dstH))
-	draw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, bounds, draw.Over, nil)
+	draw.CatmullRom.Scale(dst, dst.Bounds(), src, bounds, draw.Over, nil)
 
 	totalPixels := dstW * dstH
 	step := int(math.Max(1, math.Floor(float64(totalPixels)/float64(MaxPixelsToSample))))

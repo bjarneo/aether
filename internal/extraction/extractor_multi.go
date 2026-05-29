@@ -40,7 +40,7 @@ func ExtractColorsFromImages(imagePaths []string, lightMode bool, mode string) (
 		allPixels = append(allPixels, px...)
 	}
 
-	dominantColors, err := ExtractDominantColorsFromPixels(allPixels, DominantColorsToExtract)
+	dominantColors, counts, err := ExtractDominantColorsFromPixels(allPixels, DominantColorsToExtract)
 	if err != nil {
 		return [16]string{}, skipped, fmt.Errorf("color extraction failed: %w", err)
 	}
@@ -48,7 +48,8 @@ func ExtractColorsFromImages(imagePaths []string, lightMode bool, mode string) (
 		return [16]string{}, skipped, fmt.Errorf("not enough colors extracted from images")
 	}
 
-	palette := NormalizeBrightness(GeneratePaletteByMode(dominantColors, lightMode, mode))
+	weights := normalizeCounts(counts)
+	palette := NormalizeBrightness(GeneratePaletteByMode(dominantColors, weights, lightMode, mode))
 
 	if cacheKey != "" {
 		SavePaletteToCache(cacheKey, palette)

@@ -174,22 +174,26 @@ func MedianCut(colors []color.OKLab, numColors int) []colorEntry {
 	return result
 }
 
-// ExtractDominantColors loads an image, samples its pixels, and returns
-// dominant colors sorted by pixel count descending.
-func ExtractDominantColors(imagePath string, numColors int) ([]string, error) {
+// ExtractDominantColors loads an image, samples its pixels, and returns dominant
+// colors sorted by pixel count descending, alongside the per-color pixel counts
+// (same order). Counts let downstream selection weigh how much of the image each
+// color actually covers.
+func ExtractDominantColors(imagePath string, numColors int) ([]string, []int, error) {
 	pixels, err := LoadAndSamplePixels(imagePath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	return ExtractDominantColorsFromPixels(pixels, numColors)
 }
 
 // ExtractDominantColorsFromPixels runs the OKLab median-cut pipeline on already-sampled pixels.
 // Exposed so callers (e.g. multi-image extraction) can concatenate pixel sets from multiple
-// images before quantization, producing a palette blended across all inputs.
-func ExtractDominantColorsFromPixels(pixels []color.RGB, numColors int) ([]string, error) {
+// images before quantization, producing a palette blended across all inputs. Returns the
+// dominant hex colors and their pixel counts, both sorted by count descending and aligned
+// by index.
+func ExtractDominantColorsFromPixels(pixels []color.RGB, numColors int) ([]string, []int, error) {
 	if len(pixels) < MinPixelsToSample/10 {
-		return nil, fmt.Errorf("not enough pixels to extract colors")
+		return nil, nil, fmt.Errorf("not enough pixels to extract colors")
 	}
 
 	oklabPixels := make([]color.OKLab, 0, len(pixels))
@@ -203,7 +207,7 @@ func ExtractDominantColorsFromPixels(pixels []color.RGB, numColors int) ([]strin
 
 	quantized := MedianCut(boosted, numColors)
 	if len(quantized) == 0 {
-		return nil, fmt.Errorf("no colors extracted from image")
+		return nil, nil, fmt.Errorf("no colors extracted from image")
 	}
 
 	sort.Slice(quantized, func(i, j int) bool {
@@ -211,28 +215,42 @@ func ExtractDominantColorsFromPixels(pixels []color.RGB, numColors int) ([]strin
 	})
 
 	hexColors := make([]string, len(quantized))
+	counts := make([]int, len(quantized))
 	for i, entry := range quantized {
 		hexColors[i] = strings.ToUpper(entry.Hex)
+		counts[i] = entry.Count
 	}
 
-	return hexColors, nil
+	return hexColors, counts, nil
 }
 
-// boostChromaticPixels duplicates pixels with high OKLCH chroma to give them
-// more influence in median-cut. This ensures colorful image regions are properly
-// represented even when dominated by large uniform backgrounds.
+// boostChromaticPixels duplicates pixels with high OKLCH chroma to give them more
+// influence in median-cut, so colorful image regions are properly represented even
+// when dominated by large uniform backgrounds. The number of extra copies is graded
+// by chroma rather than a flat factor: at the threshold a pixel gets one extra copy
+// (the old flat-2x behavior), ramping linearly to ChromaBoostMaxExtra copies for the
+// most vivid pixels. This lets a small, intensely saturated highlight earn more
+// representation than a merely-tinted region without a hard cliff at the threshold.
 func boostChromaticPixels(pixels []color.OKLab) []color.OKLab {
-	result := make([]color.OKLab, 0, len(pixels)*ChromaBoostFactor)
+	// Most pixels in a real image aren't chromatic, so the average copy count is far
+	// below the 1+ChromaBoostMaxExtra ceiling. 2x is a realistic hint that lets append
+	// grow for the rare vivid-heavy image without reserving the worst-case 4x up front.
+	result := make([]color.OKLab, 0, len(pixels)*2)
 
 	for _, px := range pixels {
 		result = append(result, px)
 		// Compute chroma (distance from neutral axis in a-b plane)
 		chroma := math.Sqrt(px.A*px.A + px.B*px.B)
-		if chroma > ChromaBoostThreshold {
-			// Duplicate chromatic pixels to boost their representation
-			for j := 1; j < ChromaBoostFactor; j++ {
-				result = append(result, px)
-			}
+		if chroma <= ChromaBoostThreshold {
+			continue
+		}
+
+		// Linear ramp from 1 extra copy at the threshold to ChromaBoostMaxExtra
+		// at threshold+ChromaBoostRampChroma and beyond.
+		t := (chroma - ChromaBoostThreshold) / ChromaBoostRampChroma
+		extra := max(1, min(int(math.Round(t*float64(ChromaBoostMaxExtra))), ChromaBoostMaxExtra))
+		for j := 0; j < extra; j++ {
+			result = append(result, px)
 		}
 	}
 

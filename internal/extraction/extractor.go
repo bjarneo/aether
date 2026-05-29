@@ -15,7 +15,7 @@ func ExtractColors(imagePath string, lightMode bool, mode string) ([16]string, e
 		}
 	}
 
-	dominantColors, err := ExtractDominantColors(imagePath, DominantColorsToExtract)
+	dominantColors, counts, err := ExtractDominantColors(imagePath, DominantColorsToExtract)
 	if err != nil {
 		return [16]string{}, fmt.Errorf("color extraction failed: %w", err)
 	}
@@ -23,7 +23,8 @@ func ExtractColors(imagePath string, lightMode bool, mode string) ([16]string, e
 		return [16]string{}, fmt.Errorf("not enough colors extracted from image")
 	}
 
-	palette := NormalizeBrightness(GeneratePaletteByMode(dominantColors, lightMode, mode))
+	weights := normalizeCounts(counts)
+	palette := NormalizeBrightness(GeneratePaletteByMode(dominantColors, weights, lightMode, mode))
 
 	if cacheKey != "" {
 		SavePaletteToCache(cacheKey, palette)
@@ -31,9 +32,29 @@ func ExtractColors(imagePath string, lightMode bool, mode string) ([16]string, e
 	return palette, nil
 }
 
+// normalizeCounts turns per-color pixel counts into coverage shares in [0,1]
+// (each count divided by the total). Returns nil for empty/zero input so callers
+// fall back to lightness-only selection.
+func normalizeCounts(counts []int) []float64 {
+	total := 0
+	for _, c := range counts {
+		total += c
+	}
+	if total == 0 {
+		return nil
+	}
+	weights := make([]float64, len(counts))
+	for i, c := range counts {
+		weights[i] = float64(c) / float64(total)
+	}
+	return weights
+}
+
 // GeneratePaletteByMode dispatches to the palette generator for a given mode.
 // In "normal" mode, auto-detects between monochrome and chromatic generators.
-func GeneratePaletteByMode(dominantColors []string, lightMode bool, mode string) [16]string {
+// weights (optional, aligned with dominantColors) carries per-color image coverage;
+// only the default chromatic path consumes it for coverage-aware bg/fg selection.
+func GeneratePaletteByMode(dominantColors []string, weights []float64, lightMode bool, mode string) [16]string {
 	switch mode {
 	case "monochromatic":
 		return GenerateMonochromaticPalette(dominantColors, lightMode)
@@ -83,6 +104,6 @@ func GeneratePaletteByMode(dominantColors []string, lightMode bool, mode string)
 		if IsMonochromeImage(dominantColors) {
 			return GenerateMonochromePalette(dominantColors, lightMode)
 		}
-		return GenerateChromaticPalette(dominantColors, lightMode)
+		return GenerateChromaticPalette(dominantColors, weights, lightMode)
 	}
 }

@@ -11,20 +11,28 @@ import (
 // Mode transforms call this directly when they intend to overwrite bg/fg/ANSI in OKLCH,
 // avoiding wasted slot 8/9-15 generation that the full chromatic pipeline would do.
 // Slot 1-6 are taken verbatim from the image's best matches; no canonical-hue synthesis.
-func extractChromaticHues(dominantColors []string, lightMode bool) [16]string {
+// weights (optional, aligned with dominantColors) biases bg/fg selection toward colors
+// that cover more of the image; pass nil to select by pure lightness extremity.
+func extractChromaticHues(dominantColors []string, weights []float64, lightMode bool) [16]string {
 	topCount := 12
 	if len(dominantColors) < topCount {
 		topCount = len(dominantColors)
 	}
 	topColors := dominantColors[:topCount]
 
-	// topColors is a prefix slice of dominantColors, so the index FindBackgroundColor
-	// returns is valid in the full dominantColors list.
-	bgColor, bgIndex := FindBackgroundColor(topColors, lightMode)
+	// topColors/topWeights are prefix slices of the full lists (weights aligns 1:1
+	// with dominantColors), so the index FindBackgroundColor returns is valid in the
+	// full dominantColors list.
+	var topWeights []float64
+	if weights != nil {
+		topWeights = weights[:topCount]
+	}
+
+	bgColor, bgIndex := FindBackgroundColor(topColors, topWeights, lightMode)
 	bgColor = synthesizeBgIfTooMid(bgColor, lightMode)
 	usedIndices := map[int]bool{bgIndex: true}
 
-	fgColor, fgIndex := FindForegroundColor(dominantColors, lightMode, bgColor, usedIndices)
+	fgColor, fgIndex := FindForegroundColor(dominantColors, weights, lightMode, bgColor, usedIndices)
 	if fgIndex >= 0 {
 		usedIndices[fgIndex] = true
 	}
@@ -63,10 +71,11 @@ func synthesizeBgIfTooMid(bgColor string, lightMode bool) string {
 }
 
 // GenerateChromaticPalette: vibrant chromatic palette from image-derived hues.
-// OKLCH-based optimal assignment for slots 1-6, contrast-aware bg/fg.
+// OKLCH-based optimal assignment for slots 1-6, contrast-aware bg/fg. weights
+// (optional, aligned with dominantColors) makes bg/fg coverage-aware.
 // finalizePalette derives slots 8/9-15 and enforces AA contrast.
-func GenerateChromaticPalette(dominantColors []string, lightMode bool) [16]string {
-	palette := extractChromaticHues(dominantColors, lightMode)
+func GenerateChromaticPalette(dominantColors []string, weights []float64, lightMode bool) [16]string {
+	palette := extractChromaticHues(dominantColors, weights, lightMode)
 	finalizePalette(&palette)
 	return palette
 }

@@ -80,7 +80,11 @@ func transformChromaticPalette(
 	bgRule, fgRule, ansiRule *oklchRule,
 	ansiLightnessOffsets [6]float64,
 ) [16]string {
-	base := extractChromaticHues(dominantColors, lightMode)
+	// nil weights: modes consume base[0]/base[7] only for their hue (bgRule/fgRule
+	// below overwrite L and C with fixed mode values), so coverage-biasing the bg/fg
+	// pick would have no meaningful effect here. Dominance bias is for the default
+	// chromatic path, which keeps the image's own bg/fg lightness.
+	base := extractChromaticHues(dominantColors, nil, lightMode)
 
 	var result [16]string
 

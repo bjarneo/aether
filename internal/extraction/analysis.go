@@ -62,14 +62,15 @@ func IsMonochromeImage(colors []string) bool {
 	return false
 }
 
-// findColorByPerceptualLightness finds a color by OKLab perceptual lightness extremity.
-// If findLightest is true, returns the lightest; otherwise the darkest.
-func findColorByPerceptualLightness(colors []string, findLightest bool, excludeIndices map[int]bool) (string, int) {
+// findColorByPerceptualLightness finds a color by OKLab perceptual lightness
+// extremity, optionally biased toward image coverage. If findLightest is true it
+// favors lighter colors, otherwise darker. When weights is non-nil (normalized
+// pixel-coverage shares, aligned with colors by index) a color's coverage nudges
+// the score by BackgroundDominanceWeight, so a dominant tone can beat a more-extreme
+// but tiny speck. With weights nil this reduces exactly to pure lightness extremity.
+func findColorByPerceptualLightness(colors []string, weights []float64, findLightest bool, excludeIndices map[int]bool) (string, int) {
 	bestIndex := 0
-	bestLightness := 2.0 // Above max (1.0) to ensure any real value wins
-	if findLightest {
-		bestLightness = -1.0
-	}
+	bestScore := math.Inf(-1)
 
 	for i := 0; i < len(colors); i++ {
 		if excludeIndices != nil && excludeIndices[i] {
@@ -77,15 +78,17 @@ func findColorByPerceptualLightness(colors []string, findLightest bool, excludeI
 		}
 
 		lab := color.HexToOKLab(colors[i])
-		var isBetter bool
-		if findLightest {
-			isBetter = lab.L > bestLightness
-		} else {
-			isBetter = lab.L < bestLightness
+		// Extremity score in [0,1]: 1 = ideal (lightest when findLightest, else darkest).
+		score := lab.L
+		if !findLightest {
+			score = 1 - lab.L
+		}
+		if weights != nil && i < len(weights) {
+			score += BackgroundDominanceWeight * weights[i]
 		}
 
-		if isBetter {
-			bestLightness = lab.L
+		if score > bestScore {
+			bestScore = score
 			bestIndex = i
 		}
 	}
@@ -93,17 +96,19 @@ func findColorByPerceptualLightness(colors []string, findLightest bool, excludeI
 	return colors[bestIndex], bestIndex
 }
 
-// FindBackgroundColor finds the background color using OKLab perceptual lightness.
-// Dark mode: darkest. Light mode: lightest.
-func FindBackgroundColor(colors []string, lightMode bool) (string, int) {
-	return findColorByPerceptualLightness(colors, lightMode, nil)
+// FindBackgroundColor finds the background color using OKLab perceptual lightness,
+// biased toward image coverage when weights is non-nil. Dark mode: darkest (and most
+// dominant); light mode: lightest.
+func FindBackgroundColor(colors []string, weights []float64, lightMode bool) (string, int) {
+	return findColorByPerceptualLightness(colors, weights, lightMode, nil)
 }
 
 // FindForegroundColor finds the foreground color (opposite of background).
-// Also enforces minimum contrast ratio against the background.
-func FindForegroundColor(colors []string, lightMode bool, bgColor string, usedIndices map[int]bool) (string, int) {
-	// First, find by lightness extremity
-	fgColor, fgIndex := findColorByPerceptualLightness(colors, !lightMode, usedIndices)
+// Also enforces minimum contrast ratio against the background. weights (optional,
+// aligned with colors) biases the initial pick toward a dominant tone.
+func FindForegroundColor(colors []string, weights []float64, lightMode bool, bgColor string, usedIndices map[int]bool) (string, int) {
+	// First, find by lightness extremity (coverage-biased when weights given)
+	fgColor, fgIndex := findColorByPerceptualLightness(colors, weights, !lightMode, usedIndices)
 
 	// Check contrast ratio; if insufficient, synthesize a better foreground
 	contrast := color.ContrastRatio(bgColor, fgColor)
