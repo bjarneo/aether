@@ -177,7 +177,7 @@
                             onclick={() => handleEdit(theme)}>Edit</button
                         >
                         <button
-                            class="bg-accent hover:bg-accent-hover px-2 py-1 text-[10px] font-medium text-[#111116]"
+                            class="bg-accent hover:bg-accent-hover text-accent-fg px-2 py-1 text-[10px] font-medium"
                             onclick={() => handleApply(theme)}>Apply</button
                         >
                     </div>

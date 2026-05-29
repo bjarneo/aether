@@ -22,8 +22,44 @@ const (
 	// Catches solid-color and near-monoharmonic wallpapers that aren't gray.
 	HueClusterMagnitudeThreshold = 0.85
 
-	// Monochrome tint
-	MonochromeTintStrength = 0.15
+	// Monochrome tint pulls the canonical ANSI hue targets toward the image's
+	// dominant hue. The auto-detected monochrome path uses a mild pull
+	// (`MonochromeTintStrength`) so colors stay recognisable. The explicit
+	// `monochromatic` mode uses a much stronger pull (`MonochromaticTintStrength`)
+	// to produce a more unified mood while keeping the 6 ANSI slots
+	// distinguishable for syntax highlighting.
+	MonochromeTintStrength    = 0.15
+	MonochromaticTintStrength = 0.65
+
+	// MaxAnsiTintShift caps how far any single ANSI hue can be rotated by
+	// the tint pull, in degrees. 30° is wide enough for a tinted-rainbow
+	// feel (sepia red still warm-red, blueprint green still cool-green)
+	// without being so wide that opposite-side hues collapse into the
+	// base hue (red rotating to purple on a blue-tinted source).
+	MaxAnsiTintShift = 30.0
+
+	// Monochrome chroma fidelity: the tinted-mono ANSI slots scale their chroma
+	// toward the source image's actual chroma rather than a fixed vivid level, so
+	// a near-grayscale photo yields a muted palette that reads like the wallpaper
+	// instead of a forced rainbow. The source's mean dominant chroma is amplified
+	// by MonoChromaFidelityGain (sampled/averaged photo pixels read flatter than
+	// synthesized terminal slots, so a mild boost keeps hues legible), divided by
+	// the canonical chroma arrays' mean, then clamped to
+	// [MonoChromaFactorFloor, 1.0]. 1.0 reproduces the previous vivid output, so
+	// strongly-tinted sources (sepia, blueprint, Nord) are unchanged; only
+	// desaturated sources get pulled down. The floor keeps the 6 hues
+	// distinguishable for syntax highlighting even on near-gray images.
+	MonoChromaFidelityGain = 2.5
+	MonoChromaFactorFloor  = 0.4
+
+	// MinMeaningfulTintChroma: minimum *average* chroma across all dominant
+	// samples for `detectMonochromeTint` to consider the image actually
+	// tinted. JPEG compression can leave a few samples with chroma
+	// 0.003-0.008 in an otherwise-grayscale photo; without this floor the
+	// detector calls a strongly-clustered noise band "a tint" and produces
+	// a blue palette from a black-and-white image. Above this floor the
+	// image is treated as a unified mono mood; below, pure grayscale.
+	MinMeaningfulTintChroma = 0.008
 
 	// OKLCH scoring thresholds
 	MinChromaForAnsiMatch = 0.035 // Minimum OKLCH chroma for a valid ANSI color match

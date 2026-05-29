@@ -509,7 +509,7 @@ func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
 	a.state.Adjustments = a.adjustmentsFromBlueprint(bp)
 	a.state.AppOverrides = a.appOverridesFromBlueprint(bp)
 
-	return a.writer.ApplyTheme(a.state, theme.Settings{})
+	return a.writer.ApplyTheme(a.state, theme.DefaultApplySettings())
 }
 
 // BlueprintExists checks whether a blueprint with the given name already exists.

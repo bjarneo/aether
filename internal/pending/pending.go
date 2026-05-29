@@ -17,13 +17,14 @@ import (
 // All paths are local cache paths, populated by the URL handler after the
 // originating HTTPS resources have been downloaded.
 type Import struct {
-	ExternalTheme string `json:"external_theme,omitempty"`
-	ColorsToml    string `json:"colors_toml,omitempty"`
-	Wallpaper     string `json:"wallpaper,omitempty"`
-	Mode          string `json:"mode,omitempty"`   // "light" | "dark" — empty leaves the current setting alone
-	Silent        bool   `json:"silent,omitempty"` // skip the confirm dialog and apply immediately
-	SourceURL     string `json:"source_url,omitempty"`
-	Timestamp     int64  `json:"ts,omitempty"`
+	ExternalTheme    string `json:"external_theme,omitempty"`
+	ColorsToml       string `json:"colors_toml,omitempty"`
+	Wallpaper        string `json:"wallpaper,omitempty"`
+	Mode             string `json:"mode,omitempty"`               // "light" | "dark" — empty leaves the current setting alone
+	Silent           bool   `json:"silent,omitempty"`             // skip the confirm dialog and apply immediately
+	OmarchyThemeName string `json:"omarchy_theme_name,omitempty"` // install as ~/.config/omarchy/themes/<name>/ and run omarchy-theme-set
+	SourceURL        string `json:"source_url,omitempty"`
+	Timestamp        int64  `json:"ts,omitempty"`
 }
 
 // Path returns the location of the handoff file.

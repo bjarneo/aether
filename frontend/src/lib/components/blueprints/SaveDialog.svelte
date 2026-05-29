@@ -108,7 +108,7 @@
                 onclick={() => (showOverrideConfirm = false)}>Cancel</button
             >
             <button
-                class="bg-accent hover:bg-accent-hover px-3 py-1.5 text-[11px] font-medium text-[#111116] disabled:opacity-50"
+                class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1.5 text-[11px] font-medium disabled:opacity-50"
                 onclick={doSave}
                 disabled={isSaving}
                 >{isSaving ? 'Saving...' : 'Override'}</button
@@ -138,7 +138,7 @@
                 onclick={onclose}>Cancel</button
             >
             <button
-                class="bg-accent hover:bg-accent-hover px-3 py-1.5 text-[11px] font-medium text-[#111116] disabled:opacity-50"
+                class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1.5 text-[11px] font-medium disabled:opacity-50"
                 onclick={handleSave}
                 disabled={!name.trim() || isSaving}
                 >{isSaving ? 'Saving...' : 'Save'}</button

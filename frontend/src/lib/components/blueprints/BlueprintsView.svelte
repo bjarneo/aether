@@ -91,7 +91,7 @@
             >My Themes</span
         >
         <button
-            class="bg-accent hover:bg-accent-hover ml-auto px-2 py-0.5 text-[11px] font-medium text-[#111116] transition-colors"
+            class="bg-accent hover:bg-accent-hover text-accent-fg ml-auto px-2 py-0.5 text-[11px] font-medium transition-colors"
             onclick={() => (showSaveDialog = true)}>Save Current</button
         >
     </div>

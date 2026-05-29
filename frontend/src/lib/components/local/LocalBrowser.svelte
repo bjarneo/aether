@@ -35,9 +35,40 @@
     let previewIndex = $state(-1);
     let previewSrc = $state<string>('');
 
+    // Viewport windowing: at 10k+ wallpapers, mounting every card freezes the
+    // renderer. We measure the scroll container, compute how many rows fit,
+    // and only mount the visible slice (plus a small buffer). Spacer divs at
+    // top/bottom preserve scrollbar position so scrolling feels native.
+    const MIN_CARD_WIDTH = 180; // matches grid's minmax(180px, 1fr)
+    const CARD_GAP = 8; // matches gap-2
+    const NAME_ROW_HEIGHT = 28; // TagPicker + name row
+    const BUFFER_ROWS = 3; // rows rendered above + below the viewport
+
+    let scrollContainer = $state<HTMLDivElement | null>(null);
+    let scrollTop = $state(0);
+    let containerHeight = $state(600);
+    let containerWidth = $state(800);
+
     onMount(() => {
         loadWallpapers();
     });
+
+    $effect(() => {
+        if (!scrollContainer) return;
+        const measure = () => {
+            if (!scrollContainer) return;
+            containerHeight = scrollContainer.clientHeight;
+            containerWidth = scrollContainer.clientWidth;
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(scrollContainer);
+        return () => ro.disconnect();
+    });
+
+    function handleScroll(e: Event) {
+        scrollTop = (e.currentTarget as HTMLDivElement).scrollTop;
+    }
 
     async function loadWallpapers() {
         isLoading = true;
@@ -78,6 +109,43 @@
 
             return wps;
         })()
+    );
+
+    // Available width is container minus horizontal padding (p-3 = 12px each side).
+    let innerWidth = $derived(Math.max(0, containerWidth - 24));
+    let columns = $derived(
+        Math.max(
+            1,
+            Math.floor((innerWidth + CARD_GAP) / (MIN_CARD_WIDTH + CARD_GAP))
+        )
+    );
+    let cardWidth = $derived(
+        columns > 0
+            ? (innerWidth - (columns - 1) * CARD_GAP) / columns
+            : MIN_CARD_WIDTH
+    );
+    // aspect-video thumb (16:9) + name row + bottom gap = one row's pitch.
+    let rowHeight = $derived(
+        Math.round((cardWidth * 9) / 16) + NAME_ROW_HEIGHT + CARD_GAP
+    );
+    let totalRows = $derived(Math.ceil(filtered.length / columns));
+    let firstVisibleRow = $derived(
+        Math.max(0, Math.floor(scrollTop / rowHeight) - BUFFER_ROWS)
+    );
+    let lastVisibleRow = $derived(
+        Math.min(
+            totalRows,
+            Math.ceil((scrollTop + containerHeight) / rowHeight) + BUFFER_ROWS
+        )
+    );
+    let visibleStart = $derived(firstVisibleRow * columns);
+    let visibleEnd = $derived(
+        Math.min(filtered.length, lastVisibleRow * columns)
+    );
+    let visibleSlice = $derived(filtered.slice(visibleStart, visibleEnd));
+    let topSpacer = $derived(firstVisibleRow * rowHeight);
+    let bottomSpacer = $derived(
+        Math.max(0, (totalRows - lastVisibleRow) * rowHeight)
     );
 
     function selectWallpaper(path: string) {
@@ -127,7 +195,7 @@
         class="bg-bg-secondary border-border flex flex-wrap items-center gap-1.5 border-b px-3 py-2"
     >
         <button
-            class="bg-accent hover:bg-accent-hover px-2 py-0.5 text-[11px] font-medium text-[#111116] transition-colors"
+            class="bg-accent hover:bg-accent-hover text-accent-fg px-2 py-0.5 text-[11px] font-medium transition-colors"
             onclick={handleBrowse}
             title="Browse local files">Browse…</button
         >
@@ -202,7 +270,11 @@
         >
     </div>
 
-    <div class="flex-1 overflow-y-auto p-3">
+    <div
+        class="flex-1 overflow-y-auto p-3"
+        bind:this={scrollContainer}
+        onscroll={handleScroll}
+    >
         {#if isLoading}
             <LoadingState message="Scanning ~/Wallpapers…" />
         {:else if filtered.length === 0}
@@ -247,10 +319,14 @@
                 </EmptyState>
             {/if}
         {:else}
+            {#if topSpacer > 0}
+                <div aria-hidden="true" style="height: {topSpacer}px"></div>
+            {/if}
             <div
                 class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2"
             >
-                {#each filtered as wp, i (wp.path)}
+                {#each visibleSlice as wp, sliceIdx (wp.path)}
+                    {@const i = visibleStart + sliceIdx}
                     <div
                         class="bg-bg-surface border-border hover:border-border-focus group relative border transition-colors duration-100"
                     >
@@ -301,25 +377,34 @@
                             </svg>
                         </button>
                         <div
-                            class="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                            class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
                         >
                             <button
-                                class="bg-accent hover:bg-accent-hover pointer-events-auto px-4 py-1.5 text-[11px] font-medium text-[#111116] transition-colors"
+                                class="bg-accent hover:bg-accent-hover text-accent-fg pointer-events-auto min-w-[7rem] px-4 py-1.5 text-[11px] font-medium transition-colors"
                                 onclick={() => selectWallpaper(wp.path)}
                                 title="Set as wallpaper and open in editor"
                                 >Use</button
                             >
-                            <button
-                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus pointer-events-auto px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
-                                onclick={() => applyWallpaperOnly(wp.path)}
-                                disabled={getIsApplying()}
-                                title="Apply this wallpaper without changing the current palette"
-                                >Wallpaper only</button
+                            <div
+                                class="flex items-center gap-2 text-[10px] text-white/85"
                             >
-                            <button
-                                class="text-fg-primary bg-bg-elevated hover:bg-border-focus pointer-events-auto px-3 py-1.5 text-[11px] font-medium transition-colors"
-                                onclick={() => handlePreview(i)}>Preview</button
-                            >
+                                <button
+                                    class="pointer-events-auto px-1 transition-colors hover:text-white disabled:opacity-50"
+                                    onclick={() => applyWallpaperOnly(wp.path)}
+                                    disabled={getIsApplying()}
+                                    title="Apply this wallpaper without changing the current palette"
+                                    >Wallpaper only</button
+                                >
+                                <span class="text-white/30" aria-hidden="true"
+                                    >·</span
+                                >
+                                <button
+                                    class="pointer-events-auto px-1 transition-colors hover:text-white"
+                                    onclick={() => handlePreview(i)}
+                                    title="Preview wallpaper full-size"
+                                    >Preview</button
+                                >
+                            </div>
                         </div>
                         <div class="flex items-center gap-1.5 px-2 py-1">
                             <TagPicker path={wp.path} />
@@ -331,6 +416,9 @@
                     </div>
                 {/each}
             </div>
+            {#if bottomSpacer > 0}
+                <div aria-hidden="true" style="height: {bottomSpacer}px"></div>
+            {/if}
         {/if}
     </div>
 </div>

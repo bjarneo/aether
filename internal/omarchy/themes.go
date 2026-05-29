@@ -192,7 +192,7 @@ func LoadAllThemes() ([]Theme, error) {
 			}
 
 			if data, err := os.ReadFile(filepath.Join(themePath, "colors.toml")); err == nil {
-				colors, bg, fg := ParseColorsToml(string(data))
+				colors, bg, fg, _ := ParseColorsToml(string(data))
 				theme.Colors = colors[:]
 				theme.Background = bg
 				theme.Foreground = fg
@@ -240,7 +240,7 @@ func TokyoNightDefaults() (palette [16]string, wallpaper string, ok bool) {
 		if err != nil {
 			continue
 		}
-		palette, _, _ = ParseColorsToml(string(data))
+		palette, _, _, _ = ParseColorsToml(string(data))
 		if bgs := listBackgrounds(filepath.Join(themeDir, "backgrounds")); len(bgs) > 0 {
 			wallpaper = bgs[0]
 		}

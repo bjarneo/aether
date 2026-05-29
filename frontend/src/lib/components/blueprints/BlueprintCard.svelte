@@ -95,7 +95,7 @@
                 class="mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100"
             >
                 <button
-                    class="bg-accent hover:bg-accent-hover flex-1 px-2 py-1 text-[10px] font-medium text-[#111116]"
+                    class="bg-accent hover:bg-accent-hover text-accent-fg flex-1 px-2 py-1 text-[10px] font-medium"
                     onclick={onload}>Use</button
                 >
                 <button

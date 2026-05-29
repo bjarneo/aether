@@ -23,6 +23,11 @@
     --color-accent: #89b4fa;
     --color-accent-hover: #a5c4fb;
     --color-accent-muted: rgba(137, 180, 250, 0.15);
+    /* Text color for content sitting ON top of bg-accent. Dark-mode accent
+     * is light blue, so dark text reads. Flipped to white in light mode
+     * where accent is darker. Overridden at runtime when the user's theme
+     * sets a custom accent (App.svelte computes the right contrast). */
+    --color-accent-fg: #111116;
     --color-destructive: #f38ba8;
     --color-success: #a6e3a1;
     --color-warning: #f9e2af;
@@ -87,17 +92,21 @@ main {
 :root.light-mode {
     --color-bg-primary: #f5f5f7;
     --color-bg-secondary: #eaeaed;
-    --color-bg-surface: rgba(0, 0, 0, 0.03);
-    --color-bg-elevated: rgba(0, 0, 0, 0.06);
-    --color-bg-hover: rgba(0, 0, 0, 0.04);
+    /* Surface/elevated/hover alphas are higher in light mode than dark.
+     * Dark overlays on a light background need ~2x the alpha to be visually
+     * separable from the page, otherwise cards disappear into bg-primary. */
+    --color-bg-surface: rgba(0, 0, 0, 0.06);
+    --color-bg-elevated: rgba(0, 0, 0, 0.09);
+    --color-bg-hover: rgba(0, 0, 0, 0.07);
     --color-fg-primary: #1c1c1e;
     --color-fg-secondary: rgba(28, 28, 30, 0.7);
     --color-fg-dimmed: rgba(28, 28, 30, 0.45);
-    --color-border: rgba(0, 0, 0, 0.1);
-    --color-border-focus: rgba(0, 0, 0, 0.2);
+    --color-border: rgba(0, 0, 0, 0.16);
+    --color-border-focus: rgba(0, 0, 0, 0.3);
     --color-accent: #2563eb;
     --color-accent-hover: #1d4ed8;
     --color-accent-muted: rgba(37, 99, 235, 0.12);
+    --color-accent-fg: #ffffff;
     --color-destructive: #dc2626;
     --color-success: #16a34a;
     --color-warning: #ca8a04;

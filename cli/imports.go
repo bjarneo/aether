@@ -137,7 +137,7 @@ func runImportBase16(args []string, templatesFS embed.FS) int {
 	}
 
 	fmt.Println("Applying theme...")
-	result, err := writer.ApplyTheme(state, theme.Settings{})
+	result, err := writer.ApplyTheme(state, theme.DefaultApplySettings())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
@@ -201,7 +201,7 @@ func runImportColorsToml(args []string, templatesFS embed.FS) int {
 	}
 
 	fmt.Println("Applying theme...")
-	result, err := writer.ApplyTheme(state, theme.Settings{})
+	result, err := writer.ApplyTheme(state, theme.DefaultApplySettings())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1

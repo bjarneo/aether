@@ -21,7 +21,7 @@
 
 {#if visible}
     <div
-        class="border-border text-fg-primary fixed bottom-14 left-1/2 z-[100] flex -translate-x-1/2 items-center gap-3 border bg-[#222228] px-4 py-2 text-[12px] shadow-lg"
+        class="border-border bg-bg-elevated text-fg-primary fixed bottom-14 left-1/2 z-[100] flex -translate-x-1/2 items-center gap-3 border px-4 py-2 text-[12px] shadow-lg"
         style="animation: toast-in 150ms ease-out"
         role="status"
         aria-live="polite"
