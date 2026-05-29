@@ -34,6 +34,7 @@ type ExternalImportPreview struct {
 	Wallpaper        string   `json:"wallpaper,omitempty"`
 	ThemeName        string   `json:"theme_name,omitempty"`
 	Mode             string   `json:"mode,omitempty"` // "light" | "dark" | ""
+	Edit             bool     `json:"edit"`           // load into the editor without applying (aether://...&edit=true)
 }
 
 // loadPendingImport reads the staged file, stores it in memory, and emits
@@ -72,6 +73,7 @@ func (a *App) buildPreview(imp *pending.Import) ExternalImportPreview {
 		HasWallpaper:     imp.Wallpaper != "",
 		Wallpaper:        imp.Wallpaper,
 		Mode:             imp.Mode,
+		Edit:             imp.Edit,
 	}
 
 	if imp.ExternalTheme != "" {
@@ -107,11 +109,14 @@ func (a *App) GetPendingExternalImport() *ExternalImportPreview {
 	return &preview
 }
 
-// ConfirmExternalImport applies the staged assets verbatim: the colors.toml
-// (or external_theme JSON) becomes the palette without re-extracting, and
-// the wallpaper is set as the background. Auto-extraction is intentionally
-// skipped — the user already trusts the source.
-func (a *App) ConfirmExternalImport() error {
+// stageImportIntoState consumes the pending import and writes its assets into
+// the app state: the colors.toml (or external_theme JSON) becomes the palette
+// verbatim (no re-extraction — the user trusts the source), the wallpaper is set
+// as the background, and light/dark mode is resolved. It pushes an undo snapshot
+// and clears the handoff file, but does NOT apply the theme to disk or emit to
+// the frontend; callers decide whether to apply (ConfirmExternalImport) or just
+// load it for editing (OpenExternalImportInEditor).
+func (a *App) stageImportIntoState() error {
 	a.pending.mu.Lock()
 	imp := a.pending.curr
 	a.pending.curr = nil
@@ -190,12 +195,36 @@ func (a *App) ConfirmExternalImport() error {
 		}
 	}
 
+	return nil
+}
+
+// ConfirmExternalImport stages the pending assets into the editor state and then
+// applies the theme to all configured target apps. Used by the confirm dialog's
+// Apply button.
+func (a *App) ConfirmExternalImport() error {
+	if err := a.stageImportIntoState(); err != nil {
+		return err
+	}
+
 	result, err := a.writer.ApplyTheme(a.state, theme.DefaultApplySettings())
 	if err != nil {
 		return fmt.Errorf("apply: %w", err)
 	}
 	if !result.Success {
 		return fmt.Errorf("apply returned failure")
+	}
+	a.emitIPCStateChanged()
+	return nil
+}
+
+// OpenExternalImportInEditor loads the staged assets into the editor without
+// applying them: the palette, extended colors, wallpaper, and light/dark mode
+// become the current editing state and are pushed to the frontend, but nothing
+// is written to disk. Backs the aether://...&edit=true flow so a user can tweak
+// an imported theme and apply it manually when ready.
+func (a *App) OpenExternalImportInEditor() error {
+	if err := a.stageImportIntoState(); err != nil {
+		return err
 	}
 	a.emitIPCStateChanged()
 	return nil

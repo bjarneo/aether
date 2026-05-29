@@ -17,9 +17,10 @@ aether://apply?<param>=<https-url>[&<param>=<https-url>...]
 | `wallpaper` | URL to an image | Sets the wallpaper (no re-extraction, even when used alone) |
 | `mode` | `light` or `dark` | Forces Aether into light or dark mode before applying. Omit to fall back to the colors.toml's own `mode = "..."` field, then to the current setting. |
 | `silent` | `true` | Skips the confirm dialog and applies immediately. Use with care: any web page can construct this URL. |
+| `edit` | `true` | Opens the colors and wallpaper in the Aether editor without applying. Nothing is written to disk until the user clicks Apply. Overrides `silent` and `as_omarchy_theme`. |
 | `as_omarchy_theme` | theme name | Installs into `~/.config/omarchy/themes/<name>/` and runs `omarchy-theme-set <name>`. Always silent. Name must match `[A-Za-z0-9][A-Za-z0-9_.-]*`. |
 
-`external_theme` and `colors` are mutually exclusive; `external_theme` wins when both are present. `wallpaper` can be combined with either, or used alone. `mode` and `silent` can be combined with any of the above.
+`external_theme` and `colors` are mutually exclusive; `external_theme` wins when both are present. `wallpaper` can be combined with either, or used alone. `mode` and `silent` can be combined with any of the above. `edit` takes precedence over `silent` and `as_omarchy_theme`: if `edit=true` is present, the import always opens in the editor instead of applying or installing.
 
 ## Examples
 
@@ -57,6 +58,12 @@ Install as a named Omarchy theme and activate it:
 
 ```
 aether://apply?colors=https://themes.example.com/nord/colors.toml&wallpaper=https://themes.example.com/nord/wp.jpg&as_omarchy_theme=nord
+```
+
+Open in the editor to tweak before applying (nothing is written until you click Apply):
+
+```
+aether://apply?colors=https://themes.example.com/nord/colors.toml&wallpaper=https://themes.example.com/nord/wp.jpg&edit=true
 ```
 
 ## HTML button
@@ -108,6 +115,14 @@ Precedence: URL `mode=` (if set) wins, then the colors.toml's `mode` / `light_mo
 Wallpaper-only silent links preserve the current palette by reading the existing `colors.toml` on disk. Light/dark mode is controlled by `mode=light|dark`; omit it to default to dark, matching the existing CLI behavior.
 
 The trade-off is real, though: any web page can produce a silent-apply link. Only mark links silent inside flows where the user has already opted in to the theme they're about to install (your own theme gallery, an in-app catalog), and prefer the default interactive flow for third-party content.
+
+### `edit=true` — open in the editor without applying
+
+`edit=true` is the opposite of `silent`: instead of applying, the import loads the palette and wallpaper into the Aether editor and switches to the editor tab. Nothing is written to disk, no target apps are touched, and the Omarchy themes directory is untouched. The user reviews the palette in the confirm dialog, clicks "Open in editor", tweaks colors or adjustments, then applies manually when ready.
+
+It's the safest action, so it wins over the auto-apply flags: a link with both `edit=true` and `silent=true` (or `as_omarchy_theme=...`) opens in the editor and ignores the others. Use it for "customize this theme" buttons where the published palette is a starting point rather than a finished product.
+
+The launch/IPC handoff is the same as the default interactive flow: if the GUI is running it's notified over IPC, otherwise it's launched and picks up the staged import on startup.
 
 ## What's not supported
 

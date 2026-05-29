@@ -174,6 +174,10 @@ export function LoadOmarchyThemes() {
     return window['go']['main']['App']['LoadOmarchyThemes']();
 }
 
+export function OpenExternalImportInEditor() {
+    return window['go']['main']['App']['OpenExternalImportInEditor']();
+}
+
 export function OpenFileDialog() {
     return window['go']['main']['App']['OpenFileDialog']();
 }

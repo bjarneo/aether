@@ -216,6 +216,7 @@ export namespace main {
         wallpaper?: string;
         theme_name?: string;
         mode?: string;
+        edit: boolean;
 
         static createFrom(source: any = {}) {
             return new ExternalImportPreview(source);
@@ -231,6 +232,7 @@ export namespace main {
             this.wallpaper = source['wallpaper'];
             this.theme_name = source['theme_name'];
             this.mode = source['mode'];
+            this.edit = source['edit'];
         }
     }
     export class ExtractFromImagesResult {

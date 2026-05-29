@@ -98,6 +98,9 @@ func runHandleURL(args []string, templatesFS embed.FS) int {
 	if v := strings.ToLower(q.Get("silent")); v == "true" || v == "1" || v == "yes" {
 		imp.Silent = true
 	}
+	if v := strings.ToLower(q.Get("edit")); v == "true" || v == "1" || v == "yes" {
+		imp.Edit = true
+	}
 	if v := q.Get("as_omarchy_theme"); v != "" {
 		if !safeThemeName.MatchString(v) {
 			fmt.Fprintf(os.Stderr, "Error: as_omarchy_theme must match [A-Za-z0-9][A-Za-z0-9_.-]* (got %q)\n", v)
@@ -111,17 +114,23 @@ func runHandleURL(args []string, templatesFS embed.FS) int {
 		return 1
 	}
 
-	// Omarchy install: drop files into ~/.config/omarchy/themes/<name>/ and
-	// run omarchy-theme-set. Always silent — installing into a system
-	// location is the consent action by the publisher.
-	if imp.OmarchyThemeName != "" {
+	// Routing precedence, highest first:
+	//   edit    — fall through to the GUI pending-import path below (load the
+	//             assets into the editor, apply nothing). Safest action, so it
+	//             wins over silent / as_omarchy_theme.
+	//   omarchy — install into ~/.config/omarchy/themes/<name>/ and run
+	//             omarchy-theme-set. Always silent: installing into a system
+	//             location is the publisher's consent action.
+	//   silent  — apply directly in this process, no GUI, no dialog. Matches
+	//             `aether --import-colors-toml`; first-party flows only, since
+	//             any web page can construct silent URLs.
+	//   default — stage and hand off to the GUI confirm dialog (below).
+	switch {
+	case imp.Edit:
+		// fall through to pending.Write + GUI handoff below
+	case imp.OmarchyThemeName != "":
 		return runOmarchyInstall(&imp, templatesFS)
-	}
-
-	// Silent mode: apply directly in this process, no GUI, no dialog.
-	// Matches `aether --import-colors-toml` semantics — first-party flows
-	// only, since any web page can construct silent URLs.
-	if imp.Silent {
+	case imp.Silent:
 		return runSilentApply(&imp, templatesFS)
 	}
 

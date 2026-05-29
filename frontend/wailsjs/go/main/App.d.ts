@@ -110,6 +110,8 @@ export function LoadBlueprint(arg1: string): Promise<void>;
 
 export function LoadOmarchyThemes(): Promise<Array<omarchy.Theme>>;
 
+export function OpenExternalImportInEditor(): Promise<void>;
+
 export function OpenFileDialog(): Promise<string>;
 
 export function PreviewExtractColors(

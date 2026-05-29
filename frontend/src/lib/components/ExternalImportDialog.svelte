@@ -1,12 +1,13 @@
 <script lang="ts">
     import Modal from '$lib/components/shared/Modal.svelte';
-    import {showToast} from '$lib/stores/ui.svelte';
+    import {showToast, setActiveTab} from '$lib/stores/ui.svelte';
     import {
         loadFullImage,
         getCachedFullImage,
     } from '$lib/stores/imagecache.svelte';
     import {
         ConfirmExternalImport,
+        OpenExternalImportInEditor,
         CancelExternalImport,
         GetPendingExternalImport,
     } from '../../../wailsjs/go/main/App';
@@ -22,11 +23,14 @@
         wallpaper?: string;
         theme_name?: string;
         mode?: string;
+        edit?: boolean;
     };
 
     let preview = $state<Preview | null>(null);
     let wallpaperDataUrl = $state('');
     let isApplying = $state(false);
+    // edit=true imports load into the editor instead of applying.
+    let isEdit = $derived(!!preview?.edit);
 
     onMount(() => {
         // The backend emits this on startup when a staged file is present,
@@ -87,17 +91,27 @@
         }
     });
 
-    async function handleApply() {
+    // edit=true links load the colors + wallpaper into the editor without
+    // applying, so the user can tweak before hitting Apply themselves. Any
+    // other link applies the theme immediately on confirm.
+    async function handleConfirm() {
         if (!preview) return;
+        const edit = isEdit; // snapshot before the await nulls preview
         isApplying = true;
         try {
-            await ConfirmExternalImport();
-            showToast('Applied');
+            if (edit) {
+                await OpenExternalImportInEditor();
+                setActiveTab('editor');
+                showToast('Loaded into editor');
+            } else {
+                await ConfirmExternalImport();
+                showToast('Applied');
+            }
             preview = null;
         } catch (err) {
-            showToast('Failed to apply');
+            showToast(edit ? 'Failed to load' : 'Failed to apply');
             // eslint-disable-next-line no-console
-            console.error('external-import apply:', err);
+            console.error('external-import confirm:', err);
         } finally {
             isApplying = false;
         }
@@ -116,13 +130,15 @@
 <Modal
     open={preview !== null}
     onclose={handleCancel}
-    onenter={handleApply}
+    onenter={handleConfirm}
     panelClass="w-[420px]"
     z="z-50"
 >
     {#if preview}
         <h3 class="text-fg-primary mb-1 text-[13px] font-medium">
-            Apply theme from web?
+            {isEdit
+                ? 'Open theme from web in editor?'
+                : 'Apply theme from web?'}
         </h3>
         <p class="text-fg-dimmed mb-3 text-[10px] uppercase tracking-wider">
             {assetKind()}
@@ -163,8 +179,13 @@
         </p>
 
         <p class="text-fg-dimmed mb-4 text-[10px]">
-            Aether will replace your palette and background. Only apply from
-            sources you trust.
+            {#if isEdit}
+                Aether will load these colors and wallpaper into the editor.
+                Nothing is applied until you click Apply.
+            {:else}
+                Aether will replace your palette and background. Only apply from
+                sources you trust.
+            {/if}
         </p>
 
         <div class="flex justify-end gap-2">
@@ -177,10 +198,14 @@
             </button>
             <button
                 class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1.5 text-[11px] font-medium disabled:opacity-50"
-                onclick={handleApply}
+                onclick={handleConfirm}
                 disabled={isApplying}
             >
-                {isApplying ? 'Applying...' : 'Apply'}
+                {#if isEdit}
+                    {isApplying ? 'Opening...' : 'Open in editor'}
+                {:else}
+                    {isApplying ? 'Applying...' : 'Apply'}
+                {/if}
             </button>
         </div>
     {/if}
