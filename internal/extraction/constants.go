@@ -2,7 +2,7 @@ package extraction
 
 const (
 	ANSIPaletteSize   = 16
-	CacheVersion      = 9 // Bumped: graded chroma boost, dominance-aware bg/fg, CatmullRom sampling
+	CacheVersion      = 12 // Bumped: chromatic accents constrained to coverage-supported image hue clusters (no invented/minority hues)
 	ImageScaleSize    = 400
 	MinPixelsToSample = 1000
 	MaxPixelsToSample = 50000
@@ -38,35 +38,78 @@ const (
 	// Catches solid-color and near-monoharmonic wallpapers that aren't gray.
 	HueClusterMagnitudeThreshold = 0.85
 
-	// Monochrome tint pulls the canonical ANSI hue targets toward the image's
-	// dominant hue. The auto-detected monochrome path uses a mild pull
-	// (`MonochromeTintStrength`) so colors stay recognisable. The explicit
-	// `monochromatic` mode uses a much stronger pull (`MonochromaticTintStrength`)
-	// to produce a more unified mood while keeping the 6 ANSI slots
-	// distinguishable for syntax highlighting.
-	MonochromeTintStrength    = 0.15
-	MonochromaticTintStrength = 0.65
+	// MonoChromaticCoverageFloor: in the coverage-weighted classifier
+	// (isMonochromeWeighted), an image whose colored pixels cover less than this
+	// share of the frame is treated as monochrome regardless of how those few
+	// colored pixels are distributed. This catches a near-gray image with a small
+	// vivid speck (a logo, a distant neon sign): the chroma-boost duplicates those
+	// specks enough to fool an unweighted count into seeing a colorful, multi-hue
+	// image, but by true coverage the frame is monochrome and should get a cohesive
+	// single-family palette rather than vivid accents pulled from a 1% region.
+	//
+	// Kept low (6%) so only genuinely color-starved images fall here: an image with
+	// real, if minority, multi-hue content (a landscape's green hills under blue sky)
+	// stays above the floor and is routed by the hue-cluster test, which sends it to
+	// the chromatic path where its distinct hues are preserved.
+	MonoChromaticCoverageFloor = 0.06
 
-	// MaxAnsiTintShift caps how far any single ANSI hue can be rotated by
-	// the tint pull, in degrees. 30° is wide enough for a tinted-rainbow
-	// feel (sepia red still warm-red, blueprint green still cool-green)
-	// without being so wide that opposite-side hues collapse into the
-	// base hue (red rotating to purple on a blue-tinted source).
-	MaxAnsiTintShift = 30.0
+	// Monochrome fold arc: tinted-mono palettes map the six canonical ANSI hues
+	// into an arc centered on the image's dominant hue (see foldHueIntoArc), so
+	// every accent stays inside the wallpaper's color family instead of being a
+	// rotated-but-still-rainbow set. arcDeg is the arc half-width in degrees: a
+	// hue equal to the base lands on the base, one opposite the base lands at the
+	// edge. Smaller arc = more unified/monochromatic; larger = more in-family
+	// variety.
+	//
+	//   - AutoMonoArcDeg: the default auto-detected mono path. Wide enough that a
+	//     mono image with a little real hue variety still fans its accents out
+	//     across the family, but never far enough to leave it.
+	//   - ExplicitMonoArcDeg: the user-selected `monochromatic` mode. Tighter, so
+	//     the whole palette reads as one cohesive color family; the six slots stay
+	//     distinct via their lightness spread.
+	AutoMonoArcDeg     = 46.0
+	ExplicitMonoArcDeg = 28.0
 
-	// Monochrome chroma fidelity: the tinted-mono ANSI slots scale their chroma
-	// toward the source image's actual chroma rather than a fixed vivid level, so
-	// a near-grayscale photo yields a muted palette that reads like the wallpaper
-	// instead of a forced rainbow. The source's mean dominant chroma is amplified
-	// by MonoChromaFidelityGain (sampled/averaged photo pixels read flatter than
-	// synthesized terminal slots, so a mild boost keeps hues legible), divided by
-	// the canonical chroma arrays' mean, then clamped to
-	// [MonoChromaFactorFloor, 1.0]. 1.0 reproduces the previous vivid output, so
-	// strongly-tinted sources (sepia, blueprint, Nord) are unchanged; only
-	// desaturated sources get pulled down. The floor keeps the 6 hues
-	// distinguishable for syntax highlighting even on near-gray images.
-	MonoChromaFidelityGain = 2.5
-	MonoChromaFactorFloor  = 0.4
+	// MonoChromaFactorFloor is the minimum scale applied to the canonical mono
+	// ANSI chroma arrays (see monoChromaFactor). An image whose salient regions
+	// are as saturated as a vivid terminal slot yields factor 1.0 (full vivid
+	// accents); near-gray sources scale down toward this floor, which is kept
+	// above 0 so the six hues stay faintly tinted and distinguishable rather than
+	// collapsing to flat gray.
+	MonoChromaFactorFloor = 0.4
+
+	// MonoAccentMinLStep is the minimum OKLab-lightness gap between consecutive
+	// accents on the monochrome lightness ramp. Because the hue fold packs the six
+	// accents into one narrow family, lightness is the primary thing keeping them
+	// apart; enforcing a floor on the step guarantees they stay distinguishable for
+	// syntax highlighting even on a mid-toned background with little readable
+	// headroom (where an evenly-divided ramp would otherwise collapse them).
+	MonoAccentMinLStep = 0.072
+
+	// Chromatic accent normalization (default chromatic path, normalizeChromaticAccents).
+	// AccentChromaFloor/Ceil bound the per-slot chroma target derived from the image's
+	// salient chroma, so accents pop enough to be usable but a vivid image isn't pushed
+	// past a sane terminal saturation. NearAchromaticChroma is the chroma below which a
+	// picked accent is treated as gray (its hue is quantization noise) and given its
+	// slot's canonical ANSI hue. AccentMinDeltaE is the minimum OKLab distance enforced
+	// between any two accents; collisions are separated by lightness only (never by
+	// inventing a hue absent from the image).
+	AccentChromaFloor    = 0.05
+	AccentChromaCeil     = 0.16
+	NearAchromaticChroma = 0.03
+	AccentMinDeltaE      = 0.05
+	// AccentSupportChroma: minimum OKLCH chroma for a dominant color to count as a
+	// real hue anchor when folding a gray accent pick into the image's color family.
+	AccentSupportChroma = 0.04
+	// HueSupportTol: an accent whose hue is within this many degrees of a populated
+	// image hue cluster is considered supported by the wallpaper and left as-is.
+	HueSupportTol = 30.0
+	// MinAccentHueSupport: minimum coverage share (of the whole frame) a 30-degree
+	// hue band must carry to host accents. Bands below this are minority/stray hues;
+	// accents are folded out of them into the nearest well-supported cluster so the
+	// palette never promotes a color the wallpaper barely contains. Low enough to
+	// keep small-but-real features (string lights, a neon sign) as their own family.
+	MinAccentHueSupport = 0.025
 
 	// MinMeaningfulTintChroma: minimum *average* chroma across all dominant
 	// samples for `detectMonochromeTint` to consider the image actually

@@ -73,11 +73,136 @@ func synthesizeBgIfTooMid(bgColor string, lightMode bool) string {
 // GenerateChromaticPalette: vibrant chromatic palette from image-derived hues.
 // OKLCH-based optimal assignment for slots 1-6, contrast-aware bg/fg. weights
 // (optional, aligned with dominantColors) makes bg/fg coverage-aware.
-// finalizePalette derives slots 8/9-15 and enforces AA contrast.
+// normalizeChromaticAccents makes the picked accents usable (pop to the image's
+// salient saturation, distinct), then finalizePalette derives slots 8/9-15 and
+// enforces AA contrast.
 func GenerateChromaticPalette(dominantColors []string, weights []float64, lightMode bool) [16]string {
 	palette := extractChromaticHues(dominantColors, weights, lightMode)
+	normalizeChromaticAccents(&palette, dominantColors, weights, lightMode)
 	finalizePalette(&palette)
 	return palette
+}
+
+// hueCluster is a populated band in the image's coverage-weighted hue histogram:
+// a hue that real, chromatic pixels actually occupy, with how much of the frame.
+type hueCluster struct {
+	hue      float64
+	coverage float64
+}
+
+// supportedHueClusters bins the chromatic dominant colors into a coverage-weighted
+// hue histogram and returns the clusters that carry at least MinAccentHueSupport of
+// the frame. These are the only hues an accent is allowed to use: a hue with no
+// cluster (a few stray cool pixels in a warm scene) is something the wallpaper
+// doesn't really contain, so promoting it to a full ANSI accent reads as invented.
+// weights is the per-dominant coverage share (may be nil → equal weighting).
+func supportedHueClusters(dominantColors []string, weights []float64) []hueCluster {
+	const bins = 12 // 30-degree bands
+	var binW, binSin, binCos [bins]float64
+	for k, c := range dominantColors {
+		lch := color.HexToOKLCH(c)
+		if lch.C < AccentSupportChroma {
+			continue
+		}
+		w := 1.0 / float64(len(dominantColors))
+		if weights != nil && k < len(weights) {
+			w = weights[k]
+		}
+		b := int(lch.H/30) % bins
+		if b < 0 {
+			b += bins
+		}
+		rad := lch.H * math.Pi / 180
+		binW[b] += w
+		binSin[b] += math.Sin(rad) * w
+		binCos[b] += math.Cos(rad) * w
+	}
+	var out []hueCluster
+	for b := 0; b < bins; b++ {
+		if binW[b] >= MinAccentHueSupport {
+			h := math.Mod(math.Atan2(binSin[b], binCos[b])*180/math.Pi+360, 360)
+			out = append(out, hueCluster{hue: h, coverage: binW[b]})
+		}
+	}
+	return out
+}
+
+// nearestClusterHue returns the supported-cluster hue closest to target, or
+// (0,false) when the image has no supported chromatic cluster at all.
+func nearestClusterHue(target float64, clusters []hueCluster) (float64, bool) {
+	best := math.Inf(1)
+	var bestHue float64
+	for _, c := range clusters {
+		if d := CalculateHueDistance(target, c.hue); d < best {
+			best = d
+			bestHue = c.hue
+		}
+	}
+	return bestHue, len(clusters) > 0
+}
+
+// normalizeChromaticAccents makes the image-derived ANSI accents (slots 1-6) usable
+// as a terminal palette without drifting from the wallpaper. The default chromatic
+// path takes accents verbatim from median-cut bucket averages and FindOptimalAnsiAssignment
+// fills all six canonical hue slots, so on a hue-limited image it (a) returns muddy
+// near-gray picks for absent hues and (b) promotes a tiny minority hue (a few cool
+// pixels in a warm scene) into a full accent. Both read as colors the wallpaper
+// doesn't contain. This pass constrains every accent to the image's actual hue
+// gamut, using a coverage-weighted hue histogram (supportedHueClusters):
+//
+//   - an accent whose hue lands in a populated cluster is kept (a genuine image hue);
+//   - an accent that is near-gray (hue is quantization noise) OR whose hue has no
+//     coverage support (a minority/invented hue) is folded to the nearest supported
+//     cluster hue — so a warm image's "blue"/"cyan" slots become warm in-family
+//     accents instead of a fabricated cool color, exactly the monochrome principle;
+//   - if the image has no supported chromatic cluster at all, near-gray slots stay
+//     neutral rather than inventing a hue;
+//   - chroma is then lifted toward the image's salient saturation so accents pop;
+//   - finally any two near-identical accents are separated by lightness only.
+//
+// Multi-hue wallpapers (every slot lands in a real cluster) are left untouched and
+// keep their full, vibrant range.
+func normalizeChromaticAccents(p *[16]string, dominantColors []string, weights []float64, lightMode bool) {
+	target := clampF(salientChroma(dominantColors)*0.85, AccentChromaFloor, AccentChromaCeil)
+	clusters := supportedHueClusters(dominantColors, weights)
+
+	for i := 1; i <= 6; i++ {
+		lch := color.HexToOKLCH(p[i])
+		grayPick := lch.C < NearAchromaticChroma
+		supported := false
+		for _, cl := range clusters {
+			if CalculateHueDistance(lch.H, cl.hue) <= HueSupportTol {
+				supported = true
+				break
+			}
+		}
+		if grayPick || !supported {
+			if h, ok := nearestClusterHue(OKLCHAnsiHues[i-1], clusters); ok {
+				lch.H = h // fold into the wallpaper's nearest real hue cluster
+			} else if grayPick {
+				lch.C = 0 // no chromatic content at all: stay neutral
+			}
+		}
+		if lch.C > 0 && lch.C < target {
+			lch.C = target
+		}
+		p[i] = color.OKLCHToHex(lch)
+	}
+
+	// Lightness-only distinctness pass: nudge a colliding accent away from its peer.
+	for i := 1; i <= 6; i++ {
+		for j := i + 1; j <= 6; j++ {
+			if color.OKLabDistance(color.HexToOKLab(p[i]), color.HexToOKLab(p[j])) < AccentMinDeltaE {
+				lch := color.HexToOKLCH(p[j])
+				if lightMode {
+					lch.L = clampF(lch.L-0.10, 0.20, 0.85)
+				} else {
+					lch.L = clampF(lch.L+0.10, 0.30, 0.92)
+				}
+				p[j] = color.OKLCHToHex(lch)
+			}
+		}
+	}
 }
 
 // generateCommentColor creates a gray/muted color for code comments (ANSI color 8)

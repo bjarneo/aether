@@ -62,6 +62,62 @@ func IsMonochromeImage(colors []string) bool {
 	return false
 }
 
+// isMonochromeWeighted is the extraction-path monochrome classifier. Unlike
+// IsMonochromeImage (which counts dominant colors equally), it weights each
+// dominant color by its image coverage (weights, the normalized pixel-count
+// shares aligned with colors). This matters because boostChromaticPixels
+// deliberately over-represents vivid pixels in the dominant set, so an unweighted
+// count sees an image as more colorful — and more multi-hued — than it really is.
+//
+// An image is monochrome when either:
+//   - its colored pixels cover less than MonoChromaticCoverageFloor of the frame
+//     (essentially gray, or gray with a tiny accent — handled as a single family), or
+//   - its colored pixels, though substantial, cluster tightly into one hue
+//     (a solid teal sea, a deep-blue night) — circular magnitude over
+//     HueClusterMagnitudeThreshold.
+//
+// A multi-hue image (even a muted, mostly-gray one like a Nord or gruvbox
+// wallpaper that carries real reds, greens and blues) is NOT monochrome: it falls
+// through to the chromatic path, which takes its accents verbatim from the image
+// and so preserves those distinct hues. weights may be nil (e.g. when coverage is
+// unknown), in which case this falls back to the unweighted IsMonochromeImage.
+func isMonochromeWeighted(colors []string, weights []float64) bool {
+	if len(colors) == 0 {
+		return false
+	}
+	if weights == nil {
+		return IsMonochromeImage(colors)
+	}
+
+	var achroW, chromaW, sinSum, cosSum float64
+	for i, c := range colors {
+		w := 0.0
+		if i < len(weights) {
+			w = weights[i]
+		}
+		lch := color.HexToOKLCH(c)
+		if lch.C < MonochromeChromaThreshold {
+			achroW += w
+			continue
+		}
+		chromaW += w
+		rad := lch.H * math.Pi / 180
+		sinSum += math.Sin(rad) * w
+		cosSum += math.Cos(rad) * w
+	}
+
+	total := achroW + chromaW
+	if total == 0 {
+		return false
+	}
+	if chromaW/total < MonoChromaticCoverageFloor {
+		return true // negligible colored coverage: one family (gray, or gray + speck)
+	}
+	// Colored coverage is substantial: monochrome only if it's one hue family.
+	mag := math.Sqrt(sinSum*sinSum+cosSum*cosSum) / chromaW
+	return mag > HueClusterMagnitudeThreshold
+}
+
 // findColorByPerceptualLightness finds a color by OKLab perceptual lightness
 // extremity, optionally biased toward image coverage. If findLightest is true it
 // favors lighter colors, otherwise darker. When weights is non-nil (normalized

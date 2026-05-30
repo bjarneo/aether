@@ -101,7 +101,7 @@ func GeneratePaletteByMode(dominantColors []string, weights []float64, lightMode
 	case "duotone":
 		return GenerateDuotonePalette(dominantColors, lightMode)
 	default:
-		if IsMonochromeImage(dominantColors) {
+		if isMonochromeWeighted(dominantColors, weights) {
 			return GenerateMonochromePalette(dominantColors, lightMode)
 		}
 		return GenerateChromaticPalette(dominantColors, weights, lightMode)
