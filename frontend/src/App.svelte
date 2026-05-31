@@ -81,7 +81,12 @@
     import CommandPalette from '$lib/components/shared/CommandPalette.svelte';
     import ExternalImportDialog from '$lib/components/ExternalImportDialog.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
-    import {hexToRgb, isLightRgb, wcagAlphaForContrast} from '$lib/utils/color';
+    import {
+        hexToRgb,
+        isLightRgb,
+        wcagAlphaForContrast,
+        contrastInk,
+    } from '$lib/utils/color';
     import {prefersReducedMotion} from '$lib/utils/browser';
     import {buildCommands} from '$lib/commands/commands.svelte';
     import type {main} from '../wailsjs/go/models';
@@ -341,11 +346,10 @@
                         root.style.setProperty('--color-accent', colors.blue);
                         // Pick black or white text for content sitting on
                         // the accent button, based on accent luminance.
-                        const ac = hexToRgb(colors.blue);
-                        const accentFg = isLightRgb(ac.r, ac.g, ac.b)
-                            ? '#111116'
-                            : '#ffffff';
-                        root.style.setProperty('--color-accent-fg', accentFg);
+                        root.style.setProperty(
+                            '--color-accent-fg',
+                            contrastInk(colors.blue)
+                        );
                     }
                     if (colors.red) {
                         root.style.setProperty(
@@ -354,15 +358,11 @@
                         );
                         // Same black/white-by-luminance choice as accent-fg,
                         // so text on a destructive button stays legible on an
-                        // arbitrary extracted red (e.g. a light pink needs
-                        // dark text, a deep red needs white).
-                        const rc = hexToRgb(colors.red);
-                        const destructiveFg = isLightRgb(rc.r, rc.g, rc.b)
-                            ? '#111116'
-                            : '#ffffff';
+                        // arbitrary extracted red (light pink needs dark text,
+                        // deep red needs white).
                         root.style.setProperty(
                             '--color-destructive-fg',
-                            destructiveFg
+                            contrastInk(colors.red)
                         );
                     }
                     if (colors.green) {

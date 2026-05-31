@@ -14,6 +14,16 @@ export function isLightRgb(r: number, g: number, b: number): boolean {
     return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
 
+/**
+ * Pick the foreground ink that reads on top of a background color: near-black
+ * for light backgrounds, white for dark. Single source of truth for the
+ * --color-accent-fg / --color-destructive-fg choice App.svelte applies at
+ * runtime from the extracted palette.
+ */
+export function contrastInk(hex: string): string {
+    return isLightColor(hex) ? '#111116' : '#ffffff';
+}
+
 export function isValidHex(hex: string): boolean {
     return typeof hex === 'string' && /^#[0-9a-fA-F]{6}$/.test(hex);
 }
