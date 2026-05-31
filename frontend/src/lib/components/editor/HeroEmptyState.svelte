@@ -47,7 +47,7 @@
                 />
             </svg>
         </div>
-        <h2 class="text-fg-primary mb-1 text-sm font-medium">
+        <h2 class="text-fg-primary mb-1 text-[13px] font-medium">
             Pick a wallpaper to begin
         </h2>
         <p class="text-fg-dimmed mb-6 text-[11px]">
@@ -55,7 +55,7 @@
         </p>
         <div class="mb-8 flex justify-center gap-2">
             <button
-                class="bg-accent text-bg-primary hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
+                class="bg-accent text-accent-fg hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
                 onclick={handleBrowse}
                 disabled={isBrowsing}
             >

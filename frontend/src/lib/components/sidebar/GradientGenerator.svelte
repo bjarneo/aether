@@ -45,7 +45,7 @@
                 class="h-6 w-8 cursor-pointer border-none bg-transparent"
             />
             <button
-                class="text-accent ml-auto text-[10px] hover:underline"
+                class="bg-bg-surface border-border text-fg-primary hover:border-accent ml-auto border px-2 py-1 text-[10px] transition-colors"
                 onclick={generatePreview}>Preview</button
             >
         </div>
@@ -57,7 +57,7 @@
                 {/each}
             </div>
             <button
-                class="text-accent text-[10px] hover:underline"
+                class="bg-bg-surface border-border text-fg-primary hover:border-accent border px-2 py-1 text-center text-[10px] transition-colors"
                 onclick={applyGradient}>Apply Gradient</button
             >
         {/if}

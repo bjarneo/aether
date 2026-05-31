@@ -83,11 +83,15 @@
 
             {#if getIsLoadingMore()}
                 <div class="flex h-12 items-center justify-center">
-                    <span class="text-fg-dimmed text-xs">Loading more...</span>
+                    <span class="text-fg-dimmed text-[12px]"
+                        >Loading more...</span
+                    >
                 </div>
             {:else if !getHasMore()}
                 <div class="flex h-12 items-center justify-center">
-                    <span class="text-fg-dimmed text-xs">End of results</span>
+                    <span class="text-fg-dimmed text-[12px]"
+                        >End of results</span
+                    >
                 </div>
             {/if}
         {/if}

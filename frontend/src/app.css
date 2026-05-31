@@ -29,6 +29,11 @@
      * sets a custom accent (App.svelte computes the right contrast). */
     --color-accent-fg: #111116;
     --color-destructive: #f38ba8;
+    /* Text color for content sitting ON top of bg-destructive. Dark-mode
+     * destructive is a light pink, so dark text reads. Flipped to white in
+     * light mode where destructive is a darker red. Overridden at runtime
+     * when the user's theme sets a custom red (App.svelte computes contrast). */
+    --color-destructive-fg: #111116;
     --color-success: #a6e3a1;
     --color-warning: #f9e2af;
 
@@ -74,6 +79,16 @@ main {
     main {
         transition: none;
     }
+    /* Neutralize decorative CSS animations (the Live "ping", the toast
+     * slide-in, any future spinner) without flattening color/opacity
+     * transitions, which aren't vestibular motion. Component-level animations
+     * can't otherwise be reached by the chrome-scoped rule above. */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
 }
 
 /* Transparent mode — applied via .transparent-widget on <html> */
@@ -108,6 +123,7 @@ main {
     --color-accent-muted: rgba(37, 99, 235, 0.12);
     --color-accent-fg: #ffffff;
     --color-destructive: #dc2626;
+    --color-destructive-fg: #ffffff;
     --color-success: #16a34a;
     --color-warning: #ca8a04;
 }

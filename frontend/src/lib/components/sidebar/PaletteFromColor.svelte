@@ -27,9 +27,9 @@
             bind:value={baseColor}
             class="h-6 w-8 cursor-pointer border-none bg-transparent"
         />
-        <span class="text-fg-dimmed font-mono text-xs">{baseColor}</span>
+        <span class="text-fg-dimmed font-mono text-[10px]">{baseColor}</span>
         <button
-            class="bg-bg-surface border-border text-fg-primary hover:border-accent ml-auto border px-2 py-1 text-[10px]"
+            class="bg-bg-surface border-border text-fg-primary hover:border-accent ml-auto border px-2 py-1 text-[10px] transition-colors"
             onclick={generate}
         >
             Generate

@@ -263,7 +263,7 @@
 {#snippet goToEditor()}
     {#if wallpaperSelected}
         <button
-            class="bg-accent text-bg-primary hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
+            class="bg-accent text-accent-fg hover:bg-accent-hover px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
             onclick={() => setActiveTab('editor')}>Go to Editor</button
         >
     {/if}
@@ -415,7 +415,7 @@
                 </button>
 
                 <button
-                    class="bg-accent text-bg-primary hover:bg-accent-hover relative inline-flex items-center gap-2 px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
+                    class="bg-accent text-accent-fg hover:bg-accent-hover relative inline-flex items-center gap-2 px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
                     onclick={handleApply}
                     disabled={applying}
                     title={dirty
@@ -572,11 +572,11 @@
     {/if}
     <div class="flex justify-end gap-2">
         <button
-            class="text-fg-dimmed hover:text-fg-secondary px-3 py-1 text-[11px]"
+            class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px] transition-colors"
             onclick={() => (showExportDialog = false)}>Cancel</button
         >
         <button
-            class="bg-accent text-bg-primary hover:bg-accent-hover px-3 py-1 text-[11px] font-medium disabled:opacity-50"
+            class="bg-accent text-accent-fg hover:bg-accent-hover px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
             onclick={handleExport}
             disabled={!exportName.trim()}>Export</button
         >

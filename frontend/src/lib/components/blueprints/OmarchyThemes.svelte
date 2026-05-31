@@ -151,11 +151,11 @@
                         class="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
                     >
                         <button
-                            class="text-fg-dimmed border-border hover:bg-bg-elevated border px-2 py-1 text-[10px]"
+                            class="text-fg-dimmed border-border hover:bg-bg-elevated border px-2 py-1 text-[10px] transition-colors"
                             onclick={() => handleEdit(theme)}>Edit</button
                         >
                         <button
-                            class="bg-accent hover:bg-accent-hover text-accent-fg px-2 py-1 text-[10px] font-medium"
+                            class="bg-accent hover:bg-accent-hover text-accent-fg px-2 py-1 text-[10px] font-medium transition-colors"
                             onclick={() => handleApply(theme)}>Apply</button
                         >
                     </div>

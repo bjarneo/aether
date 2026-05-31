@@ -36,7 +36,7 @@
 <div class="mx-auto h-full max-w-2xl overflow-y-auto p-8">
     <div class="mb-8">
         <h1
-            class="text-fg-primary mb-2 text-[24px] font-semibold tracking-tight"
+            class="text-fg-primary mb-2 text-[24px] font-semibold"
             style="letter-spacing: 0.04em;"
         >
             AETHER

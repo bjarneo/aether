@@ -95,11 +95,11 @@
                 class="mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100"
             >
                 <button
-                    class="bg-accent hover:bg-accent-hover text-accent-fg flex-1 px-2 py-1 text-[10px] font-medium"
+                    class="bg-accent hover:bg-accent-hover text-accent-fg flex-1 px-2 py-1 text-[10px] font-medium transition-colors"
                     onclick={onload}>Use</button
                 >
                 <button
-                    class="text-destructive border-border hover:bg-bg-elevated border px-2 py-1 text-[10px]"
+                    class="text-destructive border-border hover:bg-bg-elevated border px-2 py-1 text-[10px] transition-colors"
                     onclick={() => (confirmingDelete = true)}>Delete</button
                 >
             </div>

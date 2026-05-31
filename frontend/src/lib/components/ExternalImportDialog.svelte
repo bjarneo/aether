@@ -135,7 +135,7 @@
     z="z-50"
 >
     {#if preview}
-        <h3 class="text-fg-primary mb-1 text-[13px] font-medium">
+        <h3 class="text-fg-primary mb-1 text-[12px] font-medium">
             {isEdit
                 ? 'Open theme from web in editor?'
                 : 'Apply theme from web?'}
@@ -190,14 +190,14 @@
 
         <div class="flex justify-end gap-2">
             <button
-                class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px]"
+                class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px] transition-colors"
                 onclick={handleCancel}
                 disabled={isApplying}
             >
                 Cancel
             </button>
             <button
-                class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1.5 text-[11px] font-medium disabled:opacity-50"
+                class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
                 onclick={handleConfirm}
                 disabled={isApplying}
             >

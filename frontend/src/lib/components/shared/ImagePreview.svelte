@@ -28,6 +28,14 @@
         if (e.key === 'ArrowLeft' && hasPrev) onprev?.();
         if (e.key === 'ArrowRight' && hasNext) onnext?.();
     }
+
+    // The backdrop div is never focused, so its onkeydown never fires. Listen
+    // on window while open so Escape and arrow paging actually work.
+    $effect(() => {
+        if (!open) return;
+        window.addEventListener('keydown', handleKeydown);
+        return () => window.removeEventListener('keydown', handleKeydown);
+    });
 </script>
 
 {#if open}

@@ -347,7 +347,7 @@
                 <!-- Undo / Redo -->
                 <button
                     type="button"
-                    class="text-fg-dimmed hover:text-fg-primary flex h-7 w-7 items-center justify-center transition-colors disabled:opacity-30"
+                    class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover flex h-7 w-7 items-center justify-center transition-colors disabled:cursor-default disabled:opacity-25"
                     onclick={handleUndo}
                     disabled={!canUndo}
                     title="Undo filter change ( Ctrl+Z )"
@@ -368,7 +368,7 @@
                 </button>
                 <button
                     type="button"
-                    class="text-fg-dimmed hover:text-fg-primary flex h-7 w-7 items-center justify-center transition-colors disabled:opacity-30"
+                    class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover flex h-7 w-7 items-center justify-center transition-colors disabled:cursor-default disabled:opacity-25"
                     onclick={handleRedo}
                     disabled={!canRedo}
                     title="Redo filter change ( Ctrl+Shift+Z )"
@@ -395,7 +395,7 @@
                     type="button"
                     class="flex h-7 items-center gap-1.5 px-2 text-[10px] font-medium transition-colors
                         {showOriginal
-                        ? 'text-accent bg-accent/10'
+                        ? 'text-accent bg-accent-muted'
                         : 'text-fg-dimmed hover:text-fg-primary'}"
                     onclick={() => (showOriginal = !showOriginal)}
                     disabled={!hasChanges}
@@ -422,13 +422,13 @@
                 <span class="bg-border mx-2 h-4 w-px"></span>
 
                 <button
-                    class="text-fg-dimmed hover:text-fg-secondary px-2 py-1 text-[11px] transition-colors disabled:opacity-30"
+                    class="text-fg-dimmed hover:text-fg-secondary px-2 py-1 text-[11px] transition-colors disabled:cursor-default disabled:opacity-50"
                     onclick={resetFilters}
                     disabled={!hasChanges}
                     title="Reset all adjustments (R)">Reset</button
                 >
                 <button
-                    class="bg-accent hover:bg-accent-hover text-accent-fg inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-40"
+                    class="bg-accent hover:bg-accent-hover text-accent-fg inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
                     onclick={handleApply}
                     disabled={isProcessing || !hasChanges}
                     title="Apply and close (Ctrl+Enter)"

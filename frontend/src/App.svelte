@@ -352,6 +352,18 @@
                             '--color-destructive',
                             colors.red
                         );
+                        // Same black/white-by-luminance choice as accent-fg,
+                        // so text on a destructive button stays legible on an
+                        // arbitrary extracted red (e.g. a light pink needs
+                        // dark text, a deep red needs white).
+                        const rc = hexToRgb(colors.red);
+                        const destructiveFg = isLightRgb(rc.r, rc.g, rc.b)
+                            ? '#111116'
+                            : '#ffffff';
+                        root.style.setProperty(
+                            '--color-destructive-fg',
+                            destructiveFg
+                        );
                     }
                     if (colors.green) {
                         root.style.setProperty('--color-success', colors.green);

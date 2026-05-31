@@ -45,7 +45,7 @@
                 <WallpaperPicker />
             {/if}
 
-            <div class={wallpaper ? 'mt-3' : 'mt-1'}>
+            <div class={wallpaper ? 'mt-4' : 'mt-1'}>
                 <ColorPaletteGrid />
             </div>
             <ExtendedColors />

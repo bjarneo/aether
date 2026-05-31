@@ -104,11 +104,11 @@
         </p>
         <div class="flex justify-end gap-2">
             <button
-                class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px]"
+                class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px] transition-colors"
                 onclick={() => (showOverrideConfirm = false)}>Cancel</button
             >
             <button
-                class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1.5 text-[11px] font-medium disabled:opacity-50"
+                class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
                 onclick={doSave}
                 disabled={isSaving}
                 >{isSaving ? 'Saving...' : 'Override'}</button
@@ -134,11 +134,11 @@
         {/if}
         <div class="mt-3 flex justify-end gap-2">
             <button
-                class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px]"
+                class="text-fg-dimmed hover:text-fg-secondary px-3 py-1.5 text-[11px] transition-colors"
                 onclick={onclose}>Cancel</button
             >
             <button
-                class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1.5 text-[11px] font-medium disabled:opacity-50"
+                class="bg-accent hover:bg-accent-hover text-accent-fg px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
                 onclick={handleSave}
                 disabled={!name.trim() || isSaving}
                 >{isSaving ? 'Saving...' : 'Save'}</button

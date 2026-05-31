@@ -153,9 +153,7 @@
         <span
             class="pointer-events-none absolute bottom-0.5 left-1 select-none font-mono text-[8px] font-semibold leading-none tracking-tight opacity-70 transition-opacity group-hover:opacity-100
             {level === 'fail'
-                ? light
-                    ? 'text-red-700'
-                    : 'text-red-300'
+                ? 'text-destructive'
                 : light
                   ? 'text-black/80'
                   : 'text-white/80'}"
