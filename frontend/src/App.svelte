@@ -446,9 +446,7 @@
                 {:else if activeTab === 'blueprints'}
                     <BlueprintsView />
                 {:else if activeTab === 'system'}
-                    <div class="h-full overflow-y-auto p-3">
-                        <OmarchyThemes />
-                    </div>
+                    <OmarchyThemes />
                 {:else if activeTab === 'about'}
                     <AboutView />
                 {/if}

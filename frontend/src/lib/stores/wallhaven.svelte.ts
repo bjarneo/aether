@@ -22,9 +22,6 @@ let totalResults = $state(0);
 let isSearching = $state(false);
 let isLoadingMore = $state(false);
 
-export type CardSize = 'small' | 'medium' | 'large';
-let cardSize = $state<CardSize>('small');
-
 // Load config from ~/.config/aether/wallhaven.json on startup
 loadConfigFromFile();
 
@@ -104,12 +101,6 @@ export function getIsLoadingMore(): boolean {
 }
 export function getHasMore(): boolean {
     return totalPages > 0 && page < totalPages;
-}
-export function getCardSize(): CardSize {
-    return cardSize;
-}
-export function setCardSize(s: CardSize): void {
-    cardSize = s;
 }
 
 // --- Setters (all persist) ---

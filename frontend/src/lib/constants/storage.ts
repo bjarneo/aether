@@ -15,4 +15,5 @@ export const STORAGE_KEYS = {
     zoom: 'aether-zoom',
     recentColors: 'aether.recentColors',
     customPresets: 'aether.customPresets',
+    cardSize: 'aether-card-size',
 } as const;

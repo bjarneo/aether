@@ -6,6 +6,7 @@
         swapMainWithAdditional,
     } from '$lib/stores/theme.svelte';
     import {showToast} from '$lib/stores/ui.svelte';
+    import SectionHeader from '$lib/components/shared/SectionHeader.svelte';
 
     let thumbnails = $state<Record<string, string>>({});
 
@@ -62,17 +63,12 @@
 </script>
 
 <div>
-    <div class="mb-2 flex items-center justify-between">
-        <h3
-            class="text-fg-dimmed text-[10px] font-medium uppercase tracking-wider"
-        >
-            Additional Images
-        </h3>
+    <SectionHeader title="Additional Images">
         <button
-            class="text-fg-primary bg-bg-elevated hover:bg-border-focus px-4 py-1.5 text-[11px] font-medium transition-colors duration-100"
+            class="text-fg-secondary border-border hover:bg-bg-hover border px-2 py-1 text-[10px] font-medium transition-colors duration-100"
             onclick={handleAdd}>+ Add</button
         >
-    </div>
+    </SectionHeader>
 
     {#if getAdditionalImages().length > 0}
         <div class="grid grid-cols-4 gap-1.5">

@@ -1,5 +1,6 @@
 <script lang="ts">
     import ColorSwatch from './ColorSwatch.svelte';
+    import SectionHeader from '$lib/components/shared/SectionHeader.svelte';
     import {
         getPalette,
         getLockedColors,
@@ -108,38 +109,28 @@
 </script>
 
 <div>
-    <div class="mb-2 flex items-center justify-between">
-        <h3
-            class="text-fg-dimmed text-[10px] font-medium uppercase tracking-wider"
+    <SectionHeader title="Palette" suffix={hasSelect ? '(selection)' : ''}>
+        <button
+            class="text-fg-dimmed hover:text-accent text-[9px] transition-colors"
+            onclick={randomPalette}
+            title="Generate palette from a random shade (experimental)"
+            >Random</button
         >
-            Palette
-            {#if hasSelect}
-                <span class="text-accent ml-1">(selection)</span>
-            {/if}
-        </h3>
-        <div class="flex items-center gap-2">
+        <button
+            class="text-fg-dimmed hover:text-accent text-[9px] transition-colors"
+            onclick={shufflePalette}
+            title="Shuffle ANSI color roles (experimental)">Shuffle</button
+        >
+        {#if hasSelect}
             <button
-                class="text-fg-dimmed hover:text-accent text-[9px] transition-colors"
-                onclick={randomPalette}
-                title="Generate palette from a random shade (experimental)"
-                >Random</button
+                class="text-accent hover:text-accent-hover text-[9px] transition-colors"
+                onclick={clearColorSelection}>Clear</button
             >
-            <button
-                class="text-fg-dimmed hover:text-accent text-[9px] transition-colors"
-                onclick={shufflePalette}
-                title="Shuffle ANSI color roles (experimental)">Shuffle</button
-            >
-            {#if hasSelect}
-                <button
-                    class="text-accent hover:text-accent-hover text-[9px] transition-colors"
-                    onclick={clearColorSelection}>Clear</button
-                >
-            {/if}
-            <span class="text-fg-dimmed text-[9px]"
-                >Shift+click select · ←→↑↓ navigate · L lock · C copy</span
-            >
-        </div>
-    </div>
+        {/if}
+        <span class="text-fg-dimmed text-[9px]"
+            >Shift+click select · ←→↑↓ navigate · L lock · C copy</span
+        >
+    </SectionHeader>
 
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- 8 columns, each has normal + bright stacked with label -->

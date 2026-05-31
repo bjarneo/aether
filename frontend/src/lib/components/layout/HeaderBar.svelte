@@ -12,6 +12,7 @@
     import SearchIcon from '$lib/components/shared/SearchIcon.svelte';
 
     let sidebarVisible = $derived(getSidebarVisible());
+    let activeTab = $derived(getActiveTab());
     let isMac = $state(false);
 
     onMount(async () => {
@@ -85,33 +86,35 @@
         onclick={() => setActiveTab('editor')}
         title="Editor">AETHER</button
     >
-    <button
-        class="text-fg-dimmed hover:text-fg-primary mx-3 flex h-6 w-6 items-center justify-center transition-colors duration-100"
-        class:mb-0.5={isMac}
-        onclick={toggleSidebar}
-        title={sidebarVisible
-            ? 'Hide sidebar (Ctrl+B)'
-            : 'Show sidebar (Ctrl+B)'}
-        aria-label="Toggle sidebar"
-        style="--wails-draggable:no-drag"
-    >
-        <svg
-            class="h-3.5 w-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+    {#if activeTab === 'editor'}
+        <button
+            class="text-fg-dimmed hover:text-fg-primary mx-3 flex h-6 w-6 items-center justify-center transition-colors duration-100"
+            class:mb-0.5={isMac}
+            onclick={toggleSidebar}
+            title={sidebarVisible
+                ? 'Hide sidebar (Ctrl+B)'
+                : 'Show sidebar (Ctrl+B)'}
+            aria-label="Toggle sidebar"
+            style="--wails-draggable:no-drag"
         >
-            <rect x="3" y="3" width="18" height="18" rx="2" /><line
-                x1="9"
-                y1="3"
-                x2="9"
-                y2="21"
-            />
-        </svg>
-    </button>
+            <svg
+                class="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <rect x="3" y="3" width="18" height="18" rx="2" /><line
+                    x1="9"
+                    y1="3"
+                    x2="9"
+                    y2="21"
+                />
+            </svg>
+        </button>
+    {/if}
     <nav class="flex flex-1 justify-end gap-0.5">
         {#each tabs as tab}
             <button

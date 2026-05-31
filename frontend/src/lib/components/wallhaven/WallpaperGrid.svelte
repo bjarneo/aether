@@ -1,19 +1,13 @@
 <script lang="ts">
     import WallpaperCard from './WallpaperCard.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
-    import {getCardSize, type CardSize} from '$lib/stores/wallhaven.svelte';
+    import {getCardSize, CARD_MIN_WIDTH} from '$lib/stores/cardsize.svelte';
     import type {wallhaven} from '../../../../wailsjs/go/models';
 
     type Wallpaper = wallhaven.WallpaperInfo;
 
     let {wallpapers}: {wallpapers: Wallpaper[]} = $props();
     let previewIndex = $state(-1);
-
-    const MIN_WIDTH_PX: Record<CardSize, number> = {
-        small: 220,
-        medium: 340,
-        large: 500,
-    };
 
     function getPreviewSrc(wp: Wallpaper): string {
         return wp.path || wp.thumbs?.original || wp.thumbs?.large;
@@ -22,7 +16,7 @@
 
 <div
     class="grid gap-3"
-    style:grid-template-columns="repeat(auto-fill, minmax({MIN_WIDTH_PX[
+    style:grid-template-columns="repeat(auto-fill, minmax({CARD_MIN_WIDTH[
         getCardSize()
     ]}px, 1fr))"
 >

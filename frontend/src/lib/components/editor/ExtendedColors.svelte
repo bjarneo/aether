@@ -13,6 +13,7 @@
     import {EXTENDED_COLOR_ROLES} from '$lib/constants/colors';
     import LockIcon from '$lib/components/shared/LockIcon.svelte';
     import ContextMenu from '$lib/components/shared/ContextMenu.svelte';
+    import SectionHeader from '$lib/components/shared/SectionHeader.svelte';
 
     let extColors = $derived(getExtendedColors());
     let selectedExt = $derived(getSelectedExtColors());
@@ -79,11 +80,7 @@
 </script>
 
 <div class="mt-4">
-    <h3
-        class="text-fg-dimmed mb-2 text-[10px] font-medium uppercase tracking-wider"
-    >
-        Extended Colors
-    </h3>
+    <SectionHeader title="Extended Colors" />
     <div class="grid grid-cols-4 gap-2">
         {#each EXTENDED_COLOR_ROLES as role}
             {@const hex = extColors[role.key] || '#000000'}

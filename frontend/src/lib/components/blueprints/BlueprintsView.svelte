@@ -14,6 +14,9 @@
     import {DEFAULT_ADJUSTMENTS, type Blueprint} from '$lib/types/theme';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
     import LoadingState from '$lib/components/shared/LoadingState.svelte';
+    import ViewHeader from '$lib/components/shared/ViewHeader.svelte';
+    import CardSizeToggle from '$lib/components/shared/CardSizeToggle.svelte';
+    import {getCardSize, CARD_MIN_WIDTH} from '$lib/stores/cardsize.svelte';
 
     let blueprints = $state<Blueprint[]>([]);
     let isLoading = $state(true);
@@ -83,18 +86,19 @@
 </script>
 
 <div class="flex h-full flex-col">
-    <div
-        class="bg-bg-secondary border-border flex flex-wrap items-center gap-1.5 border-b px-3 py-2"
-    >
+    <ViewHeader>
         <span
             class="text-fg-dimmed text-[10px] font-medium uppercase tracking-wider"
             >My Themes</span
         >
-        <button
-            class="bg-accent hover:bg-accent-hover text-accent-fg ml-auto px-2 py-0.5 text-[11px] font-medium transition-colors"
-            onclick={() => (showSaveDialog = true)}>Save Current</button
-        >
-    </div>
+        <div class="ml-auto flex items-center gap-1.5">
+            <CardSizeToggle />
+            <button
+                class="bg-accent hover:bg-accent-hover text-accent-fg px-2 py-0.5 text-[11px] font-medium transition-colors"
+                onclick={() => (showSaveDialog = true)}>Save Current</button
+            >
+        </div>
+    </ViewHeader>
 
     <div class="flex-1 overflow-y-auto p-3">
         {#if isLoading}
@@ -124,7 +128,10 @@
             </EmptyState>
         {:else}
             <div
-                class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3"
+                class="grid gap-3"
+                style:grid-template-columns="repeat(auto-fill, minmax({CARD_MIN_WIDTH[
+                    getCardSize()
+                ]}px, 1fr))"
             >
                 {#each blueprints as bp, i (bp.name + '_' + i)}
                     <BlueprintCard

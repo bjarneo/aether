@@ -17,11 +17,9 @@
         getApiKey,
         setApiKey,
         getTotalResults,
-        getCardSize,
-        setCardSize,
         search,
-        type CardSize,
     } from '$lib/stores/wallhaven.svelte';
+    import CardSizeToggle from '$lib/components/shared/CardSizeToggle.svelte';
 
     let showAdvanced = $state(false);
 
@@ -32,11 +30,6 @@
 
     const categoryLabels = ['General', 'Anime', 'People'];
     const purityLabels = ['SFW', 'Sketchy', 'NSFW'];
-    const sizeOptions: {value: CardSize; label: string; title: string}[] = [
-        {value: 'small', label: 'S', title: 'Small cards'},
-        {value: 'medium', label: 'M', title: 'Medium cards'},
-        {value: 'large', label: 'L', title: 'Large cards'},
-    ];
     const colorPresets = [
         {hex: '660000', label: 'Red'},
         {hex: 'cc6633', label: 'Orange'},
@@ -149,21 +142,7 @@
 
         <span class="bg-border h-3.5 w-px"></span>
 
-        <div class="flex items-center gap-0.5" title="Card size">
-            {#each sizeOptions as opt}
-                <button
-                    type="button"
-                    class="border px-1.5 py-0.5 text-[10px] transition-colors
-            {getCardSize() === opt.value
-                        ? 'text-accent border-accent bg-accent-muted'
-                        : 'text-fg-dimmed border-border hover:text-fg-secondary'}"
-                    onclick={() => setCardSize(opt.value)}
-                    title={opt.title}
-                    aria-pressed={getCardSize() === opt.value}
-                    >{opt.label}</button
-                >
-            {/each}
-        </div>
+        <CardSizeToggle />
 
         <div class="ml-auto flex items-center gap-3">
             {#if getTotalResults() > 0}

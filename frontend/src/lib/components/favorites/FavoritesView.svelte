@@ -15,10 +15,11 @@
         getCachedFullImage,
     } from '$lib/stores/imagecache.svelte';
     import {getLabels, getAssignments} from '$lib/stores/tags.svelte';
-    import TagPicker from '$lib/components/shared/TagPicker.svelte';
+    import WallpaperTile from '$lib/components/shared/WallpaperTile.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
     import LoadingState from '$lib/components/shared/LoadingState.svelte';
+    import ViewHeader from '$lib/components/shared/ViewHeader.svelte';
     import {applyWallpaperOnly} from '$lib/actions/themeActions';
     import {getIsApplying} from '$lib/stores/theme.svelte';
     import type {favorites as favoritesNs} from '../../../../wailsjs/go/models';
@@ -156,9 +157,7 @@
 </script>
 
 <div class="flex h-full flex-col">
-    <div
-        class="bg-bg-secondary border-border flex flex-wrap items-center gap-1.5 border-b px-3 py-2"
-    >
+    <ViewHeader>
         <span
             class="text-fg-dimmed text-[10px] font-medium uppercase tracking-wider"
             >Favorites</span
@@ -197,7 +196,7 @@
         <span class="text-fg-dimmed ml-auto text-[10px]"
             >{filtered.length}{filterTag ? `/${favorites.length}` : ''}</span
         >
-    </div>
+    </ViewHeader>
 
     <div class="flex-1 overflow-y-auto p-3">
         {#if isLoading}
@@ -257,12 +256,17 @@
                 class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2"
             >
                 {#each filtered as fav, i (fav.path)}
-                    <div
-                        class="bg-bg-surface border-border group relative border"
+                    <WallpaperTile
+                        path={fav.path}
+                        name={fav.data?.name || fav.data?.id || 'Wallpaper'}
+                        isAdded={getAdditionalImages().includes(fav.path)}
+                        applying={getIsApplying()}
+                        onuse={() => handleSelect(fav)}
+                        onwallpaperonly={() => applyWallpaperOnly(fav.path)}
+                        onpreview={() => handlePreview(i)}
+                        onaddextra={() => handleAddExtra(fav)}
                     >
-                        <div
-                            class="bg-bg-primary flex aspect-video items-center justify-center overflow-hidden"
-                        >
+                        {#snippet thumb()}
                             {#if getCachedThumbnail(fav.path)}
                                 <img
                                     src={getCachedThumbnail(fav.path)}
@@ -274,105 +278,29 @@
                                     >...</span
                                 >
                             {/if}
-                        </div>
-
-                        <div
-                            class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-                        >
+                        {/snippet}
+                        {#snippet topRight()}
                             <button
-                                class="bg-accent hover:bg-accent-hover text-accent-fg pointer-events-auto min-w-[7rem] px-4 py-1.5 text-[11px] font-medium transition-colors"
-                                onclick={() => handleSelect(fav)}
-                                title="Set as wallpaper and open in editor"
-                                >Use</button
+                                class="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-100"
+                                onclick={() => handleRemove(fav)}
+                                aria-label="Remove from favorites"
                             >
-                            <div
-                                class="flex items-center gap-2 text-[10px] text-white/85"
-                            >
-                                <button
-                                    class="pointer-events-auto px-1 transition-colors hover:text-white disabled:opacity-50"
-                                    onclick={() => applyWallpaperOnly(fav.path)}
-                                    disabled={getIsApplying()}
-                                    title="Apply this wallpaper without changing the current palette"
-                                    >Wallpaper only</button
+                                <svg
+                                    class="text-destructive h-4 w-4"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
                                 >
-                                <span class="text-white/30" aria-hidden="true"
-                                    >·</span
-                                >
-                                <button
-                                    class="pointer-events-auto px-1 transition-colors hover:text-white"
-                                    onclick={() => handlePreview(i)}
-                                    title="Preview wallpaper full-size"
-                                    >Preview</button
-                                >
-                            </div>
-                        </div>
-
-                        <button
-                            class="absolute left-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center transition-all duration-150
-                          {getAdditionalImages().includes(fav.path)
-                                ? 'opacity-100'
-                                : 'opacity-0 hover:!opacity-100 group-hover:opacity-60'}"
-                            onclick={e => {
-                                e.stopPropagation();
-                                handleAddExtra(fav);
-                            }}
-                            aria-label="Add to additional images"
-                        >
-                            <svg
-                                class="h-4 w-4 {getAdditionalImages().includes(
-                                    fav.path
-                                )
-                                    ? 'text-accent'
-                                    : 'text-white'}"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <rect
-                                    x="3"
-                                    y="3"
-                                    width="18"
-                                    height="18"
-                                    rx="2"
-                                    ry="2"
-                                ></rect>
-                                <line x1="12" y1="8" x2="12" y2="16"></line>
-                                <line x1="8" y1="12" x2="16" y2="12"></line>
-                            </svg>
-                        </button>
-
-                        <button
-                            class="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-100"
-                            onclick={() => handleRemove(fav)}
-                            aria-label="Remove from favorites"
-                        >
-                            <svg
-                                class="text-destructive h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path
-                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                ></path>
-                            </svg>
-                        </button>
-
-                        <div class="flex items-center gap-1.5 px-2 py-1">
-                            <TagPicker path={fav.path} />
-                            <span
-                                class="text-fg-dimmed flex-1 truncate text-[10px]"
-                            >
-                                {fav.data?.name || fav.data?.id || 'Wallpaper'}
-                            </span>
-                        </div>
-                    </div>
+                                    <path
+                                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                                    ></path>
+                                </svg>
+                            </button>
+                        {/snippet}
+                    </WallpaperTile>
                 {/each}
             </div>
         {/if}
