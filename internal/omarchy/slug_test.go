@@ -1,6 +1,10 @@
-package omarchy
+package omarchy_test
 
-import "testing"
+import (
+	"testing"
+
+	"aether/internal/omarchy"
+)
 
 func TestSlugifyThemeName(t *testing.T) {
 	tests := []struct {
@@ -21,7 +25,7 @@ func TestSlugifyThemeName(t *testing.T) {
 		{"a b c d", "a-b-c-d"},
 	}
 	for _, tt := range tests {
-		got := SlugifyThemeName(tt.in)
+		got := omarchy.SlugifyThemeName(tt.in)
 		if got != tt.want {
 			t.Errorf("SlugifyThemeName(%q) = %q, want %q", tt.in, got, tt.want)
 		}

@@ -8,9 +8,9 @@ https://github.com/user-attachments/assets/862377df-ad05-48de-a0a3-65b243c4b44b
 
 # Aether
 
-A visual theming application for [Omarchy](https://omarchy.org). Extract colors from wallpapers and apply cohesive themes across your entire desktop.
+A visual theme generator for Wayland desktops. Aether extracts colors from wallpapers and writes matching theme files for terminals, bars, launchers, editors, and desktop tools.
 
-> **Not using Omarchy?** Aether works standalone on any Linux desktop. See the [Standalone Guide](docs/standalone.md) for setup.
+It works well with [Omarchy](https://omarchy.org), but it does not require Omarchy. See the [Standalone Guide](docs/standalone.md) for a plain Wayland setup.
 
 ## Features
 
@@ -30,12 +30,12 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 - 24 built-in color presets including Dracula, Nord, Gruvbox, Catppuccin, and Sakura
 - Import 250+ community Base16 color schemes
 - Save and restore complete themes as blueprint files
-- Export themes as shareable packages with selective app inclusion
+- Export portable Aether theme packs with selective app inclusion
 
 ### Application Support
-- 20+ pre-configured apps: Hyprland, Waybar, Kitty, Alacritty, Ghostty, Neovim, VS Code, Zed, btop, and more
+- 20+ pre-configured apps: Hyprland, Triad, Zellij, Waybar, Kitty, Alacritty, Ghostty, Neovim, VS Code, Zed, btop, and more
 - Template system with hex, RGB, RGBA, and stripped format modifiers
-- Per-app overrides, reload hooks, and post-apply scripts
+- Per-app overrides and post-apply scripts
 - Add your own apps with custom templates
 
 ### Extras

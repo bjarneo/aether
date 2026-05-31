@@ -1,6 +1,8 @@
-package template
+package template_test
 
 import (
+	"aether/internal/template"
+
 	"sort"
 	"strings"
 	"testing"
@@ -66,17 +68,17 @@ func TestExtractVariableNames(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ExtractVariableNames(tt.input)
+			got := template.ExtractVariableNames(tt.input)
 			sort.Strings(got)
 			sort.Strings(tt.want)
 
 			if len(got) != len(tt.want) {
-				t.Errorf("ExtractVariableNames() = %v, want %v", got, tt.want)
+				t.Errorf("template.ExtractVariableNames() = %v, want %v", got, tt.want)
 				return
 			}
 			for i := range got {
 				if got[i] != tt.want[i] {
-					t.Errorf("ExtractVariableNames() = %v, want %v", got, tt.want)
+					t.Errorf("template.ExtractVariableNames() = %v, want %v", got, tt.want)
 					return
 				}
 			}
@@ -215,9 +217,9 @@ func TestReplaceVariable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ReplaceVariable(tt.content, tt.key, tt.value)
+			got := template.ReplaceVariable(tt.content, tt.key, tt.value)
 			if got != tt.want {
-				t.Errorf("ReplaceVariable() = %q, want %q", got, tt.want)
+				t.Errorf("template.ReplaceVariable() = %q, want %q", got, tt.want)
 			}
 		})
 	}
@@ -298,16 +300,16 @@ func TestProcessTemplate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ProcessTemplate(tt.content, tt.variables)
+			got := template.ProcessTemplate(tt.content, tt.variables)
 			if got != tt.want {
-				t.Errorf("ProcessTemplate() =\n%s\nwant:\n%s", got, tt.want)
+				t.Errorf("template.ProcessTemplate() =\n%s\nwant:\n%s", got, tt.want)
 			}
 		})
 	}
 }
 
 func TestBuildVariables(t *testing.T) {
-	roles := ColorRoles{
+	roles := template.ColorRoles{
 		Background:          "#1e1e2e",
 		Foreground:          "#cdd6f4",
 		Black:               "#45475a",
@@ -333,7 +335,7 @@ func TestBuildVariables(t *testing.T) {
 	}
 
 	t.Run("dark mode", func(t *testing.T) {
-		vars := BuildVariables(roles, false)
+		vars := template.BuildVariables(roles, false)
 
 		// Check base colors
 		if vars["background"] != "#1e1e2e" {
@@ -376,19 +378,19 @@ func TestBuildVariables(t *testing.T) {
 	})
 
 	t.Run("light mode", func(t *testing.T) {
-		vars := BuildVariables(roles, true)
+		vars := template.BuildVariables(roles, true)
 		if vars["theme_type"] != "light" {
 			t.Errorf("theme_type = %s, want light", vars["theme_type"])
 		}
 	})
 
 	t.Run("defaults for empty extended colors", func(t *testing.T) {
-		emptyRoles := ColorRoles{
+		emptyRoles := template.ColorRoles{
 			Background: "#1e1e2e",
 			Foreground: "#cdd6f4",
 			Blue:       "#89b4fa",
 		}
-		vars := BuildVariables(emptyRoles, false)
+		vars := template.BuildVariables(emptyRoles, false)
 
 		if vars["accent"] != "#89b4fa" {
 			t.Errorf("accent = %s, want #89b4fa (default to blue)", vars["accent"])
@@ -428,7 +430,7 @@ func TestRecomputeDerived(t *testing.T) {
 		merged["background"] = "#ff0000" // override
 		overrides := map[string]string{"background": "#ff0000"}
 
-		RecomputeDerived(merged, overrides)
+		template.RecomputeDerived(merged, overrides)
 
 		if merged["bg"] != "#ff0000" {
 			t.Errorf("bg = %s, want #ff0000", merged["bg"])
@@ -453,7 +455,7 @@ func TestRecomputeDerived(t *testing.T) {
 			"dark_bg":    "#00ff00",
 		}
 
-		RecomputeDerived(merged, overrides)
+		template.RecomputeDerived(merged, overrides)
 
 		// dark_bg was explicitly overridden, should NOT be recomputed
 		if merged["dark_bg"] != "#00ff00" {

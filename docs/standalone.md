@@ -1,8 +1,6 @@
-# Standalone Usage (Non-Omarchy Systems)
+# Standalone Wayland Usage
 
-Aether can be used on any Linux or macOS system, not just Omarchy. When running outside of Omarchy, theme files are generated but not automatically applied system-wide.
-
-On macOS, theme files are generated to `~/Library/Application Support/aether/theme/`.
+Aether does not require Omarchy. On a plain Wayland session, it writes theme files to Aether's config directory. Your compositor, terminal, bar, launcher, and editor can include those files directly.
 
 ## Theme Output Location
 
@@ -19,6 +17,7 @@ When you click "Apply Theme", Aether generates all theme files to:
 ├── backgrounds/          # Wallpaper copy
 │   └── wallpaper.jpg
 ├── hyprland.conf         # Hyprland color config
+├── triad.kdl             # Triad theme include
 ├── kitty.conf            # Kitty terminal theme
 ├── waybar.css            # Waybar stylesheet
 ├── gtk.css               # GTK theme (if enabled)
@@ -38,6 +37,23 @@ Source the generated config in your `~/.config/hypr/hyprland.conf`:
 ```conf
 source = ~/.config/aether/theme/hyprland.conf
 ```
+
+### Triad
+
+Include the generated theme file in your `~/.config/triad/config.kdl`:
+
+```kdl
+include optional=#true "~/.config/aether/theme/triad.kdl"
+```
+
+Aether writes `theme.accent-color` for Triad. Your explicit Triad colors still
+win, so you can keep custom border, tab, toast, or recent-window colors in your
+main config.
+
+The optional include lets Triad start before Aether has generated a theme. After
+the file exists, Triad watches it with the rest of your config. If you add the
+include for the first time during a running session, run `triad msg config-reload`
+once.
 
 ### Kitty Terminal
 
@@ -61,12 +77,12 @@ Or symlink it:
 ln -sf ~/.config/aether/theme/waybar.css ~/.config/waybar/colors.css
 ```
 
-### Rofi
+### Wofi
 
-Reference the theme in your rofi config:
+Use the generated stylesheet from your Wofi config:
 
-```conf
-@theme "~/.config/aether/theme/rofi.rasi"
+```css
+@import url("file:///home/YOUR_USER/.config/aether/theme/wofi.css");
 ```
 
 ### Neovim
@@ -77,9 +93,20 @@ Load the colorscheme in your Neovim config:
 dofile(vim.fn.expand("~/.config/aether/theme/neovim.lua"))
 ```
 
-### Wallpaper (swaybg)
+### Wallpaper
 
-Set the wallpaper manually:
+On Wayland systems, Aether can set the wallpaper when you apply a theme. In
+Settings, choose **Wallpaper: Awww** or **Wallpaper: Swaybg**. **Auto** uses
+Omarchy when it is installed, then `awww`, then `swaybg`.
+
+The generated wallpaper is still written to:
+
+```bash
+~/.config/aether/theme/backgrounds/
+```
+
+If you prefer to manage wallpapers yourself, choose **Wallpaper: None**. A manual
+`swaybg` setup still works:
 
 ```bash
 swaybg -i ~/.config/aether/theme/backgrounds/wallpaper.jpg -m fill
@@ -90,6 +117,32 @@ Or add to your Hyprland config:
 ```conf
 exec-once = swaybg -i ~/.config/aether/theme/backgrounds/wallpaper.jpg -m fill
 ```
+
+## Theme Packs
+
+The editor's **Export** action creates a portable Aether theme pack:
+
+```
+aether-my-theme-theme-pack/
+├── aether-theme-pack.json  # Pack manifest
+├── blueprint.json          # Palette, wallpaper reference, overrides, and adjustments
+├── colors.toml
+├── triad.kdl
+├── zellij.kdl
+├── backgrounds/
+└── ...                     # Selected app templates
+```
+
+Theme packs are portable. They can still be installed as Omarchy themes when
+Omarchy is available, but the exported directory does not require Omarchy.
+
+Aether also scans `~/.config/themes` for portable packs. A pack placed there
+appears in the System Themes picker and applies through Aether's normal template
+and wallpaper path.
+
+To import one, choose **Import → Theme Pack** and select either
+`aether-theme-pack.json` or `blueprint.json` inside the pack. Wallpaper paths
+inside a pack are resolved relative to that pack directory.
 
 ## GTK Theming
 

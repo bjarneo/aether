@@ -187,6 +187,7 @@ export namespace main {
         lightMode: boolean;
         additionalImages: string[];
         extendedColors: Record<string, string>;
+        adjustments: Record<string, number>;
         installToOmarchy: boolean;
         appOverrides: Record<string, any>;
 
@@ -203,6 +204,7 @@ export namespace main {
             this.lightMode = source['lightMode'];
             this.additionalImages = source['additionalImages'];
             this.extendedColors = source['extendedColors'];
+            this.adjustments = source['adjustments'];
             this.installToOmarchy = source['installToOmarchy'];
             this.appOverrides = source['appOverrides'];
         }
@@ -325,6 +327,8 @@ export namespace omarchy {
     export class Theme {
         name: string;
         path: string;
+        source: string;
+        applyMode: string;
         colors: string[];
         background: string;
         foreground: string;
@@ -341,6 +345,8 @@ export namespace omarchy {
             if ('string' === typeof source) source = JSON.parse(source);
             this.name = source['name'];
             this.path = source['path'];
+            this.source = source['source'];
+            this.applyMode = source['applyMode'];
             this.colors = source['colors'];
             this.background = source['background'];
             this.foreground = source['foreground'];
@@ -434,6 +440,7 @@ export namespace theme {
         selectedNeovimConfig: string;
         excludedApps?: Record<string, boolean>;
         videoCpuMode: boolean;
+        wallpaperBackend: string;
 
         static createFrom(source: any = {}) {
             return new Settings(source);
@@ -448,6 +455,7 @@ export namespace theme {
             this.selectedNeovimConfig = source['selectedNeovimConfig'];
             this.excludedApps = source['excludedApps'];
             this.videoCpuMode = source['videoCpuMode'];
+            this.wallpaperBackend = source['wallpaperBackend'];
         }
     }
     export class StateSnapshot {

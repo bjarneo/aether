@@ -28,6 +28,14 @@
         {key: 'includeVscode', label: 'VS Code'},
     ] as const;
 
+    const wallpaperBackends = [
+        {value: 'auto', label: 'Auto'},
+        {value: 'omarchy', label: 'Omarchy'},
+        {value: 'awww', label: 'Awww'},
+        {value: 'swaybg', label: 'Swaybg'},
+        {value: 'none', label: 'None'},
+    ] as const;
+
     let appList = $state<string[]>([]);
 
     onMount(async () => {
@@ -115,9 +123,26 @@
     <h3
         class="text-fg-dimmed mb-2 text-[10px] font-medium uppercase tracking-wider"
     >
-        Video Wallpaper
+        Wallpaper
     </h3>
     <div class="flex flex-col gap-2">
+        <div class="grid grid-cols-5 gap-1">
+            {#each wallpaperBackends as backend}
+                {@const active = getSettings().wallpaperBackend === backend.value}
+                <button
+                    type="button"
+                    class="border px-2 py-1 text-[10px] transition-colors duration-100 {active
+                        ? 'bg-accent-muted border-accent text-accent'
+                        : 'border-border text-fg-dimmed hover:text-fg-secondary hover:border-border-focus'}"
+                    aria-pressed={active}
+                    onclick={() =>
+                        updateSettings({wallpaperBackend: backend.value})}
+                >
+                    {backend.label}
+                </button>
+            {/each}
+        </div>
+
         {@render toggleRow(
             'CPU rendering',
             getSettings().videoCpuMode,

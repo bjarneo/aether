@@ -1,12 +1,14 @@
-package blueprint
+package blueprint_test
 
 import (
+	"aether/internal/blueprint"
+
 	"encoding/json"
 	"testing"
 )
 
 func TestLoadAllJSON(t *testing.T) {
-	svc := NewService()
+	svc := blueprint.NewService()
 	bps, err := svc.LoadAll()
 	if err != nil {
 		t.Fatalf("LoadAll failed: %v", err)
@@ -21,7 +23,7 @@ func TestLoadAllJSON(t *testing.T) {
 	t.Logf("JSON size: %d bytes", len(data))
 
 	// Test round-trip
-	var decoded []Blueprint
+	var decoded []blueprint.Blueprint
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
 	}

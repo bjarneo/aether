@@ -27,12 +27,14 @@ var templateAppNameMap = map[string]string{
 	"mako.ini":          "mako",
 	"neovim.lua":        "neovim",
 	"swayosd.css":       "swayosd",
+	"triad.kdl":         "triad",
 	"walker.css":        "walker",
 	"waybar.css":        "waybar",
 	"wofi.css":          "wofi",
 	"vencord.theme.css": "vencord",
 	"warp.yaml":         "warp",
 	"colors.toml":       "colors",
+	"zellij.kdl":        "zellij",
 }
 
 // getAppNameFromFileName returns the app name for a given template file name.
@@ -59,6 +61,7 @@ type Settings struct {
 	SelectedNeovimConfig string          `json:"selectedNeovimConfig"`
 	ExcludedApps         map[string]bool `json:"excludedApps,omitempty"`
 	VideoCpuMode         bool            `json:"videoCpuMode"`
+	WallpaperBackend     string          `json:"wallpaperBackend"`
 }
 
 // DefaultApplySettings returns the same defaults `aether --generate` uses:
@@ -181,9 +184,8 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 	if err := template.ProcessCustomApps(themeDir, variables); err != nil {
 		log.Printf("Warning: custom app processing failed: %v", err)
 	}
-	// Apply omarchy theme before wallpaper so that omarchy-theme-set's
-	// swaybg restart doesn't override aether-wp. For animated wallpapers,
-	// run synchronously so swaybg is fully started before we replace it.
+	// Apply Omarchy before wallpaper so omarchy-theme-set's wallpaper restart
+	// does not override aether-wp.
 	if isOmarchy {
 		sync := wallpaperDest != "" && IsAnimatedWallpaper(wallpaperDest)
 		if err := ApplyOmarchyTheme(sync); err != nil {

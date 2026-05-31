@@ -92,6 +92,7 @@
                 {key: 'ghostty', name: 'Ghostty'},
                 {key: 'kitty', name: 'Kitty'},
                 {key: 'warp', name: 'Warp'},
+                {key: 'zellij', name: 'Zellij'},
             ],
         },
         {
@@ -103,6 +104,7 @@
                 {key: 'icons', name: 'Icons'},
                 {key: 'mako', name: 'Mako'},
                 {key: 'swayosd', name: 'SwayOSD'},
+                {key: 'triad', name: 'Triad'},
                 {key: 'walker', name: 'Walker'},
                 {key: 'waybar', name: 'Waybar'},
                 {key: 'wofi', name: 'Wofi'},
@@ -212,17 +214,22 @@
                 lightMode: getLightMode(),
                 additionalImages: getAdditionalImages(),
                 extendedColors: getExtendedColors(),
+                adjustments: getAdjustments() as unknown as Record<
+                    string,
+                    number
+                >,
                 installToOmarchy,
                 appOverrides: getAppOverrides(),
             });
-            // Path ends with .../omarchy-{slug}-theme — pull the slug so the
-            // user can see what name actually went into Omarchy's menu.
+            // Path ends with .../aether-{slug}-theme-pack — pull the slug so
+            // the user can see what name went into optional integrations.
             const slug =
-                path.match(/omarchy-(.+)-theme$/)?.[1] ?? exportName.trim();
+                path.match(/aether-(.+)-theme-pack$/)?.[1] ??
+                exportName.trim();
             showToast(
                 installToOmarchy
                     ? `Installed as Omarchy theme: ${slug}`
-                    : `Exported to ${path}`
+                    : `Exported theme pack to ${path}`
             );
             showExportDialog = false;
             exportName = '';
@@ -345,6 +352,11 @@
                                 class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
                                 onclick={() => handleImport('toml')}
                                 >Colors (.toml)</button
+                            >
+                            <button
+                                class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
+                                onclick={() => handleImport('theme-pack')}
+                                >Theme Pack</button
                             >
                             <button
                                 class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
@@ -523,7 +535,9 @@
     onclose={() => (showExportDialog = false)}
     panelClass="w-80 max-h-[80vh] overflow-y-auto"
 >
-    <h3 class="text-fg-primary mb-3 text-[12px] font-medium">Export Theme</h3>
+    <h3 class="text-fg-primary mb-3 text-[12px] font-medium">
+        Export Theme Pack
+    </h3>
     <input
         bind:this={exportNameInput}
         type="text"

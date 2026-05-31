@@ -1,0 +1,7 @@
+// This file is not a full Triad configuration.
+// Include it from ~/.config/triad/config.kdl:
+// include optional=#true "~/.config/aether/theme/triad.kdl"
+
+theme {
+    accent-color "{accent}"
+}

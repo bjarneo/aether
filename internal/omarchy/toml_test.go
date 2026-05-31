@@ -1,7 +1,9 @@
-package omarchy
+package omarchy_test
 
 import (
 	"testing"
+
+	"aether/internal/omarchy"
 )
 
 func TestParseColorsToml(t *testing.T) {
@@ -37,7 +39,7 @@ color13 = "#bb9af7"
 color14 = "#7dcfff"
 color15 = "#c0caf5"
 `
-	colors, bg, fg, _ := ParseColorsToml(sample)
+	colors, bg, fg, _ := omarchy.ParseColorsToml(sample)
 
 	if bg != "#1a1b26" {
 		t.Errorf("bg = %q, want #1a1b26", bg)
@@ -78,7 +80,7 @@ func TestParseColorsTomlMode(t *testing.T) {
 		"case-insensitive mode": {`mode = "LIGHT"` + "\n", "light"},
 	}
 	for name, tc := range cases {
-		_, _, _, got := ParseColorsToml(tc.content)
+		_, _, _, got := omarchy.ParseColorsToml(tc.content)
 		if got != tc.want {
 			t.Errorf("%s: mode = %q, want %q", name, got, tc.want)
 		}
