@@ -76,11 +76,18 @@
             if (e.key === 'Escape') onclose();
         }}
     >
-        <div class="border-border bg-bg-secondary w-[360px] border shadow-2xl">
+        <div
+            class="border-border bg-bg-secondary w-[360px] border shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="keymap-title"
+        >
             <div
                 class="border-border flex items-center justify-between border-b px-4 py-3"
             >
-                <span class="text-fg-primary text-[12px] font-medium"
+                <span
+                    id="keymap-title"
+                    class="text-fg-primary text-[12px] font-medium"
                     >Keyboard Shortcuts</span
                 >
                 <button

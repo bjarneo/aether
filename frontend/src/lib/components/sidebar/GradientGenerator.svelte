@@ -37,12 +37,16 @@
                 type="color"
                 bind:value={startColor}
                 class="h-6 w-8 cursor-pointer border-none bg-transparent"
+                title="Start color"
+                aria-label="Gradient start color"
             />
             <span class="text-fg-dimmed text-[10px]">&rarr;</span>
             <input
                 type="color"
                 bind:value={endColor}
                 class="h-6 w-8 cursor-pointer border-none bg-transparent"
+                title="End color"
+                aria-label="Gradient end color"
             />
             <button
                 class="bg-bg-surface border-border text-fg-primary hover:border-accent ml-auto border px-2 py-1 text-[10px] transition-colors"

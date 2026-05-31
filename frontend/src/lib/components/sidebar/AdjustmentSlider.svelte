@@ -71,6 +71,7 @@
                     bind:value={editValue}
                     onblur={commitEdit}
                     onkeydown={handleEditKeydown}
+                    aria-label="{label} value"
                 />
                 <button
                     class="text-accent hover:text-accent-hover text-[10px]"
@@ -121,5 +122,6 @@
         onchange={() => oncommit?.()}
         ondblclick={handleDblClick}
         title="Double-click to reset"
+        aria-label={label}
     />
 </div>

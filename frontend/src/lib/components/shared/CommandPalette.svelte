@@ -113,6 +113,9 @@
     >
         <div
             class="border-border bg-bg-secondary flex w-[520px] max-w-[90vw] flex-col border shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
         >
             <div class="border-border border-b">
                 <input
@@ -121,6 +124,7 @@
                     type="text"
                     class="text-fg-primary placeholder:text-fg-dimmed w-full bg-transparent px-4 py-3 text-[12px] outline-none"
                     placeholder="Search commands…"
+                    aria-label="Search commands"
                     spellcheck={false}
                     autocomplete="off"
                 />

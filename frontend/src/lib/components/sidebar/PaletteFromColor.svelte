@@ -26,6 +26,8 @@
             type="color"
             bind:value={baseColor}
             class="h-6 w-8 cursor-pointer border-none bg-transparent"
+            title="Base color"
+            aria-label="Base color"
         />
         <span class="text-fg-dimmed font-mono text-[10px]">{baseColor}</span>
         <button

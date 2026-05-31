@@ -130,7 +130,7 @@
             <p class="text-fg-dimmed mt-4 text-[10px]">
                 Save snapshots in the
                 <button
-                    class="text-fg-secondary hover:text-fg-primary underline"
+                    class="text-fg-secondary hover:text-fg-primary underline transition-colors"
                     onclick={() => setActiveTab('blueprints')}
                     >Blueprints</button
                 >
