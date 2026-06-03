@@ -29,7 +29,6 @@
         bright_magenta: 'br magenta',
         bright_cyan: 'br cyan',
         bright_white: 'br white',
-        bright_purple: 'br purple',
         selection_foreground: 'sel fg',
         selection_background: 'sel bg',
         bright_fg: 'br fg',

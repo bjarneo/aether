@@ -125,8 +125,6 @@ func BuildVariables(roles ColorRoles, lightMode bool) map[string]string {
 	vars["light_fg"] = color.LightenRGB(vars["foreground"], 15)
 	vars["bright_fg"] = color.LightenRGB(vars["foreground"], 25)
 	vars["muted"] = vars["bright_black"]
-	vars["purple"] = vars["magenta"]
-	vars["bright_purple"] = vars["bright_magenta"]
 
 	orange := color.LightenRGB(vars["red"], 15)
 	vars["orange"] = orange
@@ -156,8 +154,6 @@ func RecomputeDerived(vars map[string]string, overrides map[string]string) {
 	set("light_fg", color.LightenRGB(vars["foreground"], 15))
 	set("bright_fg", color.LightenRGB(vars["foreground"], 25))
 	set("muted", vars["bright_black"])
-	set("purple", vars["magenta"])
-	set("bright_purple", vars["bright_magenta"])
 	orange := color.LightenRGB(vars["red"], 15)
 	set("orange", orange)
 	set("brown", color.DarkenRGB(orange, 60))

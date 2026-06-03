@@ -64,9 +64,9 @@ color15 = "#c0caf5"
 	}
 }
 
-// A colors.toml in omarchy's semantic form: no color0-15 slots, slot 5 named
-// "purple", slot 8 "muted", and a fg/bg shade ramp. The parser must still
-// reconstruct a full 16-slot palette by falling back across the names.
+// A colors.toml in omarchy's semantic form: no color0-15 slots, slot 8 named
+// "muted", and a fg/bg shade ramp. The parser must still reconstruct a full
+// 16-slot palette by falling back across the names.
 func TestParseColorsTomlSemantic(t *testing.T) {
 	sample := `mode = "dark"
 
@@ -91,13 +91,13 @@ yellow = "#e0af68"
 green = "#9ece6a"
 cyan = "#449dab"
 blue = "#7aa2f7"
-purple = "#ad8ee6"
+magenta = "#ad8ee6"
 bright_red = "#ff7a93"
 bright_yellow = "#ff9e64"
 bright_green = "#b9f27c"
 bright_cyan = "#0db9d7"
 bright_blue = "#7da6ff"
-bright_purple = "#bb9af7"
+bright_magenta = "#bb9af7"
 `
 	colors, bg, fg, mode := ParseColorsToml(sample)
 
@@ -114,12 +114,12 @@ bright_purple = "#bb9af7"
 	want := map[int]string{
 		0:  "#1a1b26", // bg (no color0)
 		1:  "#f7768e", // red
-		5:  "#ad8ee6", // purple -> magenta slot
+		5:  "#ad8ee6", // magenta
 		6:  "#449dab", // cyan
 		7:  "#a9b1d6", // foreground anchor, not the dimmed fg
 		8:  "#414868", // muted -> bright black slot
 		9:  "#ff7a93", // bright_red
-		13: "#bb9af7", // bright_purple -> bright magenta slot
+		13: "#bb9af7", // bright_magenta
 		15: "#cfc9c2", // bright_fg
 	}
 	for idx, exp := range want {
@@ -145,7 +145,7 @@ background = "#1a1b26"
 selection_foreground = "#c0caf5"
 selection_background = "#7aa2f7"
 red = "#f7768e"
-purple = "#ad8ee6"
+magenta = "#ad8ee6"
 `
 	_, _, _, _, ext := ParseColorsTomlFull(sample)
 

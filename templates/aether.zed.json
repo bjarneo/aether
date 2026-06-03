@@ -98,9 +98,9 @@
         "terminal.ansi.blue": "{blue}",
         "terminal.ansi.bright_blue": "{bright_blue}",
         "terminal.ansi.dim_blue": "{blue}80",
-        "terminal.ansi.magenta": "{purple}",
-        "terminal.ansi.bright_magenta": "{bright_purple}",
-        "terminal.ansi.dim_magenta": "{purple}80",
+        "terminal.ansi.magenta": "{magenta}",
+        "terminal.ansi.bright_magenta": "{bright_magenta}",
+        "terminal.ansi.dim_magenta": "{magenta}80",
         "terminal.ansi.cyan": "{cyan}",
         "terminal.ansi.bright_cyan": "{bright_cyan}",
         "terminal.ansi.dim_cyan": "{cyan}80",
@@ -178,9 +178,9 @@
             "background": "{cyan}"
           },
           {
-            "cursor": "{purple}",
-            "selection": "{purple}40",
-            "background": "{purple}"
+            "cursor": "{magenta}",
+            "selection": "{magenta}40",
+            "background": "{magenta}"
           },
           {
             "cursor": "{yellow}",
@@ -291,7 +291,7 @@
             "font_weight": null
           },
           "keyword": {
-            "color": "{bright_purple}",
+            "color": "{bright_magenta}",
             "font_style": null,
             "font_weight": null
           },
@@ -371,7 +371,7 @@
             "font_weight": null
           },
           "string.escape": {
-            "color": "{bright_purple}",
+            "color": "{bright_magenta}",
             "font_style": null,
             "font_weight": null
           },

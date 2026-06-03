@@ -12,7 +12,7 @@ terminal_colors:
     green:   "{green}"
     yellow:  "{yellow}"
     blue:    "{blue}"
-    magenta: "{purple}"
+    magenta: "{magenta}"
     cyan:    "{cyan}"
     white:   "{white}"
   bright:
@@ -21,6 +21,6 @@ terminal_colors:
     green:   "{bright_green}"
     yellow:  "{bright_yellow}"
     blue:    "{bright_blue}"
-    magenta: "{bright_purple}"
+    magenta: "{bright_magenta}"
     cyan:    "{bright_cyan}"
     white:   "{bright_white}"

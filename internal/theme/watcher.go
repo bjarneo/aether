@@ -135,8 +135,7 @@ func parseColorsTOML(path string) map[string]string {
 
 	// Bridge naming conventions so consumers can read either form regardless
 	// of how the source colors.toml was written: new omarchy themes use
-	// semantic names only (no colorN), Aether/legacy themes use colorN, and
-	// omarchy calls slot 5 "purple" where ANSI calls it "magenta".
+	// semantic names only (no colorN), Aether/legacy themes use colorN.
 	alias := func(a, b string) {
 		if colors[a] == "" && colors[b] != "" {
 			colors[a] = colors[b]
@@ -145,8 +144,6 @@ func parseColorsTOML(path string) map[string]string {
 		}
 	}
 
-	alias("magenta", "purple")
-	alias("bright_magenta", "bright_purple")
 	for i, name := range semanticOrder {
 		alias(name, "color"+strconv.Itoa(i))
 	}

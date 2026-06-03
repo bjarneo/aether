@@ -1037,7 +1037,7 @@ func (a *App) GetTemplateColors() map[string][]string {
 		"accent": true, "cursor": true, "selection_foreground": true, "selection_background": true,
 		"dark_bg": true, "darker_bg": true, "lighter_bg": true,
 		"dark_fg": true, "light_fg": true, "bright_fg": true,
-		"muted": true, "orange": true, "brown": true, "purple": true, "bright_purple": true,
+		"muted": true, "orange": true, "brown": true,
 		"selection": true,
 	}
 

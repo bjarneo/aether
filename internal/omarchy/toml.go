@@ -10,18 +10,18 @@ import (
 //
 //   - legacy ANSI: color0 … color15 (what Aether itself writes) win first
 //   - standard semantic: black, red, …, bright_white
-//   - omarchy semantic: bg, fg, purple, muted, light_fg, bright_fg, dark_fg …
+//   - omarchy semantic: bg, fg, muted, light_fg, bright_fg, dark_fg …
 //
-// omarchy renames a few slots: slot 5 is "purple" (ANSI magenta), slot 8 is
-// "muted" (ANSI bright black), and the foreground anchor is "foreground"
-// (its "fg" key is a dimmed variant, so it only feeds slot 7 as a last resort).
+// omarchy renames slot 8 to "muted" (ANSI bright black), and its foreground
+// anchor is "foreground" (the "fg" key is a dimmed variant, so it only feeds
+// slot 7 as a last resort).
 var slotChains = [16][]string{
 	0:  {"color0", "bg", "background", "black"},
 	1:  {"color1", "red"},
 	2:  {"color2", "green"},
 	3:  {"color3", "yellow"},
 	4:  {"color4", "blue"},
-	5:  {"color5", "purple", "magenta"},
+	5:  {"color5", "magenta"},
 	6:  {"color6", "cyan"},
 	7:  {"color7", "foreground", "light_fg", "white", "fg"},
 	8:  {"color8", "bright_black", "muted", "dark_fg"},
@@ -29,7 +29,7 @@ var slotChains = [16][]string{
 	10: {"color10", "bright_green", "green"},
 	11: {"color11", "bright_yellow", "yellow"},
 	12: {"color12", "bright_blue", "blue"},
-	13: {"color13", "bright_purple", "bright_magenta", "purple", "magenta"},
+	13: {"color13", "bright_magenta", "magenta"},
 	14: {"color14", "bright_cyan", "cyan"},
 	15: {"color15", "bright_fg", "bright_white", "foreground", "light_fg"},
 }
@@ -109,7 +109,7 @@ func ParseColorsToml(content string) (colors [16]string, bg, fg, mode string) {
 // selection_background) when present.
 //
 // It accepts the legacy color0-15 form, the standard semantic form (black,
-// red, …, bright_white) and omarchy's semantic form (bg, fg, purple, muted,
+// red, …, bright_white) and omarchy's semantic form (bg, fg, muted,
 // the fg/bg shade ramp), falling back across them per slot via slotChains so a
 // colorN-free omarchy theme still reconstructs a full palette.
 //

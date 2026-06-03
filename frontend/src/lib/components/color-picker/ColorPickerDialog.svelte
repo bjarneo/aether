@@ -84,8 +84,6 @@
         muted: 'Muted',
         orange: 'Orange',
         brown: 'Brown',
-        purple: 'Purple',
-        bright_purple: 'Bright Purple',
         selection: 'Selection',
     };
 

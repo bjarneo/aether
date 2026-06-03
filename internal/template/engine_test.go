@@ -365,9 +365,6 @@ func TestBuildVariables(t *testing.T) {
 		if vars["muted"] != vars["bright_black"] {
 			t.Errorf("muted = %s, want %s (same as bright_black)", vars["muted"], vars["bright_black"])
 		}
-		if vars["purple"] != vars["magenta"] {
-			t.Errorf("purple = %s, want %s (same as magenta)", vars["purple"], vars["magenta"])
-		}
 
 		// Check theme type
 		if vars["theme_type"] != "dark" {
