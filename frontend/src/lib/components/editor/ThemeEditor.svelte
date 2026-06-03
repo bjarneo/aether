@@ -3,8 +3,7 @@
     import WallpaperPicker from './WallpaperPicker.svelte';
     import ColorPaletteGrid from './ColorPaletteGrid.svelte';
     import HeroEmptyState from './HeroEmptyState.svelte';
-    import ExtendedColors from './ExtendedColors.svelte';
-    import ShadesSection from './ShadesSection.svelte';
+    import SemanticColors from './SemanticColors.svelte';
     import AppColorOverrides from './AppColorOverrides.svelte';
     import AdditionalImages from './AdditionalImages.svelte';
     import SettingsSidebar from '../sidebar/SettingsSidebar.svelte';
@@ -49,8 +48,7 @@
             <div class={wallpaper ? 'mt-4' : 'mt-1'}>
                 <ColorPaletteGrid />
             </div>
-            <ExtendedColors />
-            <ShadesSection />
+            <SemanticColors />
             <div class="mt-4 flex flex-col gap-4 sm:flex-row">
                 <div class="min-w-0 flex-1">
                     <AppColorOverrides />
