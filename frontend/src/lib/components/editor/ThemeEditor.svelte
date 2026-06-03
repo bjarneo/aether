@@ -4,6 +4,7 @@
     import ColorPaletteGrid from './ColorPaletteGrid.svelte';
     import HeroEmptyState from './HeroEmptyState.svelte';
     import ExtendedColors from './ExtendedColors.svelte';
+    import ShadesSection from './ShadesSection.svelte';
     import AppColorOverrides from './AppColorOverrides.svelte';
     import AdditionalImages from './AdditionalImages.svelte';
     import SettingsSidebar from '../sidebar/SettingsSidebar.svelte';
@@ -49,6 +50,7 @@
                 <ColorPaletteGrid />
             </div>
             <ExtendedColors />
+            <ShadesSection />
             <div class="mt-4 flex flex-col gap-4 sm:flex-row">
                 <div class="min-w-0 flex-1">
                     <AppColorOverrides />

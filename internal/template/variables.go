@@ -84,7 +84,13 @@ func rolesMap(roles ColorRoles) map[string]string {
 // BuildVariables creates the full template variable map from color roles.
 // It includes: semantic names, color0-15 aliases, extended colors, and
 // derived shade variables (dark_bg, lighter_bg, orange, brown, etc.).
-func BuildVariables(roles ColorRoles, lightMode bool) map[string]string {
+//
+// overrides holds explicit semantic values that win over the derived defaults
+// (the Shades editor pins a hand-tuned dark_bg/orange/etc. here). Pass nil when
+// there are none. In practice the only keys that change anything are the
+// derived shades: accent/cursor/selection (and background/foreground on
+// imports) carry the same value already folded in via roles.
+func BuildVariables(roles ColorRoles, lightMode bool, overrides map[string]string) map[string]string {
 	vars := rolesMap(roles)
 
 	// Ensure extended color defaults if empty
@@ -130,6 +136,13 @@ func BuildVariables(roles ColorRoles, lightMode bool) map[string]string {
 	vars["orange"] = orange
 	vars["brown"] = color.DarkenRGB(orange, 60)
 	vars["selection"] = vars["selection_background"]
+
+	// Explicit overrides win over the derived defaults (last word).
+	for k, v := range overrides {
+		if v != "" {
+			vars[k] = v
+		}
+	}
 
 	return vars
 }

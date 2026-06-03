@@ -171,8 +171,8 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 		}
 	}
 
-	variables := template.BuildVariables(state.ColorRoles, state.LightMode)
-	w.processTemplates(variables, themeDir, settings, state.AppOverrides)
+	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
+	w.processTemplates(variables, themeDir, settings, state.AppOverrides, state.ExtendedColors)
 	w.applyEditorThemes(themeDir, settings, variables)
 
 	if err := HandleLightModeMarker(themeDir, state.LightMode); err != nil {
@@ -214,8 +214,8 @@ func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath s
 		return err
 	}
 
-	variables := template.BuildVariables(state.ColorRoles, state.LightMode)
-	w.processTemplates(variables, targetDir, settings, state.AppOverrides)
+	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
+	w.processTemplates(variables, targetDir, settings, state.AppOverrides, state.ExtendedColors)
 
 	// Generate VSCode extension into the export directory
 	if settings.IncludeVscode {
@@ -241,6 +241,7 @@ func (w *Writer) processTemplates(
 	outputDir string,
 	settings Settings,
 	appOverrides map[string]map[string]string,
+	globalOverrides map[string]string,
 ) {
 	names, err := template.ListTemplates(w.templatesFS, w.templatesDir)
 	if err != nil {
@@ -294,7 +295,7 @@ func (w *Writer) processTemplates(
 			}
 		}
 
-		w.processTemplate(fileName, outputPath, variables, appOverrides)
+		w.processTemplate(fileName, outputPath, variables, appOverrides, globalOverrides)
 	}
 }
 
@@ -305,6 +306,7 @@ func (w *Writer) processTemplate(
 	outputPath string,
 	variables map[string]string,
 	appOverrides map[string]map[string]string,
+	globalOverrides map[string]string,
 ) {
 	// Check for custom override in ~/.config/aether/custom/ first
 	content, isCustom := template.ReadCustomOverride(fileName)
@@ -330,9 +332,18 @@ func (w *Writer) processTemplate(
 			mergedVars[k] = v
 		}
 		// Recompute derived/alias variables so overriding "background"
-		// also updates "bg", "dark_bg", etc. Pass the override keys
-		// so explicitly overridden derived vars are preserved.
-		template.RecomputeDerived(mergedVars, overrides)
+		// also updates "bg", "dark_bg", etc. The "explicit" set preserves
+		// both per-app overrides and globally pinned shades (already present
+		// in mergedVars via variables) so neither gets recomputed away.
+		// Per-app overrides are applied last so they win over a global pin.
+		explicit := make(map[string]string, len(overrides)+len(globalOverrides))
+		for k, v := range globalOverrides {
+			explicit[k] = v
+		}
+		for k, v := range overrides {
+			explicit[k] = v
+		}
+		template.RecomputeDerived(mergedVars, explicit)
 		log.Printf("Applied %d override(s) to %s", len(overrides), fileName)
 	}
 

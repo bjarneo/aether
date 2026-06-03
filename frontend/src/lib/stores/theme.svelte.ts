@@ -310,6 +310,30 @@ export function setExtendedColor(key: string, hex: string): void {
     baseExtendedColors = {...baseExtendedColors, [key]: hex};
 }
 
+// clearExtendedColors removes explicit extended/semantic colors so they revert
+// to their derived defaults (the Shades editor's "reset to auto"). Pushes a
+// single history entry for the whole batch, so "Reset all" is one undo step.
+// No-op for keys that aren't pinned.
+export function clearExtendedColors(keys: string[]): void {
+    const present = keys.filter(
+        k => k in extendedColors || k in baseExtendedColors
+    );
+    if (present.length === 0) return;
+    pushState(palette, extendedColors, adjustments);
+    const next = {...extendedColors};
+    const base = {...baseExtendedColors};
+    for (const k of present) {
+        delete next[k];
+        delete base[k];
+    }
+    extendedColors = next;
+    baseExtendedColors = base;
+}
+
+export function clearExtendedColor(key: string): void {
+    clearExtendedColors([key]);
+}
+
 export function setWallpaperPath(path: string): void {
     wallpaperPath = path;
 }

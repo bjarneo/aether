@@ -150,7 +150,7 @@ func runShowVariables(args []string, templatesFS embed.FS) int {
 	}
 
 	roles := MapColorsToRoles(palette)
-	vars := template.BuildVariables(roles, lightMode)
+	vars := template.BuildVariables(roles, lightMode, nil)
 
 	if jsonOut {
 		return printJSON(vars)
@@ -262,7 +262,7 @@ func runPreviewTemplate(args []string, templatesFS embed.FS) int {
 	}
 
 	roles := MapColorsToRoles(palette)
-	vars := template.BuildVariables(roles, lightMode)
+	vars := template.BuildVariables(roles, lightMode, nil)
 
 	// Read and process template
 	content, err := template.ReadTemplate(templatesFS, "templates", templateFile)

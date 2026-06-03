@@ -326,7 +326,7 @@ func buildColorRoles(paletteSlice []string, extendedColors map[string]string) ([
 // palette and extended colors. Returns all base + derived color values.
 func (a *App) ComputeVariables(paletteSlice []string, extendedColors map[string]string, lightMode bool) map[string]string {
 	_, roles := buildColorRoles(paletteSlice, extendedColors)
-	return template.BuildVariables(roles, lightMode)
+	return template.BuildVariables(roles, lightMode, extendedColors)
 }
 
 // ---------------------------------------------------------------------------
@@ -358,6 +358,7 @@ func (a *App) ApplyTheme(req ApplyThemeRequest) (*theme.ApplyResult, error) {
 		WallpaperPath:    req.WallpaperPath,
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
+		ExtendedColors:   req.ExtendedColors,
 		AdditionalImages: req.AdditionalImages,
 		AppOverrides:     appOverrides,
 	}
@@ -878,6 +879,7 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 		WallpaperPath:    req.WallpaperPath,
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
+		ExtendedColors:   req.ExtendedColors,
 		AdditionalImages: req.AdditionalImages,
 		AppOverrides:     exportOverrides,
 	}

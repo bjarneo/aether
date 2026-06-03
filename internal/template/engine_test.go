@@ -306,6 +306,79 @@ func TestProcessTemplate(t *testing.T) {
 	}
 }
 
+// sampleRoles is a complete ColorRoles for variable-derivation tests.
+func sampleRoles() ColorRoles {
+	return ColorRoles{
+		Background:          "#1e1e2e",
+		Foreground:          "#cdd6f4",
+		Black:               "#45475a",
+		Red:                 "#f38ba8",
+		Green:               "#a6e3a1",
+		Yellow:              "#f9e2af",
+		Blue:                "#89b4fa",
+		Magenta:             "#cba6f7",
+		Cyan:                "#94e2d5",
+		White:               "#bac2de",
+		BrightBlack:         "#585b70",
+		BrightRed:           "#f38ba8",
+		BrightGreen:         "#a6e3a1",
+		BrightYellow:        "#f9e2af",
+		BrightBlue:          "#89b4fa",
+		BrightMagenta:       "#cba6f7",
+		BrightCyan:          "#94e2d5",
+		BrightWhite:         "#a6adc8",
+		Accent:              "#89b4fa",
+		Cursor:              "#cdd6f4",
+		SelectionForeground: "#1e1e2e",
+		SelectionBackground: "#585b70",
+	}
+}
+
+// A pinned shade override wins over the derived default, while non-pinned
+// shades stay derived. This backs the Shades editor's per-color pinning.
+func TestBuildVariablesOverrides(t *testing.T) {
+	roles := sampleRoles()
+	derived := BuildVariables(roles, false, nil)["dark_bg"]
+
+	vars := BuildVariables(roles, false, map[string]string{
+		"dark_bg": "#abcdef",
+		"orange":  "#ff8800",
+	})
+	if vars["dark_bg"] != "#abcdef" {
+		t.Errorf("dark_bg = %q, want pinned #abcdef", vars["dark_bg"])
+	}
+	if vars["orange"] != "#ff8800" {
+		t.Errorf("orange = %q, want pinned #ff8800", vars["orange"])
+	}
+	// A non-pinned shade is still derived (and the pin didn't leak into it).
+	if vars["darker_bg"] == "#abcdef" {
+		t.Errorf("darker_bg should stay derived, got the pinned value")
+	}
+	// Sanity: the pin actually changed dark_bg away from its derived default.
+	if derived == "#abcdef" {
+		t.Skip("derived dark_bg coincidentally equals the pin; test is vacuous")
+	}
+}
+
+// RecomputeDerived (run for per-app overrides) must NOT recompute a key listed
+// in its explicit set — that's how a globally pinned shade survives when an app
+// also has its own overrides. Without it in the set, the shade re-derives.
+func TestRecomputeDerivedPreservesExplicit(t *testing.T) {
+	roles := sampleRoles()
+
+	kept := BuildVariables(roles, false, map[string]string{"dark_bg": "#abcdef"})
+	RecomputeDerived(kept, map[string]string{"dark_bg": "#abcdef"})
+	if kept["dark_bg"] != "#abcdef" {
+		t.Errorf("dark_bg = %q, want preserved #abcdef", kept["dark_bg"])
+	}
+
+	dropped := BuildVariables(roles, false, map[string]string{"dark_bg": "#abcdef"})
+	RecomputeDerived(dropped, map[string]string{})
+	if dropped["dark_bg"] == "#abcdef" {
+		t.Errorf("dark_bg should re-derive when not in the explicit set")
+	}
+}
+
 func TestBuildVariables(t *testing.T) {
 	roles := ColorRoles{
 		Background:          "#1e1e2e",
@@ -333,7 +406,7 @@ func TestBuildVariables(t *testing.T) {
 	}
 
 	t.Run("dark mode", func(t *testing.T) {
-		vars := BuildVariables(roles, false)
+		vars := BuildVariables(roles, false, nil)
 
 		// Check base colors
 		if vars["background"] != "#1e1e2e" {
@@ -373,7 +446,7 @@ func TestBuildVariables(t *testing.T) {
 	})
 
 	t.Run("light mode", func(t *testing.T) {
-		vars := BuildVariables(roles, true)
+		vars := BuildVariables(roles, true, nil)
 		if vars["theme_type"] != "light" {
 			t.Errorf("theme_type = %s, want light", vars["theme_type"])
 		}
@@ -385,7 +458,7 @@ func TestBuildVariables(t *testing.T) {
 			Foreground: "#cdd6f4",
 			Blue:       "#89b4fa",
 		}
-		vars := BuildVariables(emptyRoles, false)
+		vars := BuildVariables(emptyRoles, false, nil)
 
 		if vars["accent"] != "#89b4fa" {
 			t.Errorf("accent = %s, want #89b4fa (default to blue)", vars["accent"])
