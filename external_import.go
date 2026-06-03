@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"aether/internal/blueprint"
-	"aether/internal/omarchy"
 	"aether/internal/pending"
 	"aether/internal/theme"
 
@@ -143,12 +142,8 @@ func (a *App) stageImportIntoState() error {
 	}
 
 	if bp != nil {
-		var palette [16]string
-		for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
-			palette[i] = bp.Palette.Colors[i]
-		}
-		a.state.SetPalette(palette)
-
+		// Merge extended colors before SetPalette so buildColorRoles uses the
+		// imported accent/cursor/selection instead of re-deriving them.
 		if len(bp.Palette.ExtendedColors) > 0 {
 			if a.state.ExtendedColors == nil {
 				a.state.ExtendedColors = map[string]string{}
@@ -157,6 +152,12 @@ func (a *App) stageImportIntoState() error {
 				a.state.ExtendedColors[k] = v
 			}
 		}
+
+		var palette [16]string
+		for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
+			palette[i] = bp.Palette.Colors[i]
+		}
+		a.state.SetPalette(palette)
 	}
 
 	if imp.Wallpaper != "" {
@@ -165,11 +166,10 @@ func (a *App) stageImportIntoState() error {
 		}
 	}
 
-	// Light/dark precedence: explicit URL mode= wins. Otherwise, if the
-	// import was a colors.toml, re-parse to read its own `mode = "..."`
-	// line (handles both light and dark explicitly). Otherwise an
-	// external_theme JSON may have set LightMode=true. Otherwise leave
-	// the current setting alone.
+	// Light/dark precedence: explicit URL mode= wins. Otherwise use the
+	// colors.toml's own `mode = "..."` (parsed into bp.Palette.Mode, handles
+	// both light and dark explicitly). Otherwise an external_theme JSON may
+	// have set LightMode=true. Otherwise leave the current setting alone.
 	switch imp.Mode {
 	case "light":
 		a.state.LightMode = true
@@ -177,17 +177,14 @@ func (a *App) stageImportIntoState() error {
 		a.state.LightMode = false
 	default:
 		applied := false
-		if imp.ColorsToml != "" {
-			if data, readErr := os.ReadFile(imp.ColorsToml); readErr == nil {
-				_, _, _, m := omarchy.ParseColorsToml(string(data))
-				switch m {
-				case "light":
-					a.state.LightMode = true
-					applied = true
-				case "dark":
-					a.state.LightMode = false
-					applied = true
-				}
+		if bp != nil {
+			switch bp.Palette.Mode {
+			case "light":
+				a.state.LightMode = true
+				applied = true
+			case "dark":
+				a.state.LightMode = false
+				applied = true
 			}
 		}
 		if !applied && bp != nil && bp.Palette.LightMode {

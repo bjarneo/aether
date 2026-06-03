@@ -30,6 +30,22 @@ func resolveWallpaperArg(arg string) (string, error) {
 	return expandHome(arg), nil
 }
 
+// applyImportedTheme builds theme state from an imported blueprint and applies
+// it system-wide. The blueprint's own mode wins unless forceLight overrides it;
+// extended colors are set before SetPalette so buildColorRoles keeps the
+// imported accent/cursor/selection rather than re-deriving them.
+func applyImportedTheme(templatesFS embed.FS, bp *blueprint.Blueprint, palette [16]string, wallpaperPath string, forceLight bool) (*theme.ApplyResult, error) {
+	writer := theme.NewWriter(templatesFS, "templates")
+	state := theme.NewThemeState()
+	state.WallpaperPath = wallpaperPath
+	state.LightMode = forceLight || bp.Palette.LightMode
+	for k, v := range bp.Palette.ExtendedColors {
+		state.ExtendedColors[k] = v
+	}
+	state.SetPalette(palette)
+	return writer.ApplyTheme(state, theme.DefaultApplySettings())
+}
+
 func runImportBlueprint(args []string, templatesFS embed.FS) int {
 	autoApply, args := hasFlag(args, "--auto-apply")
 
@@ -127,17 +143,8 @@ func runImportBase16(args []string, templatesFS embed.FS) int {
 		return 1
 	}
 
-	colorRoles := MapColorsToRoles(palette)
-	writer := theme.NewWriter(templatesFS, "templates")
-	state := &theme.ThemeState{
-		Palette:       palette,
-		WallpaperPath: wallpaperPath,
-		LightMode:     lightMode,
-		ColorRoles:    colorRoles,
-	}
-
 	fmt.Println("Applying theme...")
-	result, err := writer.ApplyTheme(state, theme.DefaultApplySettings())
+	result, err := applyImportedTheme(templatesFS, bp, palette, wallpaperPath, lightMode)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
@@ -191,17 +198,8 @@ func runImportColorsToml(args []string, templatesFS embed.FS) int {
 		return 1
 	}
 
-	colorRoles := MapColorsToRoles(palette)
-	writer := theme.NewWriter(templatesFS, "templates")
-	state := &theme.ThemeState{
-		Palette:       palette,
-		WallpaperPath: wallpaperPath,
-		LightMode:     lightMode,
-		ColorRoles:    colorRoles,
-	}
-
 	fmt.Println("Applying theme...")
-	result, err := writer.ApplyTheme(state, theme.DefaultApplySettings())
+	result, err := applyImportedTheme(templatesFS, bp, palette, wallpaperPath, lightMode)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1

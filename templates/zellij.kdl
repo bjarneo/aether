@@ -6,7 +6,7 @@ themes {
             emphasis_0 {orange.rgbs}
             emphasis_1 {bright_cyan.rgbs}
             emphasis_2 {bright_green.rgbs}
-            emphasis_3 {bright_magenta.rgbs}
+            emphasis_3 {bright_purple.rgbs}
         }
         text_selected {
             base {foreground.rgbs}
@@ -14,14 +14,14 @@ themes {
             emphasis_0 {orange.rgbs}
             emphasis_1 {bright_cyan.rgbs}
             emphasis_2 {bright_green.rgbs}
-            emphasis_3 {bright_magenta.rgbs}
+            emphasis_3 {bright_purple.rgbs}
         }
         ribbon_selected {
             base {bright_black.rgbs}
             background {bright_green.rgbs}
             emphasis_0 {bright_red.rgbs}
             emphasis_1 {orange.rgbs}
-            emphasis_2 {bright_magenta.rgbs}
+            emphasis_2 {bright_purple.rgbs}
             emphasis_3 {bright_blue.rgbs}
         }
         ribbon_unselected {
@@ -30,7 +30,7 @@ themes {
             emphasis_0 {bright_red.rgbs}
             emphasis_1 {foreground.rgbs}
             emphasis_2 {bright_blue.rgbs}
-            emphasis_3 {bright_magenta.rgbs}
+            emphasis_3 {bright_purple.rgbs}
         }
         table_title {
             base {bright_green.rgbs}
@@ -38,7 +38,7 @@ themes {
             emphasis_0 {orange.rgbs}
             emphasis_1 {bright_cyan.rgbs}
             emphasis_2 {bright_green.rgbs}
-            emphasis_3 {bright_magenta.rgbs}
+            emphasis_3 {bright_purple.rgbs}
         }
         table_cell_selected {
             base {foreground.rgbs}
@@ -46,7 +46,7 @@ themes {
             emphasis_0 {orange.rgbs}
             emphasis_1 {bright_cyan.rgbs}
             emphasis_2 {bright_green.rgbs}
-            emphasis_3 {bright_magenta.rgbs}
+            emphasis_3 {bright_purple.rgbs}
         }
         table_cell_unselected {
             base {foreground.rgbs}
@@ -54,7 +54,7 @@ themes {
             emphasis_0 {orange.rgbs}
             emphasis_1 {bright_cyan.rgbs}
             emphasis_2 {bright_green.rgbs}
-            emphasis_3 {bright_magenta.rgbs}
+            emphasis_3 {bright_purple.rgbs}
         }
         list_selected {
             base {foreground.rgbs}
@@ -62,7 +62,7 @@ themes {
             emphasis_0 {orange.rgbs}
             emphasis_1 {bright_cyan.rgbs}
             emphasis_2 {bright_green.rgbs}
-            emphasis_3 {bright_magenta.rgbs}
+            emphasis_3 {bright_purple.rgbs}
         }
         list_unselected {
             base {foreground.rgbs}
@@ -70,20 +70,20 @@ themes {
             emphasis_0 {orange.rgbs}
             emphasis_1 {bright_cyan.rgbs}
             emphasis_2 {bright_green.rgbs}
-            emphasis_3 {bright_magenta.rgbs}
+            emphasis_3 {bright_purple.rgbs}
         }
         frame_selected {
             base {bright_green.rgbs}
             background 0
             emphasis_0 {orange.rgbs}
             emphasis_1 {bright_cyan.rgbs}
-            emphasis_2 {bright_magenta.rgbs}
+            emphasis_2 {bright_purple.rgbs}
             emphasis_3 0
         }
         frame_highlight {
             base {orange.rgbs}
             background 0
-            emphasis_0 {bright_magenta.rgbs}
+            emphasis_0 {bright_purple.rgbs}
             emphasis_1 {orange.rgbs}
             emphasis_2 {orange.rgbs}
             emphasis_3 {orange.rgbs}
@@ -93,7 +93,7 @@ themes {
             background 0
             emphasis_0 {bright_cyan.rgbs}
             emphasis_1 {bright_black.rgbs}
-            emphasis_2 {bright_magenta.rgbs}
+            emphasis_2 {bright_purple.rgbs}
             emphasis_3 {bright_blue.rgbs}
         }
         exit_code_error {
@@ -105,7 +105,7 @@ themes {
             emphasis_3 0
         }
         multiplayer_user_colors {
-            player_1 {bright_magenta.rgbs}
+            player_1 {bright_purple.rgbs}
             player_2 {bright_blue.rgbs}
             player_3 0
             player_4 {yellow.rgbs}

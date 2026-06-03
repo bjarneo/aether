@@ -106,12 +106,14 @@ func BuildVariables(roles ColorRoles, lightMode bool) map[string]string {
 		vars[fmt.Sprintf("color%d", i)] = vars[name]
 	}
 
-	// Theme type for VSCode and other templates
+	// Theme type for VSCode and other templates. `mode` is the name omarchy's
+	// colors.toml uses; `theme_type` is kept as an alias for existing templates.
 	if lightMode {
 		vars["theme_type"] = "light"
 	} else {
 		vars["theme_type"] = "dark"
 	}
+	vars["mode"] = vars["theme_type"]
 
 	// Derived shade variables (matches omarchy-theme-set-templates)
 	vars["bg"] = vars["background"]
@@ -160,6 +162,7 @@ func RecomputeDerived(vars map[string]string, overrides map[string]string) {
 	set("orange", orange)
 	set("brown", color.DarkenRGB(orange, 60))
 	set("selection", vars["selection_background"])
+	set("mode", vars["theme_type"])
 
 	for i, name := range semanticOrder {
 		key := fmt.Sprintf("color%d", i)

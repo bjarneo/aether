@@ -21,6 +21,7 @@ type PaletteData struct {
 	Wallpaper        string            `json:"wallpaper,omitempty"`
 	WallpaperURL     string            `json:"wallpaperUrl,omitempty"`
 	LightMode        bool              `json:"lightMode,omitempty"`
+	Mode             string            `json:"mode,omitempty"` // "light"/"dark"/"" — preserves the three-valued mode LightMode collapses
 	LockedColors     []int             `json:"lockedColors,omitempty"`
 	ExtendedColors   map[string]string `json:"extendedColors,omitempty"`
 	AdditionalImages []string          `json:"additionalImages,omitempty"`

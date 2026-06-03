@@ -214,7 +214,7 @@ func ImportColorsToml(filePath string) (*Blueprint, error) {
 		return nil, fmt.Errorf("read file: %w", err)
 	}
 
-	colors, bg, fg, parsedMode := omarchy.ParseColorsToml(string(data))
+	colors, bg, fg, parsedMode, extended := omarchy.ParseColorsTomlFull(string(data))
 
 	// Fill empty slots: use bg for dark colors (0,8), fg for light colors (7,15)
 	if bg == "" {
@@ -246,7 +246,12 @@ func ImportColorsToml(filePath string) (*Blueprint, error) {
 	}
 
 	name := strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
+	// Preserve the theme's explicit accent/cursor/selection so the import
+	// stays faithful instead of re-deriving them from the palette.
 	ext := map[string]string{}
+	for k, v := range extended {
+		ext[k] = v
+	}
 	if bg != "" {
 		ext["background"] = bg
 	}
@@ -260,6 +265,7 @@ func ImportColorsToml(filePath string) (*Blueprint, error) {
 			Colors:         colors[:],
 			ExtendedColors: ext,
 			LightMode:      parsedMode == "light",
+			Mode:           parsedMode,
 		},
 		Timestamp: time.Now().UnixMilli(),
 	}

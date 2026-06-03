@@ -12,7 +12,7 @@
 @define-color green {green};
 @define-color yellow {yellow};
 @define-color blue {blue};
-@define-color magenta {magenta};
+@define-color magenta {purple};
 @define-color cyan {cyan};
 @define-color white {white};
 @define-color bright_black {bright_black};
@@ -20,7 +20,7 @@
 @define-color bright_green {bright_green};
 @define-color bright_yellow {bright_yellow};
 @define-color bright_blue {bright_blue};
-@define-color bright_magenta {bright_magenta};
+@define-color bright_magenta {bright_purple};
 @define-color bright_cyan {bright_cyan};
 @define-color bright_white {bright_white};
 

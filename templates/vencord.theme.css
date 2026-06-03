@@ -15,7 +15,7 @@
     --color02: {green};
     --color03: {yellow};
     --color04: {blue};
-    --color05: {magenta};
+    --color05: {purple};
     --color06: {cyan};
     --color07: {white};
     --color08: {bright_black};
@@ -23,7 +23,7 @@
     --color10: {bright_green};
     --color11: {bright_yellow};
     --color12: {bright_blue};
-    --color13: {bright_magenta};
+    --color13: {bright_purple};
     --color14: {bright_cyan};
     --color15: {bright_white};
 }

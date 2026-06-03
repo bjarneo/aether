@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
+	"aether/internal/omarchy"
 	"aether/internal/platform"
 
 	wailsrt "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -131,37 +131,27 @@ func parseColorsTOML(path string) map[string]string {
 		return nil
 	}
 
-	colors := make(map[string]string)
-	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(parts[0])
-		val := strings.TrimSpace(parts[1])
+	colors := omarchy.ParseColorsKV(string(data))
 
-		if idx := strings.Index(val, " #"); idx >= 0 {
-			val = strings.TrimSpace(val[:idx])
+	// Bridge naming conventions so consumers can read either form regardless
+	// of how the source colors.toml was written: new omarchy themes use
+	// semantic names only (no colorN), Aether/legacy themes use colorN, and
+	// omarchy calls slot 5 "purple" where ANSI calls it "magenta".
+	alias := func(a, b string) {
+		if colors[a] == "" && colors[b] != "" {
+			colors[a] = colors[b]
+		} else if colors[b] == "" && colors[a] != "" {
+			colors[b] = colors[a]
 		}
-		val = strings.Trim(val, `"'`)
-		if val == "" {
-			continue
-		}
-
-		colors[key] = val
 	}
 
+	alias("magenta", "purple")
+	alias("bright_magenta", "bright_purple")
 	for i, name := range semanticOrder {
-		if v, ok := colors["color"+strconv.Itoa(i)]; ok {
-			if _, set := colors[name]; !set {
-				colors[name] = v
-			}
-		}
+		alias(name, "color"+strconv.Itoa(i))
 	}
+	alias("bg", "background")
+	alias("fg", "foreground")
 
 	if len(colors) == 0 {
 		return nil

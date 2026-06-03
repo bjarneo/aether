@@ -64,6 +64,111 @@ color15 = "#c0caf5"
 	}
 }
 
+// A colors.toml in omarchy's semantic form: no color0-15 slots, slot 5 named
+// "purple", slot 8 "muted", and a fg/bg shade ramp. The parser must still
+// reconstruct a full 16-slot palette by falling back across the names.
+func TestParseColorsTomlSemantic(t *testing.T) {
+	sample := `mode = "dark"
+
+accent = "#7aa2f7"
+cursor = "#c0caf5"
+foreground = "#a9b1d6"
+background = "#1a1b26"
+selection_foreground = "#c0caf5"
+selection_background = "#7aa2f7"
+
+bg = "#1a1b26"
+lighter_bg = "#24283b"
+selection = "#292e42"
+muted = "#414868"
+dark_fg = "#565f89"
+fg = "#737aa2"
+light_fg = "#a9b1d6"
+bright_fg = "#cfc9c2"
+
+red = "#f7768e"
+yellow = "#e0af68"
+green = "#9ece6a"
+cyan = "#449dab"
+blue = "#7aa2f7"
+purple = "#ad8ee6"
+bright_red = "#ff7a93"
+bright_yellow = "#ff9e64"
+bright_green = "#b9f27c"
+bright_cyan = "#0db9d7"
+bright_blue = "#7da6ff"
+bright_purple = "#bb9af7"
+`
+	colors, bg, fg, mode := ParseColorsToml(sample)
+
+	if mode != "dark" {
+		t.Errorf("mode = %q, want dark", mode)
+	}
+	if bg != "#1a1b26" {
+		t.Errorf("bg = %q, want #1a1b26", bg)
+	}
+	if fg != "#a9b1d6" {
+		t.Errorf("fg = %q, want #a9b1d6 (primary foreground, not the dimmed fg key)", fg)
+	}
+
+	want := map[int]string{
+		0:  "#1a1b26", // bg (no color0)
+		1:  "#f7768e", // red
+		5:  "#ad8ee6", // purple -> magenta slot
+		6:  "#449dab", // cyan
+		7:  "#a9b1d6", // foreground anchor, not the dimmed fg
+		8:  "#414868", // muted -> bright black slot
+		9:  "#ff7a93", // bright_red
+		13: "#bb9af7", // bright_purple -> bright magenta slot
+		15: "#cfc9c2", // bright_fg
+	}
+	for idx, exp := range want {
+		if colors[idx] != exp {
+			t.Errorf("color%d = %q, want %q", idx, colors[idx], exp)
+		}
+	}
+	for i, c := range colors {
+		if c == "" {
+			t.Errorf("color%d is empty; semantic palette should fully reconstruct", i)
+		}
+	}
+}
+
+// ParseColorsTomlFull must surface the theme's explicit accent/cursor/
+// selection colors so imports stay faithful instead of re-deriving them.
+func TestParseColorsTomlFullExtended(t *testing.T) {
+	sample := `mode = "dark"
+accent = "#7aa2f7"
+cursor = "#c0caf5"
+foreground = "#a9b1d6"
+background = "#1a1b26"
+selection_foreground = "#c0caf5"
+selection_background = "#7aa2f7"
+red = "#f7768e"
+purple = "#ad8ee6"
+`
+	_, _, _, _, ext := ParseColorsTomlFull(sample)
+
+	want := map[string]string{
+		"accent":               "#7aa2f7",
+		"cursor":               "#c0caf5",
+		"selection_foreground": "#c0caf5",
+		"selection_background": "#7aa2f7",
+	}
+	for k, v := range want {
+		if ext[k] != v {
+			t.Errorf("extended[%q] = %q, want %q", k, ext[k], v)
+		}
+	}
+	// Palette slots and bg/fg should NOT leak into extended.
+	if _, ok := ext["red"]; ok {
+		t.Errorf("extended should not contain palette slot keys, got red=%q", ext["red"])
+	}
+	if _, ok := ext["background"]; ok {
+		t.Errorf("extended should not contain background anchor")
+	}
+}
+
 func TestParseColorsTomlMode(t *testing.T) {
 	cases := map[string]struct {
 		content string
