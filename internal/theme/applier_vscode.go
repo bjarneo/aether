@@ -19,7 +19,7 @@ func ApplyVSCodeTheme(fsys embed.FS, templatesDir string, variables map[string]s
 		return err
 	}
 
-	extensionDir := filepath.Join(home, ".vscode", "extensions", "theme-aether")
+	extensionDir := filepath.Join(home, ".vscode", "extensions", "local.theme-aether-1.0.0")
 	if err := platform.EnsureDir(extensionDir); err != nil {
 		return err
 	}
@@ -28,6 +28,6 @@ func ApplyVSCodeTheme(fsys embed.FS, templatesDir string, variables map[string]s
 		return err
 	}
 
-	log.Printf("VSCode theme extension installed to: %s", extensionDir)
+	log.Printf("VS Code theme extension installed to: %s", extensionDir)
 	return nil
 }
