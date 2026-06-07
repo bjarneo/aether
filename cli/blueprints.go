@@ -113,11 +113,12 @@ func runApplyBlueprint(args []string, templatesFS embed.FS) int {
 
 	writer := theme.NewWriter(templatesFS, "templates")
 	state := &theme.ThemeState{
-		Palette:       palette,
-		WallpaperPath: wallpaperPath,
-		LightMode:     lightMode,
-		ColorRoles:    colorRoles,
-		AppOverrides:  bp.AppOverrides,
+		Palette:          palette,
+		WallpaperPath:    wallpaperPath,
+		LightMode:        lightMode,
+		ColorRoles:       colorRoles,
+		AppOverrides:     bp.AppOverrides,
+		AdditionalImages: bp.Palette.AdditionalImages,
 	}
 
 	settings := theme.DefaultApplySettings()
