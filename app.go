@@ -469,6 +469,13 @@ func (a *App) LoadBlueprint(name string) error {
 	for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
 		palette[i] = bp.Palette.Colors[i]
 	}
+
+	if bp.Palette.ExtendedColors != nil {
+		a.state.ExtendedColors = bp.Palette.ExtendedColors
+	} else {
+		a.state.ExtendedColors = map[string]string{}
+	}
+
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
@@ -495,6 +502,12 @@ func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
 	var palette [16]string
 	for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
 		palette[i] = bp.Palette.Colors[i]
+	}
+
+	if bp.Palette.ExtendedColors != nil {
+		a.state.ExtendedColors = bp.Palette.ExtendedColors
+	} else {
+		a.state.ExtendedColors = map[string]string{}
 	}
 
 	a.state.SetPalette(palette)

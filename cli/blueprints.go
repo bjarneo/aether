@@ -108,16 +108,31 @@ func runApplyBlueprint(args []string, templatesFS embed.FS) int {
 	}
 
 	colorRoles := MapColorsToRoles(palette)
+
+	if v := bp.Palette.ExtendedColors["accent"]; v != "" {
+		colorRoles.Accent = v
+	}
+	if v := bp.Palette.ExtendedColors["cursor"]; v != "" {
+		colorRoles.Cursor = v
+	}
+	if v := bp.Palette.ExtendedColors["selection_foreground"]; v != "" {
+		colorRoles.SelectionForeground = v
+	}
+	if v := bp.Palette.ExtendedColors["selection_background"]; v != "" {
+		colorRoles.SelectionBackground = v
+	}
+
 	lightMode := bp.Palette.LightMode
 	wallpaperPath := resolveWallpaperCLI(bp.Palette)
 
 	writer := theme.NewWriter(templatesFS, "templates")
 	state := &theme.ThemeState{
-		Palette:       palette,
-		WallpaperPath: wallpaperPath,
-		LightMode:     lightMode,
-		ColorRoles:    colorRoles,
-		AppOverrides:  bp.AppOverrides,
+		Palette:        palette,
+		WallpaperPath:  wallpaperPath,
+		LightMode:      lightMode,
+		ColorRoles:     colorRoles,
+		ExtendedColors: bp.Palette.ExtendedColors,
+		AppOverrides:   bp.AppOverrides,
 	}
 
 	settings := theme.DefaultApplySettings()
