@@ -299,15 +299,19 @@ func writeCachedDims(rawURL string, w, h int) error {
 func DownloadThumbnail(rawURL string) (*ThumbnailResult, error) {
 	cacheFile := thumbnailCachePNG(rawURL)
 
-	// Return cached thumbnail if it exists
+	// Return cached thumbnail if it exists with dimensions
 	if data, err := os.ReadFile(cacheFile); err == nil {
-		encoded := base64.StdEncoding.EncodeToString(data)
-		dataURL := fmt.Sprintf("data:image/png;base64,%s", encoded)
-		w, h, err := readCachedDims(rawURL)
-		if err != nil {
-			return &ThumbnailResult{DataURL: dataURL}, nil
+		w, h, derr := readCachedDims(rawURL)
+		if derr == nil {
+			encoded := base64.StdEncoding.EncodeToString(data)
+			return &ThumbnailResult{
+				DataURL: fmt.Sprintf("data:image/png;base64,%s", encoded),
+				Width:   w,
+				Height:  h,
+			}, nil
 		}
-		return &ThumbnailResult{DataURL: dataURL, Width: w, Height: h}, nil
+		// Stale cache (pre-dims migration) — discard and re-download
+		os.Remove(cacheFile)
 	}
 
 	// Download the image

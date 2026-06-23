@@ -464,13 +464,10 @@
 							</div>
 
 							<div
-								class="text-fg-dimmed flex items-center gap-1.5 px-2 py-1 text-[10px]"
+								class="text-fg-dimmed flex items-center justify-between px-2 py-1.5 text-[10px]"
 								title={item.name}
 							>
-								{#if dims[item.url]}
-									<span>{dims[item.url].width}&times;{dims[item.url].height}</span>
-									<span class="text-white/20" aria-hidden="true">·</span>
-								{/if}
+								<span>{dims[item.url] ? `${dims[item.url].width}×${dims[item.url].height}` : ''}</span>
 								<span>{formatSize(item.size)}</span>
 							</div>
 						</div>

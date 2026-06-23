@@ -110,16 +110,15 @@ export namespace githubsource {
 		    return a;
 		}
 	}
-
 	export class ThumbnailResult {
 	    dataURL: string;
 	    width: number;
 	    height: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ThumbnailResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.dataURL = source["dataURL"];
@@ -127,6 +126,7 @@ export namespace githubsource {
 	        this.height = source["height"];
 	    }
 	}
+
 }
 
 export namespace ipc {
