@@ -90,7 +90,7 @@ export function IsPreviewCached(arg1:string):Promise<boolean>;
 
 export function ListBlueprints():Promise<Array<Record<string, any>>>;
 
-export function ListGitHubImages(arg1:string):Promise<Array<githubsource.ImageInfo>>;
+export function ListGitHubImages(arg1:string):Promise<githubsource.ListContentsResult>;
 
 export function LoadBlueprint(arg1:string):Promise<void>;
 

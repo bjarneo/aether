@@ -20,6 +20,8 @@ func TestParseURL_githubCom(t *testing.T) {
 		{"https://github.com/dharmx/walls/tree/master/images/nature", "dharmx", "walls", "master", "images/nature"},
 		{"https://github.com/dharmx/walls/blob/main/wallpaper.jpg", "dharmx", "walls", "main", "wallpaper.jpg"},
 		{"https://github.com/bjarneo/wallpapers/tree/gh-pages", "bjarneo", "wallpapers", "gh-pages", ""},
+		{"https://github.com/dharmx/walls/abstract", "dharmx", "walls", "", "abstract"},
+		{"https://github.com/dharmx/walls/subdir/nested", "dharmx", "walls", "", "subdir/nested"},
 	}
 
 	for _, tt := range tests {
@@ -164,6 +166,34 @@ func TestFilterImages(t *testing.T) {
 		if !expected[img.Name] {
 			t.Errorf("unexpected image: %s", img.Name)
 		}
+	}
+}
+
+func TestIsImageFile(t *testing.T) {
+	tests := []struct {
+		name  string
+		image bool
+	}{
+		{"photo.jpg", true},
+		{"photo.jpeg", true},
+		{"screenshot.png", true},
+		{"animation.webp", true},
+		{"image.PNG", true},
+		{"Photo.JPG", true},
+		{"noext", false},
+		{"document.pdf", false},
+		{"script.js", false},
+		{"archive.zip", false},
+		{"Makefile", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isImageFile(tt.name)
+			if got != tt.image {
+				t.Errorf("isImageFile(%q) = %v, want %v", tt.name, got, tt.image)
+			}
+		})
 	}
 }
 

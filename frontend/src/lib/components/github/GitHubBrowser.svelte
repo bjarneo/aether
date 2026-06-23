@@ -6,6 +6,7 @@
 	import LoadingState from '$lib/components/shared/LoadingState.svelte';
 	import ViewHeader from '$lib/components/shared/ViewHeader.svelte';
 	import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
+	import type {githubsource} from '../../../../wailsjs/go/models';
 	import {
 		setWallpaperPath,
 		addAdditionalImage,
@@ -21,10 +22,34 @@
 		getError,
 		setURL,
 		fetchImages,
+		navigateToDir as storeNavigateToDir,
+		goUp as storeGoUp,
 	} from '$lib/stores/github.svelte';
+
+	type ImageInfo = githubsource.ImageInfo;
 
 	let urlInput = $state(getURL());
 	let previewIndex = $state(-1);
+
+	let results = $derived(getResults());
+	let isLoading = $derived(getIsLoading());
+	let error = $derived(getError());
+	let fileResults = $derived(results.filter(i => i.type === 'file'));
+	let dirResults = $derived(results.filter(i => i.type === 'dir'));
+
+	let canGoUp = $derived.by(() => {
+		const u = getURL();
+		try {
+			const parsed = new URL(u);
+			if (parsed.hostname !== 'github.com') return false;
+			const segs = parsed.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+			if (segs.length <= 2) return false;
+			if (segs.length === 4 && segs[2] === 'tree') return false;
+			return true;
+		} catch {
+			return false;
+		}
+	});
 
 	function handleSubmit() {
 		setURL(urlInput);
@@ -35,7 +60,17 @@
 		if (e.key === 'Enter') handleSubmit();
 	}
 
-	async function handleUse(image: {name: string; url: string}) {
+	function handleNavigate(dirName: string) {
+		storeNavigateToDir(dirName);
+		urlInput = getURL();
+	}
+
+	function handleGoUp() {
+		storeGoUp();
+		urlInput = getURL();
+	}
+
+	async function handleUse(image: ImageInfo) {
 		try {
 			const {DownloadWallpaper} = await import(
 				'../../../../wailsjs/go/main/App'
@@ -49,7 +84,7 @@
 		}
 	}
 
-	async function handleAddExtra(event: MouseEvent, image: {name: string; url: string}) {
+	async function handleAddExtra(event: MouseEvent, image: ImageInfo) {
 		event.stopPropagation();
 		try {
 			showToast('Downloading wallpaper...');
@@ -68,13 +103,9 @@
 		}
 	}
 
-	function handlePreview(index: number) {
-		previewIndex = index;
+	function handlePreview(img: ImageInfo) {
+		previewIndex = fileResults.findIndex(f => f.path === img.path);
 	}
-
-	let results = $derived(getResults());
-	let isLoading = $derived(getIsLoading());
-	let error = $derived(getError());
 </script>
 
 <div class="flex h-full flex-col">
@@ -82,6 +113,12 @@
 		<span class="text-fg-primary shrink-0 text-[11px] font-medium"
 			>GitHub URL</span
 		>
+		<button
+			class="border-border text-fg-dimmed hover:text-fg-primary flex h-[22px] w-[22px] items-center justify-center border text-[11px] transition-colors disabled:opacity-30"
+			onclick={handleGoUp}
+			disabled={!canGoUp}
+			title="Go to parent directory"
+		>&#8593;</button>
 		<input
 			type="text"
 			bind:value={urlInput}
@@ -100,7 +137,10 @@
 			<CardSizeToggle />
 			{#if results.length > 0}
 				<span class="text-fg-dimmed text-[10px]"
-					>{results.length} image{results.length === 1 ? '' : 's'}</span
+					>{fileResults.length} image{fileResults.length === 1 ? '' : 's'}
+					{dirResults.length > 0
+						? `, ${dirResults.length} director${dirResults.length === 1 ? 'y' : 'ies'}`
+						: ''}</span
 				>
 			{/if}
 		</div>
@@ -108,13 +148,13 @@
 
 	<div class="flex-1 overflow-y-auto p-3">
 		{#if isLoading}
-			<LoadingState message="Fetching images from GitHub…" />
+			<LoadingState message="Fetching from GitHub…" />
 		{:else if error}
 			<EmptyState title="Failed to load" body={error} />
 		{:else if results.length === 0}
 			<EmptyState
-				title="No images to show"
-				body="Enter a GitHub repository URL above and click Fetch to browse wallpapers."
+				title="Nothing to show"
+				body="Enter a GitHub repository URL above and click Fetch to browse wallpapers and directories."
 			>
 				{#snippet icon()}
 					<svg
@@ -140,70 +180,91 @@
 				class="grid gap-3"
 				style:grid-template-columns="repeat(auto-fill, minmax({CARD_MIN_WIDTH[getCardSize()]}px, 1fr))"
 			>
-				{#each results as img, i}
-					<div
-						class="bg-bg-surface border-border hover:border-border-focus group relative border transition-colors duration-100"
-					>
-						<button
-							class="w-full text-left"
-							onclick={() => handleUse(img)}
-							title="Download, set as wallpaper, and open in editor"
-						>
-							<div class="bg-bg-primary aspect-video overflow-hidden">
-								<RemoteImage url={img.url} alt={img.name} />
-							</div>
-						</button>
-
-						<button
-							class="absolute left-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-0 transition-all duration-150 hover:!opacity-100 group-hover:opacity-60"
-							onclick={e => handleAddExtra(e, img)}
-							aria-label="Add to additional images"
-						>
-							<svg class="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"
-								stroke="currentColor" stroke-width="2" stroke-linecap="round"
-								stroke-linejoin="round">
-								<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-								<line x1="12" y1="8" x2="12" y2="16"></line>
-								<line x1="8" y1="12" x2="16" y2="12"></line>
-							</svg>
-						</button>
-
+				{#each results as item, i (item.path)}
+					{#if item.type === 'dir'}
 						<div
-							class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+							class="bg-bg-surface border-border hover:border-border-focus group relative cursor-pointer border transition-colors duration-100"
+							onclick={() => handleNavigate(item.name)}
+							role="button"
+							tabindex="0"
+							onkeydown={e => { if (e.key === 'Enter') handleNavigate(item.name); }}
+						>
+							<div class="bg-bg-primary flex aspect-video items-center justify-center">
+								<svg class="h-10 w-10 text-fg-dimmed" viewBox="0 0 24 24"
+									fill="none" stroke="currentColor" stroke-width="1.5"
+									stroke-linecap="round" stroke-linejoin="round">
+									<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+								</svg>
+							</div>
+							<div class="text-fg-dimmed flex items-center px-2 py-1 text-[10px]">
+								<span class="truncate">{item.name}</span>
+							</div>
+						</div>
+					{:else}
+						<div
+							class="bg-bg-surface border-border hover:border-border-focus group relative border transition-colors duration-100"
 						>
 							<button
-								class="bg-accent hover:bg-accent-hover text-accent-fg pointer-events-auto min-w-[7rem] px-4 py-1.5 text-[11px] font-medium transition-colors"
-								onclick={() => handleUse(img)}
+								class="w-full text-left"
+								onclick={() => handleUse(item)}
 								title="Download, set as wallpaper, and open in editor"
-								>Use</button
 							>
-							<div class="flex items-center gap-2 text-[10px] text-white/85">
+								<div class="bg-bg-primary aspect-video overflow-hidden">
+									<RemoteImage url={item.url} alt={item.name} />
+								</div>
+							</button>
+
+							<button
+								class="absolute left-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-0 transition-all duration-150 hover:!opacity-100 group-hover:opacity-60"
+								onclick={e => handleAddExtra(e, item)}
+								aria-label="Add to additional images"
+							>
+								<svg class="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"
+									stroke="currentColor" stroke-width="2" stroke-linecap="round"
+									stroke-linejoin="round">
+									<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+									<line x1="12" y1="8" x2="12" y2="16"></line>
+									<line x1="8" y1="12" x2="16" y2="12"></line>
+								</svg>
+							</button>
+
+							<div
+								class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+							>
 								<button
-									class="pointer-events-auto px-1 transition-colors hover:text-white disabled:opacity-50"
-									onclick={e => {
-										e.stopPropagation();
-										applyWallpaperOnly(img.url);
-									}}
-									disabled={getIsApplying()}
-									title="Apply this wallpaper without changing the current palette"
-									>Wallpaper only</button
+									class="bg-accent hover:bg-accent-hover text-accent-fg pointer-events-auto min-w-[7rem] px-4 py-1.5 text-[11px] font-medium transition-colors"
+									onclick={() => handleUse(item)}
+									title="Download, set as wallpaper, and open in editor"
+									>Use</button
 								>
-								<span class="text-white/30" aria-hidden="true">·</span>
-								<button
-									class="pointer-events-auto px-1 transition-colors hover:text-white"
-									onclick={e => {
-										e.stopPropagation();
-										handlePreview(i);
-									}}
-									title="Preview wallpaper full-size">Preview</button
-								>
+								<div class="flex items-center gap-2 text-[10px] text-white/85">
+									<button
+										class="pointer-events-auto px-1 transition-colors hover:text-white disabled:opacity-50"
+										onclick={e => {
+											e.stopPropagation();
+											applyWallpaperOnly(item.url);
+										}}
+										disabled={getIsApplying()}
+										title="Apply this wallpaper without changing the current palette"
+										>Wallpaper only</button
+									>
+									<span class="text-white/30" aria-hidden="true">·</span>
+									<button
+										class="pointer-events-auto px-1 transition-colors hover:text-white"
+										onclick={e => {
+											e.stopPropagation();
+											handlePreview(item);
+										}}
+										title="Preview wallpaper full-size">Preview</button
+									>
+								</div>
+							</div>
+
+							<div class="text-fg-dimmed flex items-center px-2 py-1 text-[10px]">
+								<span class="truncate">{item.name}</span>
 							</div>
 						</div>
-
-						<div class="text-fg-dimmed flex items-center px-2 py-1 text-[10px]">
-							<span class="truncate">{img.name}</span>
-						</div>
-					</div>
+					{/if}
 				{/each}
 			</div>
 		{/if}
@@ -211,12 +272,12 @@
 </div>
 
 <ImagePreview
-	src={previewIndex >= 0 ? results[previewIndex]?.url : ''}
-	alt={previewIndex >= 0 ? results[previewIndex]?.name : ''}
+	src={previewIndex >= 0 ? fileResults[previewIndex]?.url : ''}
+	alt={previewIndex >= 0 ? fileResults[previewIndex]?.name : ''}
 	open={previewIndex >= 0}
 	onclose={() => (previewIndex = -1)}
 	hasPrev={previewIndex > 0}
-	hasNext={previewIndex < results.length - 1}
+	hasNext={previewIndex < fileResults.length - 1}
 	onprev={() => previewIndex--}
 	onnext={() => previewIndex++}
 />

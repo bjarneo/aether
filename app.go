@@ -670,9 +670,10 @@ func (a *App) DownloadWallpaper(imageURL string) (string, error) {
 // GitHub Source
 // ---------------------------------------------------------------------------
 
-// ListGitHubImages fetches all image files from a GitHub repository URL.
-// Accepts github.com, <owner>.github.io, and raw.githubusercontent.com URLs.
-func (a *App) ListGitHubImages(rawURL string) ([]githubsource.ImageInfo, error) {
+// ListGitHubImages fetches all image files and subdirectories from a GitHub
+// repository URL. Accepts github.com, <owner>.github.io, and
+// raw.githubusercontent.com URLs.
+func (a *App) ListGitHubImages(rawURL string) (*githubsource.ListContentsResult, error) {
 	return a.github.ListImages(rawURL)
 }
 

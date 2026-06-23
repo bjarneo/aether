@@ -27,6 +27,21 @@ export function setURL(u: string): void {
 	url = u;
 }
 
+export function navigateToDir(dirName: string): void {
+	const base = url.replace(/\/+$/, '');
+	url = `${base}/${dirName}`;
+	fetchImages();
+}
+
+export function goUp(): void {
+	const trimmed = url.replace(/\/+$/, '');
+	const lastSlash = trimmed.lastIndexOf('/');
+	if (lastSlash > 0) {
+		url = trimmed.substring(0, lastSlash);
+		fetchImages();
+	}
+}
+
 export async function fetchImages(): Promise<void> {
 	const trimmed = url.trim();
 	if (!trimmed) return;
@@ -39,8 +54,8 @@ export async function fetchImages(): Promise<void> {
 		const {ListGitHubImages} = await import(
 			'../../../wailsjs/go/main/App'
 		);
-		const data = await ListGitHubImages(trimmed);
-		results = Array.isArray(data) ? data : [];
+		const result = await ListGitHubImages(trimmed);
+		results = result?.items ?? [];
 	} catch (e: any) {
 		error = e?.message || 'Failed to fetch images from GitHub';
 		results = [];

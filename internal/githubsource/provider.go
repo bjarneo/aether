@@ -42,10 +42,10 @@ func NewClient() *Client {
 	}
 }
 
-// ListImages parses a GitHub URL and returns all image files found at that
-// location. Supports github.com repos, GitHub Pages (<owner>.github.io), and
-// raw.githubusercontent.com URLs.
-func (c *Client) ListImages(rawURL string) ([]ImageInfo, error) {
+// ListImages parses a GitHub URL and returns all files (images) and directories
+// found at that location. Supports github.com repos, GitHub Pages
+// (<owner>.github.io), and raw.githubusercontent.com URLs.
+func (c *Client) ListImages(rawURL string) (*ListContentsResult, error) {
 	gh, err := parseURL(rawURL)
 	if err != nil {
 		return nil, err
@@ -56,21 +56,27 @@ func (c *Client) ListImages(rawURL string) ([]ImageInfo, error) {
 		return nil, err
 	}
 
-	images := filterImages(contents)
-	if len(images) == 0 {
-		return nil, fmt.Errorf("no images found in %s", rawURL)
-	}
-
-	result := make([]ImageInfo, len(images))
-	for i, item := range images {
-		result[i] = ImageInfo{
-			Name: item.Name,
-			URL:  buildRawURL(gh.Owner, gh.Repo, gh.Branch, item.Path),
-			Size: item.Size,
+	items := make([]ImageInfo, 0, len(contents))
+	for _, item := range contents {
+		if item.Type == "dir" {
+			items = append(items, ImageInfo{
+				Name: item.Name,
+				Size: item.Size,
+				Type: "dir",
+				Path: item.Path,
+			})
+		} else if isImageFile(item.Name) && item.DownloadURL != "" {
+			items = append(items, ImageInfo{
+				Name: item.Name,
+				URL:  item.DownloadURL,
+				Size: item.Size,
+				Type: "file",
+				Path: item.Path,
+			})
 		}
 	}
 
-	return result, nil
+	return &ListContentsResult{Items: items}, nil
 }
 
 // listContents calls the GitHub Contents API for a given path in a repo.
@@ -123,15 +129,17 @@ func (c *Client) listContents(owner, repo, filePath, branch string) ([]githubCon
 	return []githubContent{single}, nil
 }
 
+// isImageFile checks if a filename has an image extension.
+func isImageFile(name string) bool {
+	ext := strings.ToLower(path.Ext(name))
+	return imageExtensions[ext]
+}
+
 // filterImages filters a GitHub API contents response to only image files.
 func filterImages(items []githubContent) []githubContent {
 	out := make([]githubContent, 0, len(items))
 	for _, item := range items {
-		if item.Type != "file" {
-			continue
-		}
-		ext := strings.ToLower(path.Ext(item.Name))
-		if imageExtensions[ext] {
+		if item.Type == "file" && isImageFile(item.Name) {
 			out = append(out, item)
 		}
 	}
@@ -199,16 +207,13 @@ func parseURL(rawURL string) (*parsedGitHubURL, error) {
 	branch := ""
 	filePath := ""
 
-	if len(segments) >= 4 {
-		switch segments[2] {
-		case "tree", "blob":
-			branch = segments[3]
-			if len(segments) > 4 {
-				filePath = strings.Join(segments[4:], "/")
-			}
-		default:
-			filePath = strings.Join(segments[2:], "/")
+	if len(segments) >= 4 && (segments[2] == "tree" || segments[2] == "blob") {
+		branch = segments[3]
+		if len(segments) > 4 {
+			filePath = strings.Join(segments[4:], "/")
 		}
+	} else if len(segments) >= 3 {
+		filePath = strings.Join(segments[2:], "/")
 	}
 
 	return &parsedGitHubURL{
