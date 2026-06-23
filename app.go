@@ -16,6 +16,7 @@ import (
 	"aether/internal/color"
 	"aether/internal/extraction"
 	"aether/internal/favorites"
+	"aether/internal/githubsource"
 	"aether/internal/omarchy"
 	"aether/internal/platform"
 	"aether/internal/template"
@@ -37,6 +38,7 @@ type App struct {
 	blueprints   *blueprint.Service
 	favorites    *favorites.Service
 	wallhaven    *wallhaven.Client
+	github       *githubsource.Client
 	batch        *batch.Processor
 	themeWatcher *theme.ThemeWatcher
 	media        *MediaServer
@@ -72,6 +74,7 @@ func NewApp() *App {
 		blueprints:   blueprint.NewService(),
 		favorites:    favorites.NewService(),
 		wallhaven:    wallhaven.NewClient(),
+		github:       githubsource.NewClient(),
 		batch:        batch.NewProcessor(),
 		themeWatcher: theme.NewThemeWatcher(),
 	}
@@ -661,6 +664,16 @@ func (a *App) SearchWallhaven(params wallhaven.SearchParams) (*wallhaven.SearchR
 // DownloadWallpaper downloads a wallpaper from a URL. Returns local path.
 func (a *App) DownloadWallpaper(imageURL string) (string, error) {
 	return a.wallhaven.Download(imageURL)
+}
+
+// ---------------------------------------------------------------------------
+// GitHub Source
+// ---------------------------------------------------------------------------
+
+// ListGitHubImages fetches all image files from a GitHub repository URL.
+// Accepts github.com, <owner>.github.io, and raw.githubusercontent.com URLs.
+func (a *App) ListGitHubImages(rawURL string) ([]githubsource.ImageInfo, error) {
+	return a.github.ListImages(rawURL)
 }
 
 // ---------------------------------------------------------------------------

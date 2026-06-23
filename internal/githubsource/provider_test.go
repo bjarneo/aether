@@ -1,0 +1,176 @@
+package githubsource
+
+import (
+	"testing"
+)
+
+func TestParseURL_githubCom(t *testing.T) {
+	tests := []struct {
+		raw   string
+		owner string
+		repo  string
+		branch string
+		path  string
+	}{
+		{"https://github.com/dharmx/walls", "dharmx", "walls", "", ""},
+		{"https://github.com/dharmx/walls.git", "dharmx", "walls", "", ""},
+		{"https://github.com/dharmx/walls/", "dharmx", "walls", "", ""},
+		{"https://github.com/dharmx/walls/tree/main", "dharmx", "walls", "main", ""},
+		{"https://github.com/dharmx/walls/tree/main/subdir", "dharmx", "walls", "main", "subdir"},
+		{"https://github.com/dharmx/walls/tree/master/images/nature", "dharmx", "walls", "master", "images/nature"},
+		{"https://github.com/dharmx/walls/blob/main/wallpaper.jpg", "dharmx", "walls", "main", "wallpaper.jpg"},
+		{"https://github.com/bjarneo/wallpapers/tree/gh-pages", "bjarneo", "wallpapers", "gh-pages", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.raw, func(t *testing.T) {
+			gh, err := parseURL(tt.raw)
+			if err != nil {
+				t.Fatalf("parseURL(%q) unexpected error: %v", tt.raw, err)
+			}
+			if gh.Owner != tt.owner {
+				t.Errorf("owner = %q, want %q", gh.Owner, tt.owner)
+			}
+			if gh.Repo != tt.repo {
+				t.Errorf("repo = %q, want %q", gh.Repo, tt.repo)
+			}
+			if gh.Branch != tt.branch {
+				t.Errorf("branch = %q, want %q", gh.Branch, tt.branch)
+			}
+			if gh.Path != tt.path {
+				t.Errorf("path = %q, want %q", gh.Path, tt.path)
+			}
+		})
+	}
+}
+
+func TestParseURL_githubPages(t *testing.T) {
+	tests := []struct {
+		raw   string
+		owner string
+		repo  string
+		branch string
+		path  string
+	}{
+		{"https://bjarneo.github.io/wallpapers/", "bjarneo", "bjarneo.github.io", "", "wallpapers"},
+		{"https://bjarneo.github.io/", "bjarneo", "bjarneo.github.io", "", ""},
+		{"https://bjarneo.github.io/wallpapers/nature", "bjarneo", "bjarneo.github.io", "", "wallpapers/nature"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.raw, func(t *testing.T) {
+			gh, err := parseURL(tt.raw)
+			if err != nil {
+				t.Fatalf("parseURL(%q) unexpected error: %v", tt.raw, err)
+			}
+			if gh.Owner != tt.owner {
+				t.Errorf("owner = %q, want %q", gh.Owner, tt.owner)
+			}
+			if gh.Repo != tt.repo {
+				t.Errorf("repo = %q, want %q", gh.Repo, tt.repo)
+			}
+			if gh.Branch != tt.branch {
+				t.Errorf("branch = %q, want %q", gh.Branch, tt.branch)
+			}
+			if gh.Path != tt.path {
+				t.Errorf("path = %q, want %q", gh.Path, tt.path)
+			}
+		})
+	}
+}
+
+func TestParseURL_rawContent(t *testing.T) {
+	tests := []struct {
+		raw   string
+		owner string
+		repo  string
+		branch string
+		path  string
+	}{
+		{"https://raw.githubusercontent.com/bjarneo/wallpapers/main/wallpaper.jpg", "bjarneo", "wallpapers", "main", "wallpaper.jpg"},
+		{"https://raw.githubusercontent.com/dharmx/walls/master/images/nature/mountain.png", "dharmx", "walls", "master", "images/nature/mountain.png"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.raw, func(t *testing.T) {
+			gh, err := parseURL(tt.raw)
+			if err != nil {
+				t.Fatalf("parseURL(%q) unexpected error: %v", tt.raw, err)
+			}
+			if gh.Owner != tt.owner {
+				t.Errorf("owner = %q, want %q", gh.Owner, tt.owner)
+			}
+			if gh.Repo != tt.repo {
+				t.Errorf("repo = %q, want %q", gh.Repo, tt.repo)
+			}
+			if gh.Branch != tt.branch {
+				t.Errorf("branch = %q, want %q", gh.Branch, tt.branch)
+			}
+			if gh.Path != tt.path {
+				t.Errorf("path = %q, want %q", gh.Path, tt.path)
+			}
+		})
+	}
+}
+
+func TestParseURL_errors(t *testing.T) {
+	invalid := []string{
+		"",
+		"not-a-url",
+		"https://example.com/some/page",
+		"https://gitlab.com/owner/repo",
+		"https://raw.githubusercontent.com/onlyowner",
+	}
+
+	for _, raw := range invalid {
+		t.Run(raw, func(t *testing.T) {
+			_, err := parseURL(raw)
+			if err == nil {
+				t.Errorf("parseURL(%q) expected error, got nil", raw)
+			}
+		})
+	}
+}
+
+func TestFilterImages(t *testing.T) {
+	items := []githubContent{
+		{Name: "photo.jpg", Type: "file", Size: 1024},
+		{Name: "photo.jpeg", Type: "file", Size: 2048},
+		{Name: "screenshot.png", Type: "file", Size: 4096},
+		{Name: "animation.webp", Type: "file", Size: 512},
+		{Name: "document.pdf", Type: "file", Size: 300},
+		{Name: "script.js", Type: "file", Size: 100},
+		{Name: "subdir", Type: "dir", Size: 0},
+		{Name: "archive.zip", Type: "file", Size: 9999},
+		{Name: "image.PNG", Type: "file", Size: 2000},   // uppercase
+		{Name: "Photo.JPG", Type: "file", Size: 3000},   // uppercase
+	}
+
+	images := filterImages(items)
+	if len(images) != 6 {
+		t.Fatalf("got %d images, want 6", len(images))
+	}
+
+	expected := map[string]bool{
+		"photo.jpg":      true,
+		"photo.jpeg":     true,
+		"screenshot.png": true,
+		"animation.webp": true,
+		"image.PNG":      true,
+		"Photo.JPG":      true,
+	}
+
+	for _, img := range images {
+		if !expected[img.Name] {
+			t.Errorf("unexpected image: %s", img.Name)
+		}
+	}
+}
+
+func TestBuildRawURL(t *testing.T) {
+	url := buildRawURL("dharmx", "walls", "main", "images/nature/mountain.png")
+	want := "https://raw.githubusercontent.com/dharmx/walls/main/images/nature/mountain.png"
+	if url != want {
+		t.Errorf("got %q, want %q", url, want)
+	}
+}

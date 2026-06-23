@@ -5,154 +5,127 @@ import {theme} from '../models';
 import {main} from '../models';
 import {favorites} from '../models';
 import {ipc} from '../models';
+import {githubsource} from '../models';
 import {omarchy} from '../models';
 import {wallpaper} from '../models';
 import {wallhaven} from '../models';
 
-export function AdjustPaletteColors(
-    arg1: Array<string>,
-    arg2: color.Adjustments
-): Promise<Array<string>>;
+export function AdjustPaletteColors(arg1:Array<string>,arg2:color.Adjustments):Promise<Array<string>>;
 
-export function ApplyBlueprint(arg1: string): Promise<theme.ApplyResult>;
+export function ApplyBlueprint(arg1:string):Promise<theme.ApplyResult>;
 
-export function ApplyOmarchyThemeByName(arg1: string): Promise<void>;
+export function ApplyOmarchyThemeByName(arg1:string):Promise<void>;
 
-export function ApplyTheme(
-    arg1: main.ApplyThemeRequest
-): Promise<theme.ApplyResult>;
+export function ApplyTheme(arg1:main.ApplyThemeRequest):Promise<theme.ApplyResult>;
 
-export function BlueprintExists(arg1: string): Promise<boolean>;
+export function BlueprintExists(arg1:string):Promise<boolean>;
 
-export function CancelBatchProcessing(): Promise<void>;
+export function CancelBatchProcessing():Promise<void>;
 
-export function CancelExternalImport(): Promise<void>;
+export function CancelExternalImport():Promise<void>;
 
-export function ClearTheme(): Promise<void>;
+export function ClearTheme():Promise<void>;
 
-export function CloseIPC(): Promise<void>;
+export function CloseIPC():Promise<void>;
 
-export function ComputeVariables(
-    arg1: Array<string>,
-    arg2: Record<string, string>,
-    arg3: boolean
-): Promise<Record<string, string>>;
+export function ComputeVariables(arg1:Array<string>,arg2:Record<string, string>,arg3:boolean):Promise<Record<string, string>>;
 
-export function ConfirmExternalImport(): Promise<void>;
+export function ConfirmExternalImport():Promise<void>;
 
-export function ContrastRatio(arg1: string, arg2: string): Promise<number>;
+export function ContrastRatio(arg1:string,arg2:string):Promise<number>;
 
-export function DeleteBlueprint(arg1: string): Promise<void>;
+export function DeleteBlueprint(arg1:string):Promise<void>;
 
-export function DownloadWallpaper(arg1: string): Promise<string>;
+export function DownloadWallpaper(arg1:string):Promise<string>;
 
-export function ExportTheme(arg1: main.ExportThemeRequest): Promise<string>;
+export function ExportTheme(arg1:main.ExportThemeRequest):Promise<string>;
 
-export function ExtractColors(
-    arg1: string,
-    arg2: boolean,
-    arg3: string
-): Promise<any>;
+export function ExtractColors(arg1:string,arg2:boolean,arg3:string):Promise<any>;
 
-export function ExtractColorsFromImages(
-    arg1: Array<string>,
-    arg2: boolean,
-    arg3: string
-): Promise<main.ExtractFromImagesResult>;
+export function ExtractColorsFromImages(arg1:Array<string>,arg2:boolean,arg3:string):Promise<main.ExtractFromImagesResult>;
 
-export function GenerateGradient(arg1: string, arg2: string): Promise<any>;
+export function GenerateGradient(arg1:string,arg2:string):Promise<any>;
 
-export function GeneratePaletteFromColor(arg1: string): Promise<any>;
+export function GeneratePaletteFromColor(arg1:string):Promise<any>;
 
-export function GetFavorites(): Promise<Array<favorites.Favorite>>;
+export function GetFavorites():Promise<Array<favorites.Favorite>>;
 
-export function GetFocusTab(): Promise<string>;
+export function GetFocusTab():Promise<string>;
 
-export function GetInitialState(): Promise<theme.StateSnapshot>;
+export function GetInitialState():Promise<theme.StateSnapshot>;
 
-export function GetMediaURL(arg1: string): Promise<string>;
+export function GetMediaURL(arg1:string):Promise<string>;
 
-export function GetPendingExternalImport(): Promise<main.ExternalImportPreview>;
+export function GetPendingExternalImport():Promise<main.ExternalImportPreview>;
 
-export function GetPreview(arg1: string): Promise<string>;
+export function GetPreview(arg1:string):Promise<string>;
 
-export function GetSettings(): Promise<Record<string, any>>;
+export function GetSettings():Promise<Record<string, any>>;
 
-export function GetTemplateColors(): Promise<Record<string, Array<string>>>;
+export function GetTemplateColors():Promise<Record<string, Array<string>>>;
 
-export function GetThemeColors(): Promise<Record<string, string>>;
+export function GetThemeColors():Promise<Record<string, string>>;
 
-export function GetThumbnail(arg1: string): Promise<string>;
+export function GetThumbnail(arg1:string):Promise<string>;
 
-export function GetWallhavenConfig(): Promise<Record<string, any>>;
+export function GetWallhavenConfig():Promise<Record<string, any>>;
 
-export function GetWallpaperTags(): Promise<Record<string, any>>;
+export function GetWallpaperTags():Promise<Record<string, any>>;
 
-export function HandleDroppedFiles(arg1: Array<string>): Promise<string>;
+export function HandleDroppedFiles(arg1:Array<string>):Promise<string>;
 
-export function HandleIPC(arg1: ipc.Request): Promise<ipc.Response>;
+export function HandleIPC(arg1:ipc.Request):Promise<ipc.Response>;
 
-export function ImportFileDialog(arg1: string): Promise<main.ImportResult>;
+export function ImportFileDialog(arg1:string):Promise<main.ImportResult>;
 
-export function IsAetherWpAvailable(): Promise<boolean>;
+export function IsAetherWpAvailable():Promise<boolean>;
 
-export function IsFavorite(arg1: string): Promise<boolean>;
+export function IsFavorite(arg1:string):Promise<boolean>;
 
-export function IsMacOS(): Promise<boolean>;
+export function IsMacOS():Promise<boolean>;
 
-export function IsOmarchyInstalled(): Promise<boolean>;
+export function IsOmarchyInstalled():Promise<boolean>;
 
-export function IsPreviewCached(arg1: string): Promise<boolean>;
+export function IsPreviewCached(arg1:string):Promise<boolean>;
 
-export function ListBlueprints(): Promise<Array<Record<string, any>>>;
+export function ListBlueprints():Promise<Array<Record<string, any>>>;
 
-export function LoadBlueprint(arg1: string): Promise<void>;
+export function ListGitHubImages(arg1:string):Promise<Array<githubsource.ImageInfo>>;
 
-export function LoadOmarchyThemes(): Promise<Array<omarchy.Theme>>;
+export function LoadBlueprint(arg1:string):Promise<void>;
 
-export function OpenExternalImportInEditor(): Promise<void>;
+export function LoadOmarchyThemes():Promise<Array<omarchy.Theme>>;
 
-export function OpenFileDialog(): Promise<string>;
+export function OpenExternalImportInEditor():Promise<void>;
 
-export function PreviewExtractColors(
-    arg1: string,
-    arg2: boolean,
-    arg3: string
-): Promise<any>;
+export function OpenFileDialog():Promise<string>;
 
-export function ReadImageAsDataURL(arg1: string): Promise<string>;
+export function PreviewExtractColors(arg1:string,arg2:boolean,arg3:string):Promise<any>;
 
-export function ResetState(): Promise<void>;
+export function ReadImageAsDataURL(arg1:string):Promise<string>;
 
-export function SaveBlueprint(arg1: main.SaveBlueprintRequest): Promise<void>;
+export function ResetState():Promise<void>;
 
-export function SaveDataURLToFile(arg1: string, arg2: string): Promise<string>;
+export function SaveBlueprint(arg1:main.SaveBlueprintRequest):Promise<void>;
 
-export function SaveSettings(arg1: Record<string, any>): Promise<void>;
+export function SaveDataURLToFile(arg1:string,arg2:string):Promise<string>;
 
-export function SaveWallhavenConfig(arg1: Record<string, any>): Promise<void>;
+export function SaveSettings(arg1:Record<string, any>):Promise<void>;
 
-export function SaveWallpaperTags(arg1: Record<string, any>): Promise<void>;
+export function SaveWallhavenConfig(arg1:Record<string, any>):Promise<void>;
 
-export function ScanLocalWallpapers(): Promise<Array<wallpaper.WallpaperInfo>>;
+export function SaveWallpaperTags(arg1:Record<string, any>):Promise<void>;
 
-export function SearchWallhaven(
-    arg1: wallhaven.SearchParams
-): Promise<wallhaven.SearchResult>;
+export function ScanLocalWallpapers():Promise<Array<wallpaper.WallpaperInfo>>;
 
-export function SetExtractionMode(arg1: string): Promise<void>;
+export function SearchWallhaven(arg1:wallhaven.SearchParams):Promise<wallhaven.SearchResult>;
 
-export function SetWallhavenAPIKey(arg1: string): Promise<void>;
+export function SetExtractionMode(arg1:string):Promise<void>;
 
-export function StartBatchProcessing(
-    arg1: Array<string>,
-    arg2: boolean
-): Promise<void>;
+export function SetWallhavenAPIKey(arg1:string):Promise<void>;
 
-export function SyncState(arg1: main.SyncStateRequest): Promise<void>;
+export function StartBatchProcessing(arg1:Array<string>,arg2:boolean):Promise<void>;
 
-export function ToggleFavorite(
-    arg1: string,
-    arg2: string,
-    arg3: Record<string, any>
-): Promise<boolean>;
+export function SyncState(arg1:main.SyncStateRequest):Promise<void>;
+
+export function ToggleFavorite(arg1:string,arg2:string,arg3:Record<string, any>):Promise<boolean>;
