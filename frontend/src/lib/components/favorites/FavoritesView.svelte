@@ -61,6 +61,16 @@
         }
     }
 
+    async function loadRemoteThumb(path: string) {
+        try {
+            const {GetGitHubThumbnail} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
+            const dataUrl = await GetGitHubThumbnail(path);
+            if (dataUrl) setCachedImage('thumb:' + path, dataUrl);
+        } catch {}
+    }
+
     async function loadThumbnails() {
         for (const fav of favorites) {
             if (isThumbnailCached(fav.path)) continue;
@@ -68,6 +78,14 @@
             // Wallhaven thumbs are remote URLs — cache directly
             if (fav.data?.thumbUrl && fav.data.thumbUrl.startsWith('http')) {
                 setCachedImage('thumb:' + fav.path, fav.data.thumbUrl);
+                continue;
+            }
+
+            // Remote GitHub URLs — use Go thumbnail generator (download +
+            // resize to 300px, cached on disk for subsequent loads). Fire and
+            // forget so the loop doesn't block on HTTP downloads.
+            if (fav.path.startsWith('http://') || fav.path.startsWith('https://')) {
+                loadRemoteThumb(fav.path);
                 continue;
             }
 
