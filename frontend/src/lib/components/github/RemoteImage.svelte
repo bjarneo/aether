@@ -25,6 +25,7 @@
 			{alt}
 			class="h-full w-full object-cover"
 			loading="lazy"
+			decoding="async"
 		/>
 	{/if}
 </div>

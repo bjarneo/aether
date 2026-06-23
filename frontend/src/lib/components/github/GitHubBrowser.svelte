@@ -146,40 +146,12 @@
 	async function handleFavorite(event: MouseEvent, img: ImageInfo) {
 		event.stopPropagation();
 		try {
-			const {ToggleFavorite, IsFavorite} = await import(
+			const {ToggleFavorite} = await import(
 				'../../../../wailsjs/go/main/App'
 			);
-			await ToggleFavorite(img.url, '', {name: img.name});
-			favState[img.url] = await IsFavorite(img.url);
+			favState[img.url] = await ToggleFavorite(img.url, '', {name: img.name});
 		} catch {}
 	}
-
-	async function checkFavorite(url: string): Promise<boolean> {
-		try {
-			const {IsFavorite} = await import(
-				'../../../../wailsjs/go/main/App'
-			);
-			return await IsFavorite(url);
-		} catch {
-			return false;
-		}
-	}
-
-	// Load favorite state for all file results
-	$effect(() => {
-		const files = fileResults;
-		if (files.length === 0) return;
-		let cancelled = false;
-		(async () => {
-			for (const f of files) {
-				if (cancelled) return;
-				if (!(f.url in favState)) {
-					favState[f.url] = await checkFavorite(f.url);
-				}
-			}
-		})();
-		return () => { cancelled = true; };
-	});
 
 	function toggleSaveRepo() {
 		const current = getURL();
@@ -383,25 +355,9 @@
 								</div>
 							</button>
 
-							<!-- Favorite heart -->
+							<!-- Add to additional images -->
 							<button
 								class="absolute left-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-0 transition-all duration-150 hover:!opacity-100 group-hover:opacity-60"
-								onclick={e => handleFavorite(e, item)}
-								aria-label={favState[item.url] ? 'Remove from favorites' : 'Add to favorites'}
-							>
-								<svg class="h-4 w-4" viewBox="0 0 24 24"
-									fill={favState[item.url] ? 'currentColor' : 'none'}
-									stroke={favState[item.url] ? 'currentColor' : 'white'}
-									stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-									class:text-red-400={favState[item.url]}
-									class:text-white={!favState[item.url]}
-								>
-									<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-								</svg>
-							</button>
-
-							<button
-								class="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-0 transition-all duration-150 hover:!opacity-100 group-hover:opacity-60"
 								onclick={e => handleAddExtra(e, item)}
 								aria-label="Add to additional images"
 							>
@@ -411,6 +367,25 @@
 									<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
 									<line x1="12" y1="8" x2="12" y2="16"></line>
 									<line x1="8" y1="12" x2="16" y2="12"></line>
+								</svg>
+							</button>
+
+							<!-- Favorite heart -->
+							<button
+								class="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center transition-all duration-150
+								{favState[item.url]
+									? 'opacity-100'
+									: 'opacity-0 hover:!opacity-100 group-hover:opacity-60'}"
+								onclick={e => handleFavorite(e, item)}
+								aria-label={favState[item.url] ? 'Remove from favorites' : 'Add to favorites'}
+							>
+								<svg class="h-4 w-4 {favState[item.url] ? 'text-destructive' : 'text-white'}"
+									viewBox="0 0 24 24"
+									fill={favState[item.url] ? 'currentColor' : 'none'}
+									stroke="currentColor"
+									stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+								>
+									<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
 								</svg>
 							</button>
 
