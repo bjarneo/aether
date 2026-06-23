@@ -1,15 +1,28 @@
 package githubsource
 
 import (
+	"bytes"
+	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"golang.org/x/image/draw"
+
+	"aether/internal/platform"
 )
+
+const thumbnailSize = 300
 
 const githubAPIBase = "https://api.github.com"
 const rawBase = "https://raw.githubusercontent.com"
@@ -247,4 +260,93 @@ func splitPath(p string) []string {
 		}
 	}
 	return segs
+}
+
+// cachePath returns the filesystem path for a cached thumbnail of the given URL.
+func thumbnailCachePath(rawURL string) string {
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(rawURL)))
+	return filepath.Join(platform.ThumbnailDir(), "github", hash+".png")
+}
+
+// DownloadThumbnail downloads an image from a URL, generates a thumbnail,
+// caches it to disk, and returns it as a data URL. Subsequent calls for the
+// same URL skip the download and return the cached thumbnail.
+func DownloadThumbnail(rawURL string) (string, error) {
+	cacheFile := thumbnailCachePath(rawURL)
+
+	// Return cached thumbnail if it exists
+	if data, err := os.ReadFile(cacheFile); err == nil {
+		encoded := base64.StdEncoding.EncodeToString(data)
+		return fmt.Sprintf("data:image/png;base64,%s", encoded), nil
+	}
+
+	// Download the image
+	resp, err := http.Get(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("download failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("download returned %d", resp.StatusCode)
+	}
+
+	// Decode
+	img, _, err := image.Decode(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("decode failed: %w", err)
+	}
+
+	// Scale to thumbnail
+	thumb := scaleImage(img, thumbnailSize)
+
+	// Encode to PNG and write to cache
+	if err := os.MkdirAll(filepath.Dir(cacheFile), 0755); err != nil {
+		return "", fmt.Errorf("create cache dir: %w", err)
+	}
+
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, thumb); err != nil {
+		return "", fmt.Errorf("encode thumbnail: %w", err)
+	}
+
+	if err := os.WriteFile(cacheFile, buf.Bytes(), 0644); err != nil {
+		return "", fmt.Errorf("write cache file: %w", err)
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
+	return fmt.Sprintf("data:image/png;base64,%s", encoded), nil
+}
+
+// scaleImage scales an image to fit within size×size bounding box, preserving
+// aspect ratio.
+func scaleImage(src image.Image, size int) image.Image {
+	bounds := src.Bounds()
+	srcW := bounds.Dx()
+	srcH := bounds.Dy()
+
+	if srcW == 0 || srcH == 0 {
+		return src
+	}
+
+	var dstW, dstH int
+	if srcW >= srcH {
+		dstW = size
+		dstH = size * srcH / srcW
+	} else {
+		dstH = size
+		dstW = size * srcW / srcH
+	}
+
+	if dstW < 1 {
+		dstW = 1
+	}
+	if dstH < 1 {
+		dstH = 1
+	}
+
+	dst := image.NewRGBA(image.Rect(0, 0, dstW, dstH))
+	draw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, bounds, draw.Over, nil)
+
+	return dst
 }

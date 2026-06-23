@@ -50,6 +50,8 @@ export function GeneratePaletteFromColor(arg1:string):Promise<any>;
 
 export function GetFavorites():Promise<Array<favorites.Favorite>>;
 
+export function GetGitHubThumbnail(arg1:string):Promise<string>;
+
 export function GetFocusTab():Promise<string>;
 
 export function GetInitialState():Promise<theme.StateSnapshot>;

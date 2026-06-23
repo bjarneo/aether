@@ -5,13 +5,29 @@
 
 	let el = $state<HTMLDivElement | null>(null);
 	let inView = $state(false);
+	let thumbSrc = $state('');
+
+	function loadThumb() {
+		if (thumbSrc) return;
+		(async () => {
+			try {
+				const {GetGitHubThumbnail} = await import(
+					'../../../../wailsjs/go/main/App'
+				);
+				thumbSrc = await GetGitHubThumbnail(url);
+			} catch {}
+		})();
+	}
 
 	$effect(() => {
 		if (!el) return;
 		return observeIntersection(
 			el,
 			entry => {
-				if (entry.isIntersecting) inView = true;
+				if (entry.isIntersecting) {
+					inView = true;
+					loadThumb();
+				}
 			},
 			{rootMargin: '400px 0px'}
 		);
@@ -19,9 +35,9 @@
 </script>
 
 <div bind:this={el} class="h-full w-full">
-	{#if inView}
+	{#if inView && thumbSrc}
 		<img
-			src={url}
+			src={thumbSrc}
 			{alt}
 			class="h-full w-full object-cover"
 			loading="lazy"

@@ -82,6 +82,10 @@ export function GetFavorites() {
   return window['go']['main']['App']['GetFavorites']();
 }
 
+export function GetGitHubThumbnail(arg1) {
+  return window['go']['main']['App']['GetGitHubThumbnail'](arg1);
+}
+
 export function GetFocusTab() {
   return window['go']['main']['App']['GetFocusTab']();
 }

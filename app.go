@@ -677,6 +677,12 @@ func (a *App) ListGitHubImages(rawURL string) (*githubsource.ListContentsResult,
 	return a.github.ListImages(rawURL)
 }
 
+// GetGitHubThumbnail downloads an image from a GitHub raw URL, generates a
+// thumbnail, caches it to disk, and returns a data URL for the frontend.
+func (a *App) GetGitHubThumbnail(rawURL string) (string, error) {
+	return githubsource.DownloadThumbnail(rawURL)
+}
+
 // ---------------------------------------------------------------------------
 // Local Wallpapers
 // ---------------------------------------------------------------------------
