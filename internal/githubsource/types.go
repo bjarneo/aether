@@ -14,6 +14,14 @@ type ListContentsResult struct {
 	Items []ImageInfo `json:"items"`
 }
 
+// ThumbnailResult is returned by GetGitHubThumbnail / DownloadThumbnail,
+// containing the thumbnail data URL and the original image dimensions.
+type ThumbnailResult struct {
+	DataURL string `json:"dataURL"`
+	Width   int    `json:"width"`
+	Height  int    `json:"height"`
+}
+
 // githubContent is a single item from the GitHub Contents API response.
 type githubContent struct {
 	Name        string `json:"name"`

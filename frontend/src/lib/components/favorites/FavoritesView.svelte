@@ -66,8 +66,8 @@
             const {GetGitHubThumbnail} = await import(
                 '../../../../wailsjs/go/main/App'
             );
-            const dataUrl = await GetGitHubThumbnail(path);
-            if (dataUrl) setCachedImage('thumb:' + path, dataUrl);
+            const result = await GetGitHubThumbnail(path);
+            if (result?.dataURL) setCachedImage('thumb:' + path, result.dataURL);
         } catch {}
     }
 

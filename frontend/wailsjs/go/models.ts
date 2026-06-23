@@ -111,6 +111,22 @@ export namespace githubsource {
 		}
 	}
 
+	export class ThumbnailResult {
+	    dataURL: string;
+	    width: number;
+	    height: number;
+
+	    static createFrom(source: any = {}) {
+	        return new ThumbnailResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dataURL = source["dataURL"];
+	        this.width = source["width"];
+	        this.height = source["height"];
+	    }
+	}
 }
 
 export namespace ipc {

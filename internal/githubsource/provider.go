@@ -262,60 +262,102 @@ func splitPath(p string) []string {
 	return segs
 }
 
-// cachePath returns the filesystem path for a cached thumbnail of the given URL.
-func thumbnailCachePath(rawURL string) string {
+// thumbnailCachePNG returns the path for the cached thumbnail PNG.
+func thumbnailCachePNG(rawURL string) string {
 	hash := fmt.Sprintf("%x", md5.Sum([]byte(rawURL)))
 	return filepath.Join(platform.ThumbnailDir(), "github", hash+".png")
 }
 
+// thumbnailCacheDims returns the path for the cached dimensions sidecar file.
+func thumbnailCacheDims(rawURL string) string {
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(rawURL)))
+	return filepath.Join(platform.ThumbnailDir(), "github", hash+".dims")
+}
+
+// readCachedDims reads the original width and height from a sidecar file.
+func readCachedDims(rawURL string) (int, int, error) {
+	data, err := os.ReadFile(thumbnailCacheDims(rawURL))
+	if err != nil {
+		return 0, 0, err
+	}
+	var w, h int
+	if _, err := fmt.Fscanf(bytes.NewReader(data), "%d %d", &w, &h); err != nil {
+		return 0, 0, err
+	}
+	return w, h, nil
+}
+
+// writeCachedDims saves the original width and height to a sidecar file.
+func writeCachedDims(rawURL string, w, h int) error {
+	data := fmt.Sprintf("%d %d\n", w, h)
+	return os.WriteFile(thumbnailCacheDims(rawURL), []byte(data), 0644)
+}
+
 // DownloadThumbnail downloads an image from a URL, generates a thumbnail,
-// caches it to disk, and returns it as a data URL. Subsequent calls for the
-// same URL skip the download and return the cached thumbnail.
-func DownloadThumbnail(rawURL string) (string, error) {
-	cacheFile := thumbnailCachePath(rawURL)
+// caches it to disk, and returns a ThumbnailResult with the data URL and
+// original dimensions. Subsequent calls for the same URL skip the download.
+func DownloadThumbnail(rawURL string) (*ThumbnailResult, error) {
+	cacheFile := thumbnailCachePNG(rawURL)
 
 	// Return cached thumbnail if it exists
 	if data, err := os.ReadFile(cacheFile); err == nil {
 		encoded := base64.StdEncoding.EncodeToString(data)
-		return fmt.Sprintf("data:image/png;base64,%s", encoded), nil
+		dataURL := fmt.Sprintf("data:image/png;base64,%s", encoded)
+		w, h, err := readCachedDims(rawURL)
+		if err != nil {
+			return &ThumbnailResult{DataURL: dataURL}, nil
+		}
+		return &ThumbnailResult{DataURL: dataURL, Width: w, Height: h}, nil
 	}
 
 	// Download the image
 	resp, err := http.Get(rawURL)
 	if err != nil {
-		return "", fmt.Errorf("download failed: %w", err)
+		return nil, fmt.Errorf("download failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("download returned %d", resp.StatusCode)
+		return nil, fmt.Errorf("download returned %d", resp.StatusCode)
 	}
 
 	// Decode
 	img, _, err := image.Decode(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("decode failed: %w", err)
+		return nil, fmt.Errorf("decode failed: %w", err)
 	}
+
+	bounds := img.Bounds()
+	origW := bounds.Dx()
+	origH := bounds.Dy()
 
 	// Scale to thumbnail
 	thumb := scaleImage(img, thumbnailSize)
 
 	// Encode to PNG and write to cache
-	if err := os.MkdirAll(filepath.Dir(cacheFile), 0755); err != nil {
-		return "", fmt.Errorf("create cache dir: %w", err)
+	cacheDir := filepath.Dir(cacheFile)
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return nil, fmt.Errorf("create cache dir: %w", err)
 	}
 
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, thumb); err != nil {
-		return "", fmt.Errorf("encode thumbnail: %w", err)
+		return nil, fmt.Errorf("encode thumbnail: %w", err)
 	}
 
 	if err := os.WriteFile(cacheFile, buf.Bytes(), 0644); err != nil {
-		return "", fmt.Errorf("write cache file: %w", err)
+		return nil, fmt.Errorf("write cache file: %w", err)
 	}
 
+	// Save original dimensions sidecar
+	_ = writeCachedDims(rawURL, origW, origH)
+
 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
-	return fmt.Sprintf("data:image/png;base64,%s", encoded), nil
+	return &ThumbnailResult{
+		DataURL: fmt.Sprintf("data:image/png;base64,%s", encoded),
+		Width:   origW,
+		Height:  origH,
+	}, nil
 }
 
 // scaleImage scales an image to fit within size×size bounding box, preserving

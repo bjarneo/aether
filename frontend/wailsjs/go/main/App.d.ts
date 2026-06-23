@@ -52,7 +52,7 @@ export function GetFavorites():Promise<Array<favorites.Favorite>>;
 
 export function GetFocusTab():Promise<string>;
 
-export function GetGitHubThumbnail(arg1:string):Promise<string>;
+export function GetGitHubThumbnail(arg1:string):Promise<githubsource.ThumbnailResult>;
 
 export function GetInitialState():Promise<theme.StateSnapshot>;
 

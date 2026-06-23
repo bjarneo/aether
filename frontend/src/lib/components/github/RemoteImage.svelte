@@ -1,20 +1,34 @@
 <script lang="ts">
 	import {observeIntersection} from '$lib/utils/intersection';
 
-	let {url, alt = ''}: {url: string; alt?: string} = $props();
+	let {
+		url,
+		alt = '',
+		onload,
+	}: {
+		url: string;
+		alt?: string;
+		onload?: (w: number, h: number) => void;
+	} = $props();
 
 	let el = $state<HTMLDivElement | null>(null);
 	let inView = $state(false);
 	let thumbSrc = $state('');
+	let loaded = $state(false);
 
 	function loadThumb() {
-		if (thumbSrc) return;
+		if (loaded) return;
+		loaded = true;
 		(async () => {
 			try {
 				const {GetGitHubThumbnail} = await import(
 					'../../../../wailsjs/go/main/App'
 				);
-				thumbSrc = await GetGitHubThumbnail(url);
+				const result = await GetGitHubThumbnail(url);
+				thumbSrc = result.dataURL;
+				if (onload && result.width && result.height) {
+					onload(result.width, result.height);
+				}
 			} catch {}
 		})();
 	}

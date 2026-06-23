@@ -53,6 +53,7 @@
 	// Per-image favorite state: url → boolean
 	let favState = $state<Record<string, boolean>>({});
 	let nameFilter = $state('');
+	let dims = $state<Record<string, {width: number; height: number}>>({});
 
 	let results = $derived(getResults());
 	let isLoading = $derived(getIsLoading());
@@ -97,6 +98,7 @@
 
 	function handleSubmit() {
 		setURL(urlInput);
+		dims = {};
 		fetchImages();
 	}
 
@@ -105,13 +107,26 @@
 	}
 
 	function handleNavigate(dirName: string) {
+		dims = {};
 		storeNavigateToDir(dirName);
 		urlInput = getURL();
 	}
 
 	function handleGoUp() {
+		dims = {};
 		storeGoUp();
 		urlInput = getURL();
+	}
+
+	function formatSize(bytes: number): string {
+		if (!bytes) return '';
+		if (bytes < 1024) return bytes + ' B';
+		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+		return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+	}
+
+	function handleLoad(url: string, w: number, h: number) {
+		dims = {...dims, [url]: {width: w, height: h}};
 	}
 
 	async function handleUse(image: ImageInfo) {
@@ -188,6 +203,7 @@
 	}
 
 	function loadSavedRepo(url: string) {
+		dims = {};
 		setURL(url);
 		urlInput = url;
 		savedReposOpen = false;
@@ -373,7 +389,11 @@
 								title="Download, set as wallpaper, and open in editor"
 							>
 								<div class="bg-bg-primary aspect-video overflow-hidden">
-									<RemoteImage url={item.url} alt={item.name} />
+									<RemoteImage
+									url={item.url}
+									alt={item.name}
+									onload={(w, h) => handleLoad(item.url, w, h)}
+								/>
 								</div>
 							</button>
 
@@ -443,8 +463,15 @@
 								</div>
 							</div>
 
-							<div class="text-fg-dimmed flex items-center px-2 py-1 text-[10px]">
-								<span class="truncate">{item.name}</span>
+							<div
+								class="text-fg-dimmed flex items-center gap-1.5 px-2 py-1 text-[10px]"
+								title={item.name}
+							>
+								{#if dims[item.url]}
+									<span>{dims[item.url].width}&times;{dims[item.url].height}</span>
+									<span class="text-white/20" aria-hidden="true">·</span>
+								{/if}
+								<span>{formatSize(item.size)}</span>
 							</div>
 						</div>
 					{/if}
