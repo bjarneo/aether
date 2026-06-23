@@ -32,20 +32,32 @@ type parsedGitHubURL struct {
 
 // Client is an HTTP client for the GitHub Contents API.
 type Client struct {
-	http *http.Client
+	http  *http.Client
+	cache *ttlCache
 }
 
 // NewClient creates a new GitHub source client.
 func NewClient() *Client {
 	return &Client{
-		http: &http.Client{Timeout: 30 * time.Second},
+		http:  &http.Client{Timeout: 30 * time.Second},
+		cache: newTTLCache(5*time.Minute, 100),
 	}
+}
+
+// ClearCache clears the in-memory response cache.
+func (c *Client) ClearCache() {
+	c.cache.clear()
 }
 
 // ListImages parses a GitHub URL and returns all files (images) and directories
 // found at that location. Supports github.com repos, GitHub Pages
 // (<owner>.github.io), and raw.githubusercontent.com URLs.
+// Results are cached in memory for 5 minutes to avoid redundant API calls.
 func (c *Client) ListImages(rawURL string) (*ListContentsResult, error) {
+	if result, ok := c.cache.get(rawURL); ok {
+		return result, nil
+	}
+
 	gh, err := parseURL(rawURL)
 	if err != nil {
 		return nil, err
@@ -76,7 +88,9 @@ func (c *Client) ListImages(rawURL string) (*ListContentsResult, error) {
 		}
 	}
 
-	return &ListContentsResult{Items: items}, nil
+	result := &ListContentsResult{Items: items}
+	c.cache.set(rawURL, result)
+	return result, nil
 }
 
 // listContents calls the GitHub Contents API for a given path in a repo.

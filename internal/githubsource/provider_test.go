@@ -2,6 +2,7 @@ package githubsource
 
 import (
 	"testing"
+	"time"
 )
 
 func TestParseURL_githubCom(t *testing.T) {
@@ -194,6 +195,59 @@ func TestIsImageFile(t *testing.T) {
 				t.Errorf("isImageFile(%q) = %v, want %v", tt.name, got, tt.image)
 			}
 		})
+	}
+}
+
+func TestTTLCache(t *testing.T) {
+	c := newTTLCache(5*time.Minute, 10)
+
+	// Get on empty cache
+	_, ok := c.get("key1")
+	if ok {
+		t.Fatal("expected miss on empty cache")
+	}
+
+	result := &ListContentsResult{Items: []ImageInfo{{Name: "test.jpg"}}}
+	c.set("key1", result)
+
+	got, ok := c.get("key1")
+	if !ok {
+		t.Fatal("expected hit after set")
+	}
+	if len(got.Items) != 1 || got.Items[0].Name != "test.jpg" {
+		t.Fatal("wrong cached data")
+	}
+}
+
+func TestTTLCache_expiry(t *testing.T) {
+	c := newTTLCache(1*time.Millisecond, 10)
+	c.set("k", &ListContentsResult{Items: []ImageInfo{{Name: "x"}}})
+
+	time.Sleep(5 * time.Millisecond)
+
+	_, ok := c.get("k")
+	if ok {
+		t.Fatal("expected miss after TTL expiry")
+	}
+}
+
+func TestTTLCache_eviction(t *testing.T) {
+	c := newTTLCache(5*time.Minute, 2)
+	c.set("a", &ListContentsResult{Items: []ImageInfo{{Name: "a"}}})
+	c.set("b", &ListContentsResult{Items: []ImageInfo{{Name: "b"}}})
+	c.set("c", &ListContentsResult{Items: []ImageInfo{{Name: "c"}}})
+
+	// "a" should have been evicted
+	_, ok := c.get("a")
+	if ok {
+		t.Fatal("expected eviction of oldest entry")
+	}
+	// "b" and "c" should still be present
+	if _, ok := c.get("b"); !ok {
+		t.Fatal("expected 'b' to still be in cache")
+	}
+	if _, ok := c.get("c"); !ok {
+		t.Fatal("expected 'c' to still be in cache")
 	}
 }
 

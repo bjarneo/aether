@@ -28,8 +28,30 @@
 
 	type ImageInfo = githubsource.ImageInfo;
 
+	const SAVED_REPOS_KEY = 'aether-saved-repos';
+
+	type SavedRepo = {name: string; url: string};
+
+	function loadSavedRepos(): SavedRepo[] {
+		try {
+			return JSON.parse(localStorage.getItem(SAVED_REPOS_KEY) || '[]');
+		} catch {
+			return [];
+		}
+	}
+
+	function saveRepos(repos: SavedRepo[]) {
+		localStorage.setItem(SAVED_REPOS_KEY, JSON.stringify(repos));
+	}
+
 	let urlInput = $state(getURL());
 	let previewIndex = $state(-1);
+	let savedRepos = $state<SavedRepo[]>(loadSavedRepos());
+	let savedReposOpen = $state(false);
+	let savedReposRef = $state<HTMLDivElement | null>(null);
+
+	// Per-image favorite state: url → boolean
+	let favState = $state<Record<string, boolean>>({});
 
 	let results = $derived(getResults());
 	let isLoading = $derived(getIsLoading());
@@ -49,6 +71,20 @@
 		} catch {
 			return false;
 		}
+	});
+
+	let currentIsSaved = $derived(savedRepos.some(r => r.url === getURL()));
+
+	// Close saved-repos dropdown on outside click
+	$effect(() => {
+		if (!savedReposOpen || !savedReposRef) return;
+		function onPointerDown(e: PointerEvent) {
+			if (savedReposRef && !savedReposRef.contains(e.target as Node)) {
+				savedReposOpen = false;
+			}
+		}
+		window.addEventListener('pointerdown', onPointerDown);
+		return () => window.removeEventListener('pointerdown', onPointerDown);
 	});
 
 	function handleSubmit() {
@@ -106,6 +142,85 @@
 	function handlePreview(img: ImageInfo) {
 		previewIndex = fileResults.findIndex(f => f.path === img.path);
 	}
+
+	async function handleFavorite(event: MouseEvent, img: ImageInfo) {
+		event.stopPropagation();
+		try {
+			const {ToggleFavorite, IsFavorite} = await import(
+				'../../../../wailsjs/go/main/App'
+			);
+			await ToggleFavorite(img.url, '', {name: img.name});
+			favState[img.url] = await IsFavorite(img.url);
+		} catch {}
+	}
+
+	async function checkFavorite(url: string): Promise<boolean> {
+		try {
+			const {IsFavorite} = await import(
+				'../../../../wailsjs/go/main/App'
+			);
+			return await IsFavorite(url);
+		} catch {
+			return false;
+		}
+	}
+
+	// Load favorite state for all file results
+	$effect(() => {
+		const files = fileResults;
+		if (files.length === 0) return;
+		let cancelled = false;
+		(async () => {
+			for (const f of files) {
+				if (cancelled) return;
+				if (!(f.url in favState)) {
+					favState[f.url] = await checkFavorite(f.url);
+				}
+			}
+		})();
+		return () => { cancelled = true; };
+	});
+
+	function toggleSaveRepo() {
+		const current = getURL();
+		if (!current.trim()) return;
+		let repos = loadSavedRepos();
+		const idx = repos.findIndex(r => r.url === current);
+		if (idx >= 0) {
+			repos.splice(idx, 1);
+			showToast('Removed from saved repos');
+		} else {
+			let name = current.replace(/\/+$/, '');
+			try {
+				const parsed = new URL(current);
+				const segs = parsed.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+				if (segs.length >= 2) {
+					name = `${segs[0]}/${segs[1]}`;
+				} else {
+					name = segs[segs.length - 1] || current;
+				}
+			} catch {}
+			repos.push({name, url: current});
+			showToast('Repo saved');
+		}
+		saveRepos(repos);
+		savedRepos = repos;
+	}
+
+	function loadSavedRepo(url: string) {
+		setURL(url);
+		urlInput = url;
+		savedReposOpen = false;
+		fetchImages();
+	}
+
+	function removeSavedRepo(event: MouseEvent, url: string) {
+		event.stopPropagation();
+		let repos = loadSavedRepos();
+		repos = repos.filter(r => r.url !== url);
+		saveRepos(repos);
+		savedRepos = repos;
+	}
 </script>
 
 <div class="flex h-full flex-col">
@@ -119,6 +234,60 @@
 			disabled={!canGoUp}
 			title="Go to parent directory"
 		>&#8593;</button>
+		<!-- Saved repos dropdown -->
+		<div bind:this={savedReposRef} class="relative">
+			<button
+				class="border-border flex h-[22px] w-[22px] items-center justify-center border text-[11px] transition-colors {currentIsSaved ? 'text-yellow-500' : 'text-fg-dimmed hover:text-fg-primary'}"
+				onclick={() => savedReposOpen = !savedReposOpen}
+				title="Saved repos"
+			>
+				<svg class="h-3 w-3" viewBox="0 0 24 24" fill={currentIsSaved ? 'currentColor' : 'none'}
+					stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+				</svg>
+			</button>
+			{#if savedReposOpen}
+				<div
+					class="bg-bg-secondary border-border absolute left-0 z-50 mt-0.5 min-w-[200px] border shadow-lg"
+				>
+					<div class="flex items-center justify-between border-b border-white/10 px-3 py-1.5">
+						<span class="text-fg-dimmed text-[10px] font-medium tracking-wide">SAVED REPOS</span>
+						<button
+							class="text-fg-dimmed hover:text-fg-primary text-[10px] transition-colors"
+							onclick={toggleSaveRepo}
+							title={currentIsSaved ? 'Remove current from saved' : 'Save current repo'}
+						>
+							{currentIsSaved ? 'Remove' : '+ Save current'}
+						</button>
+					</div>
+					{#if savedRepos.length === 0}
+						<div class="text-fg-dimmed px-3 py-3 text-[10px]">No saved repos yet</div>
+					{:else}
+						{#each savedRepos as repo}
+							<div
+								class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] transition-colors hover:bg-white/5"
+								role="button"
+								tabindex="0"
+								onclick={() => loadSavedRepo(repo.url)}
+								onkeydown={e => { if (e.key === 'Enter') loadSavedRepo(repo.url); }}
+							>
+								<svg class="h-3 w-3 shrink-0 text-fg-dimmed" viewBox="0 0 24 24"
+									fill="none" stroke="currentColor" stroke-width="2"
+									stroke-linecap="round" stroke-linejoin="round">
+									<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+								</svg>
+								<span class="truncate text-fg-primary">{repo.name}</span>
+								<button
+									class="ml-auto shrink-0 px-1 text-[10px] text-fg-dimmed hover:text-red-400 transition-colors"
+									onclick={e => removeSavedRepo(e, repo.url)}
+									title="Remove"
+								>×</button>
+							</div>
+						{/each}
+					{/if}
+				</div>
+			{/if}
+		</div>
 		<input
 			type="text"
 			bind:value={urlInput}
@@ -214,8 +383,25 @@
 								</div>
 							</button>
 
+							<!-- Favorite heart -->
 							<button
 								class="absolute left-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-0 transition-all duration-150 hover:!opacity-100 group-hover:opacity-60"
+								onclick={e => handleFavorite(e, item)}
+								aria-label={favState[item.url] ? 'Remove from favorites' : 'Add to favorites'}
+							>
+								<svg class="h-4 w-4" viewBox="0 0 24 24"
+									fill={favState[item.url] ? 'currentColor' : 'none'}
+									stroke={favState[item.url] ? 'currentColor' : 'white'}
+									stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+									class:text-red-400={favState[item.url]}
+									class:text-white={!favState[item.url]}
+								>
+									<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+								</svg>
+							</button>
+
+							<button
+								class="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-0 transition-all duration-150 hover:!opacity-100 group-hover:opacity-60"
 								onclick={e => handleAddExtra(e, item)}
 								aria-label="Add to additional images"
 							>
