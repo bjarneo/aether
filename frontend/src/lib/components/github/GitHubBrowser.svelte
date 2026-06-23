@@ -52,12 +52,20 @@
 
 	// Per-image favorite state: url → boolean
 	let favState = $state<Record<string, boolean>>({});
+	let nameFilter = $state('');
 
 	let results = $derived(getResults());
 	let isLoading = $derived(getIsLoading());
 	let error = $derived(getError());
-	let fileResults = $derived(results.filter(i => i.type === 'file'));
-	let dirResults = $derived(results.filter(i => i.type === 'dir'));
+	let filteredResults = $derived(
+		nameFilter
+			? results.filter(i =>
+					i.name.toLowerCase().includes(nameFilter.toLowerCase())
+				)
+			: results
+	);
+	let fileResults = $derived(filteredResults.filter(i => i.type === 'file'));
+	let dirResults = $derived(filteredResults.filter(i => i.type === 'dir'));
 
 	let canGoUp = $derived.by(() => {
 		const u = getURL();
@@ -274,13 +282,20 @@
 		>
 			{isLoading ? 'Loading...' : 'Fetch'}
 		</button>
+		{#if results.length > 0}
+			<input
+				type="text"
+				bind:value={nameFilter}
+				placeholder="Filter by name…"
+				class="bg-bg-primary text-fg-primary border-border focus:border-border-focus placeholder:text-fg-dimmed min-w-[160px] flex-1 border px-2 py-0.5 text-[11px] outline-none transition-colors"
+			/>
+		{/if}
 		<div class="ml-auto flex items-center gap-2">
 			<CardSizeToggle />
 			{#if results.length > 0}
 				<span class="text-fg-dimmed text-[10px]"
-					>{fileResults.length} image{fileResults.length === 1 ? '' : 's'}
-					{dirResults.length > 0
-						? `, ${dirResults.length} director${dirResults.length === 1 ? 'y' : 'ies'}`
+					>{fileResults.length} / {results.length}{dirResults.length > 0
+						? `, ${dirResults.length} dir${dirResults.length === 1 ? '' : 's'}`
 						: ''}</span
 				>
 			{/if}
@@ -292,7 +307,7 @@
 			<LoadingState message="Fetching from GitHub…" />
 		{:else if error}
 			<EmptyState title="Failed to load" body={error} />
-		{:else if results.length === 0}
+		{:else if filteredResults.length === 0 && results.length === 0}
 			<EmptyState
 				title="Nothing to show"
 				body="Enter a GitHub repository URL above and click Fetch to browse wallpapers and directories."
@@ -316,12 +331,19 @@
 					</svg>
 				{/snippet}
 			</EmptyState>
+		{:else if filteredResults.length === 0 && results.length > 0}
+			<EmptyState
+				title="No images match filter"
+				body="Try a different name or clear the filter."
+				actionLabel="Clear filter"
+				onaction={() => (nameFilter = '')}
+			/>
 		{:else}
 			<div
 				class="grid gap-3"
 				style:grid-template-columns="repeat(auto-fill, minmax({CARD_MIN_WIDTH[getCardSize()]}px, 1fr))"
 			>
-				{#each results as item, i (item.path)}
+				{#each filteredResults as item, i (item.path)}
 					{#if item.type === 'dir'}
 						<div
 							class="bg-bg-surface border-border hover:border-border-focus group relative cursor-pointer border transition-colors duration-100"
