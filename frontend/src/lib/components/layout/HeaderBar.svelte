@@ -75,10 +75,6 @@
         sourcesOpen = false;
     }
 
-    function toggleSources() {
-        sourcesOpen = !sourcesOpen;
-    }
-
     $effect(() => {
         if (!sourcesOpen || !sourcesRef) return;
 
@@ -143,13 +139,18 @@
     <nav class="flex flex-1 justify-end gap-0.5">
         {#each tabs as tab}
             {#if tab.id === 'sources'}
-                <div bind:this={sourcesRef} class="relative">
+                <div
+                    bind:this={sourcesRef}
+                    class="relative"
+                    role="none"
+                    onmouseenter={() => (sourcesOpen = true)}
+                    onmouseleave={() => (sourcesOpen = false)}
+                >
                     <button
                         class="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-all duration-100
                     {anySourceActive
                             ? 'text-accent bg-accent-muted'
                             : 'text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover'}"
-                        onclick={toggleSources}
                     >
                         <svg
                             class="h-3 w-3 shrink-0"
@@ -256,3 +257,4 @@
         </button>
     </div>
 </header>
+
