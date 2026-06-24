@@ -1,5 +1,5 @@
 <script lang="ts">
-	import RemoteImage from './RemoteImage.svelte';
+	import GitHubCard from './GitHubCard.svelte';
 	import {getCardSize, CARD_MIN_WIDTH} from '$lib/stores/cardsize.svelte';
 	import CardSizeToggle from '$lib/components/shared/CardSizeToggle.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
@@ -7,14 +7,7 @@
 	import ViewHeader from '$lib/components/shared/ViewHeader.svelte';
 	import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
 	import type {githubsource} from '../../../../wailsjs/go/models';
-	import {
-		setWallpaperPath,
-		addAdditionalImage,
-		getAdditionalImages,
-	} from '$lib/stores/theme.svelte';
-	import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
-	import {applyWallpaperOnly} from '$lib/actions/themeActions';
-	import {getIsApplying} from '$lib/stores/theme.svelte';
+	import {showToast} from '$lib/stores/ui.svelte';
 	import {
 		getURL,
 		getResults,
@@ -50,10 +43,7 @@
 	let savedReposOpen = $state(false);
 	let savedReposRef = $state<HTMLDivElement | null>(null);
 
-	// Per-image favorite state: url → boolean
-	let favState = $state<Record<string, boolean>>({});
 	let nameFilter = $state('');
-	let dims = $state<Record<string, {width: number; height: number}>>({});
 
 	let results = $derived(getResults());
 	let isLoading = $derived(getIsLoading());
@@ -98,7 +88,6 @@
 
 	function handleSubmit() {
 		setURL(urlInput);
-		dims = {};
 		fetchImages();
 	}
 
@@ -107,73 +96,17 @@
 	}
 
 	function handleNavigate(dirName: string) {
-		dims = {};
 		storeNavigateToDir(dirName);
 		urlInput = getURL();
 	}
 
 	function handleGoUp() {
-		dims = {};
 		storeGoUp();
 		urlInput = getURL();
 	}
 
-	function formatSize(bytes: number): string {
-		if (!bytes) return '';
-		if (bytes < 1024) return bytes + ' B';
-		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
-		return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-	}
-
-	function handleLoad(url: string, w: number, h: number) {
-		dims = {...dims, [url]: {width: w, height: h}};
-	}
-
-	async function handleUse(image: ImageInfo) {
-		try {
-			const {DownloadWallpaper} = await import(
-				'../../../../wailsjs/go/main/App'
-			);
-			const localPath = await DownloadWallpaper(image.url);
-			setWallpaperPath(localPath);
-			setActiveTab('editor');
-			showToast('Wallpaper selected — click Extract to generate palette');
-		} catch {
-			showToast('Failed to download wallpaper');
-		}
-	}
-
-	async function handleAddExtra(event: MouseEvent, image: ImageInfo) {
-		event.stopPropagation();
-		try {
-			showToast('Downloading wallpaper...');
-			const {DownloadWallpaper} = await import(
-				'../../../../wailsjs/go/main/App'
-			);
-			const localPath = await DownloadWallpaper(image.url);
-			if (getAdditionalImages().includes(localPath)) {
-				showToast('Already in additional images');
-				return;
-			}
-			addAdditionalImage(localPath);
-			showToast('Added to additional images');
-		} catch {
-			showToast('Failed to download wallpaper');
-		}
-	}
-
 	function handlePreview(img: ImageInfo) {
 		previewIndex = fileResults.findIndex(f => f.path === img.path);
-	}
-
-	async function handleFavorite(event: MouseEvent, img: ImageInfo) {
-		event.stopPropagation();
-		try {
-			const {ToggleFavorite} = await import(
-				'../../../../wailsjs/go/main/App'
-			);
-			favState[img.url] = await ToggleFavorite(img.url, '', {name: img.name});
-		} catch {}
 	}
 
 	function toggleSaveRepo() {
@@ -203,7 +136,6 @@
 	}
 
 	function loadSavedRepo(url: string) {
-		dims = {};
 		setURL(url);
 		urlInput = url;
 		savedReposOpen = false;
@@ -380,97 +312,7 @@
 							</div>
 						</div>
 					{:else}
-						<div
-							class="bg-bg-surface border-border hover:border-border-focus group relative border transition-colors duration-100"
-						>
-							<button
-								class="w-full text-left"
-								onclick={() => handleUse(item)}
-								title="Download, set as wallpaper, and open in editor"
-							>
-								<div class="bg-bg-primary aspect-video overflow-hidden">
-									<RemoteImage
-									url={item.url}
-									alt={item.name}
-									onload={(w, h) => handleLoad(item.url, w, h)}
-								/>
-								</div>
-							</button>
-
-							<!-- Add to additional images -->
-							<button
-								class="absolute left-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center opacity-0 transition-all duration-150 hover:!opacity-100 group-hover:opacity-60"
-								onclick={e => handleAddExtra(e, item)}
-								aria-label="Add to additional images"
-							>
-								<svg class="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"
-									stroke="currentColor" stroke-width="2" stroke-linecap="round"
-									stroke-linejoin="round">
-									<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-									<line x1="12" y1="8" x2="12" y2="16"></line>
-									<line x1="8" y1="12" x2="16" y2="12"></line>
-								</svg>
-							</button>
-
-							<!-- Favorite heart -->
-							<button
-								class="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center transition-all duration-150
-								{favState[item.url]
-									? 'opacity-100'
-									: 'opacity-0 hover:!opacity-100 group-hover:opacity-60'}"
-								onclick={e => handleFavorite(e, item)}
-								aria-label={favState[item.url] ? 'Remove from favorites' : 'Add to favorites'}
-							>
-								<svg class="h-4 w-4 {favState[item.url] ? 'text-destructive' : 'text-white'}"
-									viewBox="0 0 24 24"
-									fill={favState[item.url] ? 'currentColor' : 'none'}
-									stroke="currentColor"
-									stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-								>
-									<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-								</svg>
-							</button>
-
-							<div
-								class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-							>
-								<button
-									class="bg-accent hover:bg-accent-hover text-accent-fg pointer-events-auto min-w-[7rem] px-4 py-1.5 text-[11px] font-medium transition-colors"
-									onclick={() => handleUse(item)}
-									title="Download, set as wallpaper, and open in editor"
-									>Use</button
-								>
-								<div class="flex items-center gap-2 text-[10px] text-white/85">
-									<button
-										class="pointer-events-auto px-1 transition-colors hover:text-white disabled:opacity-50"
-										onclick={e => {
-											e.stopPropagation();
-											applyWallpaperOnly(item.url);
-										}}
-										disabled={getIsApplying()}
-										title="Apply this wallpaper without changing the current palette"
-										>Wallpaper only</button
-									>
-									<span class="text-white/30" aria-hidden="true">·</span>
-									<button
-										class="pointer-events-auto px-1 transition-colors hover:text-white"
-										onclick={e => {
-											e.stopPropagation();
-											handlePreview(item);
-										}}
-										title="Preview wallpaper full-size">Preview</button
-									>
-								</div>
-							</div>
-
-							<div
-								class="text-fg-dimmed flex items-center justify-between px-2 py-1.5 text-[10px]"
-								title={item.name}
-							>
-								<span>{dims[item.url] ? `${dims[item.url].width}×${dims[item.url].height}` : ''}</span>
-								<span>{formatSize(item.size)}</span>
-							</div>
-						</div>
+						<GitHubCard image={item} onpreview={() => handlePreview(item)} />
 					{/if}
 				{/each}
 			</div>
