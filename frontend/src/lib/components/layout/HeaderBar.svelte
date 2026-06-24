@@ -15,7 +15,7 @@
     let activeTab = $derived(getActiveTab());
     let isMac = $state(false);
     let sourcesOpen = $state(false);
-    let sourcesRef = $state<HTMLDivElement | null>(null);
+    let sourcesRef = $state<HTMLButtonElement | null>(null);
 
     onMount(async () => {
         try {
@@ -87,6 +87,14 @@
         window.addEventListener('pointerdown', onPointerDown);
         return () => window.removeEventListener('pointerdown', onPointerDown);
     });
+
+    $effect(() => {
+        const onBlur = () => {
+            sourcesOpen = false;
+        };
+        window.addEventListener('blur', onBlur);
+        return () => window.removeEventListener('blur', onBlur);
+    });
 </script>
 
 <header
@@ -139,55 +147,58 @@
     <nav class="flex flex-1 justify-end gap-0.5">
         {#each tabs as tab}
             {#if tab.id === 'sources'}
-                <div
+                <button
                     bind:this={sourcesRef}
-                    class="relative"
-                    role="none"
-                    onmouseenter={() => (sourcesOpen = true)}
-                    onmouseleave={() => (sourcesOpen = false)}
-                >
-                    <button
-                        class="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-all duration-100
+                    class="relative flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-all duration-100
                     {anySourceActive
                             ? 'text-accent bg-accent-muted'
                             : 'text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover'}"
+                    onmouseenter={() => (sourcesOpen = true)}
+                    onmouseleave={() => (sourcesOpen = false)}
+                >
+                    <svg
+                        class="h-3 w-3 shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
                     >
-                        <svg
-                            class="h-3 w-3 shrink-0"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            {@html tab.icon}
-                        </svg>
-                        {tab.label}
-                        <svg
-                            class="h-2.5 w-2.5 transition-transform duration-100 {sourcesOpen ? 'rotate-180' : ''}"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
+                        {@html tab.icon}
+                    </svg>
+                    {tab.label}
+                    <svg
+                        class="h-2.5 w-2.5 transition-transform duration-100 {sourcesOpen ? 'rotate-180' : ''}"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
 
                     {#if sourcesOpen}
                         <div
-                            class="bg-bg-secondary border-border absolute right-0 z-50 mt-0.5 min-w-[160px] border shadow-lg"
+                            class="bg-bg-secondary border-border absolute right-0 top-full z-50 mt-0.5 min-w-[160px] border shadow-lg"
                         >
                             {#each tab.children as child}
-                                <button
+                                <div
+                                    role="menuitem"
+                                    tabindex="0"
                                     class="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors
-                            {getActiveTab() === child.id
+                                    {getActiveTab() === child.id
                                         ? 'text-accent bg-accent-muted'
                                         : 'text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover'}"
                                     onclick={() => selectSource(child.id)}
+                                    onkeydown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            selectSource(child.id);
+                                        }
+                                    }}
                                 >
                                     <svg
                                         class="h-3 w-3 shrink-0"
@@ -201,11 +212,11 @@
                                         {@html child.icon}
                                     </svg>
                                     {child.label}
-                                </button>
+                                </div>
                             {/each}
                         </div>
                     {/if}
-                </div>
+                </button>
             {:else}
                 <button
                     class="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-all duration-100
