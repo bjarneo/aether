@@ -210,7 +210,7 @@ func (c *Client) DownloadFromURL(wallpaperURL string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return c.Download(imageURL)
+	return c.DownloadImage(imageURL)
 }
 
 // DownloadThumb downloads a wallhaven thumbnail URL into the dedicated cache
@@ -292,9 +292,9 @@ func (c *Client) Info(id string) (*WallpaperInfo, error) {
 	return &result.Data, nil
 }
 
-// Download downloads a wallpaper image to the local downloads directory.
-// Returns the local file path.
-func (c *Client) Download(imageURL string) (string, error) {
+// DownloadImage downloads an image from a URL to the local downloads directory.
+// Returns the local file path. Works for any HTTP/HTTPS URL, not only wallhaven.
+func (c *Client) DownloadImage(imageURL string) (string, error) {
 	filename := filepath.Base(imageURL)
 	if filename == "" || filename == "." || filename == "/" {
 		return "", fmt.Errorf("cannot determine filename from URL: %s", imageURL)

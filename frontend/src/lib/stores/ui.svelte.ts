@@ -3,6 +3,7 @@ import {STORAGE_KEYS} from '$lib/constants/storage';
 export type Tab =
     | 'editor'
     | 'wallhaven'
+    | 'github'
     | 'local'
     | 'favorites'
     | 'blueprints'

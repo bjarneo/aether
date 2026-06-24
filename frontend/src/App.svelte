@@ -6,6 +6,7 @@
     import TargetAppsStrip from '$lib/components/layout/TargetAppsStrip.svelte';
     import ThemeEditor from '$lib/components/editor/ThemeEditor.svelte';
     import WallhavenBrowser from '$lib/components/wallhaven/WallhavenBrowser.svelte';
+    import GitHubBrowser from '$lib/components/github/GitHubBrowser.svelte';
     import LocalBrowser from '$lib/components/local/LocalBrowser.svelte';
     import FavoritesView from '$lib/components/favorites/FavoritesView.svelte';
     import BlueprintsView from '$lib/components/blueprints/BlueprintsView.svelte';
@@ -39,6 +40,7 @@
     const VALID_TABS: readonly Tab[] = [
         'editor',
         'wallhaven',
+        'github',
         'local',
         'favorites',
         'blueprints',
@@ -439,6 +441,8 @@
                     <ThemeEditor />
                 {:else if activeTab === 'wallhaven'}
                     <WallhavenBrowser />
+                {:else if activeTab === 'github'}
+                    <GitHubBrowser />
                 {:else if activeTab === 'local'}
                     <LocalBrowser />
                 {:else if activeTab === 'favorites'}
