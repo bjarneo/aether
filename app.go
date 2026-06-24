@@ -663,7 +663,7 @@ func (a *App) SearchWallhaven(params wallhaven.SearchParams) (*wallhaven.SearchR
 
 // DownloadWallpaper downloads a wallpaper from a URL. Returns local path.
 func (a *App) DownloadWallpaper(imageURL string) (string, error) {
-	return a.wallhaven.Download(imageURL)
+	return a.wallhaven.DownloadImage(imageURL)
 }
 
 // ---------------------------------------------------------------------------

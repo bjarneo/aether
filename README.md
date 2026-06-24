@@ -22,7 +22,8 @@ A visual theming application for [Omarchy](https://omarchy.org). Extract colors 
 
 ### Wallpaper Tools
 - Animated wallpaper support: `.gif`, `.mp4`, and `.webm` via the built-in `aether-wp` service
-- Search and download wallpapers from wallhaven.cc directly in the app
+- Search and download wallpapers from [wallhaven.cc](docs/wallhaven.md) directly in the app
+- Browse and use wallpapers from any public [GitHub repo](docs/github-source.md)
 - Full wallpaper editor with blur, exposure, sharpen, vignette, grain, and color toning
 - 12 one-click image presets: Cinematic, Vintage, Film, Dramatic, and more
 

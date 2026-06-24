@@ -62,11 +62,24 @@
 		const u = getURL();
 		try {
 			const parsed = new URL(u);
-			if (parsed.hostname !== 'github.com') return false;
+			const host = parsed.hostname.toLowerCase();
 			const segs = parsed.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
-			if (segs.length <= 2) return false;
-			if (segs.length === 4 && segs[2] === 'tree') return false;
-			return true;
+
+			if (host === 'github.com') {
+				if (segs.length <= 2) return false;
+				if (segs.length === 4 && segs[2] === 'tree') return false;
+				return true;
+			}
+
+			if (host.endsWith('.github.io')) {
+				return segs.length > 0;
+			}
+
+			if (host === 'raw.githubusercontent.com') {
+				return segs.length > 3;
+			}
+
+			return false;
 		} catch {
 			return false;
 		}

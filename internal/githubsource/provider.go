@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	_ "golang.org/x/image/webp"
 	"io"
 	"net/http"
 	"net/url"
@@ -315,7 +316,8 @@ func DownloadThumbnail(rawURL string) (*ThumbnailResult, error) {
 	}
 
 	// Download the image
-	resp, err := http.Get(rawURL)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("download failed: %w", err)
 	}
@@ -349,8 +351,13 @@ func DownloadThumbnail(rawURL string) (*ThumbnailResult, error) {
 		return nil, fmt.Errorf("encode thumbnail: %w", err)
 	}
 
-	if err := os.WriteFile(cacheFile, buf.Bytes(), 0644); err != nil {
+	tmpPath := cacheFile + ".tmp"
+	if err := os.WriteFile(tmpPath, buf.Bytes(), 0644); err != nil {
 		return nil, fmt.Errorf("write cache file: %w", err)
+	}
+	if err := os.Rename(tmpPath, cacheFile); err != nil {
+		os.Remove(tmpPath)
+		return nil, fmt.Errorf("rename cache file: %w", err)
 	}
 
 	// Save original dimensions sidecar
