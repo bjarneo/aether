@@ -70,8 +70,6 @@ export function GetFocusTab(): Promise<string>;
 
 export function GetInitialState(): Promise<theme.StateSnapshot>;
 
-export function GetMediaURL(arg1: string): Promise<string>;
-
 export function GetPendingExternalImport(): Promise<main.ExternalImportPreview>;
 
 export function GetPreview(arg1: string): Promise<string>;
@@ -93,8 +91,6 @@ export function HandleDroppedFiles(arg1: Array<string>): Promise<string>;
 export function HandleIPC(arg1: ipc.Request): Promise<ipc.Response>;
 
 export function ImportFileDialog(arg1: string): Promise<main.ImportResult>;
-
-export function IsAetherWpAvailable(): Promise<boolean>;
 
 export function IsFavorite(arg1: string): Promise<boolean>;
 

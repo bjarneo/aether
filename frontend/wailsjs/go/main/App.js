@@ -94,10 +94,6 @@ export function GetInitialState() {
     return window['go']['main']['App']['GetInitialState']();
 }
 
-export function GetMediaURL(arg1) {
-    return window['go']['main']['App']['GetMediaURL'](arg1);
-}
-
 export function GetPendingExternalImport() {
     return window['go']['main']['App']['GetPendingExternalImport']();
 }
@@ -140,10 +136,6 @@ export function HandleIPC(arg1) {
 
 export function ImportFileDialog(arg1) {
     return window['go']['main']['App']['ImportFileDialog'](arg1);
-}
-
-export function IsAetherWpAvailable() {
-    return window['go']['main']['App']['IsAetherWpAvailable']();
 }
 
 export function IsFavorite(arg1) {

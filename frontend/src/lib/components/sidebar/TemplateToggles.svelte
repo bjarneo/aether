@@ -110,22 +110,3 @@
         {/if}
     </div>
 </ExpandableSection>
-
-<div class="mt-4">
-    <h3
-        class="text-fg-dimmed mb-2 text-[10px] font-medium uppercase tracking-wider"
-    >
-        Video Wallpaper
-    </h3>
-    <div class="flex flex-col gap-2">
-        {@render toggleRow(
-            'CPU rendering',
-            getSettings().videoCpuMode,
-            () =>
-                updateSettings({
-                    videoCpuMode: !getSettings().videoCpuMode,
-                }),
-            'Use software rendering for video wallpapers. Enable if videos fail to display.'
-        )}
-    </div>
-</div>

@@ -39,7 +39,6 @@ type App struct {
 	wallhaven    *wallhaven.Client
 	batch        *batch.Processor
 	themeWatcher *theme.ThemeWatcher
-	media        *MediaServer
 	ipcServer    *ipc.Server
 	pending      pendingImportState
 	focusTab     string
@@ -90,11 +89,6 @@ func (a *App) startup(ctx context.Context) {
 	_ = platform.EnsureAllDirs()
 	a.themeWatcher.Start(ctx)
 
-	a.media = &MediaServer{}
-	if err := a.media.Start(); err != nil {
-		log.Printf("media server: %v", err)
-	}
-
 	// Start IPC server for remote control
 	srv, err := ipc.NewServer(ipc.DefaultSocketPath(), a)
 	if err != nil {
@@ -108,46 +102,21 @@ func (a *App) startup(ctx context.Context) {
 	a.loadPendingImport()
 }
 
-// CloseIPC shuts down the IPC server and media server. Called on app exit.
+// CloseIPC shuts down the IPC server. Called on app exit.
 func (a *App) CloseIPC() {
 	if a.ipcServer != nil {
 		a.ipcServer.Close()
 	}
-	if a.media != nil {
-		a.media.Stop()
-	}
-}
-
-// GetMediaURL returns an http://localhost URL for streaming a local media file.
-// Used by the frontend for <video> elements since webkit2gtk's GStreamer backend
-// cannot fetch from the custom wails:// scheme.
-func (a *App) GetMediaURL(path string) string {
-	return a.media.URL(path)
 }
 
 // ---------------------------------------------------------------------------
 // Color Extraction
 // ---------------------------------------------------------------------------
 
-// resolveImagePath returns a sample-able image path. For video files it
-// extracts a frame via ffmpeg; for images it returns the input unchanged.
-func resolveImagePath(path string) (string, error) {
-	if !theme.IsVideoFile(path) {
-		return path, nil
-	}
-	framePath, err := wallpaper.ExtractVideoFrame(path)
-	if err != nil {
-		return "", fmt.Errorf("video frame extraction failed: %w", err)
-	}
-	return framePath, nil
-}
-
-// ExtractColors extracts a 16-color ANSI palette from an image or video.
-// For video files, a frame is extracted first via ffmpeg.
+// ExtractColors extracts a 16-color ANSI palette from an image.
 func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]string, error) {
-	path, err := resolveImagePath(path)
-	if err != nil {
-		return [16]string{}, err
+	if !theme.IsImageFile(path) {
+		return [16]string{}, fmt.Errorf("unsupported image file: %s", path)
 	}
 	palette, err := extraction.ExtractColors(path, lightMode, mode)
 	if err != nil {
@@ -165,9 +134,8 @@ func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]strin
 // mode. extraction.ExtractColors is content-hashed and cached, so repeated
 // calls for the same (path, lightMode, mode) tuple are cheap.
 func (a *App) PreviewExtractColors(path string, lightMode bool, mode string) ([16]string, error) {
-	path, err := resolveImagePath(path)
-	if err != nil {
-		return [16]string{}, err
+	if !theme.IsImageFile(path) {
+		return [16]string{}, fmt.Errorf("unsupported image file: %s", path)
 	}
 	return extraction.ExtractColors(path, lightMode, mode)
 }
@@ -179,27 +147,10 @@ type ExtractFromImagesResult struct {
 }
 
 // ExtractColorsFromImages extracts a blended 16-color palette by sampling pixels
-// from multiple images (typically the main wallpaper plus additional images) and
-// running the OKLab median-cut pipeline on the combined pixel set. Video paths are
-// resolved to extracted frames before sampling; unreadable or unsupported files
-// are skipped and counted in the result.
+// from multiple images (typically the main wallpaper plus additional images).
+// Unreadable or unsupported files are skipped and counted in the result.
 func (a *App) ExtractColorsFromImages(paths []string, lightMode bool, mode string) (ExtractFromImagesResult, error) {
-	resolved := make([]string, 0, len(paths))
-	skipped := 0
-	for _, p := range paths {
-		if p == "" {
-			skipped++
-			continue
-		}
-		resolvedPath, err := resolveImagePath(p)
-		if err != nil {
-			skipped++
-			continue
-		}
-		resolved = append(resolved, resolvedPath)
-	}
-
-	palette, extractionSkipped, err := extraction.ExtractColorsFromImages(resolved, lightMode, mode)
+	palette, skipped, err := extraction.ExtractColorsFromImages(paths, lightMode, mode)
 	if err != nil {
 		return ExtractFromImagesResult{}, err
 	}
@@ -208,7 +159,7 @@ func (a *App) ExtractColorsFromImages(paths []string, lightMode bool, mode strin
 	a.state.ExtractionMode = mode
 	return ExtractFromImagesResult{
 		Palette: palette,
-		Skipped: skipped + extractionSkipped,
+		Skipped: skipped,
 	}, nil
 }
 
@@ -708,11 +659,6 @@ func (a *App) IsOmarchyInstalled() bool {
 	return theme.IsOmarchyInstalled()
 }
 
-// IsAetherWpAvailable returns true if the aether-wp binary is available for animated wallpapers.
-func (a *App) IsAetherWpAvailable() bool {
-	return theme.IsAetherWpAvailable()
-}
-
 // ---------------------------------------------------------------------------
 // Batch Processing
 // ---------------------------------------------------------------------------
@@ -731,9 +677,13 @@ func (a *App) CancelBatchProcessing() {
 // File / Image Utilities
 // ---------------------------------------------------------------------------
 
-// ReadImageAsDataURL reads a local image or video file and returns it as a base64 data URL.
+// ReadImageAsDataURL reads a local image file and returns it as a base64 data URL.
 // This is needed because webkit2gtk cannot load file:// paths directly.
 func (a *App) ReadImageAsDataURL(path string) (string, error) {
+	if !theme.IsImageFile(path) {
+		return "", fmt.Errorf("unsupported image file: %s", path)
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("read file: %w", err)
@@ -751,12 +701,6 @@ func (a *App) ReadImageAsDataURL(path string) (string, error) {
 		mime = "image/webp"
 	case ".bmp":
 		mime = "image/bmp"
-	case ".svg":
-		mime = "image/svg+xml"
-	case ".mp4":
-		mime = "video/mp4"
-	case ".webm":
-		mime = "video/webm"
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(data)
@@ -805,8 +749,8 @@ func (a *App) OpenFileDialog() (string, error) {
 		Title: "Select Wallpaper",
 		Filters: []wailsrt.FileFilter{
 			{
-				DisplayName: "Images & Videos",
-				Pattern:     "*.jpg;*.jpeg;*.png;*.gif;*.webp;*.bmp;*.mp4;*.webm",
+				DisplayName: "Images",
+				Pattern:     "*.jpg;*.jpeg;*.png;*.gif;*.webp;*.bmp",
 			},
 		},
 	})
@@ -820,15 +764,8 @@ func (a *App) OpenFileDialog() (string, error) {
 // Takes the first image file from the dropped list.
 // Returns the file path if valid, error otherwise.
 func (a *App) HandleDroppedFiles(paths []string) (string, error) {
-	validExts := map[string]bool{
-		".jpg": true, ".jpeg": true, ".png": true,
-		".gif": true, ".webp": true, ".bmp": true,
-		".mp4": true, ".webm": true,
-	}
-
 	for _, path := range paths {
-		ext := strings.ToLower(filepath.Ext(path))
-		if validExts[ext] {
+		if theme.IsImageFile(path) {
 			return path, nil
 		}
 	}

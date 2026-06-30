@@ -27,7 +27,6 @@
         getCachedFullImage,
         loadFullImage,
         isPending,
-        isVideoSource,
     } from '$lib/stores/imagecache.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
 
@@ -38,7 +37,6 @@
     let wallpaperImage = $derived(getCachedFullImage(wallpaperPath) || '');
     let wallpaperName = $derived(wallpaperPath.split('/').pop() || '');
     let loading = $derived(isPending(wallpaperPath));
-    let isVideo = $derived(isVideoSource(wallpaperImage));
     let previewOpen = $state(false);
     let eyedropperActive = $derived(getEyedropperActive());
     let containerHeight = $derived(expanded ? 'h-[70vh]' : 'h-96');
@@ -47,7 +45,6 @@
     let extracting = $derived(getIsExtracting());
 
     let imgEl = $state<HTMLImageElement | null>(null);
-    let videoEl = $state<HTMLVideoElement | null>(null);
 
     const LOUPE_SAMPLES = 11; // odd so one pixel is dead-center
     const LOUPE_ZOOM = 10;
@@ -87,7 +84,7 @@
     }
 
     type SourceCoords = {
-        source: HTMLImageElement | HTMLVideoElement;
+        source: HTMLImageElement;
         srcX: number;
         srcY: number;
         naturalW: number;
@@ -95,20 +92,12 @@
     };
 
     function mapEventToSource(e: MouseEvent): SourceCoords | null {
-        const source: HTMLImageElement | HTMLVideoElement | null = isVideo
-            ? videoEl
-            : imgEl;
+        const source = imgEl;
         if (!source) return null;
 
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const naturalW =
-            source instanceof HTMLVideoElement
-                ? source.videoWidth
-                : source.naturalWidth;
-        const naturalH =
-            source instanceof HTMLVideoElement
-                ? source.videoHeight
-                : source.naturalHeight;
+        const naturalW = source.naturalWidth;
+        const naturalH = source.naturalHeight;
         if (!naturalW || !naturalH) return null;
 
         // CSS `zoom` on <html> scales getBoundingClientRect() but not e.clientX/Y
@@ -320,18 +309,6 @@
     >
         {#if loading}
             <span class="text-fg-dimmed text-[11px]">Loading preview...</span>
-        {:else if wallpaperImage && isVideo}
-            <!-- svelte-ignore a11y_media_has_caption -->
-            <video
-                bind:this={videoEl}
-                src={wallpaperImage}
-                autoplay
-                loop
-                muted
-                playsinline
-                crossorigin="anonymous"
-                class="h-full w-full {objectFit}"
-            ></video>
         {:else if wallpaperImage}
             <img
                 bind:this={imgEl}

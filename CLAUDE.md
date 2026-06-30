@@ -19,7 +19,7 @@ See the `aether-docs` skill (`.claude/skills/aether-docs/SKILL.md`) for the full
 From repo root (requires Go + `wails` CLI + Node):
 
 - `make dev` — live-reload dev build
-- `make build` — production build (`build/bin/aether`); on Linux also builds `aether-wp` service binary
+- `make build` — production build (`build/bin/aether`)
 - `make test` — `go test ./internal/... ./cli/...`
 - `make install` — system install (Linux: copies to `/usr/bin/`; macOS: `/Applications/`)
 
@@ -35,11 +35,10 @@ Pre-commit hook runs **prettier** on changed JS/TS/Svelte files and **gofmt** on
 ```
 app.go                  # Wails app struct; ALL exported methods auto-bound to frontend
 main.go                 # entry point
-cmd/aether-wp/          # Linux-only wallpaper service binary (GTK + gtk-layer-shell)
 internal/
 ├── extraction/         # palette extraction (OKLab median-cut)
-├── theme/              # theme state, applier, format classifiers (IsVideoFile, IsImageFile)
-├── wallpaper/          # file scanning, thumbnails, video-frame extraction (ffmpeg)
+├── theme/              # theme state, applier, format classifier (IsImageFile)
+├── wallpaper/          # file scanning, image thumbnails
 ├── blueprint/          # saved theme snapshots
 ├── color/              # color math (RGB/OKLab/HSL/Adjustments)
 ├── template/           # per-app template engine
@@ -57,7 +56,6 @@ frontend/
 │   │   ├── constants/colors.ts # ANSI / extended color labels
 │   │   └── types/theme.ts      # shared TS types + DEFAULT_PALETTE / DEFAULT_ADJUSTMENTS
 └── wailsjs/go/         # generated bindings — DO NOT HAND-EDIT EXCEPT AS LAST RESORT
-localfilehandler.go     # localhost HTTP media server for streaming videos (sends CORS)
 ```
 
 ## Svelte 5 conventions
@@ -101,11 +99,10 @@ localfilehandler.go     # localhost HTTP media server for streaming videos (send
 4. `NormalizeBrightness` — final readability pass.
 5. `SavePaletteToCache`.
 
-`extraction.ExtractColorsFromImages(paths, lightMode, mode)` blends multiple images by concatenating `LoadAndSamplePixels` outputs before step 3. Skips non-image entries via `theme.IsImageFile`. `app.go` wrapper resolves video paths to frames via `wallpaper.ExtractVideoFrame` first.
+`extraction.ExtractColorsFromImages(paths, lightMode, mode)` blends multiple images by concatenating `LoadAndSamplePixels` outputs before step 3. Skips non-image entries via `theme.IsImageFile`.
 
-## Video + eyedropper specifics
+## Eyedropper specifics
 
-- Videos served by the localhost media server (`localfilehandler.go`) as `http://127.0.0.1:<port>/media?path=...`. Different origin from Wails, so it sends `Access-Control-Allow-Origin: *` and `<video>` elements use `crossorigin="anonymous"` — required for canvas pixel sampling without SecurityError.
 - Full-res image cache returns data URLs (same-origin, never CORS-tainted).
 - Eyedropper uses in-image canvas sampling (not `window.EyeDropper` — not available in webkit2gtk). Hot-path: `mapEventToSource` in `WallpaperHero.svelte` handles object-cover vs object-contain scale math + letterbox bounds.
 

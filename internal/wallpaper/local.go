@@ -17,7 +17,7 @@ type WallpaperInfo struct {
 	ModTime int64  `json:"modTime"`
 }
 
-// ScanDirectory recursively scans a directory tree for image and video files.
+// ScanDirectory recursively scans a directory tree for image files.
 // Hidden directories (names starting with ".") and symlinked directories are
 // skipped. Files in subfolders are returned with a relative path as Name so
 // the UI can disambiguate files that share a basename across folders.
@@ -44,7 +44,7 @@ func ScanDirectory(dir string) ([]WallpaperInfo, error) {
 			return nil
 		}
 
-		if !theme.IsImageFile(path) && !theme.IsVideoFile(path) {
+		if !theme.IsImageFile(path) {
 			return nil
 		}
 

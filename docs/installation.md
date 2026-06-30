@@ -4,9 +4,6 @@
 
 - **Go** 1.23+
 - **webkit2gtk** (GUI runtime)
-- **gtk-layer-shell** (animated wallpaper layer)
-- **gstreamer**, **gst-plugins-good** (video playback for animated wallpapers)
-- **ffmpeg** (video thumbnail and color extraction)
 - **Node.js** 18+ (build only)
 
 ## Arch Linux (AUR)
@@ -26,7 +23,7 @@ sudo dpkg -i aether_*.deb
 sudo apt-get install -f
 ```
 
-The `.deb` package includes both `aether` and `aether-wp` binaries and pulls in all required dependencies automatically.
+The `.deb` package includes the `aether` binary and pulls in required runtime dependencies automatically.
 
 ## macOS
 
@@ -35,7 +32,6 @@ The `.deb` package includes both `aether` and `aether-wp` binaries and pulls in 
 - **Go** 1.23+
 - **Wails CLI** (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
 - **Node.js** 18+
-- **ffmpeg** (for video thumbnail and color extraction): `brew install ffmpeg`
 - **Xcode Command Line Tools**: `xcode-select --install`
 
 ### Build
@@ -45,7 +41,7 @@ git clone https://github.com/bjarneo/aether.git
 cd aether && make build
 ```
 
-This builds `aether` as a macOS app in `build/bin/`. The animated wallpaper service (`aether-wp`) is Linux-only and is skipped on macOS.
+This builds `aether` as a macOS app in `build/bin/`.
 
 ### Install
 
@@ -62,14 +58,13 @@ Aether runs in **standalone mode** on macOS — theme files are generated but no
 ### Arch Linux
 
 ```bash
-sudo pacman -S go webkit2gtk gtk-layer-shell gstreamer gst-plugins-good ffmpeg
+sudo pacman -S go webkit2gtk
 ```
 
 ### Debian / Ubuntu
 
 ```bash
-sudo apt install golang libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-layer-shell-dev \
-  libgstreamer1.0-dev gstreamer1.0-plugins-good ffmpeg nodejs npm pkg-config
+sudo apt install golang libgtk-3-dev libwebkit2gtk-4.1-dev nodejs npm pkg-config
 ```
 
 > **Note:** Debian Bookworm and Ubuntu 22.04+ ship only `webkit2gtk-4.1`. The build system handles this automatically via the `-tags webkit2_41` flag, so no manual workaround is needed.
@@ -81,9 +76,7 @@ git clone https://github.com/bjarneo/aether.git
 cd aether && make build
 ```
 
-This builds two binaries to `build/bin/`:
-- `aether` — the main application
-- `aether-wp` — animated wallpaper service (.gif, .mp4, .webm)
+This builds `aether` to `build/bin/`.
 
 ## Desktop Entry (Optional)
 

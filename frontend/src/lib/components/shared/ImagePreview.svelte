@@ -1,6 +1,4 @@
 <script lang="ts">
-    import {isVideoSource} from '$lib/stores/imagecache.svelte';
-
     let {
         src,
         alt = '',
@@ -20,8 +18,6 @@
         hasPrev?: boolean;
         hasNext?: boolean;
     } = $props();
-
-    let isVideo = $derived(isVideoSource(src));
 
     function handleKeydown(e: KeyboardEvent) {
         if (e.key === 'Escape') onclose();
@@ -109,22 +105,10 @@
             </button>
         {/if}
 
-        {#if isVideo}
-            <!-- svelte-ignore a11y_media_has_caption -->
-            <video
-                {src}
-                autoplay
-                loop
-                muted
-                playsinline
-                class="max-h-full max-w-full object-contain shadow-2xl"
-            ></video>
-        {:else}
-            <img
-                {src}
-                {alt}
-                class="max-h-full max-w-full object-contain shadow-2xl"
-            />
-        {/if}
+        <img
+            {src}
+            {alt}
+            class="max-h-full max-w-full object-contain shadow-2xl"
+        />
     </div>
 {/if}

@@ -9,7 +9,6 @@
         getCachedFullImage,
         loadFullImage,
         setCachedImage,
-        isVideoSource,
     } from '$lib/stores/imagecache.svelte';
     import {
         applyFilters,
@@ -47,8 +46,7 @@
     let suppressCommit = false; // set during undo/redo to avoid self-committing
 
     let originalUrl = $derived(getCachedFullImage(getWallpaperPath()) || '');
-    let isVideo = $derived(isVideoSource(originalUrl));
-    let hasChanges = $derived(!isVideo && hasActiveFilters(filters));
+    let hasChanges = $derived(hasActiveFilters(filters));
     let naturalWidth = $derived(imgEl?.naturalWidth ?? 0);
     let naturalHeight = $derived(imgEl?.naturalHeight ?? 0);
     let canUndo = $derived(undoStack.length > 0);
@@ -462,18 +460,7 @@
                     onmouseup={() => (showOriginal = false)}
                     onmouseleave={() => (showOriginal = false)}
                 >
-                    {#if originalUrl && isVideo}
-                        <!-- svelte-ignore a11y_media_has_caption -->
-                        <video
-                            src={originalUrl}
-                            autoplay
-                            loop
-                            muted
-                            playsinline
-                            class="max-h-full max-w-full object-contain"
-                            style="filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5))"
-                        ></video>
-                    {:else if originalUrl}
+                    {#if originalUrl}
                         <!-- Hidden image — decoded source used by filter canvas.
                              Must be in the DOM so onload fires. -->
                         <img

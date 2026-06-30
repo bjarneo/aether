@@ -7,7 +7,6 @@ const defaults: Settings = {
     includeVscode: false,
     includeNeovim: true,
     selectedNeovimConfig: '',
-    videoCpuMode: false,
     excludedApps: {},
 };
 

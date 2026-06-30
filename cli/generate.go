@@ -56,6 +56,11 @@ func runGenerate(args []string, templatesFS embed.FS) int {
 		fmt.Fprintf(os.Stderr, "Error: Wallpaper file not found: %s\n", wallpaperPath)
 		return 1
 	}
+	if !theme.IsImageFile(wallpaperPath) {
+		fmt.Fprintf(os.Stderr, "Error: Unsupported wallpaper file: %s\n", wallpaperPath)
+		fmt.Fprintln(os.Stderr, "Aether can extract colors from image files only")
+		return 1
+	}
 
 	// Build status message
 	msg := fmt.Sprintf("Extracting colors from: %s", wallpaperPath)

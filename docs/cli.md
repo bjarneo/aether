@@ -11,9 +11,8 @@ aether --list-blueprints
 # Apply a saved theme
 aether --apply-blueprint "my-theme"
 
-# Generate theme from wallpaper (images and videos)
+# Generate theme from an image wallpaper
 aether --generate ~/Wallpapers/sunset.jpg
-aether --generate ~/Wallpapers/animated.mp4
 
 # Import Base16 color scheme
 aether --import-base16 ~/themes/dracula.yaml
@@ -241,46 +240,6 @@ Launch GUI with a specific tab focused:
 ```bash
 aether --tab <name>
 ```
-
-## aether-wp
-
-`aether-wp` is a standalone binary for animated (live) wallpapers. It uses GStreamer and GTK Layer Shell to render video or GIF files directly on the Wayland desktop background layer.
-
-```bash
-aether-wp /path/to/video.mp4
-aether-wp --cpu /path/to/video.mp4
-aether-wp --stop
-```
-
-| Flag | Description |
-|------|-------------|
-| `--stop` | Stop any running aether-wp instance and clean up the layer surface |
-| `--cpu` | Force CPU rendering (skip GPU-accelerated OpenGL sink) |
-
-Aether launches `aether-wp` automatically when you apply a theme with an animated wallpaper (`.mp4`, `.webm`, `.gif`). You can also run it standalone.
-
-**How it works:**
-
-- Renders on the background layer via `gtk-layer-shell` (replaces `swaybg`)
-- GPU-accelerated playback using `gtkglsink` (OpenGL), auto-falls back to `gtksink` (CPU)
-- Frame rate capped at 30fps to reduce GPU load
-- Loops automatically on end-of-stream
-- Muted audio (audio decoding disabled entirely)
-- PID file at `$XDG_RUNTIME_DIR/aether-wp.pid` for reliable process management
-- Handles `SIGTERM`/`SIGINT` for clean shutdown (tears down layer surface properly)
-
-**Requirements:**
-
-- Wayland compositor with layer-shell support (Hyprland, Sway, etc.)
-- `gtk-layer-shell`
-- GStreamer with GTK sink (`gst-plugins-good` or `gst-plugin-gtk`)
-
-**Binary lookup order:**
-
-1. Same directory as the `aether` binary
-2. `$PATH`
-
-When applying a static wallpaper, Aether automatically kills any running `aether-wp` process and falls back to `swaybg`.
 
 ## Color Utilities
 

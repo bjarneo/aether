@@ -1,10 +1,8 @@
 package theme
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -13,31 +11,19 @@ import (
 )
 
 // ApplyOmarchyTheme runs "omarchy-theme-set aether" to activate the theme.
-// If sync is true, it waits for the command to complete; otherwise it runs
-// asynchronously. It also attempts to restart xdg-desktop-portal-gtk.
-// Only runs on Linux.
-func ApplyOmarchyTheme(sync bool) error {
+// It also attempts to restart xdg-desktop-portal-gtk. Only runs on Linux.
+func ApplyOmarchyTheme() error {
 	if runtime.GOOS != "linux" {
 		return nil
 	}
-	var err error
-	if sync {
-		_, err = platform.RunSync("omarchy-theme-set", "aether")
-	} else {
-		err = platform.RunAsync("omarchy-theme-set", "aether")
-	}
-	if err != nil {
+	if err := platform.RunAsync("omarchy-theme-set", "aether"); err != nil {
 		return err
 	}
 	log.Println("Applied theme: aether")
 
 	// Restart xdg-desktop-portal-gtk to pick up the new theme.
 	// This is best-effort; ignore errors (it may not be running).
-	if sync {
-		_, _ = platform.RunSync("killall", "xdg-desktop-portal-gtk")
-	} else {
-		_ = platform.RunAsync("killall", "xdg-desktop-portal-gtk")
-	}
+	_ = platform.RunAsync("killall", "xdg-desktop-portal-gtk")
 
 	return nil
 }
@@ -109,30 +95,6 @@ func CreateOmarchySymlink(themeDir string) error {
 	return platform.CreateSymlink(themeDir, omarchyDir)
 }
 
-// animatedExtensions are file types handled by aether-wp instead of swaybg.
-var animatedExtensions = map[string]bool{
-	".mp4":  true,
-	".webm": true,
-	".gif":  true,
-}
-
-// IsAnimatedWallpaper checks if a file is an animated wallpaper by extension.
-func IsAnimatedWallpaper(path string) bool {
-	return animatedExtensions[strings.ToLower(filepath.Ext(path))]
-}
-
-// videoExtensions are formats that need ffmpeg for frame extraction.
-// GIFs are excluded because Go's image.Decode handles them natively.
-var videoExtensions = map[string]bool{
-	".mp4":  true,
-	".webm": true,
-}
-
-// IsVideoFile returns true for video formats that need ffmpeg processing.
-func IsVideoFile(path string) bool {
-	return videoExtensions[strings.ToLower(filepath.Ext(path))]
-}
-
 // imageExtensions are still-image formats that Go's image.Decode handles natively.
 var imageExtensions = map[string]bool{
 	".jpg":  true,
@@ -143,88 +105,20 @@ var imageExtensions = map[string]bool{
 	".webp": true,
 }
 
-// IsImageFile returns true for still-image formats that can be decoded directly
-// without a prior frame-extraction step. The counterpart to IsVideoFile.
+// IsImageFile returns true for still-image formats that can be decoded directly.
 func IsImageFile(path string) bool {
 	return imageExtensions[strings.ToLower(filepath.Ext(path))]
 }
 
-// aetherWpPath returns the path to the aether-wp binary.
-// Looks next to the running binary first, then in PATH.
-func aetherWpPath() string {
-	if exe, err := os.Executable(); err == nil {
-		candidate := filepath.Join(filepath.Dir(exe), "aether-wp")
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-	}
-	if p, err := exec.LookPath("aether-wp"); err == nil {
-		return p
-	}
-	return ""
-}
-
-// IsAetherWpAvailable returns true if the aether-wp binary can be found.
-func IsAetherWpAvailable() bool {
-	return runtime.GOOS == "linux" && aetherWpPath() != ""
-}
-
-// stopAetherWp stops any running aether-wp instance using its --stop flag.
-// Runs synchronously so the old instance is fully gone before a new one starts.
-func stopAetherWp() {
-	if wpBin := aetherWpPath(); wpBin != "" {
-		_, _ = platform.RunSync(wpBin, "--stop")
-	} else {
-		_, _ = platform.RunSync("pkill", "-x", "aether-wp")
-	}
-}
-
-// applyWallpaperAetherWp starts aether-wp for animated wallpapers.
-// When cpuMode is true, passes --cpu to skip GPU and use software rendering.
-func applyWallpaperAetherWp(mediaPath string, cpuMode bool) error {
-	wpBin := aetherWpPath()
-	if wpBin == "" {
-		return fmt.Errorf("aether-wp binary not found")
-	}
-
-	_ = platform.RunAsync("pkill", "-x", "swaybg")
-	stopAetherWp()
-
-	args := []string{wpBin}
-	if cpuMode {
-		args = append(args, "--cpu")
-	}
-	args = append(args, mediaPath)
-
-	if err := platform.RunAsync("setsid", args...); err != nil {
-		return fmt.Errorf("failed to start aether-wp: %w", err)
-	}
-	mode := "GPU"
-	if cpuMode {
-		mode = "CPU"
-	}
-	log.Printf("aether-wp started (%s) for: %s", mode, mediaPath)
-	return nil
-}
-
-// applyWallpaperSwaybg sets the wallpaper using swaybg (static images).
-func applyWallpaperSwaybg(symlinkPath string) error {
-	_ = platform.RunAsync("pkill", "-x", "swaybg")
-	stopAetherWp()
-	if err := platform.RunAsync("setsid", "uwsm-app", "--", "swaybg", "-i", symlinkPath, "-m", "fill"); err != nil {
-		log.Printf("Warning: could not restart swaybg: %v", err)
-		return err
-	}
-	log.Println("Swaybg restarted successfully")
-	return nil
-}
-
 // ApplyWallpaper creates the background symlink at
-// ~/.config/omarchy/current/background pointing to wallpaperPath, then
-// uses aether-wp for animated files (.gif, .mp4, .webm) or swaybg for
-// static images. Only runs on Linux Omarchy systems.
-func ApplyWallpaper(wallpaperPath string, settings Settings) error {
+// ~/.config/omarchy/current/background pointing to wallpaperPath, then uses
+// swaybg for image files. Only runs on Linux Omarchy systems.
+func ApplyWallpaper(wallpaperPath string) error {
 	if runtime.GOOS != "linux" || wallpaperPath == "" || !IsOmarchyInstalled() {
+		return nil
+	}
+	if !IsImageFile(wallpaperPath) {
+		log.Printf("Skipping wallpaper apply for unsupported file type: %s", wallpaperPath)
 		return nil
 	}
 
@@ -243,18 +137,18 @@ func ApplyWallpaper(wallpaperPath string, settings Settings) error {
 	}
 	log.Printf("Created wallpaper symlink: %s -> %s", symlinkPath, wallpaperPath)
 
-	if IsAnimatedWallpaper(wallpaperPath) && IsAetherWpAvailable() {
-		return applyWallpaperAetherWp(wallpaperPath, settings.VideoCpuMode)
+	_ = platform.RunAsync("pkill", "-x", "swaybg")
+	if err := platform.RunAsync("setsid", "uwsm-app", "--", "swaybg", "-i", symlinkPath, "-m", "fill"); err != nil {
+		log.Printf("Warning: could not restart swaybg: %v", err)
+		return err
 	}
-	return applyWallpaperSwaybg(symlinkPath)
+	log.Println("Swaybg restarted successfully")
+	return nil
 }
 
 // ClearTheme removes GTK CSS files, the theme override symlink and CSS,
 // and switches to the tokyo-night theme.
 func ClearTheme() error {
-	// Stop any running animated wallpaper
-	stopAetherWp()
-
 	// Delete Aether override CSS file in theme dir (cross-platform)
 	overrideCss := filepath.Join(platform.ThemeDir(), "aether.override.css")
 	if err := platform.DeleteFile(overrideCss); err != nil {
