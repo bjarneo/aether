@@ -80,7 +80,7 @@ jobs:
           Maintainer: Bjarne Øverli <bjarne.oeverli@gmail.com>
           Depends: libwebkit2gtk-4.1-0, libgtk-3-0
           Description: Desktop theming application
-          Extract colors from wallpapers and apply cohesive themes across your
+           Extract colors from wallpapers and apply cohesive themes across your
            desktop.
           Homepage: https://github.com/bjarneo/aether
           CTRL
