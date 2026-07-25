@@ -40,6 +40,12 @@ func RunAsync(name string, args ...string) error {
 	return cmd.Start()
 }
 
+// CommandExists reports whether name resolves to an executable in PATH.
+func CommandExists(name string) bool {
+	_, err := exec.LookPath(name)
+	return err == nil
+}
+
 // IsNvidiaWayland returns true if running on Wayland with an NVIDIA GPU.
 // Checks XDG_SESSION_TYPE and /proc/driver/nvidia/version.
 func IsNvidiaWayland() bool {

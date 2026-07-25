@@ -35,8 +35,12 @@ func IsOmarchyInstalled() bool {
 	if runtime.GOOS != "linux" {
 		return false
 	}
-	_, err := platform.RunSync("which", "omarchy-theme-set")
-	return err == nil
+	return platform.CommandExists("omarchy-theme-set")
+}
+
+// IsOmarchyV4 reports whether Omarchy uses the v4 shell integration.
+func IsOmarchyV4() bool {
+	return IsOmarchyInstalled() && platform.CommandExists("omarchy-shell")
 }
 
 // HandleLightModeMarker creates or removes the light.mode marker file in
@@ -111,8 +115,8 @@ func IsImageFile(path string) bool {
 	return imageExtensions[strings.ToLower(filepath.Ext(path))]
 }
 
-// ApplyWallpaper sets wallpaperPath through Omarchy's background interface.
-// Only runs on Linux Omarchy systems.
+// ApplyWallpaper selects the appropriate background engine for the installed
+// Omarchy version. Only runs on Linux Omarchy systems.
 func ApplyWallpaper(wallpaperPath string) error {
 	if runtime.GOOS != "linux" || wallpaperPath == "" || !IsOmarchyInstalled() {
 		return nil
@@ -122,10 +126,41 @@ func ApplyWallpaper(wallpaperPath string) error {
 		return nil
 	}
 
+	if IsOmarchyV4() {
+		return applyOmarchyV4Wallpaper(wallpaperPath)
+	}
+	return applyLegacyOmarchyWallpaper(wallpaperPath)
+}
+
+func applyOmarchyV4Wallpaper(wallpaperPath string) error {
 	if _, err := platform.RunSync("omarchy-theme-bg-set", wallpaperPath); err != nil {
 		return fmt.Errorf("set Omarchy wallpaper: %w", err)
 	}
+	// A legacy swaybg layer would cover Omarchy v4's QuickShell background.
+	_, _ = platform.RunSync("pkill", "-x", "swaybg")
 	log.Printf("Applied Omarchy wallpaper: %s", wallpaperPath)
+	return nil
+}
+
+func applyLegacyOmarchyWallpaper(wallpaperPath string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	symlinkPath := filepath.Join(home, ".config", "omarchy", "current", "background")
+	if err := platform.EnsureDir(filepath.Dir(symlinkPath)); err != nil {
+		return err
+	}
+	if err := platform.CreateSymlink(wallpaperPath, symlinkPath); err != nil {
+		return err
+	}
+
+	_, _ = platform.RunSync("pkill", "-x", "swaybg")
+	if err := platform.RunAsync("setsid", "uwsm-app", "--", "swaybg", "-i", symlinkPath, "-m", "fill"); err != nil {
+		return fmt.Errorf("start swaybg: %w", err)
+	}
+	log.Printf("Applied legacy Omarchy wallpaper: %s", wallpaperPath)
 	return nil
 }
 

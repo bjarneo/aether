@@ -4,6 +4,7 @@ import (
 	"embed"
 	"io/fs"
 	"log"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -135,6 +136,29 @@ func prepareThemeDir(targetDir string, state *ThemeState) (string, error) {
 	return wallpaperDest, nil
 }
 
+// prepareOmarchyV4ThemeDir removes legacy generated files while preserving the
+// selected backgrounds for color-only applies.
+func prepareOmarchyV4ThemeDir(targetDir string, state *ThemeState) (string, error) {
+	if err := platform.EnsureDir(targetDir); err != nil {
+		return "", err
+	}
+
+	entries, err := os.ReadDir(targetDir)
+	if err != nil {
+		return "", err
+	}
+	for _, entry := range entries {
+		if entry.Name() == "backgrounds" {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(targetDir, entry.Name())); err != nil {
+			return "", err
+		}
+	}
+
+	return prepareThemeDir(targetDir, state)
+}
+
 // applyEditorThemes applies optional editor/toolkit themes (GTK, Zed, VSCode).
 func (w *Writer) applyEditorThemes(themeDir string, settings Settings, variables map[string]string) {
 	if settings.IncludeGtk {
@@ -157,9 +181,16 @@ func (w *Writer) applyEditorThemes(themeDir string, settings Settings, variables
 // ApplyTheme generates all theme files and applies the theme to the system.
 func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult, error) {
 	isOmarchy := IsOmarchyInstalled()
+	isOmarchyV4 := isOmarchy && IsOmarchyV4()
 	themeDir := platform.ThemeDir()
 
-	wallpaperDest, err := prepareThemeDir(themeDir, state)
+	var wallpaperDest string
+	var err error
+	if isOmarchyV4 {
+		wallpaperDest, err = prepareOmarchyV4ThemeDir(themeDir, state)
+	} else {
+		wallpaperDest, err = prepareThemeDir(themeDir, state)
+	}
 	if err != nil {
 		return &ApplyResult{Success: false, IsOmarchy: isOmarchy, ThemePath: themeDir}, err
 	}
@@ -171,14 +202,24 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 	}
 
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
-	w.processTemplates(variables, themeDir, settings, state.AppOverrides, state.ExtendedColors)
-	w.applyEditorThemes(themeDir, settings, variables)
+	if isOmarchyV4 {
+		w.processTemplate(
+			"colors.v4.toml",
+			filepath.Join(themeDir, "colors.toml"),
+			variables,
+			state.AppOverrides,
+			state.ExtendedColors,
+		)
+	} else {
+		w.processTemplates(variables, themeDir, settings, state.AppOverrides, state.ExtendedColors)
+		w.applyEditorThemes(themeDir, settings, variables)
 
-	if err := HandleLightModeMarker(themeDir, state.LightMode); err != nil {
-		log.Printf("Warning: light mode marker failed: %v", err)
-	}
-	if err := template.ProcessCustomApps(themeDir, variables); err != nil {
-		log.Printf("Warning: custom app processing failed: %v", err)
+		if err := HandleLightModeMarker(themeDir, state.LightMode); err != nil {
+			log.Printf("Warning: light mode marker failed: %v", err)
+		}
+		if err := template.ProcessCustomApps(themeDir, variables); err != nil {
+			log.Printf("Warning: custom app processing failed: %v", err)
+		}
 	}
 	if isOmarchy {
 		if err := ApplyOmarchyTheme(); err != nil {
@@ -245,8 +286,8 @@ func (w *Writer) processTemplates(
 	}
 
 	for _, fileName := range names {
-		// Skip copy.json (config file, not a template)
-		if fileName == "copy.json" {
+		// Skip copy.json (config file) and the Omarchy v4-only colors template.
+		if fileName == "copy.json" || fileName == "colors.v4.toml" {
 			continue
 		}
 
