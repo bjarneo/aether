@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,7 +17,7 @@ func ApplyOmarchyTheme() error {
 	if runtime.GOOS != "linux" {
 		return nil
 	}
-	if err := platform.RunAsync("omarchy-theme-set", "aether"); err != nil {
+	if _, err := platform.RunSync("omarchy-theme-set", "aether"); err != nil {
 		return err
 	}
 	log.Println("Applied theme: aether")
@@ -110,9 +111,8 @@ func IsImageFile(path string) bool {
 	return imageExtensions[strings.ToLower(filepath.Ext(path))]
 }
 
-// ApplyWallpaper creates the background symlink at
-// ~/.config/omarchy/current/background pointing to wallpaperPath, then uses
-// swaybg for image files. Only runs on Linux Omarchy systems.
+// ApplyWallpaper sets wallpaperPath through Omarchy's background interface.
+// Only runs on Linux Omarchy systems.
 func ApplyWallpaper(wallpaperPath string) error {
 	if runtime.GOOS != "linux" || wallpaperPath == "" || !IsOmarchyInstalled() {
 		return nil
@@ -122,27 +122,10 @@ func ApplyWallpaper(wallpaperPath string) error {
 		return nil
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
+	if _, err := platform.RunSync("omarchy-theme-bg-set", wallpaperPath); err != nil {
+		return fmt.Errorf("set Omarchy wallpaper: %w", err)
 	}
-
-	symlinkPath := filepath.Join(home, ".config", "omarchy", "current", "background")
-	if err := platform.EnsureDir(filepath.Dir(symlinkPath)); err != nil {
-		return err
-	}
-
-	if err := platform.CreateSymlink(wallpaperPath, symlinkPath); err != nil {
-		return err
-	}
-	log.Printf("Created wallpaper symlink: %s -> %s", symlinkPath, wallpaperPath)
-
-	_ = platform.RunAsync("pkill", "-x", "swaybg")
-	if err := platform.RunAsync("setsid", "uwsm-app", "--", "swaybg", "-i", symlinkPath, "-m", "fill"); err != nil {
-		log.Printf("Warning: could not restart swaybg: %v", err)
-		return err
-	}
-	log.Println("Swaybg restarted successfully")
+	log.Printf("Applied Omarchy wallpaper: %s", wallpaperPath)
 	return nil
 }
 
