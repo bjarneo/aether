@@ -20,6 +20,7 @@ import (
 	"aether/internal/platform"
 	"aether/internal/template"
 	"aether/internal/theme"
+	"aether/internal/update"
 	"aether/internal/wallhaven"
 	"aether/internal/wallpaper"
 	"aether/ipc"
@@ -60,6 +61,29 @@ func (a *App) GetThemeColors() map[string]string {
 // pulls this on mount so stores pick up backend-seeded defaults.
 func (a *App) GetInitialState() theme.StateSnapshot {
 	return a.state.Snapshot()
+}
+
+// GetReleaseStatus checks whether currentVersion has a newer GitHub release.
+func (a *App) GetReleaseStatus(currentVersion string) (map[string]interface{}, error) {
+	release, err := update.Check(context.Background(), currentVersion)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"currentVersion":  release.CurrentVersion,
+		"latestVersion":   release.LatestVersion,
+		"releaseURL":      release.ReleaseURL,
+		"updateAvailable": release.UpdateAvailable,
+	}, nil
+}
+
+// StartUpgrade opens a terminal running this executable's upgrade command.
+func (a *App) StartUpgrade() error {
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("locate current executable: %w", err)
+	}
+	return update.OpenUpgradeTerminal(executable)
 }
 
 // NewApp creates a new App instance.

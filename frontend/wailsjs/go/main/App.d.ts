@@ -70,6 +70,8 @@ export function GetFocusTab(): Promise<string>;
 
 export function GetInitialState(): Promise<theme.StateSnapshot>;
 
+export function GetReleaseStatus(arg1: string): Promise<Record<string, any>>;
+
 export function GetPendingExternalImport(): Promise<main.ExternalImportPreview>;
 
 export function GetPreview(arg1: string): Promise<string>;
@@ -144,6 +146,8 @@ export function StartBatchProcessing(
     arg1: Array<string>,
     arg2: boolean
 ): Promise<void>;
+
+export function StartUpgrade(): Promise<void>;
 
 export function SyncState(arg1: main.SyncStateRequest): Promise<void>;
 

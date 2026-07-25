@@ -10,6 +10,7 @@
         type Tab,
     } from '$lib/stores/ui.svelte';
     import SearchIcon from '$lib/components/shared/SearchIcon.svelte';
+    import ReleaseIndicator from '$lib/components/layout/ReleaseIndicator.svelte';
 
     let sidebarVisible = $derived(getSidebarVisible());
     let activeTab = $derived(getActiveTab());
@@ -144,6 +145,7 @@
         class="ml-2 flex items-center gap-0.5"
         style="--wails-draggable:no-drag"
     >
+        <ReleaseIndicator {isMac} />
         <button
             class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover flex h-7 w-7 items-center justify-center transition-colors"
             class:mb-0.5={isMac}

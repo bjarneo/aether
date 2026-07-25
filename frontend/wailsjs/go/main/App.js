@@ -94,6 +94,10 @@ export function GetInitialState() {
     return window['go']['main']['App']['GetInitialState']();
 }
 
+export function GetReleaseStatus(arg1) {
+    return window['go']['main']['App']['GetReleaseStatus'](arg1);
+}
+
 export function GetPendingExternalImport() {
     return window['go']['main']['App']['GetPendingExternalImport']();
 }
@@ -228,6 +232,10 @@ export function SetWallhavenAPIKey(arg1) {
 
 export function StartBatchProcessing(arg1, arg2) {
     return window['go']['main']['App']['StartBatchProcessing'](arg1, arg2);
+}
+
+export function StartUpgrade() {
+    return window['go']['main']['App']['StartUpgrade']();
 }
 
 export function SyncState(arg1) {
