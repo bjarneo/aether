@@ -1,10 +1,14 @@
 package theme
 
 import (
+	"embed"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+//go:embed testdata/v4/*
+var omarchyV4TestTemplates embed.FS
 
 func TestPrepareOmarchyV4ThemeDirRemovesLegacyFiles(t *testing.T) {
 	targetDir := t.TempDir()
@@ -37,5 +41,33 @@ func TestPrepareOmarchyV4ThemeDirRemovesLegacyFiles(t *testing.T) {
 	}
 	if _, err := os.Stat(legacyDir); !os.IsNotExist(err) {
 		t.Errorf("legacy directory still exists: %v", err)
+	}
+}
+
+func TestProcessOmarchyV4TemplatesKeepsIconsTheme(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	themeDir := t.TempDir()
+	writer := NewWriter(omarchyV4TestTemplates, "testdata/v4")
+	writer.processOmarchyV4Templates(themeDir, map[string]string{
+		"background": "#1e1e2e",
+		"magenta":    "#ff0000",
+		"mode":       "dark",
+	}, nil, nil)
+
+	colors, err := os.ReadFile(filepath.Join(themeDir, "colors.toml"))
+	if err != nil {
+		t.Fatalf("read colors.toml: %v", err)
+	}
+	if got, want := string(colors), "background = \"#1e1e2e\"\nmode = \"dark\"\n"; got != want {
+		t.Errorf("colors.toml = %q, want %q", got, want)
+	}
+
+	icons, err := os.ReadFile(filepath.Join(themeDir, "icons.theme"))
+	if err != nil {
+		t.Fatalf("read icons.theme: %v", err)
+	}
+	if got, want := string(icons), "Yaru-red\n"; got != want {
+		t.Errorf("icons.theme = %q, want %q", got, want)
 	}
 }
