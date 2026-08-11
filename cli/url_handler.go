@@ -260,6 +260,39 @@ func runOmarchyInstall(imp *pending.Import, templatesFS embed.FS) int {
 		fmt.Fprintln(os.Stderr, "Error: omarchy-theme-set not found in PATH; cannot install as an omarchy theme")
 		return 1
 	}
+	omarchyPath := os.Getenv("OMARCHY_PATH")
+	if platform.FileExists(filepath.Join(omarchyPath, "shell", "shell.qml")) {
+		if resolved, err := filepath.EvalSymlinks(omarchyPath); err == nil {
+			omarchyPath = resolved
+		}
+	} else {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: resolve home directory: %v\n", err)
+			return 1
+		}
+		candidates := []string{
+			filepath.Join(home, ".local", "share", "omarchy"),
+			"/usr/share/omarchy",
+		}
+		for _, candidate := range candidates {
+			if platform.FileExists(filepath.Join(candidate, "shell", "shell.qml")) {
+				omarchyPath = candidate
+				if resolved, err := filepath.EvalSymlinks(candidate); err == nil {
+					omarchyPath = resolved
+				}
+				break
+			}
+		}
+	}
+	if !platform.FileExists(filepath.Join(omarchyPath, "shell", "shell.qml")) {
+		fmt.Fprintln(os.Stderr, "Error: could not locate the Omarchy installation")
+		return 1
+	}
+	if err := os.Setenv("OMARCHY_PATH", omarchyPath); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: set OMARCHY_PATH: %v\n", err)
+		return 1
+	}
 
 	var palette [16]string
 	var bp *blueprint.Blueprint
@@ -332,12 +365,49 @@ func runOmarchyInstall(imp *pending.Import, templatesFS embed.FS) int {
 	}
 
 	fmt.Printf("Activating: omarchy-theme-set %s\n", imp.OmarchyThemeName)
-	if out, err := platform.RunSync("omarchy-theme-set", imp.OmarchyThemeName); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: omarchy-theme-set failed: %v\n", err)
-		if out != "" {
-			fmt.Fprintln(os.Stderr, out)
+	stateDir := os.Getenv("XDG_STATE_HOME")
+	if stateDir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: resolve home directory: %v\n", err)
+			return 1
 		}
+		stateDir = filepath.Join(home, ".local", "state")
+	}
+	currentDir := filepath.Join(stateDir, "omarchy", "current")
+	themeNamePath := filepath.Join(currentDir, "theme.name")
+	var previousThemeNameModTime time.Time
+	if info, err := os.Stat(themeNamePath); err == nil {
+		previousThemeNameModTime = info.ModTime()
+	}
+
+	if err := platform.RunAsync("omarchy-theme-set", imp.OmarchyThemeName); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: start omarchy-theme-set: %v\n", err)
 		return 1
+	}
+
+	expectedBackground := filepath.Base(imp.Wallpaper)
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		nameData, nameErr := os.ReadFile(themeNamePath)
+		nameInfo, statErr := os.Stat(themeNamePath)
+		backgroundTarget, backgroundErr := filepath.EvalSymlinks(filepath.Join(currentDir, "background"))
+		activationUpdated := previousThemeNameModTime.IsZero() ||
+			(statErr == nil && nameInfo.ModTime().After(previousThemeNameModTime))
+		if nameErr == nil && strings.TrimSpace(string(nameData)) == imp.OmarchyThemeName &&
+			activationUpdated && (expectedBackground == "" ||
+			(backgroundErr == nil && filepath.Base(backgroundTarget) == expectedBackground)) {
+			break
+		}
+		if time.Now().After(deadline) {
+			fmt.Fprintln(os.Stderr, "Error: timed out waiting for omarchy-theme-set to activate the theme")
+			return 1
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	if _, err := platform.RunSync("omarchy-shell", "background", "refresh"); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: refresh Omarchy background: %v\n", err)
 	}
 
 	fmt.Println("Omarchy theme installed and activated")
