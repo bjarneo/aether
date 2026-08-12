@@ -50,6 +50,7 @@
     import {
         setWallpaperPath,
         setPalette,
+        setExtendedColors,
         setAdjustments,
         setColor,
         setExtendedColor,
@@ -180,6 +181,9 @@
             const s = await GetInitialState();
             if (s?.palette?.length >= 16) {
                 setPalette(s.palette, true /* skipHistory */);
+            }
+            if (s?.extendedColors) {
+                setExtendedColors(s.extendedColors);
             }
             if (s?.wallpaperPath) {
                 setWallpaperPath(s.wallpaperPath);
@@ -403,6 +407,7 @@
                     'ipc-state-changed',
                     (state: {
                         palette?: string[];
+                        extendedColors?: Record<string, string>;
                         lightMode?: boolean;
                         mode?: string;
                         wallpaper?: string;
@@ -410,6 +415,9 @@
                     }) => {
                         if (state.palette && state.palette.length >= 16) {
                             setPalette(state.palette);
+                        }
+                        if (state.extendedColors) {
+                            setExtendedColors(state.extendedColors);
                         }
                         if (state.lightMode !== undefined) {
                             setLightMode(state.lightMode);

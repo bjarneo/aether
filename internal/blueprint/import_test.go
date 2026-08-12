@@ -90,6 +90,41 @@ func TestImportColorsTomlFromThemeDir(t *testing.T) {
 	}
 }
 
+func TestImportColorsTomlPreservesExplicitAccent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "colors.toml")
+	content := `mode = "dark"
+accent = "#0fdfaf"
+background = "#072626"
+foreground = "#d3b58d"
+red = "#504038"
+green = "#3fdf1f"
+yellow = "#d3b58d"
+blue = "#000080"
+magenta = "#add8e6"
+cyan = "#0fdfaf"
+bright_red = "#d3b58d"
+bright_green = "#90ee90"
+bright_yellow = "#b4eeb4"
+bright_blue = "#0000ff"
+bright_magenta = "#ffffff"
+bright_cyan = "#add8e6"
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	bp, err := ImportColorsToml(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := bp.Palette.ExtendedColors["accent"]; got != "#0fdfaf" {
+		t.Errorf("accent = %q, want #0fdfaf", got)
+	}
+	if bp.Palette.Colors[4] != "#000080" {
+		t.Errorf("blue = %q, want #000080", bp.Palette.Colors[4])
+	}
+}
+
 func TestImportJSON_BoolLockedColors(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.json")

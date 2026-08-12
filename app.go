@@ -1228,11 +1228,12 @@ func (a *App) emitIPCStateChanged() {
 		return
 	}
 	wailsrt.EventsEmit(a.ctx, "ipc-state-changed", map[string]interface{}{
-		"palette":     a.state.Palette[:],
-		"lightMode":   a.state.LightMode,
-		"mode":        a.state.ExtractionMode,
-		"wallpaper":   a.state.WallpaperPath,
-		"adjustments": a.state.Adjustments,
+		"palette":        a.state.Palette[:],
+		"extendedColors": a.state.ExtendedColors,
+		"lightMode":      a.state.LightMode,
+		"mode":           a.state.ExtractionMode,
+		"wallpaper":      a.state.WallpaperPath,
+		"adjustments":    a.state.Adjustments,
 	})
 }
 

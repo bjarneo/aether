@@ -267,6 +267,21 @@ export function setAdjustedExtendedColors(
     extendedColors = {...colors};
 }
 
+// setExtendedColors replaces both the display and base semantic colors when
+// loading persisted/imported state. Keeping them aligned lets adjustments use
+// explicit roles such as an imported accent instead of the ANSI blue fallback.
+export function setExtendedColors(colors: Record<string, string>): void {
+    const next = {
+        accent: colors.accent || palette[4],
+        cursor: colors.cursor || palette[7],
+        selection_foreground: colors.selection_foreground || palette[0],
+        selection_background: colors.selection_background || palette[7],
+        ...colors,
+    };
+    extendedColors = next;
+    baseExtendedColors = {...next};
+}
+
 // Window after the last edit during which subsequent edits are folded
 // into the same history snapshot. Long enough for paint-then-tweak,
 // short enough that a deliberate next edit gets its own undo step.
