@@ -27,7 +27,7 @@
         ANSI_COLOR_NAMES,
         EXTENDED_COLOR_LABELS,
     } from '$lib/constants/colors';
-    import {onDestroy} from 'svelte';
+    import {onDestroy, untrack} from 'svelte';
     import {
         hexToRgb,
         rgbToHex,
@@ -179,11 +179,45 @@
         applyColor(rgbToHex(c.r, c.g, c.b));
     }
 
-    let hsl = $derived(hexToHsl(currentColor));
+    let hsl = $state(untrack(() => hexToHsl(currentColor)));
+    let oklch = $state(untrack(() => hexToOklch(currentColor)));
+    let syncedTarget = '';
+    let authoredHex = '';
+    let authoredModel: ColorModel | null = null;
+    let colorTarget = $derived(
+        isOverride
+            ? `override:${overrideApp}:${overrideRole}`
+            : isExtended
+              ? `extended:${extKey}`
+              : `ansi:${idx}`
+    );
+
+    // Preserve the user's model coordinates while converting through the
+    // palette's hex storage. This keeps neutral hues and slider positions from
+    // snapping after every quantized RGB update.
+    $effect(() => {
+        const target = colorTarget;
+        const hex = currentColor;
+        const authoredUpdate = target === syncedTarget && hex === authoredHex;
+        if (!authoredUpdate || authoredModel !== 'hsl') {
+            hsl = hexToHsl(hex);
+        }
+        if (!authoredUpdate || authoredModel !== 'oklch') {
+            oklch = hexToOklch(hex);
+        }
+        syncedTarget = target;
+        authoredHex = hex;
+    });
+
+    function applyModelColor(hex: string, model: ColorModel) {
+        authoredHex = hex;
+        authoredModel = model;
+        applyColor(hex);
+    }
 
     function handleHslChange(channel: 'h' | 's' | 'l', value: number) {
-        const next = {...hsl, [channel]: value};
-        applyColor(hslToHex(next.h, next.s, next.l));
+        hsl = {...hsl, [channel]: value};
+        applyModelColor(hslToHex(hsl.h, hsl.s, hsl.l), 'hsl');
     }
 
     const HARMONY: {label: string; delta: number; title: string}[] = [
@@ -202,7 +236,9 @@
     let activeModel = $derived(getColorPickerModel());
 
     function parseEditedNumber(raw: string): number | null {
-        const n = parseFloat(raw.replace(/[°%]/g, '').trim());
+        const normalized = raw.replace(/[°%]/g, '').trim().replace(',', '.');
+        if (!normalized) return null;
+        const n = Number(normalized);
         return Number.isFinite(n) ? n : null;
     }
 
@@ -321,17 +357,13 @@
 
     type OklchChannel = 'l' | 'c' | 'h';
 
-    let oklch = $derived(hexToOklch(currentColor));
-
     const OKLCH_CHANNELS: readonly OklchChannel[] = ['l', 'c', 'h'] as const;
     const OKLCH_LABELS: Record<OklchChannel, string> = {l: 'L', c: 'C', h: 'H'};
-    // Slider range stays integer (step=1) for smooth dragging: L 0..1 maps
-    // to 0..100, C 0..0.4 maps to 0..40, H stays 0..360. Convert back via
-    // OKLCH_FROM_SLIDER on each change.
-    const OKLCH_MAX: Record<OklchChannel, number> = {l: 100, c: 40, h: 360};
+    const OKLCH_STEP: Record<OklchChannel, number> = {l: 0.1, c: 0.001, h: 1};
+    const OKLCH_MAX: Record<OklchChannel, number> = {l: 100, c: 0.4, h: 360};
     const OKLCH_FROM_SLIDER: Record<OklchChannel, number> = {
         l: 1 / 100,
-        c: 1 / 100,
+        c: 1,
         h: 1,
     };
 
@@ -342,11 +374,11 @@
     });
 
     function handleOklchChange(channel: OklchChannel, sliderValue: number) {
-        const next = {
+        oklch = {
             ...oklch,
             [channel]: sliderValue * OKLCH_FROM_SLIDER[channel],
         };
-        applyColor(oklchToHex(next.l, next.c, next.h));
+        applyModelColor(oklchToHex(oklch.l, oklch.c, oklch.h), 'oklch');
     }
 
     function oklchChannelGradient(channel: OklchChannel): string {
@@ -356,15 +388,15 @@
             const t = i / steps;
             if (channel === 'l') stops.push(oklchToHex(t, oklch.c, oklch.h));
             else if (channel === 'c')
-                stops.push(oklchToHex(oklch.l, t * 0.4, oklch.h));
+                stops.push(oklchToHex(oklch.l, t * OKLCH_MAX.c, oklch.h));
             else stops.push(oklchToHex(oklch.l, oklch.c, t * 360));
         }
         return `linear-gradient(to right, ${stops.join(', ')})`;
     }
 
     function formatOklch(channel: OklchChannel): string {
-        if (channel === 'l') return `${Math.round(oklch.l * 100)}%`;
-        if (channel === 'c') return oklch.c.toFixed(2);
+        if (channel === 'l') return `${Number((oklch.l * 100).toFixed(1))}%`;
+        if (channel === 'c') return oklch.c.toFixed(3);
         return `${Math.round(oklch.h)}°`;
     }
 
@@ -587,7 +619,8 @@
                         oncommit={makeCommitHandler(
                             channel,
                             handleHslChange,
-                            HSL_MAX[channel]
+                            HSL_MAX[channel],
+                            Math.round
                         )}
                     />
                 {/each}
@@ -597,6 +630,7 @@
                         label={OKLCH_LABELS[channel]}
                         value={oklchSlider[channel]}
                         max={OKLCH_MAX[channel]}
+                        step={OKLCH_STEP[channel]}
                         display={formatOklch(channel)}
                         gradient={oklchChannelGradient(channel)}
                         disabled={locked}
@@ -605,7 +639,11 @@
                             channel,
                             handleOklchChange,
                             OKLCH_MAX[channel],
-                            channel === 'c' ? n => n * 100 : undefined
+                            channel === 'l'
+                                ? n => Math.round(n * 10) / 10
+                                : channel === 'c'
+                                  ? n => Math.round(n * 1000) / 1000
+                                  : Math.round
                         )}
                     />
                 {/each}

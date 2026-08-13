@@ -140,10 +140,10 @@ main {
     background: rgba(0, 0, 0, 0.25);
 }
 
-:root.light-mode input[type='range'] {
+:root.light-mode input[type='range']:not(.channel-input) {
     background: rgba(0, 0, 0, 0.12);
 }
-:root.light-mode input[type='range']::-webkit-slider-thumb {
+:root.light-mode input[type='range']:not(.channel-input)::-webkit-slider-thumb {
     background: var(--color-accent);
 }
 
@@ -178,20 +178,20 @@ button,
     outline-offset: -1px;
 }
 
-input[type='range'] {
+input[type='range']:not(.channel-input) {
     -webkit-appearance: none;
     height: 2px;
     background: rgba(255, 255, 255, 0.12);
     outline: none;
 }
-input[type='range']::-webkit-slider-thumb {
+input[type='range']:not(.channel-input)::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 10px;
     height: 10px;
     background: var(--color-accent);
     cursor: pointer;
 }
-input[type='range']::-webkit-slider-thumb:hover {
+input[type='range']:not(.channel-input)::-webkit-slider-thumb:hover {
     background: var(--color-accent-hover);
 }
 

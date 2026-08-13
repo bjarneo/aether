@@ -170,6 +170,15 @@ function oklabToLinearRgb(
     ];
 }
 
+function oklchToLinearRgb(
+    l: number,
+    c: number,
+    h: number
+): [number, number, number] {
+    const rad = (h * Math.PI) / 180;
+    return oklabToLinearRgb(l, c * Math.cos(rad), c * Math.sin(rad));
+}
+
 // OKLCH: polar form of OKLab. l=0..1, c=0..~0.4 in sRGB gamut, h=0..360°.
 export function hexToOklch(hex: string): {l: number; c: number; h: number} {
     if (!hex || hex.length < 7) return {l: 0, c: 0, h: 0};
@@ -186,10 +195,7 @@ export function hexToOklch(hex: string): {l: number; c: number; h: number} {
 }
 
 export function oklchToHex(l: number, c: number, h: number): string {
-    const rad = (h * Math.PI) / 180;
-    const a = c * Math.cos(rad);
-    const b = c * Math.sin(rad);
-    const [lr, lg, lb] = oklabToLinearRgb(l, a, b);
+    const [lr, lg, lb] = oklchToLinearRgb(l, c, h);
     return (
         '#' +
         [lr, lg, lb]
