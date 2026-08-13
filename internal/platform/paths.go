@@ -51,6 +51,11 @@ func BlueprintDir() string {
 	return filepath.Join(ConfigDir(), "blueprints")
 }
 
+// SavedThemesDir returns ~/.config/aether/themes.
+func SavedThemesDir() string {
+	return filepath.Join(ConfigDir(), "themes")
+}
+
 // FavoritesFile returns ~/.config/aether/favorites.json.
 func FavoritesFile() string {
 	return filepath.Join(ConfigDir(), "favorites.json")
@@ -104,6 +109,7 @@ func EnsureAllDirs() error {
 		DataDir(),
 		ThemeDir(),
 		BlueprintDir(),
+		SavedThemesDir(),
 		CustomDir(),
 		DownloadDir(),
 		ThumbnailDir(),

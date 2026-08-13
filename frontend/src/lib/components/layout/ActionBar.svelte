@@ -36,13 +36,18 @@
         toggleTargetsVisible,
     } from '$lib/stores/ui.svelte';
     import {getApiKey, getTotalResults} from '$lib/stores/wallhaven.svelte';
-    import {applyTheme} from '$lib/actions/themeActions';
+    import {
+        applyTheme,
+        requestThemeApply,
+        saveThemeAsNew,
+    } from '$lib/actions/themeActions';
     import SaveDialog from '$lib/components/blueprints/SaveDialog.svelte';
     import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
     import KbdInverse from '$lib/components/shared/KbdInverse.svelte';
     import Modal from '$lib/components/shared/Modal.svelte';
 
     let showImportMenu = $state(false);
+    let showApplyMenu = $state(false);
     let showExportDialog = $state(false);
     let showSaveDialog = $state(false);
     let confirmKind = $state<'revert' | 'reset' | null>(null);
@@ -147,7 +152,7 @@
 
     // --- Editor actions ---
 
-    const handleApply = applyTheme;
+    const handleApply = requestThemeApply;
 
     function handleUndo() {
         const snapshot = undo();
@@ -414,25 +419,73 @@
                     {liveApply && livePending ? 'Syncing' : 'Live'}
                 </button>
 
-                <button
-                    class="bg-accent text-accent-fg hover:bg-accent-hover relative inline-flex items-center gap-2 px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
-                    onclick={handleApply}
-                    disabled={applying}
-                    title={dirty
-                        ? 'Unsaved changes — click to apply (Ctrl+Enter)'
-                        : 'Apply theme to system (Ctrl+Enter)'}
-                >
-                    <span>{applying ? 'Applying...' : 'Apply Theme'}</span>
-                    {#if !applying}
-                        <KbdInverse>Ctrl+↵</KbdInverse>
+                <div class="relative inline-flex">
+                    <button
+                        class="bg-accent text-accent-fg hover:bg-accent-hover relative inline-flex items-center gap-2 px-4 py-1.5 text-[11px] font-medium transition-colors duration-100 disabled:opacity-50"
+                        onclick={handleApply}
+                        disabled={applying}
+                        title={dirty
+                            ? 'Apply updates to the saved theme folder (Ctrl+Enter applies only)'
+                            : 'Apply theme (Ctrl+Enter applies only)'}
+                    >
+                        <span>{applying ? 'Applying...' : 'Apply Theme'}</span>
+                        {#if !applying}
+                            <KbdInverse>Ctrl+↵</KbdInverse>
+                        {/if}
+                        {#if dirty && !applying}
+                            <span
+                                class="bg-warning absolute -right-1 -top-1 h-2 w-2 ring-2 ring-[var(--color-bg-secondary)]"
+                                aria-label="Unsaved changes"
+                            ></span>
+                        {/if}
+                    </button>
+                    <button
+                        type="button"
+                        class="bg-accent text-accent-fg hover:bg-accent-hover border-accent-fg/20 border-l px-2 transition-colors disabled:opacity-50"
+                        onclick={() => (showApplyMenu = !showApplyMenu)}
+                        disabled={applying}
+                        aria-label="More apply options"
+                        title="More apply options"
+                    >
+                        <svg
+                            class="h-3 w-3"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            aria-hidden="true"
+                        >
+                            <path d="m3 4.5 3 3 3-3"></path>
+                        </svg>
+                    </button>
+                    {#if showApplyMenu}
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <div
+                            class="fixed inset-0 z-30"
+                            onclick={() => (showApplyMenu = false)}
+                            role="presentation"
+                        ></div>
+                        <div
+                            class="bg-bg-secondary border-border absolute bottom-full right-0 z-40 mb-1 min-w-[180px] border shadow-lg"
+                        >
+                            <button
+                                class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
+                                onclick={() => {
+                                    showApplyMenu = false;
+                                    saveThemeAsNew();
+                                }}>Save as new folder...</button
+                            >
+                            <button
+                                class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
+                                onclick={() => {
+                                    showApplyMenu = false;
+                                    applyTheme();
+                                }}>Apply only</button
+                            >
+                        </div>
                     {/if}
-                    {#if dirty && !applying}
-                        <span
-                            class="bg-warning absolute -right-1 -top-1 h-2 w-2 ring-2 ring-[var(--color-bg-secondary)]"
-                            aria-label="Unsaved changes"
-                        ></span>
-                    {/if}
-                </button>
+                </div>
             </div>
         {:else if activeTab === 'wallhaven'}
             <div class="flex items-center gap-2">

@@ -122,6 +122,8 @@ export function ReadImageAsDataURL(arg1: string): Promise<string>;
 
 export function ResetState(): Promise<void>;
 
+export function SaveAndApplyTheme(arg1: main.SaveAndApplyThemeRequest): Promise<theme.ApplyResult>;
+
 export function SaveBlueprint(arg1: main.SaveBlueprintRequest): Promise<void>;
 
 export function SaveDataURLToFile(arg1: string, arg2: string): Promise<string>;

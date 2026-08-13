@@ -11,6 +11,7 @@
                 {keys: 'Ctrl+K', desc: 'Show keyboard shortcuts'},
                 {keys: 'Ctrl+B', desc: 'Toggle sidebar'},
                 {keys: 'Ctrl+Enter', desc: 'Apply theme'},
+                {keys: 'Ctrl+J', desc: 'Save as new theme folder'},
                 {keys: 'Ctrl+S', desc: 'Save blueprint'},
                 {keys: 'Ctrl+Z', desc: 'Undo'},
                 {keys: 'Ctrl+Shift+Z', desc: 'Redo'},

@@ -202,6 +202,17 @@ func (w *Writer) processOmarchyV4Templates(
 	)
 }
 
+// GenerateOmarchyV4Only writes the files Omarchy v4 reads directly from a
+// reusable theme folder. Omarchy generates all other app-specific files.
+func (w *Writer) GenerateOmarchyV4Only(state *ThemeState, outputPath string) error {
+	if _, err := prepareOmarchyV4ThemeDir(outputPath, state); err != nil {
+		return err
+	}
+	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
+	w.processOmarchyV4Templates(outputPath, variables, state.AppOverrides, state.ExtendedColors)
+	return nil
+}
+
 // ApplyTheme generates all theme files and applies the theme to the system.
 func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult, error) {
 	isOmarchy := IsOmarchyInstalled()

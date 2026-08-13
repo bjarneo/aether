@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"aether/internal/template"
 )
 
 //go:embed testdata/v4/*
@@ -69,5 +71,35 @@ func TestProcessOmarchyV4TemplatesKeepsIconsTheme(t *testing.T) {
 	}
 	if got, want := string(icons), "Yaru-red\n"; got != want {
 		t.Errorf("icons.theme = %q, want %q", got, want)
+	}
+}
+
+func TestGenerateOmarchyV4OnlyRemovesLegacyFiles(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	themeDir := t.TempDir()
+	legacyFile := filepath.Join(themeDir, "waybar.css")
+	if err := os.WriteFile(legacyFile, []byte("legacy"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	writer := NewWriter(omarchyV4TestTemplates, "testdata/v4")
+	state := &ThemeState{
+		ColorRoles: template.ColorRoles{
+			Background: "#1e1e2e",
+			Magenta:    "#ff0000",
+		},
+	}
+	if err := writer.GenerateOmarchyV4Only(state, themeDir); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, name := range []string{"colors.toml", "icons.theme"} {
+		if _, err := os.Stat(filepath.Join(themeDir, name)); err != nil {
+			t.Errorf("%s was not generated: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(legacyFile); !os.IsNotExist(err) {
+		t.Errorf("legacy file still exists: %v", err)
 	}
 }

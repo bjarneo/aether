@@ -33,6 +33,8 @@
         getLiveApply,
         setLivePending,
         getTargetsVisible,
+        getApplySaveDialogOpen,
+        setApplySaveDialogOpen,
         type Tab,
     } from '$lib/stores/ui.svelte';
 
@@ -67,6 +69,9 @@
     import {
         applyTheme,
         applyThemeLive,
+        saveAndApplyTheme,
+        requestThemeApply,
+        saveThemeAsNew,
         undoAction,
         redoAction,
     } from '$lib/actions/themeActions';
@@ -81,6 +86,7 @@
     import KeymapDialog from '$lib/components/shared/KeymapDialog.svelte';
     import CommandPalette from '$lib/components/shared/CommandPalette.svelte';
     import ExternalImportDialog from '$lib/components/ExternalImportDialog.svelte';
+    import ApplySaveDialog from '$lib/components/layout/ApplySaveDialog.svelte';
     import {initKeyboardShortcuts, registerShortcut} from '$lib/utils/keyboard';
     import {
         hexToRgb,
@@ -200,6 +206,7 @@
         registerShortcut('ctrl+z', undoAction);
         registerShortcut('ctrl+shift+z', redoAction);
         registerShortcut('ctrl+enter', applyTheme);
+        registerShortcut('ctrl+j', saveThemeAsNew);
 
         // Ctrl+S - Save blueprint
         registerShortcut('ctrl+s', () => {
@@ -473,4 +480,12 @@
         onclose={closeCommandPalette}
     />
     <ExternalImportDialog />
+    <ApplySaveDialog
+        open={getApplySaveDialogOpen()}
+        onclose={() => setApplySaveDialogOpen(false)}
+        onsave={name => {
+            setApplySaveDialogOpen(false);
+            saveAndApplyTheme(name);
+        }}
+    />
 </div>

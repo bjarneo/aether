@@ -1,5 +1,9 @@
 import type {main} from '../../../wailsjs/go/models';
-import {showToast, setLivePending} from '$lib/stores/ui.svelte';
+import {
+    showToast,
+    setLivePending,
+    setApplySaveDialogOpen,
+} from '$lib/stores/ui.svelte';
 import {
     getIsApplying,
     setIsApplying,
@@ -30,6 +34,7 @@ import {
     pushUndo,
 } from '$lib/stores/history.svelte';
 import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
+import {STORAGE_KEYS} from '$lib/constants/storage';
 
 // Cache the template-apps list — Go side is deterministic per build, so
 // no need to re-fetch.
@@ -99,6 +104,91 @@ export async function applyTheme(): Promise<void> {
         }
     } catch {
         showToast('Couldn’t apply theme — see logs for details');
+    } finally {
+        setIsApplying(false);
+    }
+}
+
+function getSavedThemeFolder(): string {
+    const wallpaper = getWallpaperPath();
+    if (!wallpaper) return '';
+    try {
+        const folders = JSON.parse(
+            localStorage.getItem(STORAGE_KEYS.savedThemeFolders) ?? '{}'
+        ) as Record<string, string>;
+        return folders[wallpaper] ?? '';
+    } catch {
+        return '';
+    }
+}
+
+function saveThemeFolder(name: string): void {
+    const wallpaper = getWallpaperPath();
+    if (!wallpaper) return;
+    try {
+        const folders = JSON.parse(
+            localStorage.getItem(STORAGE_KEYS.savedThemeFolders) ?? '{}'
+        ) as Record<string, string>;
+        localStorage.setItem(
+            STORAGE_KEYS.savedThemeFolders,
+            JSON.stringify({...folders, [wallpaper]: name})
+        );
+    } catch {}
+}
+
+// The primary Apply action updates the folder saved for this wallpaper.
+// Ctrl+Enter remains an intentional bypass for quickly applying editor state.
+export function requestThemeApply(): void {
+    if (getIsApplying()) return;
+    const savedFolder = getSavedThemeFolder();
+    if (savedFolder) {
+        saveAndApplyTheme(savedFolder, true);
+    } else {
+        saveThemeAsNew();
+    }
+}
+
+export function saveThemeAsNew(): void {
+    if (!getIsApplying()) setApplySaveDialogOpen(true);
+}
+
+export async function saveAndApplyTheme(
+    name: string,
+    updateExisting = false
+): Promise<void> {
+    if (getIsApplying()) return;
+    setIsApplying(true);
+    try {
+        const {SaveAndApplyTheme} = await import(
+            '../../../wailsjs/go/main/App'
+        );
+        const result = await SaveAndApplyTheme({
+            name,
+            updateExisting,
+            palette: getPalette(),
+            wallpaperPath: getWallpaperPath(),
+            lightMode: getLightMode(),
+            additionalImages: getAdditionalImages(),
+            extendedColors: getExtendedColors(),
+            settings: getSettings(),
+            appOverrides: getAppOverrides(),
+        } as unknown as main.SaveAndApplyThemeRequest);
+        saveThemeFolder(name);
+        if (result.success) {
+            if (getLightMode()) {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.remove('light-mode');
+            }
+        }
+        markApplied();
+        showToast(
+            updateExisting ? `Applied: ${name}` : `Saved and applied: ${name}`
+        );
+    } catch (e: unknown) {
+        showToast(
+            e instanceof Error ? e.message : 'Couldn’t save and apply theme'
+        );
     } finally {
         setIsApplying(false);
     }

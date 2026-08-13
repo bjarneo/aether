@@ -194,6 +194,10 @@ export function ResetState() {
     return window['go']['main']['App']['ResetState']();
 }
 
+export function SaveAndApplyTheme(arg1) {
+    return window['go']['main']['App']['SaveAndApplyTheme'](arg1);
+}
+
 export function SaveBlueprint(arg1) {
     return window['go']['main']['App']['SaveBlueprint'](arg1);
 }

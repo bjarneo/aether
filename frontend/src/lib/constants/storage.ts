@@ -16,4 +16,5 @@ export const STORAGE_KEYS = {
     recentColors: 'aether.recentColors',
     customPresets: 'aether.customPresets',
     cardSize: 'aether-card-size',
+    savedThemeFolders: 'aether-saved-theme-folders',
 } as const;
