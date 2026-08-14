@@ -17,6 +17,7 @@ func TestRegisterURLHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", dir)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(dir, "data"))
 
 	var stdout, stderr bytes.Buffer
 	if err := registerURLHandler(context.Background(), &stdout, &stderr); err != nil {

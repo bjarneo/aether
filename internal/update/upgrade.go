@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+
+	"aether/internal/platform"
 )
 
 // Upgrade installs the latest GitHub release. It is intended for a terminal,
@@ -130,10 +132,7 @@ func installStandaloneBinary(ctx context.Context, release Release, stdout, stder
 }
 
 func registerURLHandler(ctx context.Context, stdout, stderr io.Writer) error {
-	if !commandExists("xdg-mime") {
-		return fmt.Errorf("xdg-mime is required to register aether:// links")
-	}
-	if err := runInteractive(ctx, stdout, stderr, "xdg-mime", "default", "li.oever.aether.url-handler.desktop", "x-scheme-handler/aether"); err != nil {
+	if err := platform.EnsureURLHandler(ctx); err != nil {
 		return fmt.Errorf("register aether:// handler: %w", err)
 	}
 	fmt.Fprintln(stdout, "Registered aether:// as the default protocol handler.")

@@ -111,6 +111,9 @@ func newSeededState() *theme.ThemeState {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	_ = platform.EnsureAllDirs()
+	if err := platform.EnsureURLHandler(ctx); err != nil {
+		log.Printf("register aether:// handler: %v", err)
+	}
 	a.themeWatcher.Start(ctx)
 
 	// Start IPC server for remote control
