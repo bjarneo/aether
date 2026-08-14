@@ -62,6 +62,7 @@ jobs:
 
               cd "${srcdir}/aether-${pkgver}"
               install -Dm644 build/linux/aether.desktop "${pkgdir}/usr/share/applications/aether.desktop"
+              install -Dm644 li.oever.aether.url-handler.desktop "${pkgdir}/usr/share/applications/li.oever.aether.url-handler.desktop"
               install -Dm644 icon.png "${pkgdir}/usr/share/pixmaps/aether.png"
               install -Dm644 README.md "${pkgdir}/usr/share/doc/aether/README.md"
           }

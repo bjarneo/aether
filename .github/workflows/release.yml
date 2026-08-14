@@ -71,6 +71,7 @@ jobs:
           cp "build/bin/aether-linux-${ARCH}" "${PKG_DIR}/usr/bin/aether"
           chmod 755 "${PKG_DIR}/usr/bin/aether"
           cp build/linux/aether.desktop "${PKG_DIR}/usr/share/applications/"
+          cp li.oever.aether.url-handler.desktop "${PKG_DIR}/usr/share/applications/"
           cp icon.png "${PKG_DIR}/usr/share/pixmaps/aether.png"
 
           cat > "${PKG_DIR}/DEBIAN/control" <<'CTRL'
