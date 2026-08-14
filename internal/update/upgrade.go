@@ -26,7 +26,10 @@ func Upgrade(ctx context.Context, release Release, stdout, stderr io.Writer) err
 	if commandExists("pacman") {
 		for _, helper := range []string{"yay", "paru"} {
 			if commandExists(helper) {
-				return runInteractive(ctx, stdout, stderr, helper, "-S", "aether")
+				if err := runInteractive(ctx, stdout, stderr, helper, "-S", "aether"); err != nil {
+					return err
+				}
+				return registerURLHandler(ctx, stdout, stderr)
 			}
 		}
 		return fmt.Errorf("Aether is managed by pacman; run your AUR helper to upgrade it")
@@ -103,7 +106,10 @@ func installDebianPackage(ctx context.Context, release Release, stdout, stderr i
 	}
 	defer cleanup()
 
-	return runInteractive(ctx, stdout, stderr, "sudo", "dpkg", "-i", packagePath)
+	if err := runInteractive(ctx, stdout, stderr, "sudo", "dpkg", "-i", packagePath); err != nil {
+		return err
+	}
+	return registerURLHandler(ctx, stdout, stderr)
 }
 
 func installStandaloneBinary(ctx context.Context, release Release, stdout, stderr io.Writer) error {
@@ -124,9 +130,26 @@ func installStandaloneBinary(ctx context.Context, release Release, stdout, stder
 		return fmt.Errorf("locate current executable: %w", err)
 	}
 	if os.Geteuid() == 0 {
-		return runInteractive(ctx, stdout, stderr, "install", "-m", "755", binaryPath, executable)
+		if err := runInteractive(ctx, stdout, stderr, "install", "-m", "755", binaryPath, executable); err != nil {
+			return err
+		}
+		return registerURLHandler(ctx, stdout, stderr)
 	}
-	return runInteractive(ctx, stdout, stderr, "sudo", "install", "-m", "755", binaryPath, executable)
+	if err := runInteractive(ctx, stdout, stderr, "sudo", "install", "-m", "755", binaryPath, executable); err != nil {
+		return err
+	}
+	return registerURLHandler(ctx, stdout, stderr)
+}
+
+func registerURLHandler(ctx context.Context, stdout, stderr io.Writer) error {
+	if !commandExists("xdg-mime") {
+		return fmt.Errorf("xdg-mime is required to register aether:// links")
+	}
+	if err := runInteractive(ctx, stdout, stderr, "xdg-mime", "default", "li.oever.aether.url-handler.desktop", "x-scheme-handler/aether"); err != nil {
+		return fmt.Errorf("register aether:// handler: %w", err)
+	}
+	fmt.Fprintln(stdout, "Registered aether:// as the default protocol handler.")
+	return nil
 }
 
 func debianArch() string {
