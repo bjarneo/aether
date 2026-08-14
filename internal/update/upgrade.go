@@ -11,9 +11,8 @@ import (
 	"runtime"
 )
 
-// Upgrade installs release using the same channel that installed Aether when
-// possible. It is intended for a terminal, where package-manager and sudo
-// prompts can be answered by the user.
+// Upgrade installs the latest GitHub release. It is intended for a terminal,
+// where sudo prompts can be answered by the user.
 func Upgrade(ctx context.Context, release Release, stdout, stderr io.Writer) error {
 	if !release.UpdateAvailable {
 		fmt.Fprintf(stdout, "Aether %s is already up to date.\n", release.CurrentVersion)
@@ -23,17 +22,6 @@ func Upgrade(ctx context.Context, release Release, stdout, stderr io.Writer) err
 		return fmt.Errorf("automatic upgrades are currently supported on Linux only")
 	}
 
-	if commandExists("pacman") {
-		for _, helper := range []string{"yay", "paru"} {
-			if commandExists(helper) {
-				if err := runInteractive(ctx, stdout, stderr, helper, "-S", "aether"); err != nil {
-					return err
-				}
-				return registerURLHandler(ctx, stdout, stderr)
-			}
-		}
-		return fmt.Errorf("Aether is managed by pacman; run your AUR helper to upgrade it")
-	}
 	if isDebianPackageInstalled(ctx) {
 		return installDebianPackage(ctx, release, stdout, stderr)
 	}
