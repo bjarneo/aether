@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="base" cx="58%" cy="48%" r="78%">
+      <stop offset="0" stop-color="#182566"/>
+      <stop offset=".35" stop-color="#0d1640"/>
+      <stop offset=".72" stop-color="#070c24"/>
+      <stop offset="1" stop-color="#02030c"/>
+    </radialGradient>
+    <linearGradient id="ray" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#fb218d"/>
+      <stop offset=".25" stop-color="#ffbe22"/>
+      <stop offset=".52" stop-color="#53e6b8"/>
+      <stop offset=".75" stop-color="#168bf5"/>
+      <stop offset="1" stop-color="#ac30ed"/>
+    </linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="32"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .13"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#base)"/>
+  <ellipse cx="1430" cy="156" rx="560" ry="310" fill="#175ae0" opacity=".19" filter="url(#blur)"/>
+  <ellipse cx="350" cy="940" rx="520" ry="240" fill="#ec168b" opacity=".2" filter="url(#blur)"/>
+  <path d="M-180 900C322 390 720 1130 1175 530S1788 305 2110 84" fill="none" stroke="url(#ray)" stroke-width="56" opacity=".25" filter="url(#blur)"/>
+  <path d="M-180 900C322 390 720 1130 1175 530S1788 305 2110 84" fill="none" stroke="url(#ray)" stroke-width="10" opacity=".7"/>
+  <path d="M-80 223C380 680 808 10 1237 474s636 342 890 478" fill="none" stroke="#44e5cb" stroke-width="2" opacity=".25"/>
+  <path d="M129 1077C620 642 1045 1130 1420 763s472-229 650-390" fill="none" stroke="#e53ac4" stroke-width="2" opacity=".28"/>
+  <rect width="1920" height="1080" filter="url(#grain)" opacity=".32"/>
+</svg>

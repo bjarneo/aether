@@ -66,6 +66,7 @@ jobs:
           mkdir -p "${PKG_DIR}/DEBIAN"
           mkdir -p "${PKG_DIR}/usr/bin"
           mkdir -p "${PKG_DIR}/usr/share/applications"
+          mkdir -p "${PKG_DIR}/usr/share/icons/hicolor/512x512/apps"
           mkdir -p "${PKG_DIR}/usr/share/pixmaps"
 
           cp "build/bin/aether-linux-${ARCH}" "${PKG_DIR}/usr/bin/aether"
@@ -73,6 +74,7 @@ jobs:
           cp build/linux/aether.desktop "${PKG_DIR}/usr/share/applications/"
           cp li.oever.aether.url-handler.desktop "${PKG_DIR}/usr/share/applications/"
           cp icon.png "${PKG_DIR}/usr/share/pixmaps/aether.png"
+          cp assets/aether-icon-512.png "${PKG_DIR}/usr/share/icons/hicolor/512x512/apps/aether.png"
 
           cat > "${PKG_DIR}/DEBIAN/control" <<'CTRL'
           Package: aether

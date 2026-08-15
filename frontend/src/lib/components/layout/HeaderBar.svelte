@@ -11,6 +11,7 @@
     } from '$lib/stores/ui.svelte';
     import SearchIcon from '$lib/components/shared/SearchIcon.svelte';
     import ReleaseIndicator from '$lib/components/layout/ReleaseIndicator.svelte';
+    import aetherLogo from '../../../assets/aether-logo.png';
 
     let sidebarVisible = $derived(getSidebarVisible());
     let activeTab = $derived(getActiveTab());
@@ -80,13 +81,16 @@
     style="--wails-draggable:drag"
 >
     <button
-        class="text-fg-primary hover:text-accent text-[11px] font-semibold tracking-wide transition-colors duration-100"
+        class="text-fg-primary hover:text-accent flex items-center gap-1.5 text-[11px] font-semibold tracking-wide transition-colors duration-100"
         class:pb-1.5={isMac}
         class:ml-2={isMac}
         style="letter-spacing: 0.08em; --wails-draggable:no-drag"
         onclick={() => setActiveTab('editor')}
-        title="Editor">AETHER</button
+        title="Editor"
     >
+        <img src={aetherLogo} alt="" class="h-5 w-5 object-contain" />
+        <span>AETHER</span>
+    </button>
     {#if activeTab === 'editor'}
         <button
             class="text-fg-dimmed hover:text-fg-primary mx-3 flex h-6 w-6 items-center justify-center transition-colors duration-100"

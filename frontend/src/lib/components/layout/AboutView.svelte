@@ -1,5 +1,6 @@
 <script lang="ts">
     import {openURL} from '$lib/utils/browser';
+    import aetherLogo from '../../../assets/aether-logo.png';
     import omarchyIcon from '../../../assets/omarchy.png';
 
     type Link = {
@@ -35,6 +36,11 @@
 
 <div class="mx-auto h-full max-w-2xl overflow-y-auto p-8">
     <div class="mb-8">
+        <img
+            src={aetherLogo}
+            alt="Aether"
+            class="mb-4 h-20 w-20 object-contain"
+        />
         <h1
             class="text-fg-primary mb-2 text-[24px] font-semibold"
             style="letter-spacing: 0.04em;"

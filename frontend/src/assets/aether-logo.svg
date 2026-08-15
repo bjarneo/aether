@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Aether logo</title>
+  <desc id="desc">A luminous, woven letter A made from spectral ribbons.</desc>
+  <defs>
+    <linearGradient id="left-ribbon" x1="180" y1="860" x2="505" y2="155" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ec0aa7"/>
+      <stop offset=".22" stop-color="#ff5f49"/>
+      <stop offset=".46" stop-color="#ffc21b"/>
+      <stop offset=".7" stop-color="#8fe83a"/>
+      <stop offset="1" stop-color="#00bfae"/>
+    </linearGradient>
+    <linearGradient id="right-ribbon" x1="498" y1="160" x2="860" y2="860" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8ef45"/>
+      <stop offset=".25" stop-color="#29d8b6"/>
+      <stop offset=".5" stop-color="#1295f7"/>
+      <stop offset=".75" stop-color="#3158e4"/>
+      <stop offset="1" stop-color="#aa20e9"/>
+    </linearGradient>
+    <linearGradient id="cross-ribbon" x1="130" y1="706" x2="892" y2="566" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f017a4"/>
+      <stop offset=".2" stop-color="#ff5146"/>
+      <stop offset=".42" stop-color="#ffd738"/>
+      <stop offset=".62" stop-color="#3fe8bf"/>
+      <stop offset=".82" stop-color="#198ef8"/>
+      <stop offset="1" stop-color="#862bea"/>
+    </linearGradient>
+    <linearGradient id="inner-ribbon" x1="355" y1="700" x2="680" y2="350" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1a2a95"/>
+      <stop offset=".48" stop-color="#0c9ee6"/>
+      <stop offset="1" stop-color="#69e4aa"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="22" result="blur"/>
+      <feColorMatrix in="blur" type="saturate" values="1.5" result="saturated"/>
+      <feMerge>
+        <feMergeNode in="saturated"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#120827" flood-opacity=".6"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#soft-shadow)">
+    <path d="M172 856 456 204Q486 132 540 204L866 856" stroke="#0d0820" stroke-width="174" opacity=".48" filter="url(#glow)"/>
+    <path d="M172 856 456 204Q486 132 540 204L866 856" stroke="url(#left-ribbon)" stroke-width="142"/>
+    <path d="M516 212 866 856" stroke="url(#right-ribbon)" stroke-width="142"/>
+    <path d="M326 704 534 336Q552 302 584 344L734 614" stroke="url(#inner-ribbon)" stroke-width="112"/>
+    <path d="M170 708C306 782 432 724 552 657 676 587 788 568 880 650" stroke="#120a28" stroke-width="172" opacity=".5" filter="url(#glow)"/>
+    <path d="M170 708C306 782 432 724 552 657 676 587 788 568 880 650" stroke="url(#cross-ribbon)" stroke-width="136"/>
+    <path d="M190 840 462 220" stroke="#fff" stroke-width="9" opacity=".32"/>
+    <path d="M536 222 848 836" stroke="#fff" stroke-width="8" opacity=".25"/>
+    <path d="M190 690C314 748 432 700 546 637 668 570 778 562 854 625" stroke="#fff" stroke-width="8" opacity=".25"/>
+  </g>
+</svg>

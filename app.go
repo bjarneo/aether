@@ -111,6 +111,9 @@ func newSeededState() *theme.ThemeState {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	_ = platform.EnsureAllDirs()
+	if err := installDefaultWallpapers(); err != nil {
+		log.Printf("install default wallpapers: %v", err)
+	}
 	if err := platform.EnsureURLHandler(ctx); err != nil {
 		log.Printf("register aether:// handler: %v", err)
 	}
