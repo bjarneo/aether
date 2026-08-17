@@ -164,9 +164,13 @@ func applyLegacyOmarchyWallpaper(wallpaperPath string) error {
 	return nil
 }
 
-// ClearTheme removes GTK CSS files, the theme override symlink and CSS,
-// and switches to the tokyo-night theme.
+// ClearTheme removes the theme override symlink and CSS, then switches to the
+// tokyo-night theme.
 func ClearTheme() error {
+	if err := RetireLegacyGTKStylesheets(); err != nil {
+		return fmt.Errorf("retire legacy GTK stylesheets: %w", err)
+	}
+
 	// Delete Aether override CSS file in theme dir (cross-platform)
 	overrideCss := filepath.Join(platform.ThemeDir(), "aether.override.css")
 	if err := platform.DeleteFile(overrideCss); err != nil {
@@ -182,18 +186,6 @@ func ClearTheme() error {
 		return err
 	}
 	configDir := filepath.Join(home, ".config")
-
-	// Delete GTK3 css file
-	gtk3 := filepath.Join(configDir, "gtk-3.0", "gtk.css")
-	if err := platform.DeleteFile(gtk3); err != nil {
-		log.Printf("Warning: could not delete GTK3 css: %v", err)
-	}
-
-	// Delete GTK4 css file
-	gtk4 := filepath.Join(configDir, "gtk-4.0", "gtk.css")
-	if err := platform.DeleteFile(gtk4); err != nil {
-		log.Printf("Warning: could not delete GTK4 css: %v", err)
-	}
 
 	// Delete Aether override CSS symlink
 	overrideSymlink := filepath.Join(configDir, "aether", "theme.override.css")

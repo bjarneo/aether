@@ -1,10 +1,44 @@
 package blueprint
 
 import (
+	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestImportJSONRemovesLegacyGTKState(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "legacy.json")
+	content := `{
+		"name": "Legacy",
+		"palette": {"colors": ["#000", "#111", "#222", "#333", "#444", "#555", "#666", "#777", "#888", "#999", "#aaa", "#bbb", "#ccc", "#ddd", "#eee", "#fff"]},
+		"settings": {"includeGtk": true},
+		"appOverrides": {"gtk": {"background": "#000"}, "kitty": {"background": "#111"}}
+	}`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	bp, err := ImportJSON(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := bp.AppOverrides["gtk"]; ok {
+		t.Fatal("legacy GTK override was retained")
+	}
+	if _, ok := bp.AppOverrides["kitty"]; !ok {
+		t.Fatal("supported override was removed")
+	}
+
+	data, err := json.Marshal(bp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(data, []byte("includeGtk")) {
+		t.Fatal("legacy GTK setting was re-exported")
+	}
+}
 
 func TestImportColorsToml(t *testing.T) {
 	// Write a test file

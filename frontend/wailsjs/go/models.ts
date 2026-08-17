@@ -478,7 +478,6 @@ export namespace theme {
         }
     }
     export class Settings {
-        includeGtk: boolean;
         includeZed: boolean;
         includeVscode: boolean;
         includeNeovim: boolean;
@@ -491,7 +490,6 @@ export namespace theme {
 
         constructor(source: any = {}) {
             if ('string' === typeof source) source = JSON.parse(source);
-            this.includeGtk = source['includeGtk'];
             this.includeZed = source['includeZed'];
             this.includeVscode = source['includeVscode'];
             this.includeNeovim = source['includeNeovim'];

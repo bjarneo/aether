@@ -102,7 +102,6 @@
         {
             label: 'Desktop',
             apps: [
-                {key: 'gtk', name: 'GTK'},
                 {key: 'hyprland', name: 'Hyprland'},
                 {key: 'hyprlock', name: 'Hyprlock'},
                 {key: 'icons', name: 'Icons'},

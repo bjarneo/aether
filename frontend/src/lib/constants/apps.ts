@@ -1,11 +1,10 @@
 import type {Settings} from '$lib/types/theme';
 
 // App keys that have a dedicated boolean flag in Settings. Toggling these
-// drives apply-side install steps (ApplyGTKTheme, ApplyZedTheme,
-// ApplyVSCodeTheme, SelectedNeovimConfig), not just template writing —
+// drives apply-side install steps (ApplyZedTheme, ApplyVSCodeTheme,
+// SelectedNeovimConfig), not just template writing —
 // they cannot be collapsed into the generic excludedApps list.
 export const SPECIAL_APP_FLAGS: Record<string, keyof Settings> = {
-    gtk: 'includeGtk',
     zed: 'includeZed',
     vscode: 'includeVscode',
     neovim: 'includeNeovim',
@@ -14,12 +13,7 @@ export const SPECIAL_APP_FLAGS: Record<string, keyof Settings> = {
 export const SPECIAL_APP_KEYS = new Set(Object.keys(SPECIAL_APP_FLAGS));
 
 // Order in which specials should appear in UI lists.
-export const SPECIAL_APP_ORDER: readonly string[] = [
-    'neovim',
-    'gtk',
-    'zed',
-    'vscode',
-];
+export const SPECIAL_APP_ORDER: readonly string[] = ['neovim', 'zed', 'vscode'];
 
 // Templates that are always written and never user-togglable. Hidden from
 // the Apps sidebar and the Targets strip. colors.toml is the canonical
@@ -30,7 +24,6 @@ export const ALWAYS_INCLUDED_APPS = new Set(['colors']);
 // Pretty labels for known templates. Anything not listed falls back to a
 // title-cased version of the key.
 const APP_LABELS: Record<string, string> = {
-    gtk: 'GTK',
     zed: 'Zed',
     vscode: 'VS Code',
     neovim: 'Neovim',

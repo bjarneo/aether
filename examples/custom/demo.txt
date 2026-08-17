@@ -100,20 +100,7 @@ wallpaper_path = {wallpaper}
 # background = "0x{background.strip}"
 # foreground = "0x{foreground.strip}"
 
-# GTK CSS Example
-/*
-@define-color background {background};
-@define-color foreground {foreground};
-@define-color accent {magenta};
-
-window {
-    background-color: alpha(@background, 0.95);
-    color: @foreground;
-}
-*/
-
 # Kitty Example (uses RGB format)
 # background {background.rgb}
 # foreground {foreground.rgb}
 # black {black.rgb}
-

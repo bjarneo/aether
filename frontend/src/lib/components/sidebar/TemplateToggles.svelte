@@ -18,12 +18,6 @@
 
     const specialToggles = [
         {key: 'includeNeovim', label: 'Neovim'},
-        {
-            key: 'includeGtk',
-            label: 'GTK',
-            description:
-                'Writes ~/.config/gtk-{3,4}.0/gtk.css. Switching themes outside Aether leaves this applied — click Revert to undo.',
-        },
         {key: 'includeZed', label: 'Zed'},
         {key: 'includeVscode', label: 'VS Code'},
     ] as const;
@@ -48,21 +42,9 @@
     });
 </script>
 
-{#snippet toggleRow(
-    label: string,
-    on: boolean,
-    onflip: () => void,
-    description?: string
-)}
+{#snippet toggleRow(label: string, on: boolean, onflip: () => void)}
     <label class="flex cursor-pointer items-center justify-between gap-3">
-        <div class="min-w-0">
-            <span class="text-fg-secondary text-[11px]">{label}</span>
-            {#if description}
-                <p class="text-fg-dimmed text-[9px] leading-snug">
-                    {description}
-                </p>
-            {/if}
-        </div>
+        <span class="text-fg-secondary text-[11px]">{label}</span>
         <button
             class="relative h-4 w-8 shrink-0 transition-colors duration-150
             {on ? 'bg-accent' : 'bg-bg-surface border-border border'}"
@@ -82,14 +64,10 @@
 <ExpandableSection title="Templates" bind:expanded={templatesOpen}>
     <div class="flex flex-col gap-2">
         {#each specialToggles as toggle}
-            {@render toggleRow(
-                toggle.label,
-                !!getSettings()[toggle.key],
-                () =>
-                    updateSettings({
-                        [toggle.key]: !getSettings()[toggle.key],
-                    }),
-                'description' in toggle ? toggle.description : undefined
+            {@render toggleRow(toggle.label, !!getSettings()[toggle.key], () =>
+                updateSettings({
+                    [toggle.key]: !getSettings()[toggle.key],
+                })
             )}
         {/each}
 

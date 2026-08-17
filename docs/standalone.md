@@ -21,7 +21,6 @@ When you click "Apply Theme", Aether generates all theme files to:
 ├── hyprland.conf         # Hyprland color config
 ├── kitty.conf            # Kitty terminal theme
 ├── waybar.css            # Waybar stylesheet
-├── gtk.css               # GTK theme (if enabled)
 ├── colors.toml           # Palette source (read by Aether's own UI)
 ├── neovim.lua            # Neovim colorscheme (if enabled)
 ├── vscode.json           # VSCode color theme (if enabled)
@@ -90,14 +89,6 @@ Or add to your Hyprland config:
 ```conf
 exec-once = swaybg -i ~/.config/aether/theme/backgrounds/wallpaper.jpg -m fill
 ```
-
-## GTK Theming
-
-If you enable "GTK Theme" in settings, Aether copies `gtk.css` to:
-- `~/.config/gtk-3.0/gtk.css`
-- `~/.config/gtk-4.0/gtk.css`
-
-This applies the color scheme to GTK applications system-wide.
 
 ## Automatic Reload
 

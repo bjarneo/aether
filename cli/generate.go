@@ -10,6 +10,13 @@ import (
 )
 
 func runGenerate(args []string, templatesFS embed.FS) int {
+	for _, arg := range args {
+		if arg == "--gtk" || arg == "--no-gtk" {
+			fmt.Fprintf(os.Stderr, "Error: Unknown option: %s\n", arg)
+			return 1
+		}
+	}
+
 	// Parse flags
 	mode, args := parseFlag(args, "--extract-mode")
 	if mode == "" {
@@ -19,23 +26,16 @@ func runGenerate(args []string, templatesFS embed.FS) int {
 	noApply, args := hasFlag(args, "--no-apply")
 	outputPath, args := parseFlag(args, "--output")
 
-	// App include toggles. GTK is opt-in because it rewrites ~/.config/gtk-*/
-	// which many users have customised by hand. Everything else (zed, vscode,
-	// neovim) is opt-out and matches the GUI's default behaviour when those
-	// integrations are present.
-	includeGtk, args := hasFlag(args, "--gtk")
-	noGtk, args := hasFlag(args, "--no-gtk")
+	// Editor integrations are opt-out and match the GUI defaults.
 	noZed, args := hasFlag(args, "--no-zed")
 	noVscode, args := hasFlag(args, "--no-vscode")
 	noNeovim, args := hasFlag(args, "--no-neovim")
-	_ = noGtk // gtk default is already off; flag exists for symmetry
 
 	if len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "Error: Wallpaper path is required")
-		fmt.Fprintln(os.Stderr, "Usage: aether --generate <wallpaper> [--extract-mode <mode>] [--light-mode] [--no-apply] [--output <path>] [--gtk] [--no-zed] [--no-vscode] [--no-neovim]")
+		fmt.Fprintln(os.Stderr, "Usage: aether --generate <wallpaper> [--extract-mode <mode>] [--light-mode] [--no-apply] [--output <path>] [--no-zed] [--no-vscode] [--no-neovim]")
 		return 1
 	}
-
 	wallpaperPath := args[0]
 
 	// Validate mode
@@ -100,7 +100,6 @@ func runGenerate(args []string, templatesFS embed.FS) int {
 	}
 
 	settings := theme.Settings{
-		IncludeGtk:    includeGtk,
 		IncludeZed:    !noZed,
 		IncludeVscode: !noVscode,
 		IncludeNeovim: !noNeovim,

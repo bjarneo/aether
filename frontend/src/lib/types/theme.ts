@@ -63,7 +63,6 @@ export interface Blueprint {
 }
 
 export interface Settings {
-    includeGtk: boolean;
     includeZed: boolean;
     includeVscode: boolean;
     includeNeovim: boolean;

@@ -64,8 +64,7 @@ Blueprints are JSON files at:
     "contrast": 5
   },
   "settings": {
-    "includeNeovim": true,
-    "includeGtk": false
+    "includeNeovim": true
   }
 }
 ```

@@ -12,6 +12,36 @@ import (
 //go:embed testdata/v4/*
 var omarchyV4TestTemplates embed.FS
 
+func TestPrepareThemeDirRemovesLegacyGTKStylesheet(t *testing.T) {
+	targetDir := t.TempDir()
+	legacyFile := filepath.Join(targetDir, "gtk.css")
+	if err := os.WriteFile(legacyFile, []byte(legacyGTKMarker), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := prepareThemeDir(targetDir, &ThemeState{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(legacyFile); !os.IsNotExist(err) {
+		t.Errorf("legacy GTK stylesheet still exists: %v", err)
+	}
+}
+
+func TestPrepareThemeDirPreservesUnownedGTKStylesheet(t *testing.T) {
+	targetDir := t.TempDir()
+	userFile := filepath.Join(targetDir, "gtk.css")
+	if err := os.WriteFile(userFile, []byte("user styles"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := prepareThemeDir(targetDir, &ThemeState{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(userFile); err != nil {
+		t.Errorf("unowned GTK stylesheet was removed: %v", err)
+	}
+}
+
 func TestPrepareOmarchyV4ThemeDirRemovesLegacyFiles(t *testing.T) {
 	targetDir := t.TempDir()
 	background := filepath.Join(targetDir, "backgrounds", "current.jpg")

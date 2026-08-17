@@ -15,6 +15,18 @@ type Blueprint struct {
 	Filename string `json:"-"`
 }
 
+// UnmarshalJSON removes state for integrations no longer supported by Aether.
+func (b *Blueprint) UnmarshalJSON(data []byte) error {
+	type Alias Blueprint
+	var decoded Alias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*b = Blueprint(decoded)
+	delete(b.AppOverrides, "gtk")
+	return nil
+}
+
 // PaletteData holds the palette colors and associated data.
 type PaletteData struct {
 	Colors           []string          `json:"colors"`
@@ -77,6 +89,5 @@ type Settings struct {
 	IncludeNeovim        *bool  `json:"includeNeovim,omitempty"`
 	IncludeZed           *bool  `json:"includeZed,omitempty"`
 	IncludeVscode        *bool  `json:"includeVscode,omitempty"`
-	IncludeGtk           *bool  `json:"includeGtk,omitempty"`
 	SelectedNeovimConfig string `json:"selectedNeovimConfig,omitempty"`
 }

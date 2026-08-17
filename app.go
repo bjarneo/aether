@@ -111,6 +111,9 @@ func newSeededState() *theme.ThemeState {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	_ = platform.EnsureAllDirs()
+	if err := theme.RetireLegacyGTKStylesheets(); err != nil {
+		log.Printf("retire legacy GTK stylesheets: %v", err)
+	}
 	if err := installDefaultWallpapers(); err != nil {
 		log.Printf("install default wallpapers: %v", err)
 	}
@@ -889,7 +892,7 @@ type ExportThemeRequest struct {
 // allExportableApps is the full set of app names that can be exported.
 var allExportableApps = map[string]bool{
 	"alacritty": true, "btop": true, "chromium": true, "colors": true,
-	"foot": true, "ghostty": true, "gtk": true, "hyprland": true, "hyprlock": true,
+	"foot": true, "ghostty": true, "hyprland": true, "hyprlock": true,
 	"icons": true, "kitty": true, "mako": true, "neovim": true,
 	"swayosd": true, "vencord": true, "vscode": true, "walker": true,
 	"warp": true, "waybar": true, "wofi": true, "zed": true,
@@ -946,7 +949,6 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	}
 
 	settings := theme.Settings{
-		IncludeGtk:    included["gtk"],
 		IncludeZed:    included["zed"],
 		IncludeVscode: included["vscode"],
 		IncludeNeovim: included["neovim"],
