@@ -238,6 +238,9 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
 	if isOmarchyV4 {
 		w.processOmarchyV4Templates(themeDir, variables, state.AppOverrides, state.ExtendedColors)
+		if err := template.ProcessCustomApps(themeDir, variables); err != nil {
+			log.Printf("Warning: custom app processing failed: %v", err)
+		}
 	} else {
 		w.processTemplates(variables, themeDir, settings, state.AppOverrides, state.ExtendedColors)
 		w.applyEditorThemes(themeDir, settings, variables)
