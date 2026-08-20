@@ -442,6 +442,7 @@ func (a *App) ListBlueprints() ([]map[string]interface{}, error) {
 				"colors":           bp.Palette.Colors,
 				"wallpaper":        bp.Palette.Wallpaper,
 				"lightMode":        bp.Palette.LightMode,
+				"extendedColors":   bp.Palette.ExtendedColors,
 				"additionalImages": bp.Palette.AdditionalImages,
 			},
 			"adjustments":  bp.Adjustments,
@@ -974,11 +975,12 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 
 // ImportResult is returned by ImportFileDialog with the imported colors.
 type ImportResult struct {
-	Colors        []string `json:"colors"`
-	Name          string   `json:"name"`
-	Path          string   `json:"path"`
-	WallpaperPath string   `json:"wallpaperPath"`
-	LightMode     bool     `json:"lightMode"`
+	Colors         []string          `json:"colors"`
+	ExtendedColors map[string]string `json:"extendedColors"`
+	Name           string            `json:"name"`
+	Path           string            `json:"path"`
+	WallpaperPath  string            `json:"wallpaperPath"`
+	LightMode      bool              `json:"lightMode"`
 }
 
 // ImportFileDialog opens a file dialog for importing a theme file.
@@ -1059,17 +1061,19 @@ func (a *App) importFile(path, fileType string) (*ImportResult, error) {
 		palette[i] = bp.Palette.Colors[i]
 	}
 	a.history.Push(*a.state)
+	a.state.ExtendedColors = bp.Palette.ExtendedColors
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
 
 	log.Printf("[import] success: %s (%d colors)", bp.Name, len(bp.Palette.Colors))
 	return &ImportResult{
-		Colors:        palette[:],
-		Name:          bp.Name,
-		Path:          savedPath,
-		WallpaperPath: a.state.WallpaperPath,
-		LightMode:     a.state.LightMode,
+		Colors:         palette[:],
+		ExtendedColors: bp.Palette.ExtendedColors,
+		Name:           bp.Name,
+		Path:           savedPath,
+		WallpaperPath:  a.state.WallpaperPath,
+		LightMode:      a.state.LightMode,
 	}, nil
 }
 

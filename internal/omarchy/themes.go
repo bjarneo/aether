@@ -29,15 +29,16 @@ func SlugifyThemeName(name string) string {
 
 // Theme represents a discovered Omarchy theme.
 type Theme struct {
-	Name              string   `json:"name"`
-	Path              string   `json:"path"`
-	Colors            []string `json:"colors"`
-	Background        string   `json:"background"`
-	Foreground        string   `json:"foreground"`
-	Wallpapers        []string `json:"wallpapers"`
-	IsSymlink         bool     `json:"isSymlink"`
-	IsCurrentTheme    bool     `json:"isCurrentTheme"`
-	IsAetherGenerated bool     `json:"isAetherGenerated"`
+	Name              string            `json:"name"`
+	Path              string            `json:"path"`
+	Colors            []string          `json:"colors"`
+	ExtendedColors    map[string]string `json:"extendedColors"`
+	Background        string            `json:"background"`
+	Foreground        string            `json:"foreground"`
+	Wallpapers        []string          `json:"wallpapers"`
+	IsSymlink         bool              `json:"isSymlink"`
+	IsCurrentTheme    bool              `json:"isCurrentTheme"`
+	IsAetherGenerated bool              `json:"isAetherGenerated"`
 }
 
 // AETHER_EXTRA_THEME_DIRS is a colon-separated list of additional
@@ -135,8 +136,9 @@ func LoadAllThemes() ([]Theme, error) {
 			}
 
 			if data, err := os.ReadFile(filepath.Join(themePath, "colors.toml")); err == nil {
-				colors, bg, fg, _ := ParseColorsToml(string(data))
+				colors, bg, fg, _, extended := ParseColorsTomlFull(string(data))
 				theme.Colors = colors[:]
+				theme.ExtendedColors = extended
 				theme.Background = bg
 				theme.Foreground = fg
 				theme.IsAetherGenerated = true

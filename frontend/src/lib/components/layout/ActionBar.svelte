@@ -2,6 +2,7 @@
     import {
         getIsApplying,
         setPalette,
+        setExtendedColors,
         getPalette,
         getWallpaperPath,
         setWallpaperPath,
@@ -246,6 +247,7 @@
             console.log('Import result:', result);
             if (result?.colors?.length >= 16) {
                 setPalette(result.colors);
+                setExtendedColors(result.extendedColors ?? {});
                 if (result.wallpaperPath) {
                     setWallpaperPath(result.wallpaperPath);
                 }

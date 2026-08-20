@@ -58,3 +58,51 @@ func TestThemeSearchDirsNoEnv(t *testing.T) {
 		t.Errorf("expected 3 default dirs without env, got %d: %v", len(dirs), dirs)
 	}
 }
+
+func TestLoadAllThemesPreservesExtendedColors(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	root := filepath.Join(home, "themes")
+	themeDir := filepath.Join(root, "distinct-accent")
+	if err := os.MkdirAll(themeDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	content := `accent = "#0fdfaf"
+background = "#072626"
+foreground = "#d3b58d"
+red = "#504038"
+green = "#3fdf1f"
+yellow = "#d3b58d"
+blue = "#000080"
+magenta = "#add8e6"
+cyan = "#0fdfaf"
+bright_red = "#d3b58d"
+bright_green = "#90ee90"
+bright_yellow = "#b4eeb4"
+bright_blue = "#0000ff"
+bright_magenta = "#ffffff"
+bright_cyan = "#add8e6"
+`
+	if err := os.WriteFile(filepath.Join(themeDir, "colors.toml"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(extraThemeDirsEnv, root)
+
+	themes, err := LoadAllThemes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, theme := range themes {
+		if theme.Name != "distinct-accent" {
+			continue
+		}
+		if got := theme.ExtendedColors["accent"]; got != "#0fdfaf" {
+			t.Errorf("accent = %q, want #0fdfaf", got)
+		}
+		if got := theme.Colors[4]; got != "#000080" {
+			t.Errorf("blue = %q, want #000080", got)
+		}
+		return
+	}
+	t.Fatal("distinct-accent theme not found")
+}

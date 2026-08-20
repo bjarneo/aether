@@ -251,6 +251,7 @@ export namespace main {
     }
     export class ImportResult {
         colors: string[];
+        extendedColors: Record<string, string>;
         name: string;
         path: string;
         wallpaperPath: string;
@@ -263,6 +264,7 @@ export namespace main {
         constructor(source: any = {}) {
             if ('string' === typeof source) source = JSON.parse(source);
             this.colors = source['colors'];
+            this.extendedColors = source['extendedColors'];
             this.name = source['name'];
             this.path = source['path'];
             this.wallpaperPath = source['wallpaperPath'];
@@ -377,6 +379,7 @@ export namespace omarchy {
         name: string;
         path: string;
         colors: string[];
+        extendedColors: Record<string, string>;
         background: string;
         foreground: string;
         wallpapers: string[];
@@ -393,6 +396,7 @@ export namespace omarchy {
             this.name = source['name'];
             this.path = source['path'];
             this.colors = source['colors'];
+            this.extendedColors = source['extendedColors'];
             this.background = source['background'];
             this.foreground = source['foreground'];
             this.wallpapers = source['wallpapers'];

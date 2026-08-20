@@ -1,6 +1,10 @@
 <script lang="ts">
     import {onMount} from 'svelte';
-    import {setPalette, setWallpaperPath} from '$lib/stores/theme.svelte';
+    import {
+        setPalette,
+        setExtendedColors,
+        setWallpaperPath,
+    } from '$lib/stores/theme.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
     import {
         getCachedThumbnail,
@@ -46,6 +50,7 @@
     function loadThemeIntoState(theme: Theme): boolean {
         if (theme.colors?.length < 16) return false;
         setPalette(theme.colors);
+        setExtendedColors(theme.extendedColors ?? {});
         if (theme.wallpapers?.length > 0) {
             setWallpaperPath(theme.wallpapers[0]);
         }

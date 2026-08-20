@@ -353,13 +353,14 @@
                         );
                         document.body.style.color = colors.foreground;
                     }
-                    if (colors.blue) {
-                        root.style.setProperty('--color-accent', colors.blue);
+                    const accent = colors.accent || colors.blue;
+                    if (accent) {
+                        root.style.setProperty('--color-accent', accent);
                         // Pick black or white text for content sitting on
                         // the accent button, based on accent luminance.
                         root.style.setProperty(
                             '--color-accent-fg',
-                            contrastInk(colors.blue)
+                            contrastInk(accent)
                         );
                     }
                     if (colors.red) {

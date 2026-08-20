@@ -5,6 +5,7 @@
     import {showToast, setActiveTab} from '$lib/stores/ui.svelte';
     import {
         setPalette,
+        setExtendedColors,
         setWallpaperPath,
         setAdjustments,
         setAppOverrides,
@@ -60,6 +61,7 @@
         try {
             if (bp.palette?.colors?.length >= 16) {
                 setPalette(bp.palette.colors);
+                setExtendedColors(bp.palette.extendedColors ?? {});
                 if (bp.palette?.wallpaper) {
                     setWallpaperPath(bp.palette.wallpaper);
                 }

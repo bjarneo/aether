@@ -94,11 +94,12 @@
                         }
                         document.body.style.color = colors.foreground;
                     }
-                    if (colors.blue) {
-                        root.style.setProperty('--color-accent', colors.blue);
+                    var accent = colors.accent || colors.blue;
+                    if (accent) {
+                        root.style.setProperty('--color-accent', accent);
                         // Pick contrast-correct text color for content
                         // sitting on bg-accent. Mirrors App.svelte logic.
-                        var ac = colors.blue.replace('#', '');
+                        var ac = accent.replace('#', '');
                         if (ac.length === 6) {
                             var ar = parseInt(ac.slice(0, 2), 16);
                             var ag = parseInt(ac.slice(2, 4), 16);
