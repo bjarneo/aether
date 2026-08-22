@@ -12,6 +12,7 @@ import (
 	"aether/internal/color"
 
 	"golang.org/x/image/draw"
+	_ "golang.org/x/image/webp"
 )
 
 // LoadAndSamplePixels loads an image, scales it to ImageScaleSize (preserving aspect ratio),
