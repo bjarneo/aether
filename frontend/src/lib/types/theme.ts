@@ -63,6 +63,7 @@ export interface Blueprint {
 }
 
 export interface Settings {
+    wallpaperFolder: string;
     includeZed: boolean;
     includeVscode: boolean;
     includeNeovim: boolean;

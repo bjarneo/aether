@@ -10,6 +10,7 @@
     import FavoritesView from '$lib/components/favorites/FavoritesView.svelte';
     import BlueprintsView from '$lib/components/blueprints/BlueprintsView.svelte';
     import OmarchyThemes from '$lib/components/blueprints/OmarchyThemes.svelte';
+    import SettingsView from '$lib/components/settings/SettingsView.svelte';
     import AboutView from '$lib/components/layout/AboutView.svelte';
     import {
         getActiveTab,
@@ -45,6 +46,7 @@
         'favorites',
         'blueprints',
         'system',
+        'settings',
         'about',
     ] as const;
     const isValidTab = (t: string): t is Tab =>
@@ -463,6 +465,8 @@
                     <BlueprintsView />
                 {:else if activeTab === 'system'}
                     <OmarchyThemes />
+                {:else if activeTab === 'settings'}
+                    <SettingsView />
                 {:else if activeTab === 'about'}
                     <AboutView />
                 {/if}

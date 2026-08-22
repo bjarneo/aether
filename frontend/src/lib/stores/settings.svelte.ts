@@ -2,6 +2,7 @@ import type {Settings} from '$lib/types/theme';
 import {ALWAYS_INCLUDED_APPS} from '$lib/constants/apps';
 
 const defaults: Settings = {
+    wallpaperFolder: '',
     includeZed: true,
     includeVscode: false,
     includeNeovim: true,

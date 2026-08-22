@@ -26,6 +26,7 @@
     import SearchIcon from '$lib/components/shared/SearchIcon.svelte';
     import CardSizeToggle from '$lib/components/shared/CardSizeToggle.svelte';
     import {getCardSize, CARD_MIN_WIDTH} from '$lib/stores/cardsize.svelte';
+    import {getSettings} from '$lib/stores/settings.svelte';
     import type {wallpaper} from '../../../../wailsjs/go/models';
 
     type Wallpaper = wallpaper.WallpaperInfo;
@@ -37,6 +38,10 @@
     let query = $state<string>('');
     let previewIndex = $state(-1);
     let previewSrc = $state<string>('');
+    let loadError = $state('');
+    let wallpaperFolder = $derived(
+        getSettings().wallpaperFolder || '~/Wallpapers'
+    );
 
     // Viewport windowing: at 10k+ wallpapers, mounting every card freezes the
     // renderer. We measure the scroll container, compute how many rows fit,
@@ -74,14 +79,17 @@
 
     async function loadWallpapers() {
         isLoading = true;
+        loadError = '';
         try {
             const {ScanLocalWallpapers} = await import(
                 '../../../../wailsjs/go/main/App'
             );
             const result = await ScanLocalWallpapers();
             wallpapers = Array.isArray(result) ? result : [];
-        } catch {
+        } catch (err) {
             wallpapers = [];
+            loadError =
+                err instanceof Error ? err.message : 'Wallpaper folder unavailable';
         } finally {
             isLoading = false;
         }
@@ -282,7 +290,31 @@
         onscroll={handleScroll}
     >
         {#if isLoading}
-            <LoadingState message="Scanning ~/Wallpapers…" />
+            <LoadingState message={`Scanning ${wallpaperFolder}...`} />
+        {:else if loadError}
+            <EmptyState
+                title="Wallpaper folder unavailable"
+                body={`${wallpaperFolder} could not be read. Choose another folder in Settings.`}
+                actionLabel="Open settings"
+                onaction={() => setActiveTab('settings')}
+            >
+                {#snippet icon()}
+                    <svg
+                        class="h-12 w-12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                        ></path>
+                        <path d="M9 12h6M12 9v6"></path>
+                    </svg>
+                {/snippet}
+            </EmptyState>
         {:else if filtered.length === 0}
             {#if query || filterTag}
                 <EmptyState
@@ -302,8 +334,8 @@
                 </EmptyState>
             {:else}
                 <EmptyState
-                    title="No wallpapers in ~/Wallpapers"
-                    body="Drop images into ~/Wallpapers (or any subfolder), or browse to pick a single file."
+                    title="No wallpapers found"
+                    body={`Add images to ${wallpaperFolder} (or any subfolder), or browse to pick a single file.`}
                     actionLabel="Browse for a file…"
                     onaction={handleBrowse}
                 >

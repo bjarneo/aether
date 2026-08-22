@@ -561,6 +561,13 @@
             <div class="flex items-center gap-1">
                 {@render goToEditor()}
             </div>
+        {:else if activeTab === 'settings'}
+            <div class="flex items-center gap-1">
+                <span class="text-fg-dimmed text-[11px]">App settings</span>
+            </div>
+            <div class="flex items-center gap-1">
+                {@render goToEditor()}
+            </div>
         {:else if activeTab === 'about'}
             <div class="flex items-center gap-1">
                 <span class="text-fg-dimmed text-[11px]">About</span>

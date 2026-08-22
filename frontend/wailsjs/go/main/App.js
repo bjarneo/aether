@@ -30,6 +30,10 @@ export function CancelExternalImport() {
     return window['go']['main']['App']['CancelExternalImport']();
 }
 
+export function ChooseWallpaperFolder() {
+    return window['go']['main']['App']['ChooseWallpaperFolder']();
+}
+
 export function ClearTheme() {
     return window['go']['main']['App']['ClearTheme']();
 }

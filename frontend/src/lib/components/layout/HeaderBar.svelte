@@ -57,15 +57,9 @@
         },
         {
             id: 'system',
-            label: 'System Themes',
+            label: 'System',
             // Paintbrush / Brush
             icon: '<path d="M18.37 2.63a2.12 2.12 0 0 1 3 3L14 13l-4 1 1-4z"/><path d="M9 14.5A3.5 3.5 0 0 0 5.5 18c-1.2 0-2.5.7-2.5 2 2 0 4.5-1 5.5-3.5"/>',
-        },
-        {
-            id: 'about',
-            label: 'About',
-            // Info circle
-            icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
         },
     ];
 </script>
@@ -150,6 +144,55 @@
         style="--wails-draggable:no-drag"
     >
         <ReleaseIndicator {isMac} />
+        <button
+            class="flex h-7 w-7 items-center justify-center transition-colors
+                {activeTab === 'settings'
+                ? 'text-accent bg-accent-muted'
+                : 'text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover'}"
+            class:mb-0.5={isMac}
+            onclick={() => setActiveTab('settings')}
+            aria-label="Settings"
+            title="Settings"
+        >
+            <svg
+                class="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+            >
+                <path d="M12 2l8.66 5v10L12 22l-8.66-5V7z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+        </button>
+        <button
+            class="flex h-7 w-7 items-center justify-center transition-colors
+                {activeTab === 'about'
+                ? 'text-accent bg-accent-muted'
+                : 'text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover'}"
+            class:mb-0.5={isMac}
+            onclick={() => setActiveTab('about')}
+            aria-label="About"
+            title="About"
+        >
+            <svg
+                class="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+            >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+        </button>
         <button
             class="text-fg-dimmed hover:text-fg-primary hover:bg-bg-hover flex h-7 w-7 items-center justify-center transition-colors"
             class:mb-0.5={isMac}

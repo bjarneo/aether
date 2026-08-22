@@ -71,8 +71,15 @@ export function buildCommands(): Command[] {
             id: 'nav.system',
             label: 'Go to System',
             category: 'Navigate',
-            keywords: 'settings',
+            keywords: 'themes omarchy',
             run: () => setActiveTab('system'),
+        },
+        {
+            id: 'nav.settings',
+            label: 'Go to Settings',
+            category: 'Navigate',
+            keywords: 'preferences wallpaper folder',
+            run: () => setActiveTab('settings'),
         },
 
         {

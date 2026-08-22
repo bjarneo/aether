@@ -643,14 +643,52 @@ func (a *App) IsFavorite(path string) bool {
 // App Settings (template toggles, neovim config)
 // ---------------------------------------------------------------------------
 
+const wallpaperFolderSetting = "wallpaperFolder"
+
 // GetSettings reads saved app settings from ~/.config/aether/settings.json.
 func (a *App) GetSettings() map[string]interface{} {
-	return readConfigJSON("settings.json")
+	config := readConfigJSON("settings.json")
+	if config == nil {
+		config = make(map[string]interface{})
+	}
+	config[wallpaperFolderSetting] = wallpaperFolderFromConfig(config)
+	return config
 }
 
 // SaveSettings writes app settings to ~/.config/aether/settings.json.
 func (a *App) SaveSettings(config map[string]interface{}) error {
 	return writeConfigJSON("settings.json", config)
+}
+
+// ChooseWallpaperFolder opens a native directory picker and saves the selected
+// path as the local wallpaper library.
+func (a *App) ChooseWallpaperFolder() (string, error) {
+	defaultDir := wallpaperFolderFromConfig(readConfigJSON("settings.json"))
+	if info, err := os.Stat(defaultDir); err != nil || !info.IsDir() {
+		defaultDir = platform.WallpaperDir()
+		if err := platform.EnsureDir(defaultDir); err != nil {
+			return "", fmt.Errorf("prepare default wallpaper directory: %w", err)
+		}
+	}
+
+	dir, err := wailsrt.OpenDirectoryDialog(a.ctx, wailsrt.OpenDialogOptions{
+		Title:                "Choose Wallpaper Folder",
+		DefaultDirectory:     defaultDir,
+		CanCreateDirectories: true,
+	})
+	if err != nil || dir == "" {
+		return dir, err
+	}
+
+	config := readConfigJSON("settings.json")
+	if config == nil {
+		config = make(map[string]interface{})
+	}
+	config[wallpaperFolderSetting] = dir
+	if err := writeConfigJSON("settings.json", config); err != nil {
+		return "", fmt.Errorf("save wallpaper folder: %w", err)
+	}
+	return dir, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -719,9 +757,20 @@ func (a *App) DownloadWallpaper(imageURL string) (string, error) {
 // Local Wallpapers
 // ---------------------------------------------------------------------------
 
-// ScanLocalWallpapers scans default directories for local wallpaper images.
+// ScanLocalWallpapers scans the configured local wallpaper directory.
 func (a *App) ScanLocalWallpapers() ([]wallpaper.WallpaperInfo, error) {
-	return wallpaper.ScanDefaultDirs()
+	dir := wallpaperFolderFromConfig(readConfigJSON("settings.json"))
+	if dir == platform.WallpaperDir() {
+		return wallpaper.ScanDefaultDirs()
+	}
+	info, err := os.Stat(dir)
+	if err != nil {
+		return nil, fmt.Errorf("access wallpaper folder: %w", err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("wallpaper folder is not a directory: %s", dir)
+	}
+	return wallpaper.ScanDirectory(dir)
 }
 
 // GetThumbnail returns a thumbnail path for an image.
@@ -1369,4 +1418,11 @@ func readConfigJSON(filename string) map[string]interface{} {
 
 func writeConfigJSON(filename string, v interface{}) error {
 	return platform.WriteJSON(filepath.Join(platform.ConfigDir(), filename), v)
+}
+
+func wallpaperFolderFromConfig(config map[string]interface{}) string {
+	if folder, ok := config[wallpaperFolderSetting].(string); ok && strings.TrimSpace(folder) != "" {
+		return folder
+	}
+	return platform.WallpaperDir()
 }

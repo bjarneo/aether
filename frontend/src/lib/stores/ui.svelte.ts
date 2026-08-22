@@ -7,6 +7,7 @@ export type Tab =
     | 'favorites'
     | 'blueprints'
     | 'system'
+    | 'settings'
     | 'about';
 
 export const COLOR_MODELS = ['rgb', 'hsl', 'oklch'] as const;

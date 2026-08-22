@@ -28,6 +28,8 @@ export function CancelBatchProcessing(): Promise<void>;
 
 export function CancelExternalImport(): Promise<void>;
 
+export function ChooseWallpaperFolder(): Promise<string>;
+
 export function ClearTheme(): Promise<void>;
 
 export function CloseIPC(): Promise<void>;
