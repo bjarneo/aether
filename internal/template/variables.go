@@ -81,6 +81,20 @@ func rolesMap(roles ColorRoles) map[string]string {
 	}
 }
 
+func selectionColor(vars map[string]string, lightMode bool) string {
+	// The legacy default is an inverted selection pair. Omarchy v4 only has a
+	// selection background token and supplies its own foreground, so derive a
+	// nearby surface color instead of exporting the normal foreground as a fill.
+	if vars["selection_foreground"] == vars["background"] &&
+		vars["selection_background"] == vars["foreground"] {
+		if lightMode {
+			return color.DarkenRGB(vars["background"], 85)
+		}
+		return color.LightenRGB(vars["background"], 10)
+	}
+	return vars["selection_background"]
+}
+
 // BuildVariables creates the full template variable map from color roles.
 // It includes: semantic names, color0-15 aliases, extended colors, and
 // derived shade variables (dark_bg, lighter_bg, orange, brown, etc.).
@@ -135,7 +149,7 @@ func BuildVariables(roles ColorRoles, lightMode bool, overrides map[string]strin
 	orange := color.LightenRGB(vars["red"], 15)
 	vars["orange"] = orange
 	vars["brown"] = color.DarkenRGB(orange, 60)
-	vars["selection"] = vars["selection_background"]
+	vars["selection"] = selectionColor(vars, lightMode)
 
 	// Explicit overrides win over the derived defaults (last word).
 	for k, v := range overrides {
@@ -170,7 +184,7 @@ func RecomputeDerived(vars map[string]string, overrides map[string]string) {
 	orange := color.LightenRGB(vars["red"], 15)
 	set("orange", orange)
 	set("brown", color.DarkenRGB(orange, 60))
-	set("selection", vars["selection_background"])
+	set("selection", selectionColor(vars, vars["theme_type"] == "light"))
 	set("mode", vars["theme_type"])
 
 	for i, name := range semanticOrder {

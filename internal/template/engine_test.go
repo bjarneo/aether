@@ -360,6 +360,31 @@ func TestBuildVariablesOverrides(t *testing.T) {
 	}
 }
 
+func TestBuildVariablesDerivesOmarchySelection(t *testing.T) {
+	roles := sampleRoles()
+	roles.SelectionForeground = roles.Background
+	roles.SelectionBackground = roles.Foreground
+
+	dark := BuildVariables(roles, false, nil)
+	if got, want := dark["selection"], "#353543"; got != want {
+		t.Errorf("dark selection = %q, want %q", got, want)
+	}
+
+	light := BuildVariables(roles, true, nil)
+	if got, want := light["selection"], "#1a1a27"; got != want {
+		t.Errorf("light selection = %q, want %q", got, want)
+	}
+}
+
+func TestBuildVariablesPreservesCustomSelection(t *testing.T) {
+	roles := sampleRoles()
+	vars := BuildVariables(roles, false, nil)
+
+	if got, want := vars["selection"], roles.SelectionBackground; got != want {
+		t.Errorf("selection = %q, want custom background %q", got, want)
+	}
+}
+
 // RecomputeDerived (run for per-app overrides) must NOT recompute a key listed
 // in its explicit set — that's how a globally pinned shade survives when an app
 // also has its own overrides. Without it in the set, the shade re-derives.
