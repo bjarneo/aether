@@ -21,9 +21,8 @@ type Import struct {
 	ColorsToml       string `json:"colors_toml,omitempty"`
 	Wallpaper        string `json:"wallpaper,omitempty"`
 	Mode             string `json:"mode,omitempty"`               // "light" | "dark" — empty leaves the current setting alone
-	Silent           bool   `json:"silent,omitempty"`             // skip the confirm dialog and apply immediately
-	Edit             bool   `json:"edit,omitempty"`               // load colors + wallpaper into the editor without applying (overrides silent/omarchy)
-	OmarchyThemeName string `json:"omarchy_theme_name,omitempty"` // install as ~/.config/omarchy/themes/<name>/ and run omarchy-theme-set
+	Edit             bool   `json:"edit,omitempty"`               // load colors + wallpaper into the editor without applying
+	OmarchyThemeName string `json:"omarchy_theme_name,omitempty"` // install as ~/.config/omarchy/themes/<name>/ after confirmation
 	SourceURL        string `json:"source_url,omitempty"`
 	Timestamp        int64  `json:"ts,omitempty"`
 }

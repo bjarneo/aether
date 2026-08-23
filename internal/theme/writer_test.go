@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"aether/internal/template"
 )
 
 //go:embed testdata/v4/*
@@ -114,12 +112,9 @@ func TestGenerateOmarchyV4OnlyRemovesLegacyFiles(t *testing.T) {
 	}
 
 	writer := NewWriter(omarchyV4TestTemplates, "testdata/v4")
-	state := &ThemeState{
-		ColorRoles: template.ColorRoles{
-			Background: "#1e1e2e",
-			Magenta:    "#ff0000",
-		},
-	}
+	state := NewThemeState()
+	state.ColorRoles.Background = "#1e1e2e"
+	state.ColorRoles.Magenta = "#ff0000"
 	if err := writer.GenerateOmarchyV4Only(state, themeDir); err != nil {
 		t.Fatal(err)
 	}
@@ -131,5 +126,15 @@ func TestGenerateOmarchyV4OnlyRemovesLegacyFiles(t *testing.T) {
 	}
 	if _, err := os.Stat(legacyFile); !os.IsNotExist(err) {
 		t.Errorf("legacy file still exists: %v", err)
+	}
+}
+
+func TestGenerateOnlyRejectsTemplateInjection(t *testing.T) {
+	writer := NewWriter(omarchyV4TestTemplates, "testdata/v4")
+	state := NewThemeState()
+	state.SetColor(1, `#ff0000"; os.execute("touch /tmp/pwned"); --`)
+
+	if err := writer.GenerateOnly(state, Settings{}, t.TempDir()); err == nil {
+		t.Fatal("GenerateOnly() accepted a non-color template payload")
 	}
 }

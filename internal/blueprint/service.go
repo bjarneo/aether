@@ -82,6 +82,9 @@ func (s *Service) FindByName(name string) (*Blueprint, error) {
 func (s *Service) Save(name string, bp Blueprint) error {
 	bp.Name = name
 	bp.Timestamp = time.Now().UnixMilli()
+	if err := validateBlueprint(&bp); err != nil {
+		return fmt.Errorf("validate blueprint: %w", err)
+	}
 
 	// Sanitize filename
 	safeName := strings.ReplaceAll(name, "/", "-")
@@ -104,12 +107,9 @@ func (s *Service) Delete(name string) error {
 	return os.Remove(bp.Path)
 }
 
-// Validate checks if a blueprint has the minimum required structure.
+// Validate checks a blueprint's structure and color values.
 func (s *Service) Validate(bp *Blueprint) bool {
-	if bp == nil {
-		return false
-	}
-	return len(bp.Palette.Colors) >= 16
+	return validateBlueprint(bp) == nil
 }
 
 func (s *Service) loadFromFile(path, filename string) (Blueprint, error) {
@@ -127,6 +127,9 @@ func (s *Service) loadFromFile(path, filename string) (Blueprint, error) {
 	bp.Filename = filename
 	if bp.Name == "" {
 		bp.Name = strings.TrimSuffix(filename, ".json")
+	}
+	if err := validateBlueprint(&bp); err != nil {
+		return Blueprint{}, err
 	}
 
 	return bp, nil

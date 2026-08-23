@@ -217,6 +217,7 @@ export namespace main {
         theme_name?: string;
         mode?: string;
         edit: boolean;
+        omarchy_theme_name?: string;
 
         static createFrom(source: any = {}) {
             return new ExternalImportPreview(source);
@@ -233,6 +234,7 @@ export namespace main {
             this.theme_name = source['theme_name'];
             this.mode = source['mode'];
             this.edit = source['edit'];
+            this.omarchy_theme_name = source['omarchy_theme_name'];
         }
     }
     export class ExtractFromImagesResult {

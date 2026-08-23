@@ -2,6 +2,7 @@ package theme
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"aether/internal/color"
 	"aether/internal/platform"
 	"aether/internal/template"
 )
@@ -200,16 +202,23 @@ func (w *Writer) processOmarchyV4Templates(
 // GenerateOmarchyV4Only writes the files Omarchy v4 reads directly from a
 // reusable theme folder. Omarchy generates all other app-specific files.
 func (w *Writer) GenerateOmarchyV4Only(state *ThemeState, outputPath string) error {
+	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
+	if err := validateTemplateInputs(variables, state.AppOverrides); err != nil {
+		return err
+	}
 	if _, err := prepareOmarchyV4ThemeDir(outputPath, state); err != nil {
 		return err
 	}
-	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
 	w.processOmarchyV4Templates(outputPath, variables, state.AppOverrides, state.ExtendedColors)
 	return nil
 }
 
 // ApplyTheme generates all theme files and applies the theme to the system.
 func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult, error) {
+	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
+	if err := validateTemplateInputs(variables, state.AppOverrides); err != nil {
+		return &ApplyResult{Success: false, IsOmarchy: IsOmarchyInstalled(), ThemePath: platform.ThemeDir()}, err
+	}
 	if err := RetireLegacyGTKStylesheets(); err != nil {
 		log.Printf("Warning: legacy GTK stylesheet cleanup failed: %v", err)
 	}
@@ -235,7 +244,6 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 		}
 	}
 
-	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
 	if isOmarchyV4 {
 		w.processOmarchyV4Templates(themeDir, variables, state.AppOverrides, state.ExtendedColors)
 		if err := template.ProcessCustomApps(themeDir, variables); err != nil {
@@ -269,6 +277,10 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 // GenerateOnly generates theme files to the specified output path without
 // applying them (no symlinks, no service restarts, no omarchy activation).
 func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath string) error {
+	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
+	if err := validateTemplateInputs(variables, state.AppOverrides); err != nil {
+		return err
+	}
 	targetDir := outputPath
 	if targetDir == "" {
 		targetDir = platform.ThemeDir()
@@ -281,7 +293,6 @@ func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath s
 		return err
 	}
 
-	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
 	w.processTemplates(variables, targetDir, settings, state.AppOverrides, state.ExtendedColors)
 
 	// Generate VSCode extension into the export directory
@@ -297,6 +308,29 @@ func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath s
 	}
 
 	log.Printf("Theme files generated to: %s", targetDir)
+	return nil
+}
+
+func validateTemplateInputs(variables map[string]string, appOverrides map[string]map[string]string) error {
+	for key, value := range variables {
+		switch key {
+		case "mode", "theme_type":
+			if value != "light" && value != "dark" {
+				return fmt.Errorf("template variable %q has an invalid mode", key)
+			}
+		default:
+			if !color.IsHexColor(value) {
+				return fmt.Errorf("template variable %q is not a hex color", key)
+			}
+		}
+	}
+	for app, overrides := range appOverrides {
+		for key, value := range overrides {
+			if key == "mode" || key == "theme_type" || !color.IsHexColor(value) {
+				return fmt.Errorf("%s override %q is not a hex color", app, key)
+			}
+		}
+	}
 	return nil
 }
 

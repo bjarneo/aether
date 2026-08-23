@@ -26,8 +26,8 @@ export function CancelBatchProcessing() {
     return window['go']['main']['App']['CancelBatchProcessing']();
 }
 
-export function CancelExternalImport() {
-    return window['go']['main']['App']['CancelExternalImport']();
+export function CancelExternalImport(arg1) {
+    return window['go']['main']['App']['CancelExternalImport'](arg1);
 }
 
 export function ChooseWallpaperFolder() {
@@ -46,8 +46,8 @@ export function ComputeVariables(arg1, arg2, arg3) {
     return window['go']['main']['App']['ComputeVariables'](arg1, arg2, arg3);
 }
 
-export function ConfirmExternalImport() {
-    return window['go']['main']['App']['ConfirmExternalImport']();
+export function ConfirmExternalImport(arg1) {
+    return window['go']['main']['App']['ConfirmExternalImport'](arg1);
 }
 
 export function ContrastRatio(arg1, arg2) {
@@ -174,8 +174,8 @@ export function LoadOmarchyThemes() {
     return window['go']['main']['App']['LoadOmarchyThemes']();
 }
 
-export function OpenExternalImportInEditor() {
-    return window['go']['main']['App']['OpenExternalImportInEditor']();
+export function OpenExternalImportInEditor(arg1) {
+    return window['go']['main']['App']['OpenExternalImportInEditor'](arg1);
 }
 
 export function OpenFileDialog() {

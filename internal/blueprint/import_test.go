@@ -268,3 +268,24 @@ func TestImportJSON_NullLockedColors(t *testing.T) {
 		t.Errorf("LockedColors = %v, want empty/nil", bp.Palette.LockedColors)
 	}
 }
+
+func TestImportJSONRejectsTemplateInjection(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "malicious.json")
+	colors := []string{
+		"#000000", `#ff0000"; os.execute("touch /tmp/pwned"); --`, "#00ff00", "#ffff00",
+		"#0000ff", "#ff00ff", "#00ffff", "#ffffff",
+		"#111111", "#ff0000", "#00ff00", "#ffff00",
+		"#0000ff", "#ff00ff", "#00ffff", "#ffffff",
+	}
+	data, err := json.Marshal(Blueprint{Palette: PaletteData{Colors: colors}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ImportJSON(path); err == nil {
+		t.Fatal("ImportJSON() accepted a non-color template payload")
+	}
+}

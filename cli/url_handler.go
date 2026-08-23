@@ -7,23 +7,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
 	"aether/internal/blueprint"
-	"aether/internal/omarchy"
 	"aether/internal/pending"
 	"aether/internal/platform"
 	"aether/internal/theme"
 	"aether/internal/wallpaper"
 	"aether/ipc"
 )
-
-// safeThemeName allows only filename-friendly characters in an omarchy theme
-// name. Reject path separators and shell metachars; the name is used both as
-// a directory name and as an argument to omarchy-theme-set.
-var safeThemeName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$`)
 
 // runHandleURL parses an aether:// URL, downloads any referenced HTTPS assets,
 // and either hands them to a running GUI (via IPC) or stages them in the
@@ -63,31 +56,11 @@ func runHandleURL(args []string, templatesFS embed.FS) int {
 
 	q := u.Query()
 	imp := pending.Import{SourceURL: raw, Timestamp: time.Now().Unix()}
+	silent := false
+	if v := strings.ToLower(q.Get("silent")); v == "true" || v == "1" || v == "yes" {
+		silent = true
+	}
 
-	if v := q.Get("external_theme"); v != "" {
-		p, err := wallpaper.DownloadToCache(v)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: download external_theme: %v\n", err)
-			return 1
-		}
-		imp.ExternalTheme = p
-	}
-	if v := q.Get("colors"); v != "" {
-		p, err := wallpaper.DownloadToCache(v)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: download colors: %v\n", err)
-			return 1
-		}
-		imp.ColorsToml = p
-	}
-	if v := q.Get("wallpaper"); v != "" {
-		p, err := wallpaper.DownloadToCache(v)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: download wallpaper: %v\n", err)
-			return 1
-		}
-		imp.Wallpaper = p
-	}
 	if v := strings.ToLower(q.Get("mode")); v != "" {
 		if v != "light" && v != "dark" {
 			fmt.Fprintf(os.Stderr, "Error: mode must be 'light' or 'dark', got %q\n", v)
@@ -95,43 +68,66 @@ func runHandleURL(args []string, templatesFS embed.FS) int {
 		}
 		imp.Mode = v
 	}
-	if v := strings.ToLower(q.Get("silent")); v == "true" || v == "1" || v == "yes" {
-		imp.Silent = true
-	}
 	if v := strings.ToLower(q.Get("edit")); v == "true" || v == "1" || v == "yes" {
 		imp.Edit = true
 	}
 	if v := q.Get("as_omarchy_theme"); v != "" {
-		if !safeThemeName.MatchString(v) {
+		if !theme.ValidOmarchyThemeName(v) {
 			fmt.Fprintf(os.Stderr, "Error: as_omarchy_theme must match [A-Za-z0-9][A-Za-z0-9_.-]* (got %q)\n", v)
 			return 1
 		}
-		imp.OmarchyThemeName = v
+		imp.OmarchyThemeName = strings.ToLower(v)
+	}
+	if q.Get("external_theme") != "" && q.Get("colors") != "" {
+		fmt.Fprintln(os.Stderr, "Error: external_theme and colors cannot be combined")
+		return 1
 	}
 
+	if v := q.Get("external_theme"); v != "" {
+		p, err := wallpaper.DownloadToCache(v, wallpaper.MaxDocumentBytes)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: download external_theme: %v\n", err)
+			return 1
+		}
+		if _, err := blueprint.ImportJSON(p); err != nil {
+			_ = os.Remove(p)
+			fmt.Fprintf(os.Stderr, "Error: invalid external_theme: %v\n", err)
+			return 1
+		}
+		imp.ExternalTheme = p
+	}
+	if v := q.Get("colors"); v != "" {
+		p, err := wallpaper.DownloadToCache(v, wallpaper.MaxDocumentBytes)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: download colors: %v\n", err)
+			return 1
+		}
+		if _, err := blueprint.ImportColorsToml(p); err != nil {
+			_ = os.Remove(p)
+			fmt.Fprintf(os.Stderr, "Error: invalid colors: %v\n", err)
+			return 1
+		}
+		imp.ColorsToml = p
+	}
+	if v := q.Get("wallpaper"); v != "" {
+		p, err := wallpaper.DownloadToCache(v, wallpaper.MaxImageBytes)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: download wallpaper: %v\n", err)
+			return 1
+		}
+		if err := wallpaper.ValidateImageFile(p); err != nil {
+			_ = os.Remove(p)
+			fmt.Fprintf(os.Stderr, "Error: invalid wallpaper: %v\n", err)
+			return 1
+		}
+		imp.Wallpaper = p
+	}
 	if imp.ExternalTheme == "" && imp.ColorsToml == "" && imp.Wallpaper == "" {
 		fmt.Fprintln(os.Stderr, "Error: URL has no external_theme=, colors=, or wallpaper= parameter")
 		return 1
 	}
-
-	// Routing precedence, highest first:
-	//   edit    — fall through to the GUI pending-import path below (load the
-	//             assets into the editor, apply nothing). Safest action, so it
-	//             wins over silent / as_omarchy_theme.
-	//   omarchy — install into ~/.config/omarchy/themes/<name>/ and run
-	//             omarchy-theme-set. Always silent: installing into a system
-	//             location is the publisher's consent action.
-	//   silent  — apply directly in this process, no GUI, no dialog. Matches
-	//             `aether --import-colors-toml`; first-party flows only, since
-	//             any web page can construct silent URLs.
-	//   default — stage and hand off to the GUI confirm dialog (below).
-	switch {
-	case imp.Edit:
-		// fall through to pending.Write + GUI handoff below
-	case imp.OmarchyThemeName != "":
-		return runOmarchyInstall(&imp, templatesFS)
-	case imp.Silent:
-		return runSilentApply(&imp, templatesFS)
+	if silent && !imp.Edit {
+		return runSilentURLApply(&imp, templatesFS)
 	}
 
 	if err := pending.Write(&imp); err != nil {
@@ -172,278 +168,67 @@ func runHandleURL(args []string, templatesFS embed.FS) int {
 	return 0
 }
 
-// runSilentApply runs the equivalent of `--import-colors-toml URL` directly
-// inside the URL-handler process: parse the downloaded palette source, build
-// a ThemeState, and call writer.ApplyTheme. When only a wallpaper was given,
-// the current colors.toml on disk is reused so the existing palette is kept
-// instead of clobbered. Never touches the GUI or IPC.
-func runSilentApply(imp *pending.Import, templatesFS embed.FS) int {
-	var palette [16]string
-	var bp *blueprint.Blueprint
-	var parsedTomlMode string
-	var err error
-
-	switch {
-	case imp.ExternalTheme != "":
-		bp, err = blueprint.ImportJSON(imp.ExternalTheme)
-	case imp.ColorsToml != "":
-		bp, err = blueprint.ImportColorsToml(imp.ColorsToml)
-	}
+func runSilentURLApply(imp *pending.Import, templatesFS embed.FS) int {
+	state, err := buildURLImportState(imp)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: parse: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: prepare silent apply: %v\n", err)
 		return 1
 	}
 
-	extended := map[string]string{}
-	if bp != nil {
-		for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
-			palette[i] = bp.Palette.Colors[i]
-		}
-		for k, v := range bp.Palette.ExtendedColors {
-			extended[k] = v
-		}
-	} else {
-		// Wallpaper-only silent apply: preserve current palette by reading
-		// the existing applied colors.toml. Falls back to a default-ish
-		// state when nothing has been applied yet.
-		existing := filepath.Join(platform.ThemeDir(), "colors.toml")
-		if data, err := os.ReadFile(existing); err == nil {
-			current, bg, fg, m := omarchy.ParseColorsToml(string(data))
-			palette = current
-			if bg != "" {
-				extended["background"] = bg
-			}
-			if fg != "" {
-				extended["foreground"] = fg
-			}
-			parsedTomlMode = m
-		} else {
-			fmt.Fprintln(os.Stderr, "Warning: no existing colors.toml to preserve; palette will be empty")
-		}
-	}
-
-	// Light/dark precedence: explicit URL `mode=` wins, then the colors.toml's
-	// own `mode=` field (parsed via blueprint.LightMode or ParseColorsToml),
-	// then default to dark.
-	lightMode := resolveLightMode(imp.Mode, bp, parsedTomlMode)
-
-	colorRoles := MapColorsToRoles(palette)
 	writer := theme.NewWriter(templatesFS, "templates")
-	state := &theme.ThemeState{
-		Palette:        palette,
-		WallpaperPath:  imp.Wallpaper,
-		LightMode:      lightMode,
-		ColorRoles:     colorRoles,
-		ExtendedColors: extended,
+	if imp.OmarchyThemeName != "" {
+		if err := writer.InstallOmarchyTheme(state, theme.DefaultApplySettings(), imp.OmarchyThemeName); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: install Omarchy theme: %v\n", err)
+			return 1
+		}
+		fmt.Printf("Installed and activated Omarchy theme %q\n", imp.OmarchyThemeName)
+		return 0
 	}
 
-	fmt.Println("Applying theme silently...")
 	result, err := writer.ApplyTheme(state, theme.DefaultApplySettings())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: apply: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: apply theme: %v\n", err)
 		return 1
 	}
-	if result.Success {
-		fmt.Println("Theme applied successfully")
+	if !result.Success {
+		fmt.Fprintln(os.Stderr, "Error: apply returned failure")
+		return 1
 	}
-	_ = pending.Clear() // best-effort cleanup of any prior staged file
+	fmt.Println("Theme applied successfully")
 	return 0
 }
 
-// runOmarchyInstall renders the imported theme directly into
-// ~/.config/omarchy/themes/<name>/ — colors.toml + backgrounds/<wp> + all
-// the per-app templates — and then runs `omarchy-theme-set <name>`. The
-// theme name has already been validated against safeThemeName, so it's safe
-// to use as both a filesystem path component and an argv argument.
-func runOmarchyInstall(imp *pending.Import, templatesFS embed.FS) int {
-	if !theme.IsOmarchyInstalled() {
-		fmt.Fprintln(os.Stderr, "Error: omarchy-theme-set not found in PATH; cannot install as an omarchy theme")
-		return 1
-	}
-	omarchyPath := os.Getenv("OMARCHY_PATH")
-	if platform.FileExists(filepath.Join(omarchyPath, "shell", "shell.qml")) {
-		if resolved, err := filepath.EvalSymlinks(omarchyPath); err == nil {
-			omarchyPath = resolved
-		}
-	} else {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: resolve home directory: %v\n", err)
-			return 1
-		}
-		candidates := []string{
-			filepath.Join(home, ".local", "share", "omarchy"),
-			"/usr/share/omarchy",
-		}
-		for _, candidate := range candidates {
-			if platform.FileExists(filepath.Join(candidate, "shell", "shell.qml")) {
-				omarchyPath = candidate
-				if resolved, err := filepath.EvalSymlinks(candidate); err == nil {
-					omarchyPath = resolved
-				}
-				break
-			}
-		}
-	}
-	if !platform.FileExists(filepath.Join(omarchyPath, "shell", "shell.qml")) {
-		fmt.Fprintln(os.Stderr, "Error: could not locate the Omarchy installation")
-		return 1
-	}
-	if err := os.Setenv("OMARCHY_PATH", omarchyPath); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: set OMARCHY_PATH: %v\n", err)
-		return 1
-	}
-
-	var palette [16]string
+func buildURLImportState(imp *pending.Import) (*theme.ThemeState, error) {
 	var bp *blueprint.Blueprint
-	var parsedTomlMode string
 	var err error
-
 	switch {
 	case imp.ExternalTheme != "":
 		bp, err = blueprint.ImportJSON(imp.ExternalTheme)
 	case imp.ColorsToml != "":
 		bp, err = blueprint.ImportColorsToml(imp.ColorsToml)
+	default:
+		bp, err = blueprint.ImportColorsToml(filepath.Join(platform.ThemeDir(), "colors.toml"))
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: parse: %v\n", err)
-		return 1
+		return nil, err
 	}
 
-	extended := map[string]string{}
-	if bp != nil {
-		for i := 0; i < 16 && i < len(bp.Palette.Colors); i++ {
-			palette[i] = bp.Palette.Colors[i]
-		}
-		for k, v := range bp.Palette.ExtendedColors {
-			extended[k] = v
-		}
-	} else {
-		// Wallpaper-only install: borrow the palette from the currently
-		// applied colors.toml so the rendered theme isn't blank.
-		existing := filepath.Join(platform.ThemeDir(), "colors.toml")
-		if data, err := os.ReadFile(existing); err == nil {
-			current, bg, fg, m := omarchy.ParseColorsToml(string(data))
-			palette = current
-			if bg != "" {
-				extended["background"] = bg
-			}
-			if fg != "" {
-				extended["foreground"] = fg
-			}
-			parsedTomlMode = m
-		}
+	state := theme.NewThemeState()
+	state.WallpaperPath = imp.Wallpaper
+	for key, value := range bp.Palette.ExtendedColors {
+		state.ExtendedColors[key] = value
 	}
+	var palette [16]string
+	copy(palette[:], bp.Palette.Colors)
+	state.SetPalette(palette)
 
-	if !paletteHasColors(palette) {
-		fmt.Fprintln(os.Stderr, "Error: no palette to install (URL had no colors/external_theme and no existing colors.toml to borrow from)")
-		return 1
-	}
-
-	lightMode := resolveLightMode(imp.Mode, bp, parsedTomlMode)
-
-	targetDir := filepath.Join(platform.OmarchyThemesDir(), imp.OmarchyThemeName)
-	if err := platform.EnsureDir(targetDir); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: create theme dir: %v\n", err)
-		return 1
-	}
-
-	colorRoles := MapColorsToRoles(palette)
-	writer := theme.NewWriter(templatesFS, "templates")
-	state := &theme.ThemeState{
-		Palette:        palette,
-		WallpaperPath:  imp.Wallpaper,
-		LightMode:      lightMode,
-		ColorRoles:     colorRoles,
-		ExtendedColors: extended,
-	}
-
-	fmt.Printf("Installing omarchy theme %q to: %s\n", imp.OmarchyThemeName, targetDir)
-	if err := writer.GenerateOnly(state, theme.DefaultApplySettings(), targetDir); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: render templates: %v\n", err)
-		return 1
-	}
-
-	fmt.Printf("Activating: omarchy-theme-set %s\n", imp.OmarchyThemeName)
-	stateDir := os.Getenv("XDG_STATE_HOME")
-	if stateDir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: resolve home directory: %v\n", err)
-			return 1
-		}
-		stateDir = filepath.Join(home, ".local", "state")
-	}
-	currentDir := filepath.Join(stateDir, "omarchy", "current")
-	themeNamePath := filepath.Join(currentDir, "theme.name")
-	var previousThemeNameModTime time.Time
-	if info, err := os.Stat(themeNamePath); err == nil {
-		previousThemeNameModTime = info.ModTime()
-	}
-
-	if err := platform.RunAsync("omarchy-theme-set", imp.OmarchyThemeName); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: start omarchy-theme-set: %v\n", err)
-		return 1
-	}
-
-	expectedBackground := filepath.Base(imp.Wallpaper)
-	deadline := time.Now().Add(15 * time.Second)
-	for {
-		nameData, nameErr := os.ReadFile(themeNamePath)
-		nameInfo, statErr := os.Stat(themeNamePath)
-		backgroundTarget, backgroundErr := filepath.EvalSymlinks(filepath.Join(currentDir, "background"))
-		activationUpdated := previousThemeNameModTime.IsZero() ||
-			(statErr == nil && nameInfo.ModTime().After(previousThemeNameModTime))
-		if nameErr == nil && strings.TrimSpace(string(nameData)) == imp.OmarchyThemeName &&
-			activationUpdated && (expectedBackground == "" ||
-			(backgroundErr == nil && filepath.Base(backgroundTarget) == expectedBackground)) {
-			break
-		}
-		if time.Now().After(deadline) {
-			fmt.Fprintln(os.Stderr, "Error: timed out waiting for omarchy-theme-set to activate the theme")
-			return 1
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	if _, err := platform.RunSync("omarchy-shell", "background", "refresh"); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: refresh Omarchy background: %v\n", err)
-	}
-
-	fmt.Println("Omarchy theme installed and activated")
-	return 0
-}
-
-// paletteHasColors reports whether a palette has at least one non-empty slot.
-func paletteHasColors(p [16]string) bool {
-	for _, c := range p {
-		if c != "" {
-			return true
-		}
-	}
-	return false
-}
-
-// resolveLightMode picks the light/dark setting using a small precedence
-// ladder: explicit URL `mode=` first (publisher told the user what they
-// wanted), then the colors.toml's own `mode=` field (publisher signaled it
-// inside the file), then the imported blueprint's LightMode bool (used when
-// external_theme JSON declared it), then default dark.
-func resolveLightMode(urlMode string, bp *blueprint.Blueprint, parsedTomlMode string) bool {
-	switch urlMode {
+	switch imp.Mode {
 	case "light":
-		return true
+		state.LightMode = true
 	case "dark":
-		return false
+		state.LightMode = false
+	default:
+		state.LightMode = bp.Palette.Mode == "light" || (bp.Palette.Mode == "" && bp.Palette.LightMode)
 	}
-	switch parsedTomlMode {
-	case "light":
-		return true
-	case "dark":
-		return false
-	}
-	if bp != nil && bp.Palette.LightMode {
-		return true
-	}
-	return false
+	return state, nil
 }

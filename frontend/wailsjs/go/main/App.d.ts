@@ -26,7 +26,7 @@ export function BlueprintExists(arg1: string): Promise<boolean>;
 
 export function CancelBatchProcessing(): Promise<void>;
 
-export function CancelExternalImport(): Promise<void>;
+export function CancelExternalImport(arg1: string): Promise<void>;
 
 export function ChooseWallpaperFolder(): Promise<string>;
 
@@ -40,7 +40,7 @@ export function ComputeVariables(
     arg3: boolean
 ): Promise<Record<string, string>>;
 
-export function ConfirmExternalImport(): Promise<void>;
+export function ConfirmExternalImport(arg1: string): Promise<void>;
 
 export function ContrastRatio(arg1: string, arg2: string): Promise<number>;
 
@@ -110,7 +110,7 @@ export function LoadBlueprint(arg1: string): Promise<void>;
 
 export function LoadOmarchyThemes(): Promise<Array<omarchy.Theme>>;
 
-export function OpenExternalImportInEditor(): Promise<void>;
+export function OpenExternalImportInEditor(arg1: string): Promise<void>;
 
 export function OpenFileDialog(): Promise<string>;
 

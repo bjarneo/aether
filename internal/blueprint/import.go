@@ -3,8 +3,6 @@ package blueprint
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +10,7 @@ import (
 
 	"aether/internal/omarchy"
 	"aether/internal/platform"
+	"aether/internal/wallpaper"
 )
 
 // ImportJSON imports a blueprint from a local JSON file.
@@ -30,26 +29,22 @@ func ImportJSON(filePath string) (*Blueprint, error) {
 		bp.Name = strings.TrimSuffix(filepath.Base(filePath), ".json")
 	}
 	bp.Timestamp = time.Now().UnixMilli()
+	if err := validateBlueprint(&bp); err != nil {
+		return nil, fmt.Errorf("validate blueprint: %w", err)
+	}
 
 	return &bp, nil
 }
 
 // ImportFromURL downloads and imports a blueprint from a URL.
 func ImportFromURL(url string) (*Blueprint, error) {
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(url)
+	path, err := wallpaper.DownloadToCache(url, wallpaper.MaxDocumentBytes)
 	if err != nil {
 		return nil, fmt.Errorf("download: %w", err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-
-	data, err := io.ReadAll(resp.Body)
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
+		return nil, fmt.Errorf("read download: %w", err)
 	}
 
 	var bp Blueprint
@@ -61,6 +56,9 @@ func ImportFromURL(url string) (*Blueprint, error) {
 		bp.Name = extractNameFromURL(url)
 	}
 	bp.Timestamp = time.Now().UnixMilli()
+	if err := validateBlueprint(&bp); err != nil {
+		return nil, fmt.Errorf("validate blueprint: %w", err)
+	}
 
 	return &bp, nil
 }
@@ -162,42 +160,21 @@ func ImportBase16(filePath string) (*Blueprint, error) {
 		},
 		Timestamp: time.Now().UnixMilli(),
 	}
+	if err := validateBlueprint(bp); err != nil {
+		return nil, fmt.Errorf("validate Base16 scheme: %w", err)
+	}
 
 	return bp, nil
 }
 
-// ImportColorsTomlFromURL downloads a colors.toml file from a URL and parses
-// it into a blueprint. The downloaded file is written to a temp path so
-// ImportColorsToml can reuse its existing reader.
+// ImportColorsTomlFromURL downloads a colors.toml file into the web-import
+// cache and parses it into a blueprint.
 func ImportColorsTomlFromURL(url string) (*Blueprint, error) {
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(url)
+	path, err := wallpaper.DownloadToCache(url, wallpaper.MaxDocumentBytes)
 	if err != nil {
 		return nil, fmt.Errorf("download: %w", err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
-	}
-
-	tmp, err := os.CreateTemp("", "aether-colors-*.toml")
-	if err != nil {
-		return nil, fmt.Errorf("temp file: %w", err)
-	}
-	defer os.Remove(tmp.Name())
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return nil, fmt.Errorf("write temp: %w", err)
-	}
-	tmp.Close()
-
-	bp, err := ImportColorsToml(tmp.Name())
+	bp, err := ImportColorsToml(path)
 	if err != nil {
 		return nil, err
 	}
@@ -268,6 +245,9 @@ func ImportColorsToml(filePath string) (*Blueprint, error) {
 			Mode:           parsedMode,
 		},
 		Timestamp: time.Now().UnixMilli(),
+	}
+	if err := validateBlueprint(bp); err != nil {
+		return nil, fmt.Errorf("validate colors.toml: %w", err)
 	}
 
 	return bp, nil
