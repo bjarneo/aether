@@ -53,7 +53,7 @@ yay -S aether
 
 ### Install (Debian / Ubuntu)
 
-Download the `.deb` from the [latest release](https://github.com/bjarneo/aether/releases/latest):
+Download the `.deb` from the [latest release](https://github.com/omacom-io/aether/releases/latest):
 
 ```bash
 sudo dpkg -i aether_*.deb
@@ -69,7 +69,7 @@ sudo pacman -S go webkit2gtk
 # Debian/Ubuntu
 sudo apt install golang libgtk-3-dev libwebkit2gtk-4.1-dev
 
-git clone https://github.com/bjarneo/aether.git
+git clone https://github.com/omacom-io/aether.git
 cd aether && make build
 ```
 
@@ -93,7 +93,7 @@ See `aether --help` for all options.
 ## Local Development
 
 ```bash
-git clone https://github.com/bjarneo/aether.git
+git clone https://github.com/omacom-io/aether.git
 cd aether
 
 # Install frontend dependencies

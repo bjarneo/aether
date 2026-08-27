@@ -1,6 +1,6 @@
 return {
   {
-    "bjarneo/aether.nvim",
+    "omacom-io/aether.nvim",
     branch = "v3",
     name = "aether",
     priority = 1000,
