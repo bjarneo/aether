@@ -91,6 +91,8 @@ func main() {
 		},
 		Linux: &wailslinux.Options{
 			ProgramName: "Aether",
+			// A non-nil Linux options struct bypasses Wails' GPU-safe default.
+			WebviewGpuPolicy: wailslinux.WebviewGpuPolicyNever,
 		},
 		Mac: &wailsmac.Options{
 			TitleBar:             wailsmac.TitleBarHiddenInset(),
