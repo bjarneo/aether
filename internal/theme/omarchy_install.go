@@ -2,6 +2,7 @@ package theme
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -49,13 +50,22 @@ func (w *Writer) InstallOmarchyTheme(state *ThemeState, settings Settings, name 
 	if err := os.Mkdir(targetDir, 0o755); err != nil {
 		return fmt.Errorf("create Omarchy theme %q: %w", name, err)
 	}
-	if err := w.GenerateOnly(state, settings, targetDir); err != nil {
+	wallpaperDest, err := w.GenerateOnly(state, settings, targetDir)
+	if err != nil {
 		_ = os.RemoveAll(targetDir)
 		return fmt.Errorf("generate Omarchy theme %q: %w", name, err)
 	}
 
 	if _, err := platform.RunSync("omarchy-theme-set", name); err != nil {
 		return fmt.Errorf("activate Omarchy theme %q: %w", name, err)
+	}
+	// omarchy-theme-set cycles through a theme's bundled backgrounds and may
+	// pick a stock image instead of the theme's own wallpaper — apply our
+	// copy explicitly.
+	if wallpaperDest != "" {
+		if err := ApplyWallpaper(wallpaperDest); err != nil {
+			log.Printf("Warning: wallpaper application failed: %v", err)
+		}
 	}
 	return nil
 }

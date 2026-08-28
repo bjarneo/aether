@@ -1,10 +1,13 @@
 package theme
 
 import (
+	"bytes"
 	"embed"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"aether/internal/platform"
 )
 
 //go:embed testdata/v4
@@ -305,8 +308,7 @@ func TestGenerateOmarchyV4OnlyRemovesLegacyFiles(t *testing.T) {
 	state := NewThemeState()
 	state.ColorRoles.Background = "#1e1e2e"
 	state.ColorRoles.Magenta = "#ff0000"
-	settings := Settings{IncludedApps: map[string]bool{"icons": true}}
-	if err := writer.GenerateOmarchyV4Only(state, settings, themeDir); err != nil {
+	if _, err := writer.GenerateOmarchyV4Only(state, themeDir); err != nil {
 		t.Fatal(err)
 	}
 
@@ -325,7 +327,48 @@ func TestGenerateOnlyRejectsTemplateInjection(t *testing.T) {
 	state := NewThemeState()
 	state.SetColor(1, `#ff0000"; os.execute("touch /tmp/pwned"); --`)
 
-	if err := writer.GenerateOnly(state, Settings{}, t.TempDir()); err == nil {
+	if _, err := writer.GenerateOnly(state, Settings{}, t.TempDir()); err == nil {
 		t.Fatal("GenerateOnly() accepted a non-color template payload")
+	}
+}
+
+func TestGenerateOnlyReturnsWallpaperDestination(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	srcDir := t.TempDir()
+	wallpaper := filepath.Join(srcDir, "photo.png")
+	png := []byte("fake image bytes")
+	if err := os.WriteFile(wallpaper, png, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	writer := NewWriter(omarchyV4TestTemplates, "testdata/v4")
+	state := NewThemeState()
+	state.WallpaperPath = wallpaper
+
+	dest, err := writer.GenerateOnly(state, Settings{}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantDest := filepath.Join(platform.ThemeDir(), "backgrounds", "photo.png")
+	if dest != wantDest {
+		t.Errorf("GenerateOnly() dest = %q, want %q", dest, wantDest)
+	}
+	got, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("wallpaper was not copied: %v", err)
+	}
+	if !bytes.Equal(got, png) {
+		t.Error("copied wallpaper content differs from source")
+	}
+
+	// No wallpaper -> empty destination, nothing to apply.
+	dest, err = writer.GenerateOnly(NewThemeState(), Settings{}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dest != "" {
+		t.Errorf("dest without wallpaper = %q, want empty", dest)
 	}
 }

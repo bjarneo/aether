@@ -407,7 +407,8 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("check theme folder: %w", err)
 	}
-	if err := a.writer.GenerateOmarchyV4Only(state, req.Settings, targetDir); err != nil {
+	wallpaperDest, err := a.writer.GenerateOmarchyV4Only(state, targetDir)
+	if err != nil {
 		return nil, fmt.Errorf("save theme: %w", err)
 	}
 	if !theme.IsOmarchyInstalled() {
@@ -420,6 +421,15 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 	}
 	if _, err := platform.RunSync("omarchy-theme-set", name); err != nil {
 		return nil, fmt.Errorf("activate theme: %w", err)
+	}
+	// omarchy-theme-set cycles through a theme's bundled backgrounds (its own
+	// plus ours), so it can land on a stock image instead of the selected
+	// wallpaper. Apply our copy explicitly — the blurred variant when blur is
+	// enabled, since the request carries it as WallpaperPath.
+	if wallpaperDest != "" {
+		if err := theme.ApplyWallpaper(wallpaperDest); err != nil {
+			log.Printf("Warning: wallpaper application failed: %v", err)
+		}
 	}
 	return &theme.ApplyResult{
 		Success:   true,
@@ -1030,7 +1040,7 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	}
 
 	exportDir := filepath.Join(dir, "omarchy-"+slug+"-theme")
-	if err := a.writer.GenerateOnly(state, settings, exportDir); err != nil {
+	if _, err := a.writer.GenerateOnly(state, settings, exportDir); err != nil {
 		return "", fmt.Errorf("export failed: %w", err)
 	}
 
