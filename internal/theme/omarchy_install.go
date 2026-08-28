@@ -50,8 +50,7 @@ func (w *Writer) InstallOmarchyTheme(state *ThemeState, settings Settings, name 
 	if err := os.Mkdir(targetDir, 0o755); err != nil {
 		return fmt.Errorf("create Omarchy theme %q: %w", name, err)
 	}
-	wallpaperDest, err := w.GenerateOnly(state, settings, targetDir)
-	if err != nil {
+	if err := w.GenerateOnly(state, settings, targetDir); err != nil {
 		_ = os.RemoveAll(targetDir)
 		return fmt.Errorf("generate Omarchy theme %q: %w", name, err)
 	}
@@ -62,8 +61,8 @@ func (w *Writer) InstallOmarchyTheme(state *ThemeState, settings Settings, name 
 	// omarchy-theme-set cycles through a theme's bundled backgrounds and may
 	// pick a stock image instead of the theme's own wallpaper — apply our
 	// copy explicitly.
-	if wallpaperDest != "" {
-		if err := ApplyWallpaper(wallpaperDest); err != nil {
+	if state.WallpaperPath != "" {
+		if err := ApplyWallpaper(filepath.Join(targetDir, "backgrounds", filepath.Base(state.WallpaperPath))); err != nil {
 			log.Printf("Warning: wallpaper application failed: %v", err)
 		}
 	}

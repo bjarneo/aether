@@ -351,23 +351,21 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 
 // GenerateOnly generates theme files to the specified output path without
 // applying them (no symlinks, no service restarts, no omarchy activation).
-// Returns the wallpaper destination path ("" when no wallpaper was set).
-func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath string) (string, error) {
+func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath string) error {
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
 	if err := validateTemplateInputs(variables, state.AppOverrides); err != nil {
-		return "", err
+		return err
 	}
 	targetDir := outputPath
 	if targetDir == "" {
 		targetDir = platform.ThemeDir()
 	}
 	if err := platform.EnsureDir(targetDir); err != nil {
-		return "", err
+		return err
 	}
 
-	wallpaperDest, err := prepareThemeDir(targetDir, state)
-	if err != nil {
-		return "", err
+	if _, err := prepareThemeDir(targetDir, state); err != nil {
+		return err
 	}
 
 	w.processTemplates(variables, targetDir, settings, state.AppOverrides, state.ExtendedColors)
@@ -387,7 +385,7 @@ func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath s
 	}
 
 	log.Printf("Theme files generated to: %s", targetDir)
-	return wallpaperDest, nil
+	return nil
 }
 
 func validateTemplateInputs(variables map[string]string, appOverrides map[string]map[string]string) error {

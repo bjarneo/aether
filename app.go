@@ -1064,7 +1064,7 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	}
 
 	exportDir := filepath.Join(dir, "omarchy-"+slug+"-theme")
-	if _, err := a.writer.GenerateOnly(state, settings, exportDir); err != nil {
+	if err := a.writer.GenerateOnly(state, settings, exportDir); err != nil {
 		return "", fmt.Errorf("export failed: %w", err)
 	}
 

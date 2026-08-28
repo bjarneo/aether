@@ -107,7 +107,7 @@ func runGenerate(args []string, templatesFS embed.FS) int {
 
 	if noApply {
 		fmt.Println("Generating theme files...")
-		if _, err := writer.GenerateOnly(state, settings, outputPath); err != nil {
+		if err := writer.GenerateOnly(state, settings, outputPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to generate theme: %v\n", err)
 			return 1
 		}
