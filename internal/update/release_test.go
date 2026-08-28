@@ -41,7 +41,7 @@ func TestCheck(t *testing.T) {
 		}
 		_, _ = w.Write([]byte(`{
 			"tag_name": "v3.1.0",
-			"html_url": "https://github.com/omacom-io/aether/releases/tag/v3.1.0",
+			"html_url": "https://github.com/omacom/aether/releases/tag/v3.1.0",
 			"assets": [{"name": "aether-linux-amd64", "browser_download_url": "https://example.com/aether"}]
 		}`))
 	}))

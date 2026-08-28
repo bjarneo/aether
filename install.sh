@@ -4,7 +4,7 @@
 # Installs Aether from the AUR
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/omacom-io/aether/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/omacom/aether/main/install.sh | bash
 #
 
 set -euo pipefail
@@ -155,7 +155,7 @@ print_post_install() {
     echo -e "  Search for 'Aether' in your application launcher."
     echo ""
     echo -e "${BOLD}Documentation:${NC}"
-    echo -e "  ${CYAN}https://github.com/omacom-io/aether${NC}"
+    echo -e "  ${CYAN}https://github.com/omacom/aether${NC}"
     echo ""
 }
 

@@ -85,7 +85,7 @@ jobs:
           Description: Desktop theming application
            Extract colors from wallpapers and apply cohesive themes across your
            desktop.
-          Homepage: https://github.com/omacom-io/aether
+          Homepage: https://github.com/omacom/aether
           CTRL
           sed -i 's/^          //' "${PKG_DIR}/DEBIAN/control"
           sed -i "s/PKGVER/${PKG_VERSION}/" "${PKG_DIR}/DEBIAN/control"
@@ -189,28 +189,28 @@ jobs:
 
             ### Debian / Ubuntu (x86_64)
             ```bash
-            wget https://github.com/omacom-io/aether/releases/download/${{ github.ref_name }}/aether_${{ steps.archive.outputs.pkgver }}_amd64.deb
+            wget https://github.com/omacom/aether/releases/download/${{ github.ref_name }}/aether_${{ steps.archive.outputs.pkgver }}_amd64.deb
             sudo dpkg -i aether_${{ steps.archive.outputs.pkgver }}_amd64.deb
             sudo apt-get install -f
             ```
 
             ### Debian / Ubuntu (aarch64)
             ```bash
-            wget https://github.com/omacom-io/aether/releases/download/${{ github.ref_name }}/aether_${{ steps.archive.outputs.pkgver }}_arm64.deb
+            wget https://github.com/omacom/aether/releases/download/${{ github.ref_name }}/aether_${{ steps.archive.outputs.pkgver }}_arm64.deb
             sudo dpkg -i aether_${{ steps.archive.outputs.pkgver }}_arm64.deb
             sudo apt-get install -f
             ```
 
             ### Pre-built Binary (x86_64)
             ```bash
-            wget https://github.com/omacom-io/aether/releases/download/${{ github.ref_name }}/aether-linux-amd64
+            wget https://github.com/omacom/aether/releases/download/${{ github.ref_name }}/aether-linux-amd64
             chmod +x aether-linux-amd64
             sudo mv aether-linux-amd64 /usr/local/bin/aether
             ```
 
             ### Pre-built Binary (aarch64)
             ```bash
-            wget https://github.com/omacom-io/aether/releases/download/${{ github.ref_name }}/aether-linux-arm64
+            wget https://github.com/omacom/aether/releases/download/${{ github.ref_name }}/aether-linux-arm64
             chmod +x aether-linux-arm64
             sudo mv aether-linux-arm64 /usr/local/bin/aether
             ```
@@ -218,7 +218,7 @@ jobs:
             ### Build from Source
             Requires Go 1.23+, Node.js 22+, and [Wails](https://wails.io/docs/gettingstarted/installation).
             ```bash
-            git clone https://github.com/omacom-io/aether.git
+            git clone https://github.com/omacom/aether.git
             cd aether
             make build
             ```

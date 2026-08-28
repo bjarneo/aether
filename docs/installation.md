@@ -16,7 +16,7 @@ paru -S aether
 
 ## Debian / Ubuntu
 
-Download the `.deb` package from the [latest release](https://github.com/omacom-io/aether/releases/latest):
+Download the `.deb` package from the [latest release](https://github.com/omacom/aether/releases/latest):
 
 ```bash
 sudo dpkg -i aether_*.deb
@@ -37,7 +37,7 @@ The `.deb` package includes the `aether` binary and pulls in required runtime de
 ### Build
 
 ```bash
-git clone https://github.com/omacom-io/aether.git
+git clone https://github.com/omacom/aether.git
 cd aether && make build
 ```
 
@@ -72,7 +72,7 @@ sudo apt install golang libgtk-3-dev libwebkit2gtk-4.1-dev nodejs npm pkg-config
 ### Build
 
 ```bash
-git clone https://github.com/omacom-io/aether.git
+git clone https://github.com/omacom/aether.git
 cd aether && make build
 ```
 
