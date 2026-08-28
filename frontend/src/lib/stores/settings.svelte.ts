@@ -1,13 +1,13 @@
 import type {Settings} from '$lib/types/theme';
-import {ALWAYS_INCLUDED_APPS} from '$lib/constants/apps';
+import {SPECIAL_APP_FLAGS} from '$lib/constants/apps';
 
 const defaults: Settings = {
     wallpaperFolder: '',
-    includeZed: true,
+    includeZed: false,
     includeVscode: false,
-    includeNeovim: true,
+    includeNeovim: false,
     selectedNeovimConfig: '',
-    excludedApps: {},
+    includedApps: {},
 };
 
 let settings = $state<Settings>({...defaults});
@@ -26,21 +26,29 @@ async function loadSettings() {
                 delete cleaned.includeGtk;
                 cleanedLegacySettings = true;
             }
+            if ('excludedApps' in cleaned) {
+                delete cleaned.excludedApps;
+                cleanedLegacySettings = true;
+            }
             settings = {...defaults, ...cleaned};
-        }
-        // Clear exclusions for mandatory apps and retired integrations.
-        const excluded = settings.excludedApps;
-        if (
-            excluded &&
-            Object.keys(excluded).some(
-                k => k === 'gtk' || ALWAYS_INCLUDED_APPS.has(k)
-            )
-        ) {
-            const cleaned = {...excluded};
-            delete cleaned.gtk;
-            for (const k of ALWAYS_INCLUDED_APPS) delete cleaned[k];
-            settings = {...settings, excludedApps: cleaned};
-            cleanedLegacySettings = true;
+            settings = {
+                ...settings,
+                includedApps: settings.includedApps ?? {},
+            };
+            if (
+                settings.selectedNeovimConfig &&
+                !settings.includedApps?.neovim
+            ) {
+                settings = {
+                    ...settings,
+                    includeNeovim: true,
+                    includedApps: {
+                        ...(settings.includedApps ?? {}),
+                        neovim: true,
+                    },
+                };
+                cleanedLegacySettings = true;
+            }
         }
         if (cleanedLegacySettings) persist();
     } catch {}
@@ -63,16 +71,25 @@ export function updateSettings(partial: Partial<Settings>): void {
     persist();
 }
 
-export function isAppExcluded(app: string): boolean {
-    return !!settings.excludedApps?.[app];
+export function isAppIncluded(app: string): boolean {
+    return !!settings.includedApps?.[app];
 }
 
-export function toggleAppExclusion(app: string): void {
-    const current = {...(settings.excludedApps ?? {})};
-    if (current[app]) {
-        delete current[app];
-    } else {
+export function setAppIncluded(app: string, enabled: boolean): void {
+    const current = {...(settings.includedApps ?? {})};
+    if (enabled) {
         current[app] = true;
+    } else {
+        delete current[app];
     }
-    updateSettings({excludedApps: current});
+
+    const flag = SPECIAL_APP_FLAGS[app];
+    updateSettings({
+        includedApps: current,
+        ...(flag ? {[flag]: enabled} : {}),
+    });
+}
+
+export function toggleAppInclusion(app: string): void {
+    setAppIncluded(app, !isAppIncluded(app));
 }

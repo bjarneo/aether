@@ -401,11 +401,16 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("check theme folder: %w", err)
 	}
-	if err := a.writer.GenerateOmarchyV4Only(state, targetDir); err != nil {
+	if err := a.writer.GenerateOmarchyV4Only(state, req.Settings, targetDir); err != nil {
 		return nil, fmt.Errorf("save theme: %w", err)
 	}
 	if !theme.IsOmarchyInstalled() {
 		return a.writer.ApplyTheme(state, req.Settings)
+	}
+	if req.Settings.IncludedApps["zed"] || len(state.AppOverrides["zed"]) > 0 {
+		if err := theme.ApplyZedTheme(targetDir); err != nil {
+			log.Printf("Warning: Zed theme application failed: %v", err)
+		}
 	}
 	if _, err := platform.RunSync("omarchy-theme-set", name); err != nil {
 		return nil, fmt.Errorf("activate theme: %w", err)

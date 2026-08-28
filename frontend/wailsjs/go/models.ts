@@ -488,6 +488,7 @@ export namespace theme {
         includeVscode: boolean;
         includeNeovim: boolean;
         selectedNeovimConfig: string;
+        includedApps?: Record<string, boolean>;
         excludedApps?: Record<string, boolean>;
 
         static createFrom(source: any = {}) {
@@ -500,6 +501,7 @@ export namespace theme {
             this.includeVscode = source['includeVscode'];
             this.includeNeovim = source['includeNeovim'];
             this.selectedNeovimConfig = source['selectedNeovimConfig'];
+            this.includedApps = source['includedApps'];
             this.excludedApps = source['excludedApps'];
         }
     }

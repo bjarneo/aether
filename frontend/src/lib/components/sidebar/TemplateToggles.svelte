@@ -1,10 +1,8 @@
 <script lang="ts">
     import {onMount} from 'svelte';
     import {
-        getSettings,
-        updateSettings,
-        isAppExcluded,
-        toggleAppExclusion,
+        isAppIncluded,
+        toggleAppInclusion,
     } from '$lib/stores/settings.svelte';
     import {
         SPECIAL_APP_KEYS,
@@ -17,9 +15,9 @@
     let appsOpen = $state(false);
 
     const specialToggles = [
-        {key: 'includeNeovim', label: 'Neovim'},
-        {key: 'includeZed', label: 'Zed'},
-        {key: 'includeVscode', label: 'VS Code'},
+        {key: 'neovim', label: 'Neovim'},
+        {key: 'zed', label: 'Zed'},
+        {key: 'vscode', label: 'VS Code'},
     ] as const;
 
     let appList = $state<string[]>([]);
@@ -64,10 +62,8 @@
 <ExpandableSection title="Templates" bind:expanded={templatesOpen}>
     <div class="flex flex-col gap-2">
         {#each specialToggles as toggle}
-            {@render toggleRow(toggle.label, !!getSettings()[toggle.key], () =>
-                updateSettings({
-                    [toggle.key]: !getSettings()[toggle.key],
-                })
+            {@render toggleRow(toggle.label, isAppIncluded(toggle.key), () =>
+                toggleAppInclusion(toggle.key)
             )}
         {/each}
 
@@ -78,8 +74,8 @@
                         {#each appList as app}
                             {@render toggleRow(
                                 appLabel(app),
-                                !isAppExcluded(app),
-                                () => toggleAppExclusion(app)
+                                isAppIncluded(app),
+                                () => toggleAppInclusion(app)
                             )}
                         {/each}
                     </div>

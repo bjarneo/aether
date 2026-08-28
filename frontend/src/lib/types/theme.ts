@@ -68,10 +68,9 @@ export interface Settings {
     includeVscode: boolean;
     includeNeovim: boolean;
     selectedNeovimConfig: string;
-    // Per-app skip list. Keys are the app names returned by
-    // GetTemplateColors (alacritty, hyprland, …). True = skip the
-    // template during ApplyTheme / GenerateOnly.
-    excludedApps?: Record<string, boolean>;
+    // App templates explicitly included as overrides. Omarchy generates its
+    // standard app configs from colors.toml when an app is not included here.
+    includedApps?: Record<string, boolean>;
 }
 
 export const DEFAULT_ADJUSTMENTS: Adjustments = {

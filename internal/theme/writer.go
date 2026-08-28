@@ -19,6 +19,7 @@ import (
 // used for per-app override lookups.
 var templateAppNameMap = map[string]string{
 	"alacritty.toml":    "alacritty",
+	"aether.zed.json":   "zed",
 	"btop.theme":        "btop",
 	"chromium.theme":    "chromium",
 	"foot.ini":          "foot",
@@ -59,7 +60,30 @@ type Settings struct {
 	IncludeVscode        bool            `json:"includeVscode"`
 	IncludeNeovim        bool            `json:"includeNeovim"`
 	SelectedNeovimConfig string          `json:"selectedNeovimConfig"`
+	IncludedApps         map[string]bool `json:"includedApps,omitempty"`
 	ExcludedApps         map[string]bool `json:"excludedApps,omitempty"`
+}
+
+// includesApp supports explicit opt-in targets while preserving callers that
+// still use the legacy special flags and exclusion map.
+func (s Settings) includesApp(app string) bool {
+	if s.IncludedApps != nil {
+		return s.IncludedApps[app]
+	}
+	if s.ExcludedApps[app] {
+		return false
+	}
+
+	switch app {
+	case "zed":
+		return s.IncludeZed
+	case "vscode":
+		return s.IncludeVscode
+	case "neovim":
+		return s.IncludeNeovim
+	default:
+		return !s.ExcludedApps[app]
+	}
 }
 
 // DefaultApplySettings returns the same defaults `aether --generate` uses.
@@ -138,8 +162,8 @@ func prepareThemeDir(targetDir string, state *ThemeState) (string, error) {
 	return wallpaperDest, nil
 }
 
-// prepareOmarchyV4ThemeDir removes legacy generated files while preserving the
-// selected backgrounds for color-only applies.
+// prepareOmarchyV4ThemeDir clears the previous generated theme before writing
+// a new Omarchy v4 theme.
 func prepareOmarchyV4ThemeDir(targetDir string, state *ThemeState) (string, error) {
 	if err := platform.EnsureDir(targetDir); err != nil {
 		return "", err
@@ -150,9 +174,6 @@ func prepareOmarchyV4ThemeDir(targetDir string, state *ThemeState) (string, erro
 		return "", err
 	}
 	for _, entry := range entries {
-		if entry.Name() == "backgrounds" {
-			continue
-		}
 		if err := os.RemoveAll(filepath.Join(targetDir, entry.Name())); err != nil {
 			return "", err
 		}
@@ -162,13 +183,19 @@ func prepareOmarchyV4ThemeDir(targetDir string, state *ThemeState) (string, erro
 }
 
 // applyEditorThemes applies optional editor themes (Zed, VSCode).
-func (w *Writer) applyEditorThemes(themeDir string, settings Settings, variables map[string]string) {
-	if settings.IncludeZed {
+func (w *Writer) applyEditorThemes(
+	themeDir string,
+	variables map[string]string,
+	appOverrides map[string]map[string]string,
+	includeZed bool,
+	includeVscode bool,
+) {
+	if includeZed || len(appOverrides["zed"]) > 0 {
 		if err := ApplyZedTheme(themeDir); err != nil {
 			log.Printf("Warning: Zed theme application failed: %v", err)
 		}
 	}
-	if settings.IncludeVscode {
+	if includeVscode || len(appOverrides["vscode"]) > 0 {
 		if err := ApplyVSCodeTheme(w.templatesFS, w.templatesDir, variables); err != nil {
 			log.Printf("Warning: VSCode theme application failed: %v", err)
 		}
@@ -180,6 +207,7 @@ func (w *Writer) applyEditorThemes(themeDir string, settings Settings, variables
 func (w *Writer) processOmarchyV4Templates(
 	themeDir string,
 	variables map[string]string,
+	settings Settings,
 	appOverrides map[string]map[string]string,
 	globalOverrides map[string]string,
 ) {
@@ -190,18 +218,40 @@ func (w *Writer) processOmarchyV4Templates(
 		appOverrides,
 		globalOverrides,
 	)
-	w.processTemplate(
-		"icons.theme",
-		filepath.Join(themeDir, "icons.theme"),
-		variables,
-		appOverrides,
-		globalOverrides,
-	)
+
+	names, err := template.ListTemplates(w.templatesFS, w.templatesDir)
+	if err != nil {
+		log.Printf("Error listing templates: %v", err)
+		return
+	}
+	for _, fileName := range names {
+		if fileName == "copy.json" || fileName == "colors.toml" || fileName == "colors.v4.toml" {
+			continue
+		}
+
+		appName := getAppNameFromFileName(fileName)
+		if !settings.IncludedApps[appName] && len(appOverrides[appName]) == 0 {
+			continue
+		}
+
+		outputPath := filepath.Join(themeDir, fileName)
+		if fileName == "vscode.json" {
+			w.processOmarchyV4VSCodeTheme(themeDir, variables, appOverrides, globalOverrides)
+			continue
+		}
+		if fileName == "neovim.lua" && settings.SelectedNeovimConfig != "" && len(appOverrides[appName]) == 0 {
+			if err := platform.WriteText(outputPath, settings.SelectedNeovimConfig); err != nil {
+				log.Printf("Error writing custom neovim.lua: %v", err)
+			}
+			continue
+		}
+		w.processTemplate(fileName, outputPath, variables, appOverrides, globalOverrides)
+	}
 }
 
-// GenerateOmarchyV4Only writes the files Omarchy v4 reads directly from a
-// reusable theme folder. Omarchy generates all other app-specific files.
-func (w *Writer) GenerateOmarchyV4Only(state *ThemeState, outputPath string) error {
+// GenerateOmarchyV4Only writes a reusable Omarchy v4 theme folder. App-specific
+// templates are included only when targeted or needed by a color override.
+func (w *Writer) GenerateOmarchyV4Only(state *ThemeState, settings Settings, outputPath string) error {
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
 	if err := validateTemplateInputs(variables, state.AppOverrides); err != nil {
 		return err
@@ -209,7 +259,7 @@ func (w *Writer) GenerateOmarchyV4Only(state *ThemeState, outputPath string) err
 	if _, err := prepareOmarchyV4ThemeDir(outputPath, state); err != nil {
 		return err
 	}
-	w.processOmarchyV4Templates(outputPath, variables, state.AppOverrides, state.ExtendedColors)
+	w.processOmarchyV4Templates(outputPath, variables, settings, state.AppOverrides, state.ExtendedColors)
 	return nil
 }
 
@@ -245,13 +295,26 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 	}
 
 	if isOmarchyV4 {
-		w.processOmarchyV4Templates(themeDir, variables, state.AppOverrides, state.ExtendedColors)
+		w.processOmarchyV4Templates(themeDir, variables, settings, state.AppOverrides, state.ExtendedColors)
+		w.applyEditorThemes(
+			themeDir,
+			variables,
+			state.AppOverrides,
+			settings.IncludedApps["zed"],
+			false,
+		)
 		if err := template.ProcessCustomApps(themeDir, variables); err != nil {
 			log.Printf("Warning: custom app processing failed: %v", err)
 		}
 	} else {
 		w.processTemplates(variables, themeDir, settings, state.AppOverrides, state.ExtendedColors)
-		w.applyEditorThemes(themeDir, settings, variables)
+		w.applyEditorThemes(
+			themeDir,
+			variables,
+			state.AppOverrides,
+			settings.includesApp("zed"),
+			settings.includesApp("vscode"),
+		)
 
 		if err := HandleLightModeMarker(themeDir, state.LightMode); err != nil {
 			log.Printf("Warning: light mode marker failed: %v", err)
@@ -296,11 +359,13 @@ func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath s
 	w.processTemplates(variables, targetDir, settings, state.AppOverrides, state.ExtendedColors)
 
 	// Generate VSCode extension into the export directory
-	if settings.IncludeVscode {
-		vscodeDir := filepath.Join(targetDir, "vscode-extension")
+	vscodeDir := filepath.Join(targetDir, "vscode-extension")
+	if settings.includesApp("vscode") || len(state.AppOverrides["vscode"]) > 0 {
 		if err := processVSCodeExtension(w.templatesFS, w.templatesDir, vscodeDir, variables); err != nil {
 			log.Printf("Warning: VSCode extension export failed: %v", err)
 		}
+	} else if err := os.RemoveAll(vscodeDir); err != nil {
+		log.Printf("Warning: stale VSCode extension cleanup failed: %v", err)
 	}
 
 	if err := HandleLightModeMarker(targetDir, state.LightMode); err != nil {
@@ -356,39 +421,23 @@ func (w *Writer) processTemplates(
 			continue
 		}
 
-		// Skip neovim.lua if includeNeovim is false
-		if fileName == "neovim.lua" && !settings.IncludeNeovim {
-			continue
-		}
-
-		// Skip aether.zed.json if includeZed is false
-		if fileName == "aether.zed.json" && !settings.IncludeZed {
-			continue
-		}
-
-		// Skip vscode.json if includeVscode is false
-		if fileName == "vscode.json" && !settings.IncludeVscode {
-			continue
-		}
-
 		outputPath := filepath.Join(outputDir, fileName)
+		appName := getAppNameFromFileName(fileName)
+		if appName != "colors" && !settings.includesApp(appName) && len(appOverrides[appName]) == 0 {
+			if err := os.Remove(outputPath); err != nil && !os.IsNotExist(err) {
+				log.Printf("Error removing stale template %s: %v", fileName, err)
+			}
+			continue
+		}
 
 		// Handle neovim.lua with custom config selection
-		if fileName == "neovim.lua" && settings.SelectedNeovimConfig != "" {
+		if fileName == "neovim.lua" && settings.SelectedNeovimConfig != "" && len(appOverrides[appName]) == 0 {
 			if err := platform.WriteText(outputPath, settings.SelectedNeovimConfig); err != nil {
 				log.Printf("Error writing custom neovim.lua: %v", err)
 			} else {
 				log.Printf("Applied selected Neovim theme to %s", outputPath)
 			}
 			continue
-		}
-
-		// Skip templates for excluded apps (used by export filtering)
-		if len(settings.ExcludedApps) > 0 {
-			appName := getAppNameFromFileName(fileName)
-			if settings.ExcludedApps[appName] {
-				continue
-			}
 		}
 
 		w.processTemplate(fileName, outputPath, variables, appOverrides, globalOverrides)
@@ -417,29 +466,9 @@ func (w *Writer) processTemplate(
 
 	// Check for app-specific overrides
 	appName := getAppNameFromFileName(fileName)
-	mergedVars := variables
-	if overrides, ok := appOverrides[appName]; ok && len(overrides) > 0 {
-		// Copy base variables and apply overrides
-		mergedVars = make(map[string]string, len(variables)+len(overrides))
-		for k, v := range variables {
-			mergedVars[k] = v
-		}
-		for k, v := range overrides {
-			mergedVars[k] = v
-		}
-		// Recompute derived/alias variables so overriding "background"
-		// also updates "bg", "dark_bg", etc. The "explicit" set preserves
-		// both per-app overrides and globally pinned shades (already present
-		// in mergedVars via variables) so neither gets recomputed away.
-		// Per-app overrides are applied last so they win over a global pin.
-		explicit := make(map[string]string, len(overrides)+len(globalOverrides))
-		for k, v := range globalOverrides {
-			explicit[k] = v
-		}
-		for k, v := range overrides {
-			explicit[k] = v
-		}
-		template.RecomputeDerived(mergedVars, explicit)
+	overrides := appOverrides[appName]
+	mergedVars := mergeTemplateVariables(variables, overrides, globalOverrides)
+	if len(overrides) > 0 {
 		log.Printf("Applied %d override(s) to %s", len(overrides), fileName)
 	}
 
@@ -448,6 +477,55 @@ func (w *Writer) processTemplate(
 	if err := platform.WriteText(outputPath, processed); err != nil {
 		log.Printf("Error writing processed template %s: %v", fileName, err)
 	}
+}
+
+func (w *Writer) processOmarchyV4VSCodeTheme(
+	themeDir string,
+	variables map[string]string,
+	appOverrides map[string]map[string]string,
+	globalOverrides map[string]string,
+) {
+	templatePath := path.Join(w.templatesDir, "vscode-extension/themes/aether-color-theme.json")
+	content, err := fs.ReadFile(w.templatesFS, templatePath)
+	if err != nil {
+		log.Printf("Error reading VSCode theme template: %v", err)
+		return
+	}
+
+	mergedVars := mergeTemplateVariables(variables, appOverrides["vscode"], globalOverrides)
+	processed := template.ProcessTemplate(string(content), mergedVars)
+	if err := platform.WriteText(filepath.Join(themeDir, "vscode-theme.json"), processed); err != nil {
+		log.Printf("Error writing processed VSCode theme: %v", err)
+	}
+}
+
+func mergeTemplateVariables(
+	variables map[string]string,
+	overrides map[string]string,
+	globalOverrides map[string]string,
+) map[string]string {
+	if len(overrides) == 0 {
+		return variables
+	}
+
+	merged := make(map[string]string, len(variables)+len(overrides))
+	for k, v := range variables {
+		merged[k] = v
+	}
+	for k, v := range overrides {
+		merged[k] = v
+	}
+
+	// Recompute aliases and derived colors while preserving explicit pins.
+	explicit := make(map[string]string, len(overrides)+len(globalOverrides))
+	for k, v := range globalOverrides {
+		explicit[k] = v
+	}
+	for k, v := range overrides {
+		explicit[k] = v
+	}
+	template.RecomputeDerived(merged, explicit)
+	return merged
 }
 
 // processVSCodeExtension recursively reads all files from the embedded

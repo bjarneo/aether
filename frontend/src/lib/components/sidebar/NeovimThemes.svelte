@@ -1,6 +1,10 @@
 <script lang="ts">
     import ExpandableSection from '$lib/components/shared/ExpandableSection.svelte';
-    import {getSettings, updateSettings} from '$lib/stores/settings.svelte';
+    import {
+        getSettings,
+        setAppIncluded,
+        updateSettings,
+    } from '$lib/stores/settings.svelte';
     import {showToast} from '$lib/stores/ui.svelte';
     import {NEOVIM_PRESETS} from '$lib/constants/neovim-presets';
 
@@ -19,6 +23,7 @@
 
     function handleSelect(preset: (typeof NEOVIM_PRESETS)[0]) {
         updateSettings({selectedNeovimConfig: preset.config});
+        setAppIncluded('neovim', true);
         selected = preset.name;
         showToast(`Neovim theme: ${preset.name}`);
     }

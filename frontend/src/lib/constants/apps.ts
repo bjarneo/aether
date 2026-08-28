@@ -1,10 +1,8 @@
-import type {Settings} from '$lib/types/theme';
+type SpecialAppFlag = 'includeZed' | 'includeVscode' | 'includeNeovim';
 
-// App keys that have a dedicated boolean flag in Settings. Toggling these
-// drives apply-side install steps (ApplyZedTheme, ApplyVSCodeTheme,
-// SelectedNeovimConfig), not just template writing —
-// they cannot be collapsed into the generic excludedApps list.
-export const SPECIAL_APP_FLAGS: Record<string, keyof Settings> = {
+// These legacy flags still drive editor-specific install steps. Keep them in
+// sync with the explicit app inclusion set.
+export const SPECIAL_APP_FLAGS: Record<string, SpecialAppFlag> = {
     zed: 'includeZed',
     vscode: 'includeVscode',
     neovim: 'includeNeovim',
