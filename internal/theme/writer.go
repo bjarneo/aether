@@ -152,6 +152,16 @@ func prepareThemeDir(targetDir string, state *ThemeState) (string, error) {
 		}
 	}
 
+	// When the applied wallpaper is a derived variant (e.g. the heavy-blur
+	// JPEG), also keep the unblurred original in backgrounds so the desktop
+	// background cycler can switch between the two.
+	if original := state.OriginalWallpaperPath; original != "" && original != state.WallpaperPath {
+		destPath := filepath.Join(bgDir, filepath.Base(original))
+		if err := platform.CopyFile(original, destPath); err != nil {
+			log.Printf("Warning: could not copy original wallpaper: %v", err)
+		}
+	}
+
 	for i, src := range state.AdditionalImages {
 		destPath := filepath.Join(bgDir, filepath.Base(src))
 		if err := platform.CopyFile(src, destPath); err != nil {

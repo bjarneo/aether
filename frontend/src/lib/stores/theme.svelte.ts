@@ -162,6 +162,7 @@ export function getAppOverrides(): Record<string, Record<string, string>> {
 export function getThemeSnapshot(): {
     palette: string[];
     wallpaperPath: string;
+    originalWallpaperPath: string;
     lightMode: boolean;
     extendedColors: Record<string, string>;
     appOverrides: Record<string, Record<string, string>>;
@@ -169,7 +170,12 @@ export function getThemeSnapshot(): {
 } {
     return {
         palette,
-        wallpaperPath,
+        // Mirrored for IPC readers (`aether status`) and CLI apply — report
+        // the blurred variant when one is active, since that is what an
+        // apply would set as the wallpaper. The unblurred original travels
+        // alongside so theme folders keep both for background cycling.
+        wallpaperPath: getApplyWallpaperPath(),
+        originalWallpaperPath: getWallpaperPath(),
         lightMode,
         extendedColors,
         appOverrides,

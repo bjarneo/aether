@@ -220,12 +220,13 @@ func (a *App) SetExtractionMode(mode string) {
 // SyncStateRequest mirrors the frontend editor state into Go so IPC readers
 // (`aether status`, etc.) reflect live edits without requiring Apply.
 type SyncStateRequest struct {
-	Palette          []string                     `json:"palette"`
-	WallpaperPath    string                       `json:"wallpaperPath"`
-	LightMode        bool                         `json:"lightMode"`
-	ExtendedColors   map[string]string            `json:"extendedColors"`
-	AppOverrides     map[string]map[string]string `json:"appOverrides"`
-	AdditionalImages []string                     `json:"additionalImages"`
+	Palette               []string                     `json:"palette"`
+	WallpaperPath         string                       `json:"wallpaperPath"`
+	OriginalWallpaperPath string                       `json:"originalWallpaperPath"`
+	LightMode             bool                         `json:"lightMode"`
+	ExtendedColors        map[string]string            `json:"extendedColors"`
+	AppOverrides          map[string]map[string]string `json:"appOverrides"`
+	AdditionalImages      []string                     `json:"additionalImages"`
 }
 
 // SyncState is called (debounced) by the frontend whenever the editor state
@@ -240,6 +241,7 @@ func (a *App) SyncState(req SyncStateRequest) {
 		a.state.SetAdjustedPalette(p)
 	}
 	a.state.WallpaperPath = req.WallpaperPath
+	a.state.OriginalWallpaperPath = req.OriginalWallpaperPath
 	a.state.LightMode = req.LightMode
 	if req.ExtendedColors != nil {
 		a.state.ExtendedColors = req.ExtendedColors
@@ -319,13 +321,14 @@ func (a *App) ComputeVariables(paletteSlice []string, extendedColors map[string]
 
 // ApplyThemeRequest is the payload from the frontend containing all current state.
 type ApplyThemeRequest struct {
-	Palette          []string                     `json:"palette"`
-	WallpaperPath    string                       `json:"wallpaperPath"`
-	LightMode        bool                         `json:"lightMode"`
-	AdditionalImages []string                     `json:"additionalImages"`
-	ExtendedColors   map[string]string            `json:"extendedColors"`
-	Settings         theme.Settings               `json:"settings"`
-	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	Palette               []string                     `json:"palette"`
+	WallpaperPath         string                       `json:"wallpaperPath"`
+	OriginalWallpaperPath string                       `json:"originalWallpaperPath"`
+	LightMode             bool                         `json:"lightMode"`
+	AdditionalImages      []string                     `json:"additionalImages"`
+	ExtendedColors        map[string]string            `json:"extendedColors"`
+	Settings              theme.Settings               `json:"settings"`
+	AppOverrides          map[string]map[string]string `json:"appOverrides"`
 }
 
 // ApplyTheme processes all templates and applies the theme to the system.
@@ -338,13 +341,14 @@ func (a *App) ApplyTheme(req ApplyThemeRequest) (*theme.ApplyResult, error) {
 	}
 
 	state := &theme.ThemeState{
-		Palette:          palette,
-		WallpaperPath:    req.WallpaperPath,
-		LightMode:        req.LightMode,
-		ColorRoles:       roles,
-		ExtendedColors:   req.ExtendedColors,
-		AdditionalImages: req.AdditionalImages,
-		AppOverrides:     appOverrides,
+		Palette:               palette,
+		WallpaperPath:         req.WallpaperPath,
+		OriginalWallpaperPath: req.OriginalWallpaperPath,
+		LightMode:             req.LightMode,
+		ColorRoles:            roles,
+		ExtendedColors:        req.ExtendedColors,
+		AdditionalImages:      req.AdditionalImages,
+		AppOverrides:          appOverrides,
 	}
 
 	return a.writer.ApplyTheme(state, req.Settings)
@@ -353,15 +357,16 @@ func (a *App) ApplyTheme(req ApplyThemeRequest) (*theme.ApplyResult, error) {
 // SaveAndApplyThemeRequest is the payload for saving the current state as a
 // named theme folder before activating it.
 type SaveAndApplyThemeRequest struct {
-	Name             string                       `json:"name"`
-	UpdateExisting   bool                         `json:"updateExisting"`
-	Palette          []string                     `json:"palette"`
-	WallpaperPath    string                       `json:"wallpaperPath"`
-	LightMode        bool                         `json:"lightMode"`
-	AdditionalImages []string                     `json:"additionalImages"`
-	ExtendedColors   map[string]string            `json:"extendedColors"`
-	Settings         theme.Settings               `json:"settings"`
-	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	Name                  string                       `json:"name"`
+	UpdateExisting        bool                         `json:"updateExisting"`
+	Palette               []string                     `json:"palette"`
+	WallpaperPath         string                       `json:"wallpaperPath"`
+	OriginalWallpaperPath string                       `json:"originalWallpaperPath"`
+	LightMode             bool                         `json:"lightMode"`
+	AdditionalImages      []string                     `json:"additionalImages"`
+	ExtendedColors        map[string]string            `json:"extendedColors"`
+	Settings              theme.Settings               `json:"settings"`
+	AppOverrides          map[string]map[string]string `json:"appOverrides"`
 }
 
 // SaveAndApplyTheme writes a reusable named theme folder before applying it.
@@ -378,13 +383,14 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 
 	palette, roles := buildColorRoles(req.Palette, req.ExtendedColors)
 	state := &theme.ThemeState{
-		Palette:          palette,
-		WallpaperPath:    req.WallpaperPath,
-		LightMode:        req.LightMode,
-		ColorRoles:       roles,
-		ExtendedColors:   req.ExtendedColors,
-		AdditionalImages: req.AdditionalImages,
-		AppOverrides:     req.AppOverrides,
+		Palette:               palette,
+		WallpaperPath:         req.WallpaperPath,
+		OriginalWallpaperPath: req.OriginalWallpaperPath,
+		LightMode:             req.LightMode,
+		ColorRoles:            roles,
+		ExtendedColors:        req.ExtendedColors,
+		AdditionalImages:      req.AdditionalImages,
+		AppOverrides:          req.AppOverrides,
 	}
 	if state.AppOverrides == nil {
 		state.AppOverrides = make(map[string]map[string]string)
@@ -944,15 +950,16 @@ func (a *App) HandleDroppedFiles(paths []string) (string, error) {
 
 // ExportThemeRequest is the payload from the frontend for exporting a theme.
 type ExportThemeRequest struct {
-	Name             string                       `json:"name"`
-	IncludedApps     []string                     `json:"includedApps"`
-	Palette          []string                     `json:"palette"`
-	WallpaperPath    string                       `json:"wallpaperPath"`
-	LightMode        bool                         `json:"lightMode"`
-	AdditionalImages []string                     `json:"additionalImages"`
-	ExtendedColors   map[string]string            `json:"extendedColors"`
-	InstallToOmarchy bool                         `json:"installToOmarchy"`
-	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	Name                  string                       `json:"name"`
+	IncludedApps          []string                     `json:"includedApps"`
+	Palette               []string                     `json:"palette"`
+	WallpaperPath         string                       `json:"wallpaperPath"`
+	OriginalWallpaperPath string                       `json:"originalWallpaperPath"`
+	LightMode             bool                         `json:"lightMode"`
+	AdditionalImages      []string                     `json:"additionalImages"`
+	ExtendedColors        map[string]string            `json:"extendedColors"`
+	InstallToOmarchy      bool                         `json:"installToOmarchy"`
+	AppOverrides          map[string]map[string]string `json:"appOverrides"`
 }
 
 // allExportableApps is the full set of app names that can be exported.
@@ -991,13 +998,14 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	}
 
 	state := &theme.ThemeState{
-		Palette:          palette,
-		WallpaperPath:    req.WallpaperPath,
-		LightMode:        req.LightMode,
-		ColorRoles:       roles,
-		ExtendedColors:   req.ExtendedColors,
-		AdditionalImages: req.AdditionalImages,
-		AppOverrides:     exportOverrides,
+		Palette:               palette,
+		WallpaperPath:         req.WallpaperPath,
+		OriginalWallpaperPath: req.OriginalWallpaperPath,
+		LightMode:             req.LightMode,
+		ColorRoles:            roles,
+		ExtendedColors:        req.ExtendedColors,
+		AdditionalImages:      req.AdditionalImages,
+		AppOverrides:          exportOverrides,
 	}
 
 	// Build included set from the request
@@ -1282,11 +1290,12 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 
 	case "apply":
 		result, err := a.ApplyTheme(ApplyThemeRequest{
-			Palette:        a.state.Palette[:],
-			WallpaperPath:  a.state.WallpaperPath,
-			LightMode:      a.state.LightMode,
-			ExtendedColors: a.state.ExtendedColors,
-			AppOverrides:   a.state.AppOverrides,
+			Palette:               a.state.Palette[:],
+			WallpaperPath:         a.state.WallpaperPath,
+			OriginalWallpaperPath: a.state.OriginalWallpaperPath,
+			LightMode:             a.state.LightMode,
+			ExtendedColors:        a.state.ExtendedColors,
+			AppOverrides:          a.state.AppOverrides,
 		})
 		if err != nil {
 			return ipc.Response{OK: false, Error: err.Error()}
