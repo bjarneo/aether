@@ -3,6 +3,9 @@ import {
     DEFAULT_ADJUSTMENTS,
     type Adjustments,
     type ColorRoles,
+    type IconThemeSelection,
+    AUTOMATIC_ICON_THEME,
+    normalizeIconThemeSelection,
 } from '$lib/types/theme';
 import {pushState} from '$lib/stores/history.svelte';
 
@@ -20,6 +23,7 @@ let isExtracting = $state<boolean>(false);
 let isApplying = $state<boolean>(false);
 let additionalImages = $state<string[]>([]);
 let appOverrides = $state<Record<string, Record<string, string>>>({});
+let iconTheme = $state<IconThemeSelection>({...AUTOMATIC_ICON_THEME});
 let paletteCurvePoints = $state<[number, number][]>([]);
 // Source path of the most recently extracted palette. Used to decide
 // whether per-app template overrides should be cleared on the next
@@ -136,6 +140,9 @@ export function getBaseExtendedColors(): Record<string, string> {
 export function getAppOverrides(): Record<string, Record<string, string>> {
     return appOverrides;
 }
+export function getIconTheme(): IconThemeSelection {
+    return iconTheme;
+}
 
 // Snapshot of the fields mirrored into Go for IPC reads (aether status) and
 // for constructing ApplyThemeRequest/SaveBlueprintRequest payloads.
@@ -146,6 +153,7 @@ export function getThemeSnapshot(): {
     extendedColors: Record<string, string>;
     appOverrides: Record<string, Record<string, string>>;
     additionalImages: string[];
+    iconTheme: IconThemeSelection;
 } {
     return {
         palette,
@@ -154,6 +162,7 @@ export function getThemeSnapshot(): {
         extendedColors,
         appOverrides,
         additionalImages,
+        iconTheme,
     };
 }
 
@@ -167,6 +176,7 @@ export function getThemeSignature(): string {
         extendedColors,
         appOverrides,
         additionalImages,
+        iconTheme,
     ]);
 }
 
@@ -219,7 +229,7 @@ let hasEverChanged = false;
 
 export function setPalette(colors: string[], skipHistory = false): void {
     if (!skipHistory && hasEverChanged) {
-        pushState(palette, extendedColors, adjustments);
+        pushState(palette, extendedColors, adjustments, iconTheme);
     }
     hasEverChanged = true;
     basePalette = [...colors];
@@ -294,7 +304,7 @@ let colorEditSnapshotPushed = false;
 export function setColor(index: number, hex: string): void {
     // Push history once at the start of a color edit session, not on every drag tick
     if (!colorEditSnapshotPushed) {
-        pushState(palette, extendedColors, adjustments);
+        pushState(palette, extendedColors, adjustments, iconTheme);
         colorEditSnapshotPushed = true;
     }
     if (colorEditTimer) clearTimeout(colorEditTimer);
@@ -313,7 +323,7 @@ let extEditTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function setExtendedColor(key: string, hex: string): void {
     if (!extEditSnapshotPushed) {
-        pushState(palette, extendedColors, adjustments);
+        pushState(palette, extendedColors, adjustments, iconTheme);
         extEditSnapshotPushed = true;
     }
     if (extEditTimer) clearTimeout(extEditTimer);
@@ -334,7 +344,7 @@ export function clearExtendedColors(keys: string[]): void {
         k => k in extendedColors || k in baseExtendedColors
     );
     if (present.length === 0) return;
-    pushState(palette, extendedColors, adjustments);
+    pushState(palette, extendedColors, adjustments, iconTheme);
     const next = {...extendedColors};
     const base = {...baseExtendedColors};
     for (const k of present) {
@@ -375,6 +385,18 @@ export function setAdditionalImages(images: string[]): void {
     additionalImages = [...images];
 }
 
+export function setIconTheme(
+    selection: {mode?: string; id?: string} | null | undefined,
+    skipHistory = false
+): void {
+    const next = normalizeIconThemeSelection(selection);
+    if (next.mode === iconTheme.mode && next.id === iconTheme.id) return;
+    if (!skipHistory) {
+        pushState(palette, extendedColors, adjustments, iconTheme);
+    }
+    iconTheme = {...next};
+}
+
 export function addAdditionalImage(path: string): void {
     if (!additionalImages.includes(path)) {
         additionalImages = [...additionalImages, path];
@@ -403,7 +425,7 @@ export function swapMainWithAdditional(path: string): void {
 // Randomly reassigns ANSI color roles 1-6 (and their bright counterparts 9-14).
 // Locked colors are excluded from the shuffle.
 export function shufflePalette(): void {
-    pushState(palette, extendedColors, adjustments);
+    pushState(palette, extendedColors, adjustments, iconTheme);
 
     const indices = [1, 2, 3, 4, 5, 6];
     const unlocked = indices.filter(i => !lockedColors[i]);
@@ -446,5 +468,6 @@ export function reset(): void {
     extendedColors = {...ext};
     baseExtendedColors = {...ext};
     appOverrides = {};
+    iconTheme = {...AUTOMATIC_ICON_THEME};
     paletteCurvePoints = [];
 }

@@ -51,6 +51,11 @@ func applyImportedTheme(templatesFS embed.FS, bp *blueprint.Blueprint, palette [
 		state.ExtendedColors[k] = v
 	}
 	state.SetPalette(palette)
+	iconTheme, err := bp.IconThemeSelection()
+	if err != nil {
+		return nil, fmt.Errorf("blueprint iconTheme: %w", err)
+	}
+	state.IconTheme = iconTheme
 	return writer.ApplyTheme(state, theme.DefaultApplySettings())
 }
 

@@ -31,7 +31,9 @@
             appList = Object.keys(result || {})
                 .filter(
                     k =>
-                        !SPECIAL_APP_KEYS.has(k) && !ALWAYS_INCLUDED_APPS.has(k)
+                        !SPECIAL_APP_KEYS.has(k) &&
+                        !ALWAYS_INCLUDED_APPS.has(k) &&
+                        k !== 'icons'
                 )
                 .sort();
         } catch {

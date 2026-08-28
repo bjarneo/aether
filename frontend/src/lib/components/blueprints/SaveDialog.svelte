@@ -8,8 +8,10 @@
         getExtendedColors,
         getAppOverrides,
         getAdjustments,
+        getIconTheme,
     } from '$lib/stores/theme.svelte';
     import Modal from '$lib/components/shared/Modal.svelte';
+    import type {main} from '../../../../wailsjs/go/models';
 
     let {
         open = true,
@@ -83,7 +85,8 @@
                 extendedColors: getExtendedColors(),
                 appOverrides: getAppOverrides(),
                 adjustments: {...getAdjustments()},
-            });
+                iconTheme: getIconTheme(),
+            } as unknown as main.SaveBlueprintRequest);
             showToast(`Saved: ${name.trim()}`);
             onsave();
         } catch {

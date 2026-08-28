@@ -7,6 +7,7 @@
     import AccessibilityPanel from './AccessibilityPanel.svelte';
     import NeovimThemes from './NeovimThemes.svelte';
     import TemplateToggles from './TemplateToggles.svelte';
+    import IconThemePicker from './IconThemePicker.svelte';
     import SectionLabel from '$lib/components/shared/SectionLabel.svelte';
     import {getLightMode, setLightMode} from '$lib/stores/theme.svelte';
 
@@ -33,6 +34,10 @@
                 ></span>
             </button>
         </label>
+
+        <div class="border-border mt-2 border-t pt-2">
+            <IconThemePicker />
+        </div>
     </section>
 
     <SectionLabel label="Generate" />

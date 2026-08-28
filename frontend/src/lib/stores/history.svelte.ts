@@ -1,6 +1,6 @@
 // Frontend-side undo/redo history
 
-import type {Adjustments} from '$lib/types/theme';
+import type {Adjustments, IconThemeSelection} from '$lib/types/theme';
 
 const MAX_HISTORY = 50;
 
@@ -8,6 +8,7 @@ interface Snapshot {
     palette: string[];
     extendedColors: Record<string, string>;
     adjustments: Adjustments;
+    iconTheme: IconThemeSelection;
 }
 
 let undoStack = $state<Snapshot[]>([]);
@@ -28,18 +29,29 @@ export function getCanRedo(): boolean {
     return canRedo;
 }
 
+function snapshotOf(
+    palette: string[],
+    extendedColors: Record<string, string>,
+    adjustments: Adjustments,
+    iconTheme: IconThemeSelection
+): Snapshot {
+    return {
+        palette: [...palette],
+        extendedColors: {...extendedColors},
+        adjustments: {...adjustments},
+        iconTheme: {...iconTheme},
+    };
+}
+
 export function pushState(
     palette: string[],
     extendedColors: Record<string, string>,
-    adjustments: Adjustments
+    adjustments: Adjustments,
+    iconTheme: IconThemeSelection
 ): void {
     undoStack = [
         ...undoStack.slice(-(MAX_HISTORY - 1)),
-        {
-            palette: [...palette],
-            extendedColors: {...extendedColors},
-            adjustments: {...adjustments},
-        },
+        snapshotOf(palette, extendedColors, adjustments, iconTheme),
     ];
     redoStack = [];
     updateFlags();
@@ -49,15 +61,12 @@ export function pushState(
 export function pushUndo(
     palette: string[],
     extendedColors: Record<string, string>,
-    adjustments: Adjustments
+    adjustments: Adjustments,
+    iconTheme: IconThemeSelection
 ): void {
     undoStack = [
         ...undoStack.slice(-(MAX_HISTORY - 1)),
-        {
-            palette: [...palette],
-            extendedColors: {...extendedColors},
-            adjustments: {...adjustments},
-        },
+        snapshotOf(palette, extendedColors, adjustments, iconTheme),
     ];
     updateFlags();
 }
@@ -73,15 +82,12 @@ export function undo(): Snapshot | null {
 export function pushRedo(
     palette: string[],
     extendedColors: Record<string, string>,
-    adjustments: Adjustments
+    adjustments: Adjustments,
+    iconTheme: IconThemeSelection
 ): void {
     redoStack = [
         ...redoStack,
-        {
-            palette: [...palette],
-            extendedColors: {...extendedColors},
-            adjustments: {...adjustments},
-        },
+        snapshotOf(palette, extendedColors, adjustments, iconTheme),
     ];
     updateFlags();
 }

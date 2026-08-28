@@ -38,6 +38,20 @@ export interface Adjustments {
     whitePoint: number;
 }
 
+export type IconThemeSelection =
+    {mode: 'automatic'; id?: never} | {mode: 'explicit'; id: string};
+
+export const AUTOMATIC_ICON_THEME: IconThemeSelection = {mode: 'automatic'};
+
+export function normalizeIconThemeSelection(
+    value: {mode?: string; id?: string} | null | undefined
+): IconThemeSelection {
+    if (value?.mode === 'explicit' && value.id) {
+        return {mode: 'explicit', id: value.id};
+    }
+    return {...AUTOMATIC_ICON_THEME};
+}
+
 // Blueprint shape returned by ListBlueprints (Go side returns untyped maps,
 // so this mirrors internal/blueprint.Blueprint by hand).
 export interface BlueprintPaletteData {
@@ -57,6 +71,7 @@ export interface Blueprint {
     adjustments?: Record<string, number>;
     appOverrides?: Record<string, Record<string, string>>;
     settings?: Record<string, unknown>;
+    iconTheme?: IconThemeSelection;
     timestamp: number;
     path?: string;
     filename?: string;

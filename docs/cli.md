@@ -59,6 +59,7 @@ aether --generate /path/to/wallpaper.jpg
 | `--extract-mode MODE` | Color extraction algorithm (see below) |
 | `--no-apply` | Generate templates only, don't activate theme |
 | `--output PATH` | Custom output directory (use with `--no-apply`) |
+| `--icon-theme automatic\|ID` | Keep color-matched Yaru or write an explicit safe icon-theme directory ID |
 
 **Extraction Modes:**
 
@@ -85,7 +86,12 @@ aether --generate ~/wallpaper.jpg --no-apply
 
 # Generate to custom directory for use with external scripts
 aether --generate ~/wallpaper.jpg --no-apply --output ~/my-themes/generated
+
+# Generate with a specific installed icon theme (installation is not required on this machine)
+aether --generate ~/wallpaper.jpg --no-apply --icon-theme Papirus-Dark
 ```
+
+Omitting `--icon-theme`, or passing `--icon-theme automatic`, preserves Aether's existing palette-derived Yaru behavior. A safe explicit ID is written exactly even when it is not installed locally, so portable blueprints keep their intent. Excluding the Icons target still takes precedence and omits `icons.theme`.
 
 ### Import Blueprint
 

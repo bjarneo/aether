@@ -133,6 +133,7 @@ Theme generation:
     --light-mode                            Generate light variant
     --no-apply                              Render templates without activating
     --output <path>                         Output dir (defaults to ~/.config/aether/theme)
+    --icon-theme automatic|<ID>              Use color-matched Yaru or an explicit installed theme ID
     --no-zed                                Skip Zed extension (default on)
     --no-vscode                             Skip VSCode integration (default on)
     --no-neovim                             Skip Neovim template (default on)

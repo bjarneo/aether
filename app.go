@@ -16,6 +16,7 @@ import (
 	"aether/internal/color"
 	"aether/internal/extraction"
 	"aether/internal/favorites"
+	"aether/internal/icontheme"
 	"aether/internal/omarchy"
 	"aether/internal/platform"
 	"aether/internal/template"
@@ -39,6 +40,7 @@ type App struct {
 	favorites    *favorites.Service
 	wallhaven    *wallhaven.Client
 	batch        *batch.Processor
+	iconThemes   *icontheme.Catalog
 	themeWatcher *theme.ThemeWatcher
 	ipcServer    *ipc.Server
 	pending      pendingImportState
@@ -96,8 +98,24 @@ func NewApp() *App {
 		favorites:    favorites.NewService(),
 		wallhaven:    wallhaven.NewClient(),
 		batch:        batch.NewProcessor(),
+		iconThemes:   icontheme.NewCatalog(),
 		themeWatcher: theme.NewThemeWatcher(),
 	}
+}
+
+// ListInstalledIconThemes returns the cached installed desktop icon themes.
+func (a *App) ListInstalledIconThemes() ([]icontheme.ThemeSummary, error) {
+	return a.iconThemes.List(context.Background())
+}
+
+// RefreshInstalledIconThemes rescans approved icon roots.
+func (a *App) RefreshInstalledIconThemes() ([]icontheme.ThemeSummary, error) {
+	return a.iconThemes.Refresh(context.Background())
+}
+
+// GetIconThemePreview returns safe backend-rasterized samples for a theme ID.
+func (a *App) GetIconThemePreview(themeID string) (icontheme.ThemePreview, error) {
+	return a.iconThemes.Preview(context.Background(), themeID)
 }
 
 // newSeededState builds a ThemeState with the unmodified DefaultPalette
@@ -226,12 +244,17 @@ type SyncStateRequest struct {
 	ExtendedColors   map[string]string            `json:"extendedColors"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 	AdditionalImages []string                     `json:"additionalImages"`
+	IconTheme        icontheme.Selection          `json:"iconTheme"`
 }
 
 // SyncState is called (debounced) by the frontend whenever the editor state
 // changes. Uses SetAdjustedPalette so BasePalette from the last extraction
 // is preserved as the "pristine" reference.
-func (a *App) SyncState(req SyncStateRequest) {
+func (a *App) SyncState(req SyncStateRequest) error {
+	iconTheme, err := icontheme.NormalizeSelection(req.IconTheme)
+	if err != nil {
+		return fmt.Errorf("iconTheme: %w", err)
+	}
 	if len(req.Palette) >= 16 {
 		var p [16]string
 		for i := 0; i < 16; i++ {
@@ -250,6 +273,8 @@ func (a *App) SyncState(req SyncStateRequest) {
 	if req.AdditionalImages != nil {
 		a.state.AdditionalImages = req.AdditionalImages
 	}
+	a.state.IconTheme = iconTheme
+	return nil
 }
 
 // ANSI 16-color palette positions. Names follow xterm convention; the role
@@ -326,6 +351,7 @@ type ApplyThemeRequest struct {
 	ExtendedColors   map[string]string            `json:"extendedColors"`
 	Settings         theme.Settings               `json:"settings"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	IconTheme        icontheme.Selection          `json:"iconTheme"`
 }
 
 // ApplyTheme processes all templates and applies the theme to the system.
@@ -345,6 +371,7 @@ func (a *App) ApplyTheme(req ApplyThemeRequest) (*theme.ApplyResult, error) {
 		ExtendedColors:   req.ExtendedColors,
 		AdditionalImages: req.AdditionalImages,
 		AppOverrides:     appOverrides,
+		IconTheme:        req.IconTheme,
 	}
 
 	return a.writer.ApplyTheme(state, req.Settings)
@@ -362,6 +389,7 @@ type SaveAndApplyThemeRequest struct {
 	ExtendedColors   map[string]string            `json:"extendedColors"`
 	Settings         theme.Settings               `json:"settings"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	IconTheme        icontheme.Selection          `json:"iconTheme"`
 }
 
 // SaveAndApplyTheme writes a reusable named theme folder before applying it.
@@ -385,6 +413,7 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 		ExtendedColors:   req.ExtendedColors,
 		AdditionalImages: req.AdditionalImages,
 		AppOverrides:     req.AppOverrides,
+		IconTheme:        req.IconTheme,
 	}
 	if state.AppOverrides == nil {
 		state.AppOverrides = make(map[string]map[string]string)
@@ -440,6 +469,10 @@ func (a *App) ListBlueprints() ([]map[string]interface{}, error) {
 	// Convert to raw maps to avoid Wails model conversion issues
 	result := make([]map[string]interface{}, len(bps))
 	for i, bp := range bps {
+		iconTheme, err := bp.IconThemeSelection()
+		if err != nil {
+			return nil, fmt.Errorf("blueprint %q icon theme: %w", bp.Name, err)
+		}
 		result[i] = map[string]interface{}{
 			"name":      bp.Name,
 			"timestamp": bp.Timestamp,
@@ -452,6 +485,7 @@ func (a *App) ListBlueprints() ([]map[string]interface{}, error) {
 			},
 			"adjustments":  bp.Adjustments,
 			"appOverrides": bp.AppOverrides,
+			"iconTheme":    iconTheme,
 		}
 	}
 	return result, nil
@@ -469,6 +503,7 @@ type SaveBlueprintRequest struct {
 	ExtendedColors   map[string]string            `json:"extendedColors"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 	Adjustments      map[string]float64           `json:"adjustments"`
+	IconTheme        icontheme.Selection          `json:"iconTheme"`
 }
 
 func (a *App) SaveBlueprint(req SaveBlueprintRequest) error {
@@ -483,6 +518,9 @@ func (a *App) SaveBlueprint(req SaveBlueprintRequest) error {
 		},
 		Adjustments:  req.Adjustments,
 		AppOverrides: req.AppOverrides,
+	}
+	if err := bp.SetIconThemeSelection(req.IconTheme); err != nil {
+		return fmt.Errorf("iconTheme: %w", err)
 	}
 	return a.blueprints.Save(req.Name, bp)
 }
@@ -543,6 +581,11 @@ func (a *App) LoadBlueprint(name string) error {
 	}
 	a.state.Adjustments = a.adjustmentsFromBlueprint(bp)
 	a.state.AppOverrides = a.appOverridesFromBlueprint(bp)
+	iconTheme, err := bp.IconThemeSelection()
+	if err != nil {
+		return fmt.Errorf("blueprint iconTheme: %w", err)
+	}
+	a.state.IconTheme = iconTheme
 	return nil
 }
 
@@ -577,6 +620,11 @@ func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
 	}
 	a.state.Adjustments = a.adjustmentsFromBlueprint(bp)
 	a.state.AppOverrides = a.appOverridesFromBlueprint(bp)
+	iconTheme, err := bp.IconThemeSelection()
+	if err != nil {
+		return nil, fmt.Errorf("blueprint iconTheme: %w", err)
+	}
+	a.state.IconTheme = iconTheme
 
 	return a.writer.ApplyTheme(a.state, theme.DefaultApplySettings())
 }
@@ -942,6 +990,7 @@ type ExportThemeRequest struct {
 	ExtendedColors   map[string]string            `json:"extendedColors"`
 	InstallToOmarchy bool                         `json:"installToOmarchy"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	IconTheme        icontheme.Selection          `json:"iconTheme"`
 }
 
 // allExportableApps is the full set of app names that can be exported.
@@ -987,6 +1036,7 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 		ExtendedColors:   req.ExtendedColors,
 		AdditionalImages: req.AdditionalImages,
 		AppOverrides:     exportOverrides,
+		IconTheme:        req.IconTheme,
 	}
 
 	// Build included set from the request
@@ -1029,12 +1079,13 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 
 // ImportResult is returned by ImportFileDialog with the imported colors.
 type ImportResult struct {
-	Colors         []string          `json:"colors"`
-	ExtendedColors map[string]string `json:"extendedColors"`
-	Name           string            `json:"name"`
-	Path           string            `json:"path"`
-	WallpaperPath  string            `json:"wallpaperPath"`
-	LightMode      bool              `json:"lightMode"`
+	Colors         []string            `json:"colors"`
+	ExtendedColors map[string]string   `json:"extendedColors"`
+	Name           string              `json:"name"`
+	Path           string              `json:"path"`
+	WallpaperPath  string              `json:"wallpaperPath"`
+	LightMode      bool                `json:"lightMode"`
+	IconTheme      icontheme.Selection `json:"iconTheme"`
 }
 
 // ImportFileDialog opens a file dialog for importing a theme file.
@@ -1119,6 +1170,11 @@ func (a *App) importFile(path, fileType string) (*ImportResult, error) {
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
+	iconTheme, err := bp.IconThemeSelection()
+	if err != nil {
+		return nil, fmt.Errorf("iconTheme: %w", err)
+	}
+	a.state.IconTheme = iconTheme
 
 	log.Printf("[import] success: %s (%d colors)", bp.Name, len(bp.Palette.Colors))
 	return &ImportResult{
@@ -1128,6 +1184,7 @@ func (a *App) importFile(path, fileType string) (*ImportResult, error) {
 		Path:           savedPath,
 		WallpaperPath:  a.state.WallpaperPath,
 		LightMode:      a.state.LightMode,
+		IconTheme:      a.state.IconTheme,
 	}, nil
 }
 
@@ -1276,6 +1333,7 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 			LightMode:      a.state.LightMode,
 			ExtendedColors: a.state.ExtendedColors,
 			AppOverrides:   a.state.AppOverrides,
+			IconTheme:      a.state.IconTheme,
 		})
 		if err != nil {
 			return ipc.Response{OK: false, Error: err.Error()}
@@ -1367,6 +1425,7 @@ func (a *App) emitIPCStateChanged() {
 		"mode":           a.state.ExtractionMode,
 		"wallpaper":      a.state.WallpaperPath,
 		"adjustments":    a.state.Adjustments,
+		"iconTheme":      a.state.IconTheme,
 	})
 }
 

@@ -54,6 +54,91 @@ export namespace favorites {
     }
 }
 
+export namespace icontheme {
+    export class PreviewSample {
+        kind: string;
+        pngData: string;
+
+        static createFrom(source: any = {}) {
+            return new PreviewSample(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.kind = source['kind'];
+            this.pngData = source['pngData'];
+        }
+    }
+    export class Selection {
+        mode: string;
+        id?: string;
+
+        static createFrom(source: any = {}) {
+            return new Selection(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.mode = source['mode'];
+            this.id = source['id'];
+        }
+    }
+    export class ThemePreview {
+        themeId: string;
+        samples: PreviewSample[];
+
+        static createFrom(source: any = {}) {
+            return new ThemePreview(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.themeId = source['themeId'];
+            this.samples = this.convertValues(source['samples'], PreviewSample);
+        }
+
+        convertValues(a: any, classs: any, asMap: boolean = false): any {
+            if (!a) {
+                return a;
+            }
+            if (a.slice && a.map) {
+                return (a as any[]).map(elem =>
+                    this.convertValues(elem, classs)
+                );
+            } else if ('object' === typeof a) {
+                if (asMap) {
+                    for (const key of Object.keys(a)) {
+                        a[key] = new classs(a[key]);
+                    }
+                    return a;
+                }
+                return new classs(a);
+            }
+            return a;
+        }
+    }
+    export class ThemeSummary {
+        id: string;
+        name: string;
+        inherits?: string[];
+        origin: string;
+        hasPreview: boolean;
+
+        static createFrom(source: any = {}) {
+            return new ThemeSummary(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.id = source['id'];
+            this.name = source['name'];
+            this.inherits = source['inherits'];
+            this.origin = source['origin'];
+            this.hasPreview = source['hasPreview'];
+        }
+    }
+}
+
 export namespace ipc {
     export class Request {
         cmd: string;
@@ -140,6 +225,7 @@ export namespace main {
         extendedColors: Record<string, string>;
         settings: theme.Settings;
         appOverrides: Record<string, any>;
+        iconTheme: icontheme.Selection;
 
         static createFrom(source: any = {}) {
             return new ApplyThemeRequest(source);
@@ -157,6 +243,10 @@ export namespace main {
                 theme.Settings
             );
             this.appOverrides = source['appOverrides'];
+            this.iconTheme = this.convertValues(
+                source['iconTheme'],
+                icontheme.Selection
+            );
         }
 
         convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -189,6 +279,7 @@ export namespace main {
         extendedColors: Record<string, string>;
         installToOmarchy: boolean;
         appOverrides: Record<string, any>;
+        iconTheme: icontheme.Selection;
 
         static createFrom(source: any = {}) {
             return new ExportThemeRequest(source);
@@ -205,6 +296,30 @@ export namespace main {
             this.extendedColors = source['extendedColors'];
             this.installToOmarchy = source['installToOmarchy'];
             this.appOverrides = source['appOverrides'];
+            this.iconTheme = this.convertValues(
+                source['iconTheme'],
+                icontheme.Selection
+            );
+        }
+
+        convertValues(a: any, classs: any, asMap: boolean = false): any {
+            if (!a) {
+                return a;
+            }
+            if (a.slice && a.map) {
+                return (a as any[]).map(elem =>
+                    this.convertValues(elem, classs)
+                );
+            } else if ('object' === typeof a) {
+                if (asMap) {
+                    for (const key of Object.keys(a)) {
+                        a[key] = new classs(a[key]);
+                    }
+                    return a;
+                }
+                return new classs(a);
+            }
+            return a;
         }
     }
     export class ExternalImportPreview {
@@ -258,6 +373,7 @@ export namespace main {
         path: string;
         wallpaperPath: string;
         lightMode: boolean;
+        iconTheme: icontheme.Selection;
 
         static createFrom(source: any = {}) {
             return new ImportResult(source);
@@ -271,6 +387,30 @@ export namespace main {
             this.path = source['path'];
             this.wallpaperPath = source['wallpaperPath'];
             this.lightMode = source['lightMode'];
+            this.iconTheme = this.convertValues(
+                source['iconTheme'],
+                icontheme.Selection
+            );
+        }
+
+        convertValues(a: any, classs: any, asMap: boolean = false): any {
+            if (!a) {
+                return a;
+            }
+            if (a.slice && a.map) {
+                return (a as any[]).map(elem =>
+                    this.convertValues(elem, classs)
+                );
+            } else if ('object' === typeof a) {
+                if (asMap) {
+                    for (const key of Object.keys(a)) {
+                        a[key] = new classs(a[key]);
+                    }
+                    return a;
+                }
+                return new classs(a);
+            }
+            return a;
         }
     }
     export class SaveAndApplyThemeRequest {
@@ -283,6 +423,7 @@ export namespace main {
         extendedColors: Record<string, string>;
         settings: theme.Settings;
         appOverrides: Record<string, any>;
+        iconTheme: icontheme.Selection;
 
         static createFrom(source: any = {}) {
             return new SaveAndApplyThemeRequest(source);
@@ -302,6 +443,10 @@ export namespace main {
                 theme.Settings
             );
             this.appOverrides = source['appOverrides'];
+            this.iconTheme = this.convertValues(
+                source['iconTheme'],
+                icontheme.Selection
+            );
         }
 
         convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -334,6 +479,7 @@ export namespace main {
         extendedColors: Record<string, string>;
         appOverrides: Record<string, any>;
         adjustments: Record<string, number>;
+        iconTheme: icontheme.Selection;
 
         static createFrom(source: any = {}) {
             return new SaveBlueprintRequest(source);
@@ -350,6 +496,30 @@ export namespace main {
             this.extendedColors = source['extendedColors'];
             this.appOverrides = source['appOverrides'];
             this.adjustments = source['adjustments'];
+            this.iconTheme = this.convertValues(
+                source['iconTheme'],
+                icontheme.Selection
+            );
+        }
+
+        convertValues(a: any, classs: any, asMap: boolean = false): any {
+            if (!a) {
+                return a;
+            }
+            if (a.slice && a.map) {
+                return (a as any[]).map(elem =>
+                    this.convertValues(elem, classs)
+                );
+            } else if ('object' === typeof a) {
+                if (asMap) {
+                    for (const key of Object.keys(a)) {
+                        a[key] = new classs(a[key]);
+                    }
+                    return a;
+                }
+                return new classs(a);
+            }
+            return a;
         }
     }
     export class SyncStateRequest {
@@ -359,6 +529,7 @@ export namespace main {
         extendedColors: Record<string, string>;
         appOverrides: Record<string, any>;
         additionalImages: string[];
+        iconTheme: icontheme.Selection;
 
         static createFrom(source: any = {}) {
             return new SyncStateRequest(source);
@@ -372,6 +543,30 @@ export namespace main {
             this.extendedColors = source['extendedColors'];
             this.appOverrides = source['appOverrides'];
             this.additionalImages = source['additionalImages'];
+            this.iconTheme = this.convertValues(
+                source['iconTheme'],
+                icontheme.Selection
+            );
+        }
+
+        convertValues(a: any, classs: any, asMap: boolean = false): any {
+            if (!a) {
+                return a;
+            }
+            if (a.slice && a.map) {
+                return (a as any[]).map(elem =>
+                    this.convertValues(elem, classs)
+                );
+            } else if ('object' === typeof a) {
+                if (asMap) {
+                    for (const key of Object.keys(a)) {
+                        a[key] = new classs(a[key]);
+                    }
+                    return a;
+                }
+                return new classs(a);
+            }
+            return a;
         }
     }
 }
@@ -515,6 +710,7 @@ export namespace theme {
         extractionMode: string;
         additionalImages: string[];
         appOverrides: Record<string, any>;
+        iconTheme: icontheme.Selection;
 
         static createFrom(source: any = {}) {
             return new StateSnapshot(source);
@@ -534,6 +730,10 @@ export namespace theme {
             this.extractionMode = source['extractionMode'];
             this.additionalImages = source['additionalImages'];
             this.appOverrides = source['appOverrides'];
+            this.iconTheme = this.convertValues(
+                source['iconTheme'],
+                icontheme.Selection
+            );
         }
 
         convertValues(a: any, classs: any, asMap: boolean = false): any {

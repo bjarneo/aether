@@ -11,6 +11,7 @@
         setAppOverrides,
         setAdditionalImages,
         setLastExtractedPath,
+        setIconTheme,
     } from '$lib/stores/theme.svelte';
     import {DEFAULT_ADJUSTMENTS, type Blueprint} from '$lib/types/theme';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
@@ -74,6 +75,7 @@
             setAdjustments({...DEFAULT_ADJUSTMENTS, ...(bp.adjustments ?? {})});
             setAppOverrides(bp.appOverrides ?? {});
             setAdditionalImages(bp.palette?.additionalImages ?? []);
+            setIconTheme(bp.iconTheme, true);
             // Anchor the extract baseline to the blueprint's wallpaper so a
             // re-extract on it preserves the loaded overrides.
             if (bp.palette?.wallpaper) {

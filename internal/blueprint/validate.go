@@ -35,5 +35,12 @@ func validateBlueprint(bp *Blueprint) error {
 			return fmt.Errorf("locked color index %d is out of range", index)
 		}
 	}
+	selection, err := bp.IconThemeSelection()
+	if err != nil {
+		return fmt.Errorf("iconTheme: %w", err)
+	}
+	if err := bp.SetIconThemeSelection(selection); err != nil {
+		return fmt.Errorf("iconTheme: %w", err)
+	}
 	return nil
 }

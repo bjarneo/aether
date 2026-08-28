@@ -23,6 +23,8 @@ import {
     setAdjustedExtendedColors,
     getExtractionMode,
     markApplied,
+    getIconTheme,
+    setIconTheme,
 } from '$lib/stores/theme.svelte';
 import {getSettings} from '$lib/stores/settings.svelte';
 import type {Settings} from '$lib/types/theme';
@@ -60,6 +62,7 @@ async function runApply(): Promise<{success: boolean}> {
         extendedColors: getExtendedColors(),
         settings: getSettings(),
         appOverrides: getAppOverrides(),
+        iconTheme: getIconTheme(),
     } as unknown as main.ApplyThemeRequest);
     if (result.success) {
         if (getLightMode()) {
@@ -156,6 +159,7 @@ export async function saveAndApplyTheme(
             extendedColors: getExtendedColors(),
             settings: getSettings(),
             appOverrides: getAppOverrides(),
+            iconTheme: getIconTheme(),
         } as unknown as main.SaveAndApplyThemeRequest);
         saveThemeFolder(name);
         if (result.success) {
@@ -250,19 +254,31 @@ export async function applyThemeLive(): Promise<void> {
 export function undoAction(): void {
     const snapshot = historyUndo();
     if (!snapshot) return;
-    pushRedo(getPalette(), getExtendedColors(), getAdjustments());
+    pushRedo(
+        getPalette(),
+        getExtendedColors(),
+        getAdjustments(),
+        getIconTheme()
+    );
     setPalette(snapshot.palette, true);
     setAdjustedExtendedColors(snapshot.extendedColors);
     setAdjustments(snapshot.adjustments);
+    setIconTheme(snapshot.iconTheme, true);
 }
 
 export function redoAction(): void {
     const snapshot = historyRedo();
     if (!snapshot) return;
-    pushUndo(getPalette(), getExtendedColors(), getAdjustments());
+    pushUndo(
+        getPalette(),
+        getExtendedColors(),
+        getAdjustments(),
+        getIconTheme()
+    );
     setPalette(snapshot.palette, true);
     setAdjustedExtendedColors(snapshot.extendedColors);
     setAdjustments(snapshot.adjustments);
+    setIconTheme(snapshot.iconTheme, true);
 }
 
 export async function changeWallpaper(): Promise<void> {
