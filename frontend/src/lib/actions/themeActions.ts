@@ -145,8 +145,9 @@ export async function saveAndApplyTheme(
     if (getIsApplying()) return;
     setIsApplying(true);
     try {
-        const {SaveAndApplyTheme} =
-            await import('../../../wailsjs/go/main/App');
+        const {SaveAndApplyTheme} = await import(
+            '../../../wailsjs/go/main/App'
+        );
         const result = await SaveAndApplyTheme({
             name,
             updateExisting,
@@ -190,8 +191,9 @@ export async function applyWallpaperOnly(originalPath: string): Promise<void> {
     if (path.startsWith('http://') || path.startsWith('https://')) {
         try {
             showToast('Downloading wallpaper…');
-            const {DownloadWallpaper} =
-                await import('../../../wailsjs/go/main/App');
+            const {DownloadWallpaper} = await import(
+                '../../../wailsjs/go/main/App'
+            );
             path = await DownloadWallpaper(path);
         } catch {
             showToast('Failed to download wallpaper');
