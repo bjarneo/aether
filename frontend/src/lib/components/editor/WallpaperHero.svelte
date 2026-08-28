@@ -237,8 +237,9 @@
         if (!path) return;
         setIsExtracting(true);
         try {
-            const {ExtractColors} =
-                await import('../../../../wailsjs/go/main/App');
+            const {ExtractColors} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
             const colors = await ExtractColors(
                 path,
                 getLightMode(),
@@ -261,8 +262,9 @@
         if (paths.length === 0) return;
         setIsExtracting(true);
         try {
-            const {ExtractColorsFromImages} =
-                await import('../../../../wailsjs/go/main/App');
+            const {ExtractColorsFromImages} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
             const result = await ExtractColorsFromImages(
                 paths,
                 getLightMode(),
@@ -288,8 +290,9 @@
 
     async function handleChange() {
         try {
-            const {OpenFileDialog} =
-                await import('../../../../wailsjs/go/main/App');
+            const {OpenFileDialog} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
             const path = await OpenFileDialog();
             if (path) {
                 setWallpaperPath(path);
@@ -363,7 +366,7 @@
 
         {#if eyedropperActive}
             <div
-                class="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 bg-black/70 px-3 py-1 text-[11px] font-medium text-white"
+                class="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 bg-black/70 px-3 py-1 text-[11px] font-medium text-white"
             >
                 Click to pick a color · Esc to cancel
             </div>
@@ -525,7 +528,7 @@
                 class="border-fg-primary block border-2 shadow-lg"
             ></canvas>
             <div
-                class="border-fg-primary pointer-events-none absolute top-1/2 left-1/2 h-[10px] w-[10px] -translate-x-1/2 -translate-y-1/2 border"
+                class="border-fg-primary pointer-events-none absolute left-1/2 top-1/2 h-[10px] w-[10px] -translate-x-1/2 -translate-y-1/2 border"
             ></div>
         </div>
         <div
