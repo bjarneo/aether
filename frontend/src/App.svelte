@@ -282,9 +282,8 @@
         // Listen for events from Go
         (async () => {
             try {
-                const {EventsOn, WindowSetBackgroundColour} = await import(
-                    '../wailsjs/runtime/runtime'
-                );
+                const {EventsOn, WindowSetBackgroundColour} =
+                    await import('../wailsjs/runtime/runtime');
 
                 const applyThemeColors = (colors: Record<string, string>) => {
                     const root = document.documentElement;
@@ -403,9 +402,8 @@
                 // Pull before subscribing-is-too-late: EventsOn attaches
                 // after the watcher's startup emit has already fired.
                 try {
-                    const {GetThemeColors} = await import(
-                        '../wailsjs/go/main/App'
-                    );
+                    const {GetThemeColors} =
+                        await import('../wailsjs/go/main/App');
                     const colors = await GetThemeColors();
                     if (colors && Object.keys(colors).length > 0) {
                         applyThemeColors(colors);
@@ -488,9 +486,9 @@
     <ApplySaveDialog
         open={getApplySaveDialogOpen()}
         onclose={() => setApplySaveDialogOpen(false)}
-        onsave={name => {
+        onsave={(name, updateExisting) => {
             setApplySaveDialogOpen(false);
-            saveAndApplyTheme(name);
+            saveAndApplyTheme(name, updateExisting);
         }}
     />
 </div>

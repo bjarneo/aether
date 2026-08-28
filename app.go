@@ -438,6 +438,30 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 	}, nil
 }
 
+// ThemeFolderExists reports whether a saved theme folder with the given name
+// already exists. The frontend uses this to offer updating the folder in
+// place instead of refusing to save.
+func (a *App) ThemeFolderExists(name string) bool {
+	name = strings.ToLower(strings.TrimSpace(name))
+	// Same charset SaveAndApplyTheme accepts.
+	if name == "" || name[0] == '-' {
+		return false
+	}
+	for _, r := range name {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+			return false
+		}
+	}
+	for _, dir := range []string{platform.OmarchyThemesDir(), platform.SavedThemesDir()} {
+		// Theme folders are directories; match SaveAndApplyTheme's stat
+		// check rather than platform.FileExists (files only).
+		if _, err := os.Stat(filepath.Join(dir, name)); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
 // ClearTheme removes the Aether theme and reverts to the default.
 func (a *App) ClearTheme() error {
 	return theme.ClearTheme()
