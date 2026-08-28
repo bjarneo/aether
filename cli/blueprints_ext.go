@@ -47,6 +47,16 @@ func runShowBlueprint(args []string) int {
 	fmt.Printf("Blueprint: %s\n", bp.Name)
 	fmt.Printf("  Timestamp: %d\n", bp.Timestamp)
 	fmt.Printf("  Light mode: %v\n", bp.Palette.LightMode)
+	iconTheme, err := bp.IconThemeSelection()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Blueprint iconTheme: %v\n", err)
+		return 1
+	}
+	if iconTheme.Mode == "explicit" {
+		fmt.Printf("  Icon theme: %s\n", iconTheme.ID)
+	} else {
+		fmt.Println("  Icon theme: Automatic")
+	}
 	if bp.Palette.Wallpaper != "" {
 		fmt.Printf("  Wallpaper: %s\n", bp.Palette.Wallpaper)
 	}

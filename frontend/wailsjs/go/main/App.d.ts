@@ -4,6 +4,7 @@ import {color} from '../models';
 import {theme} from '../models';
 import {main} from '../models';
 import {favorites} from '../models';
+import {icontheme} from '../models';
 import {ipc} from '../models';
 import {omarchy} from '../models';
 import {wallpaper} from '../models';
@@ -70,13 +71,17 @@ export function GetFavorites(): Promise<Array<favorites.Favorite>>;
 
 export function GetFocusTab(): Promise<string>;
 
-export function GetInitialState(): Promise<theme.StateSnapshot>;
+export function GetIconThemePreview(
+    arg1: string
+): Promise<icontheme.ThemePreview>;
 
-export function GetReleaseStatus(arg1: string): Promise<Record<string, any>>;
+export function GetInitialState(): Promise<theme.StateSnapshot>;
 
 export function GetPendingExternalImport(): Promise<main.ExternalImportPreview>;
 
 export function GetPreview(arg1: string): Promise<string>;
+
+export function GetReleaseStatus(arg1: string): Promise<Record<string, any>>;
 
 export function GetSettings(): Promise<Record<string, any>>;
 
@@ -106,6 +111,10 @@ export function IsPreviewCached(arg1: string): Promise<boolean>;
 
 export function ListBlueprints(): Promise<Array<Record<string, any>>>;
 
+export function ListInstalledIconThemes(): Promise<
+    Array<icontheme.ThemeSummary>
+>;
+
 export function LoadBlueprint(arg1: string): Promise<void>;
 
 export function LoadOmarchyThemes(): Promise<Array<omarchy.Theme>>;
@@ -122,9 +131,15 @@ export function PreviewExtractColors(
 
 export function ReadImageAsDataURL(arg1: string): Promise<string>;
 
+export function RefreshInstalledIconThemes(): Promise<
+    Array<icontheme.ThemeSummary>
+>;
+
 export function ResetState(): Promise<void>;
 
-export function SaveAndApplyTheme(arg1: main.SaveAndApplyThemeRequest): Promise<theme.ApplyResult>;
+export function SaveAndApplyTheme(
+    arg1: main.SaveAndApplyThemeRequest
+): Promise<theme.ApplyResult>;
 
 export function SaveBlueprint(arg1: main.SaveBlueprintRequest): Promise<void>;
 

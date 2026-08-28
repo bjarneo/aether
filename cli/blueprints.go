@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"aether/internal/blueprint"
+	"aether/internal/icontheme"
 	"aether/internal/platform"
 	"aether/internal/theme"
 	"aether/internal/wallhaven"
@@ -33,20 +34,26 @@ func runListBlueprints(args []string) int {
 
 	if jsonOut {
 		type entry struct {
-			Name      string   `json:"name"`
-			Colors    []string `json:"colors"`
-			LightMode bool     `json:"lightMode"`
-			Wallpaper string   `json:"wallpaper,omitempty"`
-			Timestamp int64    `json:"timestamp"`
+			Name      string              `json:"name"`
+			Colors    []string            `json:"colors"`
+			LightMode bool                `json:"lightMode"`
+			Wallpaper string              `json:"wallpaper,omitempty"`
+			Timestamp int64               `json:"timestamp"`
+			IconTheme icontheme.Selection `json:"iconTheme"`
 		}
 		out := make([]entry, len(blueprints))
 		for i, bp := range blueprints {
+			iconTheme, err := bp.IconThemeSelection()
+			if err != nil {
+				return printErrorJSON(fmt.Sprintf("Blueprint %q has invalid iconTheme: %v", bp.Name, err))
+			}
 			out[i] = entry{
 				Name:      bp.Name,
 				Colors:    bp.Palette.Colors,
 				LightMode: bp.Palette.LightMode,
 				Wallpaper: bp.Palette.Wallpaper,
 				Timestamp: bp.Timestamp,
+				IconTheme: iconTheme,
 			}
 		}
 		return printJSON(map[string]interface{}{
@@ -126,6 +133,11 @@ func runApplyBlueprint(args []string, templatesFS embed.FS) int {
 	wallpaperPath := resolveWallpaperCLI(bp.Palette)
 
 	writer := theme.NewWriter(templatesFS, "templates")
+	iconTheme, err := bp.IconThemeSelection()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Blueprint iconTheme: %v\n", err)
+		return 1
+	}
 	state := &theme.ThemeState{
 		Palette:          palette,
 		WallpaperPath:    wallpaperPath,
@@ -134,6 +146,7 @@ func runApplyBlueprint(args []string, templatesFS embed.FS) int {
 		ExtendedColors:   bp.Palette.ExtendedColors,
 		AppOverrides:     bp.AppOverrides,
 		AdditionalImages: bp.Palette.AdditionalImages,
+		IconTheme:        iconTheme,
 	}
 
 	settings := theme.DefaultApplySettings()

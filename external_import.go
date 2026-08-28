@@ -169,6 +169,11 @@ func (a *App) stageImportIntoState(expectedSourceURL string) (*pending.Import, e
 			palette[i] = bp.Palette.Colors[i]
 		}
 		a.state.SetPalette(palette)
+		iconTheme, iconThemeErr := bp.IconThemeSelection()
+		if iconThemeErr != nil {
+			return nil, fmt.Errorf("import iconTheme: %w", iconThemeErr)
+		}
+		a.state.IconTheme = iconTheme
 	}
 
 	if imp.Wallpaper != "" {

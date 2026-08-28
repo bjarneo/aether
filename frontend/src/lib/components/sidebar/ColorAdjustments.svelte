@@ -20,10 +20,15 @@
         setAdjustedExtendedColors,
         getPaletteCurvePoints,
         setPaletteCurvePoints,
+        getIconTheme,
     } from '$lib/stores/theme.svelte';
     import {pushState} from '$lib/stores/history.svelte';
     import {ADJUSTMENT_LIMITS} from '$lib/constants/colors';
-    import {DEFAULT_ADJUSTMENTS, type Adjustments} from '$lib/types/theme';
+    import {
+        DEFAULT_ADJUSTMENTS,
+        type Adjustments,
+        type IconThemeSelection,
+    } from '$lib/types/theme';
     import {debounce} from '$lib/utils/debounce';
     import {buildCurveLUT, applyCurveToColors} from '$lib/utils/canvas-filters';
     import {hexToRgb} from '$lib/utils/color';
@@ -147,6 +152,7 @@
         palette: string[];
         ext: Record<string, string>;
         adj: Adjustments;
+        iconTheme: IconThemeSelection;
     } | null = null;
 
     function handleSliderInput(key: string, value: number) {
@@ -155,6 +161,7 @@
                 palette: [...getPalette()],
                 ext: {...getExtendedColors()},
                 adj: {...getAdjustments()},
+                iconTheme: {...getIconTheme()},
             };
         }
         const newAdj = {...getAdjustments(), [key]: value};
@@ -167,14 +174,20 @@
             pushState(
                 preDragSnapshot.palette,
                 preDragSnapshot.ext,
-                preDragSnapshot.adj
+                preDragSnapshot.adj,
+                preDragSnapshot.iconTheme
             );
             preDragSnapshot = null;
         }
     }
 
     function resetAll() {
-        pushState(getPalette(), getExtendedColors(), getAdjustments());
+        pushState(
+            getPalette(),
+            getExtendedColors(),
+            getAdjustments(),
+            getIconTheme()
+        );
         setAdjustments({...DEFAULT_ADJUSTMENTS});
         curvePoints = [];
         setPaletteCurvePoints([]);
@@ -190,6 +203,7 @@
         palette: string[];
         ext: Record<string, string>;
         adj: Adjustments;
+        iconTheme: IconThemeSelection;
     } | null = null;
     let nudgeCommitTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -207,6 +221,7 @@
                 palette: [...getPalette()],
                 ext: {...getExtendedColors()},
                 adj: {...current},
+                iconTheme: {...getIconTheme()},
             };
         }
         if (nudgeCommitTimer) clearTimeout(nudgeCommitTimer);
@@ -215,7 +230,8 @@
                 pushState(
                     nudgeSnapshot.palette,
                     nudgeSnapshot.ext,
-                    nudgeSnapshot.adj
+                    nudgeSnapshot.adj,
+                    nudgeSnapshot.iconTheme
                 );
                 nudgeSnapshot = null;
             }

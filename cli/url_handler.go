@@ -221,6 +221,11 @@ func buildURLImportState(imp *pending.Import) (*theme.ThemeState, error) {
 	var palette [16]string
 	copy(palette[:], bp.Palette.Colors)
 	state.SetPalette(palette)
+	iconTheme, err := bp.IconThemeSelection()
+	if err != nil {
+		return nil, fmt.Errorf("blueprint iconTheme: %w", err)
+	}
+	state.IconTheme = iconTheme
 
 	switch imp.Mode {
 	case "light":

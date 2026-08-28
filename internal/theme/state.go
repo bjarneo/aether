@@ -2,6 +2,7 @@ package theme
 
 import (
 	"aether/internal/color"
+	"aether/internal/icontheme"
 	"aether/internal/template"
 )
 
@@ -18,6 +19,7 @@ type ThemeState struct {
 	ExtractionMode   string                       `json:"extractionMode"`
 	AdditionalImages []string                     `json:"additionalImages"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	IconTheme        icontheme.Selection          `json:"iconTheme"`
 }
 
 // DefaultPalette is the Catppuccin-inspired default 16-color palette.
@@ -51,6 +53,7 @@ func NewThemeState() *ThemeState {
 		ExtractionMode:   "auto",
 		AdditionalImages: []string{},
 		AppOverrides:     make(map[string]map[string]string),
+		IconTheme:        icontheme.Automatic(),
 	}
 	s.ColorRoles = s.buildColorRoles()
 	return s
@@ -91,6 +94,7 @@ type StateSnapshot struct {
 	ExtractionMode   string                       `json:"extractionMode"`
 	AdditionalImages []string                     `json:"additionalImages"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
+	IconTheme        icontheme.Selection          `json:"iconTheme"`
 }
 
 // Snapshot returns a copy of the current state suitable for Wails binding.
@@ -127,6 +131,7 @@ func (s *ThemeState) Snapshot() StateSnapshot {
 		ExtractionMode:   s.ExtractionMode,
 		AdditionalImages: images,
 		AppOverrides:     overrides,
+		IconTheme:        s.IconTheme,
 	}
 }
 

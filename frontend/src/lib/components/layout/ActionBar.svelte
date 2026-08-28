@@ -16,6 +16,8 @@
         setAdjustedExtendedColors,
         isDirty,
         reset as resetTheme,
+        getIconTheme,
+        setIconTheme,
     } from '$lib/stores/theme.svelte';
     import {
         getCanUndo,
@@ -46,6 +48,7 @@
     import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
     import KbdInverse from '$lib/components/shared/KbdInverse.svelte';
     import Modal from '$lib/components/shared/Modal.svelte';
+    import type {main} from '../../../../wailsjs/go/models';
 
     let showImportMenu = $state(false);
     let showApplyMenu = $state(false);
@@ -157,20 +160,32 @@
     function handleUndo() {
         const snapshot = undo();
         if (snapshot) {
-            pushRedo(getPalette(), getExtendedColors(), getAdjustments());
+            pushRedo(
+                getPalette(),
+                getExtendedColors(),
+                getAdjustments(),
+                getIconTheme()
+            );
             setPalette(snapshot.palette, true);
             setAdjustedExtendedColors(snapshot.extendedColors);
             setAdjustments(snapshot.adjustments);
+            setIconTheme(snapshot.iconTheme, true);
         }
     }
 
     function handleRedo() {
         const snapshot = redo();
         if (snapshot) {
-            pushUndo(getPalette(), getExtendedColors(), getAdjustments());
+            pushUndo(
+                getPalette(),
+                getExtendedColors(),
+                getAdjustments(),
+                getIconTheme()
+            );
             setPalette(snapshot.palette, true);
             setAdjustedExtendedColors(snapshot.extendedColors);
             setAdjustments(snapshot.adjustments);
+            setIconTheme(snapshot.iconTheme, true);
         }
     }
 
@@ -219,7 +234,8 @@
                 extendedColors: getExtendedColors(),
                 installToOmarchy,
                 appOverrides: getAppOverrides(),
-            });
+                iconTheme: getIconTheme(),
+            } as unknown as main.ExportThemeRequest);
             // Path ends with .../omarchy-{slug}-theme — pull the slug so the
             // user can see what name actually went into Omarchy's menu.
             const slug =
@@ -248,6 +264,7 @@
             if (result?.colors?.length >= 16) {
                 setPalette(result.colors);
                 setExtendedColors(result.extendedColors ?? {});
+                setIconTheme(result.iconTheme, true);
                 if (result.wallpaperPath) {
                     setWallpaperPath(result.wallpaperPath);
                 }

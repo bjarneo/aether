@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"aether/internal/color"
+	"aether/internal/icontheme"
 	"aether/internal/platform"
 	"aether/internal/template"
 )
@@ -84,6 +85,30 @@ func (s Settings) includesApp(app string) bool {
 	default:
 		return !s.ExcludedApps[app]
 	}
+}
+
+// includesOmarchyV4App preserves the v4 renderer's explicit target map.
+func (s Settings) includesOmarchyV4App(app string) bool {
+	return s.IncludedApps != nil && s.IncludedApps[app]
+}
+
+// withLegacyOmarchyV4Icons bridges public callers that predate IncludedApps.
+// Omarchy v4 otherwise keeps its established explicit-only target semantics.
+func (s Settings) withLegacyOmarchyV4Icons() Settings {
+	if s.IncludedApps == nil {
+		s.IncludedApps = map[string]bool{"icons": true}
+	}
+	return s
+}
+
+func validateIconTheme(selection icontheme.Selection, enabled bool) error {
+	if !enabled {
+		return nil
+	}
+	if _, err := icontheme.NormalizeSelection(selection); err != nil {
+		return fmt.Errorf("icon theme: %w", err)
+	}
+	return nil
 }
 
 // DefaultApplySettings returns the same defaults `aether --generate` uses.
@@ -211,6 +236,26 @@ func (w *Writer) processOmarchyV4Templates(
 	appOverrides map[string]map[string]string,
 	globalOverrides map[string]string,
 ) {
+	if err := w.processOmarchyV4TemplatesWithIconTheme(
+		themeDir,
+		variables,
+		settings,
+		appOverrides,
+		globalOverrides,
+		icontheme.Automatic(),
+	); err != nil {
+		log.Printf("Error processing Omarchy v4 templates: %v", err)
+	}
+}
+
+func (w *Writer) processOmarchyV4TemplatesWithIconTheme(
+	themeDir string,
+	variables map[string]string,
+	settings Settings,
+	appOverrides map[string]map[string]string,
+	globalOverrides map[string]string,
+	iconTheme icontheme.Selection,
+) error {
 	w.processTemplate(
 		"colors.v4.toml",
 		filepath.Join(themeDir, "colors.toml"),
@@ -221,8 +266,7 @@ func (w *Writer) processOmarchyV4Templates(
 
 	names, err := template.ListTemplates(w.templatesFS, w.templatesDir)
 	if err != nil {
-		log.Printf("Error listing templates: %v", err)
-		return
+		return fmt.Errorf("list templates: %w", err)
 	}
 	for _, fileName := range names {
 		if fileName == "copy.json" || fileName == "colors.toml" || fileName == "colors.v4.toml" {
@@ -230,7 +274,8 @@ func (w *Writer) processOmarchyV4Templates(
 		}
 
 		appName := getAppNameFromFileName(fileName)
-		if !settings.IncludedApps[appName] && len(appOverrides[appName]) == 0 {
+		if !settings.includesOmarchyV4App(appName) &&
+			(appName == "icons" || len(appOverrides[appName]) == 0) {
 			continue
 		}
 
@@ -245,22 +290,39 @@ func (w *Writer) processOmarchyV4Templates(
 			}
 			continue
 		}
+		if fileName == "icons.theme" {
+			if err := w.writeIconTheme(outputPath, variables, appOverrides, globalOverrides, iconTheme); err != nil {
+				return err
+			}
+			continue
+		}
 		w.processTemplate(fileName, outputPath, variables, appOverrides, globalOverrides)
 	}
+	return nil
 }
 
 // GenerateOmarchyV4Only writes a reusable Omarchy v4 theme folder. App-specific
 // templates are included only when targeted or needed by a color override.
 func (w *Writer) GenerateOmarchyV4Only(state *ThemeState, settings Settings, outputPath string) error {
+	settings = settings.withLegacyOmarchyV4Icons()
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
 	if err := validateTemplateInputs(variables, state.AppOverrides); err != nil {
+		return err
+	}
+	if err := validateIconTheme(state.IconTheme, settings.includesOmarchyV4App("icons")); err != nil {
 		return err
 	}
 	if _, err := prepareOmarchyV4ThemeDir(outputPath, state); err != nil {
 		return err
 	}
-	w.processOmarchyV4Templates(outputPath, variables, settings, state.AppOverrides, state.ExtendedColors)
-	return nil
+	return w.processOmarchyV4TemplatesWithIconTheme(
+		outputPath,
+		variables,
+		settings,
+		state.AppOverrides,
+		state.ExtendedColors,
+		state.IconTheme,
+	)
 }
 
 // ApplyTheme generates all theme files and applies the theme to the system.
@@ -269,12 +331,22 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 	if err := validateTemplateInputs(variables, state.AppOverrides); err != nil {
 		return &ApplyResult{Success: false, IsOmarchy: IsOmarchyInstalled(), ThemePath: platform.ThemeDir()}, err
 	}
+	isOmarchy := IsOmarchyInstalled()
+	isOmarchyV4 := isOmarchy && IsOmarchyV4()
+	if isOmarchyV4 {
+		settings = settings.withLegacyOmarchyV4Icons()
+	}
+	iconThemeEnabled := settings.includesApp("icons")
+	if isOmarchyV4 {
+		iconThemeEnabled = settings.includesOmarchyV4App("icons")
+	}
+	if err := validateIconTheme(state.IconTheme, iconThemeEnabled); err != nil {
+		return &ApplyResult{Success: false, IsOmarchy: isOmarchy, ThemePath: platform.ThemeDir()}, err
+	}
 	if err := RetireLegacyGTKStylesheets(); err != nil {
 		log.Printf("Warning: legacy GTK stylesheet cleanup failed: %v", err)
 	}
 
-	isOmarchy := IsOmarchyInstalled()
-	isOmarchyV4 := isOmarchy && IsOmarchyV4()
 	themeDir := platform.ThemeDir()
 
 	var wallpaperDest string
@@ -295,7 +367,16 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 	}
 
 	if isOmarchyV4 {
-		w.processOmarchyV4Templates(themeDir, variables, settings, state.AppOverrides, state.ExtendedColors)
+		if err := w.processOmarchyV4TemplatesWithIconTheme(
+			themeDir,
+			variables,
+			settings,
+			state.AppOverrides,
+			state.ExtendedColors,
+			state.IconTheme,
+		); err != nil {
+			return &ApplyResult{Success: false, IsOmarchy: isOmarchy, ThemePath: themeDir}, err
+		}
 		w.applyEditorThemes(
 			themeDir,
 			variables,
@@ -307,7 +388,16 @@ func (w *Writer) ApplyTheme(state *ThemeState, settings Settings) (*ApplyResult,
 			log.Printf("Warning: custom app processing failed: %v", err)
 		}
 	} else {
-		w.processTemplates(variables, themeDir, settings, state.AppOverrides, state.ExtendedColors)
+		if err := w.processTemplatesWithIconTheme(
+			variables,
+			themeDir,
+			settings,
+			state.AppOverrides,
+			state.ExtendedColors,
+			state.IconTheme,
+		); err != nil {
+			return &ApplyResult{Success: false, IsOmarchy: isOmarchy, ThemePath: themeDir}, err
+		}
 		w.applyEditorThemes(
 			themeDir,
 			variables,
@@ -344,6 +434,9 @@ func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath s
 	if err := validateTemplateInputs(variables, state.AppOverrides); err != nil {
 		return err
 	}
+	if err := validateIconTheme(state.IconTheme, settings.includesApp("icons")); err != nil {
+		return err
+	}
 	targetDir := outputPath
 	if targetDir == "" {
 		targetDir = platform.ThemeDir()
@@ -356,7 +449,16 @@ func (w *Writer) GenerateOnly(state *ThemeState, settings Settings, outputPath s
 		return err
 	}
 
-	w.processTemplates(variables, targetDir, settings, state.AppOverrides, state.ExtendedColors)
+	if err := w.processTemplatesWithIconTheme(
+		variables,
+		targetDir,
+		settings,
+		state.AppOverrides,
+		state.ExtendedColors,
+		state.IconTheme,
+	); err != nil {
+		return err
+	}
 
 	// Generate VSCode extension into the export directory
 	vscodeDir := filepath.Join(targetDir, "vscode-extension")
@@ -409,10 +511,29 @@ func (w *Writer) processTemplates(
 	appOverrides map[string]map[string]string,
 	globalOverrides map[string]string,
 ) {
+	if err := w.processTemplatesWithIconTheme(
+		variables,
+		outputDir,
+		settings,
+		appOverrides,
+		globalOverrides,
+		icontheme.Automatic(),
+	); err != nil {
+		log.Printf("Error processing templates: %v", err)
+	}
+}
+
+func (w *Writer) processTemplatesWithIconTheme(
+	variables map[string]string,
+	outputDir string,
+	settings Settings,
+	appOverrides map[string]map[string]string,
+	globalOverrides map[string]string,
+	iconTheme icontheme.Selection,
+) error {
 	names, err := template.ListTemplates(w.templatesFS, w.templatesDir)
 	if err != nil {
-		log.Printf("Error listing templates: %v", err)
-		return
+		return fmt.Errorf("list templates: %w", err)
 	}
 
 	for _, fileName := range names {
@@ -423,7 +544,8 @@ func (w *Writer) processTemplates(
 
 		outputPath := filepath.Join(outputDir, fileName)
 		appName := getAppNameFromFileName(fileName)
-		if appName != "colors" && !settings.includesApp(appName) && len(appOverrides[appName]) == 0 {
+		if appName != "colors" && !settings.includesApp(appName) &&
+			(appName == "icons" || len(appOverrides[appName]) == 0) {
 			if err := os.Remove(outputPath); err != nil && !os.IsNotExist(err) {
 				log.Printf("Error removing stale template %s: %v", fileName, err)
 			}
@@ -439,9 +561,37 @@ func (w *Writer) processTemplates(
 			}
 			continue
 		}
+		if fileName == "icons.theme" {
+			if err := w.writeIconTheme(outputPath, variables, appOverrides, globalOverrides, iconTheme); err != nil {
+				return err
+			}
+			continue
+		}
 
 		w.processTemplate(fileName, outputPath, variables, appOverrides, globalOverrides)
 	}
+	return nil
+}
+
+func (w *Writer) writeIconTheme(
+	outputPath string,
+	variables map[string]string,
+	appOverrides map[string]map[string]string,
+	globalOverrides map[string]string,
+	selection icontheme.Selection,
+) error {
+	normalized, err := icontheme.NormalizeSelection(selection)
+	if err != nil {
+		return fmt.Errorf("validate icon theme selection: %w", err)
+	}
+	if normalized.Mode == icontheme.SelectionExplicit {
+		if err := platform.WriteText(outputPath, normalized.ID+"\n"); err != nil {
+			return fmt.Errorf("write icons.theme: %w", err)
+		}
+		return nil
+	}
+	w.processTemplate("icons.theme", outputPath, variables, appOverrides, globalOverrides)
+	return nil
 }
 
 // processTemplate reads a single template, applies variable substitution

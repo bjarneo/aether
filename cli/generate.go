@@ -4,10 +4,49 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"strings"
 
 	"aether/internal/extraction"
+	"aether/internal/icontheme"
 	"aether/internal/theme"
 )
+
+func parseIconThemeOption(args []string) (icontheme.Selection, []string, error) {
+	selection := icontheme.Automatic()
+	remaining := make([]string, 0, len(args))
+	found := false
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg != "--icon-theme" {
+			remaining = append(remaining, arg)
+			continue
+		}
+		if found {
+			return icontheme.Selection{}, args, fmt.Errorf("--icon-theme may only be specified once")
+		}
+		if i+1 >= len(args) || strings.HasPrefix(args[i+1], "--") {
+			return icontheme.Selection{}, args, fmt.Errorf("--icon-theme requires automatic or a theme ID")
+		}
+
+		value := args[i+1]
+		if value != "automatic" {
+			var err error
+			selection, err = icontheme.NormalizeSelection(icontheme.Selection{
+				Mode: icontheme.SelectionExplicit,
+				ID:   value,
+			})
+			if err != nil {
+				return icontheme.Selection{}, args, err
+			}
+		}
+
+		found = true
+		i++
+	}
+
+	return selection, remaining, nil
+}
 
 func runGenerate(args []string, templatesFS embed.FS) int {
 	for _, arg := range args {
@@ -15,6 +54,11 @@ func runGenerate(args []string, templatesFS embed.FS) int {
 			fmt.Fprintf(os.Stderr, "Error: Unknown option: %s\n", arg)
 			return 1
 		}
+	}
+	iconTheme, args, err := parseIconThemeOption(args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Invalid icon theme: %v\n", err)
+		return 1
 	}
 
 	// Parse flags
@@ -33,7 +77,7 @@ func runGenerate(args []string, templatesFS embed.FS) int {
 
 	if len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "Error: Wallpaper path is required")
-		fmt.Fprintln(os.Stderr, "Usage: aether --generate <wallpaper> [--extract-mode <mode>] [--light-mode] [--no-apply] [--output <path>] [--no-zed] [--no-vscode] [--no-neovim]")
+		fmt.Fprintln(os.Stderr, "Usage: aether --generate <wallpaper> [--extract-mode <mode>] [--light-mode] [--no-apply] [--output <path>] [--icon-theme automatic|<ID>] [--no-zed] [--no-vscode] [--no-neovim]")
 		return 1
 	}
 	wallpaperPath := args[0]
@@ -97,6 +141,7 @@ func runGenerate(args []string, templatesFS embed.FS) int {
 		WallpaperPath: wallpaperPath,
 		LightMode:     lightMode,
 		ColorRoles:    colorRoles,
+		IconTheme:     iconTheme,
 	}
 
 	settings := theme.Settings{

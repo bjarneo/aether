@@ -64,6 +64,7 @@
         getThemeSnapshot,
         getThemeSignature,
         setLastExtractedPath,
+        setIconTheme,
     } from '$lib/stores/theme.svelte';
     import {debounce} from '$lib/utils/debounce';
     import {STORAGE_KEYS} from '$lib/constants/storage';
@@ -193,6 +194,7 @@
             if (s?.extendedColors) {
                 setExtendedColors(s.extendedColors);
             }
+            setIconTheme(s?.iconTheme, true);
             if (s?.wallpaperPath) {
                 setWallpaperPath(s.wallpaperPath);
                 // Treat the restored wallpaper as already-extracted so a
@@ -422,6 +424,7 @@
                         mode?: string;
                         wallpaper?: string;
                         adjustments?: import('$lib/types/theme').Adjustments;
+                        iconTheme?: import('$lib/types/theme').IconThemeSelection;
                     }) => {
                         if (state.palette && state.palette.length >= 16) {
                             setPalette(state.palette);
@@ -440,6 +443,9 @@
                         }
                         if (state.adjustments) {
                             setAdjustments(state.adjustments);
+                        }
+                        if (state.iconTheme) {
+                            setIconTheme(state.iconTheme, true);
                         }
                     }
                 );

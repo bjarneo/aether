@@ -1,6 +1,22 @@
 package theme
 
-import "testing"
+import (
+	"testing"
+
+	"aether/internal/icontheme"
+)
+
+func TestThemeStateIconThemeDefaultsAndSnapshots(t *testing.T) {
+	state := NewThemeState()
+	if state.IconTheme != icontheme.Automatic() {
+		t.Errorf("default IconTheme = %+v, want Automatic", state.IconTheme)
+	}
+	want := (icontheme.Selection{Mode: icontheme.SelectionExplicit, ID: "Missing-But-Safe"})
+	state.IconTheme = want
+	if got := state.Snapshot().IconTheme; got != want {
+		t.Errorf("snapshot IconTheme = %+v, want %+v", got, want)
+	}
+}
 
 // Both import paths (CLI runImportColorsToml and the GUI stageImportIntoState)
 // rely on the contract that setting ExtendedColors before SetPalette makes
