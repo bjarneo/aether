@@ -1,6 +1,7 @@
 package wallhaven
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,14 +20,16 @@ const baseURL = "https://wallhaven.cc/api/v1"
 
 // Client is an HTTP client for the wallhaven.cc API.
 type Client struct {
-	http   *http.Client
-	apiKey string
+	http     *http.Client
+	download *http.Client
+	apiKey   string
 }
 
 // NewClient creates a new wallhaven API client.
 func NewClient() *Client {
 	return &Client{
-		http: &http.Client{Timeout: 30 * time.Second},
+		http:     &http.Client{Timeout: 30 * time.Second},
+		download: &http.Client{Timeout: 5 * time.Minute},
 	}
 }
 
@@ -295,6 +298,14 @@ func (c *Client) Info(id string) (*WallpaperInfo, error) {
 // Download downloads a wallpaper image to the local downloads directory.
 // Returns the local file path.
 func (c *Client) Download(imageURL string) (string, error) {
+	return c.DownloadContext(context.Background(), imageURL)
+}
+
+// DownloadContext downloads a wallpaper image to the local downloads
+// directory, aborting the transfer when ctx is cancelled. Returns the local
+// file path. Already-downloaded images short-circuit without touching the
+// network, so repeat calls are cheap.
+func (c *Client) DownloadContext(ctx context.Context, imageURL string) (string, error) {
 	filename := filepath.Base(imageURL)
 	if filename == "" || filename == "." || filename == "/" {
 		return "", fmt.Errorf("cannot determine filename from URL: %s", imageURL)
@@ -312,7 +323,12 @@ func (c *Client) Download(imageURL string) (string, error) {
 		return destPath, nil
 	}
 
-	resp, err := c.http.Get(imageURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("wallpaper download failed: %w", err)
+	}
+
+	resp, err := c.download.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("wallpaper download failed: %w", err)
 	}

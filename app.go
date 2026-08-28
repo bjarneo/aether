@@ -15,6 +15,7 @@ import (
 	"aether/internal/blueprint"
 	"aether/internal/color"
 	"aether/internal/extraction"
+	"aether/internal/favexport"
 	"aether/internal/favorites"
 	"aether/internal/omarchy"
 	"aether/internal/platform"
@@ -37,6 +38,7 @@ type App struct {
 	writer       *theme.Writer
 	blueprints   *blueprint.Service
 	favorites    *favorites.Service
+	favExport    *favexport.Exporter
 	wallhaven    *wallhaven.Client
 	batch        *batch.Processor
 	themeWatcher *theme.ThemeWatcher
@@ -88,13 +90,15 @@ func (a *App) StartUpgrade() error {
 
 // NewApp creates a new App instance.
 func NewApp() *App {
+	wh := wallhaven.NewClient()
 	return &App{
 		state:        newSeededState(),
 		history:      theme.NewHistoryManager(),
 		writer:       theme.NewWriter(EmbeddedTemplates, "templates"),
 		blueprints:   blueprint.NewService(),
 		favorites:    favorites.NewService(),
-		wallhaven:    wallhaven.NewClient(),
+		favExport:    favexport.New(wh),
+		wallhaven:    wh,
 		batch:        batch.NewProcessor(),
 		themeWatcher: theme.NewThemeWatcher(),
 	}
@@ -642,6 +646,79 @@ func (a *App) ToggleFavorite(path, favType string, data map[string]interface{}) 
 // IsFavorite checks if a path is favorited.
 func (a *App) IsFavorite(path string) bool {
 	return a.favorites.IsFavorite(path)
+}
+
+// ExportFavoritesRequest is the payload from the frontend for zipping favorites.
+type ExportFavoritesRequest struct {
+	Paths []string `json:"paths"` // favorite paths, in display order
+}
+
+// ExportFavorites archives the given favorites into a .zip in a user-chosen
+// directory. Wallhaven favorites are remote URLs, so anything not already
+// downloaded is fetched first — which makes this slow enough that the work runs
+// in the background and reports through favorites-export-* events. Returns the
+// path the archive is being written to.
+func (a *App) ExportFavorites(req ExportFavoritesRequest) (string, error) {
+	items := a.favoriteItems(req.Paths)
+	if len(items) == 0 {
+		return "", fmt.Errorf("no favorites to export")
+	}
+
+	dir, err := wailsrt.OpenDirectoryDialog(a.ctx, wailsrt.OpenDialogOptions{
+		Title:                "Choose Export Directory",
+		CanCreateDirectories: true,
+	})
+	if err != nil || dir == "" {
+		return "", fmt.Errorf("export cancelled")
+	}
+
+	return a.favExport.Start(a.ctx, items, dir)
+}
+
+// CancelFavoritesExport stops a running favorites export.
+func (a *App) CancelFavoritesExport() { a.favExport.Cancel() }
+
+// IsFavoritesExportRunning reports whether an export is in flight. The frontend
+// uses this to recover its progress state after a reload.
+func (a *App) IsFavoritesExportRunning() bool { return a.favExport.IsRunning() }
+
+// favoriteItems resolves frontend-supplied paths against the favorites store.
+// Only the path crosses the boundary — names and metadata are read back from
+// the service so the archive cannot be steered by the caller.
+func (a *App) favoriteItems(paths []string) []favexport.Item {
+	known := make(map[string]favorites.Favorite)
+	for _, fav := range a.favorites.GetAll() {
+		known[fav.Path] = fav
+	}
+
+	items := make([]favexport.Item, 0, len(paths))
+	seen := make(map[string]bool, len(paths))
+	for _, path := range paths {
+		fav, ok := known[path]
+		if !ok || seen[path] {
+			continue
+		}
+		seen[path] = true
+
+		item := favexport.Item{Path: fav.Path, Meta: map[string]interface{}{}}
+		if fav.Type != "" {
+			item.Meta["type"] = fav.Type
+		}
+		for k, v := range fav.Data {
+			if v == nil {
+				continue
+			}
+			item.Meta[k] = v
+		}
+		// The tile label is the local name, falling back to the wallhaven id.
+		if name, ok := fav.Data["name"].(string); ok {
+			item.Name = name
+		} else if id, ok := fav.Data["id"].(string); ok {
+			item.Name = id
+		}
+		items = append(items, item)
+	}
+	return items
 }
 
 // ---------------------------------------------------------------------------
