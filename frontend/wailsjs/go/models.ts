@@ -499,6 +499,7 @@ export namespace theme {
 	    includeVscode: boolean;
 	    includeNeovim: boolean;
 	    selectedNeovimConfig: string;
+	    includedApps?: Record<string, boolean>;
 	    excludedApps?: Record<string, boolean>;
 	
 	    static createFrom(source: any = {}) {
@@ -511,6 +512,7 @@ export namespace theme {
 	        this.includeVscode = source["includeVscode"];
 	        this.includeNeovim = source["includeNeovim"];
 	        this.selectedNeovimConfig = source["selectedNeovimConfig"];
+	        this.includedApps = source["includedApps"];
 	        this.excludedApps = source["excludedApps"];
 	    }
 	}
@@ -560,91 +562,6 @@ export namespace theme {
 		    return a;
 		}
 	}
-
-        static createFrom(source: any = {}) {
-            return new ApplyResult(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.success = source['success'];
-            this.isOmarchy = source['isOmarchy'];
-            this.themePath = source['themePath'];
-        }
-    }
-    export class Settings {
-        includeZed: boolean;
-        includeVscode: boolean;
-        includeNeovim: boolean;
-        selectedNeovimConfig: string;
-        includedApps?: Record<string, boolean>;
-        excludedApps?: Record<string, boolean>;
-
-        static createFrom(source: any = {}) {
-            return new Settings(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.includeZed = source['includeZed'];
-            this.includeVscode = source['includeVscode'];
-            this.includeNeovim = source['includeNeovim'];
-            this.selectedNeovimConfig = source['selectedNeovimConfig'];
-            this.includedApps = source['includedApps'];
-            this.excludedApps = source['excludedApps'];
-        }
-    }
-    export class StateSnapshot {
-        palette: string[];
-        wallpaperPath: string;
-        lightMode: boolean;
-        lockedColors: Record<number, boolean>;
-        colorRoles: template.ColorRoles;
-        extendedColors: Record<string, string>;
-        extractionMode: string;
-        additionalImages: string[];
-        appOverrides: Record<string, any>;
-
-        static createFrom(source: any = {}) {
-            return new StateSnapshot(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.palette = source['palette'];
-            this.wallpaperPath = source['wallpaperPath'];
-            this.lightMode = source['lightMode'];
-            this.lockedColors = source['lockedColors'];
-            this.colorRoles = this.convertValues(
-                source['colorRoles'],
-                template.ColorRoles
-            );
-            this.extendedColors = source['extendedColors'];
-            this.extractionMode = source['extractionMode'];
-            this.additionalImages = source['additionalImages'];
-            this.appOverrides = source['appOverrides'];
-        }
-
-        convertValues(a: any, classs: any, asMap: boolean = false): any {
-            if (!a) {
-                return a;
-            }
-            if (a.slice && a.map) {
-                return (a as any[]).map(elem =>
-                    this.convertValues(elem, classs)
-                );
-            } else if ('object' === typeof a) {
-                if (asMap) {
-                    for (const key of Object.keys(a)) {
-                        a[key] = new classs(a[key]);
-                    }
-                    return a;
-                }
-                return new classs(a);
-            }
-            return a;
-        }
-    }
 }
 
 export namespace wallhaven {

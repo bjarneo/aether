@@ -308,7 +308,7 @@ func TestGenerateOmarchyV4OnlyRemovesLegacyFiles(t *testing.T) {
 	state := NewThemeState()
 	state.ColorRoles.Background = "#1e1e2e"
 	state.ColorRoles.Magenta = "#ff0000"
-	if _, err := writer.GenerateOmarchyV4Only(state, themeDir); err != nil {
+	if _, err := writer.GenerateOmarchyV4Only(state, Settings{IncludedApps: map[string]bool{"icons": true}}, themeDir); err != nil {
 		t.Fatal(err)
 	}
 

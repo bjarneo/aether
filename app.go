@@ -407,7 +407,7 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("check theme folder: %w", err)
 	}
-	wallpaperDest, err := a.writer.GenerateOmarchyV4Only(state, targetDir)
+	wallpaperDest, err := a.writer.GenerateOmarchyV4Only(state, req.Settings, targetDir)
 	if err != nil {
 		return nil, fmt.Errorf("save theme: %w", err)
 	}
