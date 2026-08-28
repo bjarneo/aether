@@ -832,6 +832,17 @@ func (a *App) CancelBatchProcessing() {
 // File / Image Utilities
 // ---------------------------------------------------------------------------
 
+// BlurWallpaper generates a heavily Gaussian-blurred JPEG variant of an image
+// for use as the applied wallpaper. The original file is never modified, so
+// color extraction keeps sampling the unblurred source. Returns the variant
+// path (cached by source identity, so repeat calls are cheap).
+func (a *App) BlurWallpaper(path string) (string, error) {
+	if !theme.IsImageFile(path) {
+		return "", fmt.Errorf("unsupported image file: %s", path)
+	}
+	return wallpaper.CreateBlurredVariant(path, platform.BlurDir())
+}
+
 // ReadImageAsDataURL reads a local image file and returns it as a base64 data URL.
 // This is needed because webkit2gtk cannot load file:// paths directly.
 func (a *App) ReadImageAsDataURL(path string) (string, error) {

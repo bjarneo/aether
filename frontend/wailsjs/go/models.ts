@@ -1,476 +1,565 @@
 export namespace color {
-    export class Adjustments {
-        vibrance: number;
-        saturation: number;
-        contrast: number;
-        brightness: number;
-        shadows: number;
-        highlights: number;
-        hueShift: number;
-        temperature: number;
-        tint: number;
-        gamma: number;
-        blackPoint: number;
-        whitePoint: number;
+	
+	export class Adjustments {
+	    vibrance: number;
+	    saturation: number;
+	    contrast: number;
+	    brightness: number;
+	    shadows: number;
+	    highlights: number;
+	    hueShift: number;
+	    temperature: number;
+	    tint: number;
+	    gamma: number;
+	    blackPoint: number;
+	    whitePoint: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Adjustments(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.vibrance = source["vibrance"];
+	        this.saturation = source["saturation"];
+	        this.contrast = source["contrast"];
+	        this.brightness = source["brightness"];
+	        this.shadows = source["shadows"];
+	        this.highlights = source["highlights"];
+	        this.hueShift = source["hueShift"];
+	        this.temperature = source["temperature"];
+	        this.tint = source["tint"];
+	        this.gamma = source["gamma"];
+	        this.blackPoint = source["blackPoint"];
+	        this.whitePoint = source["whitePoint"];
+	    }
+	}
 
-        static createFrom(source: any = {}) {
-            return new Adjustments(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.vibrance = source['vibrance'];
-            this.saturation = source['saturation'];
-            this.contrast = source['contrast'];
-            this.brightness = source['brightness'];
-            this.shadows = source['shadows'];
-            this.highlights = source['highlights'];
-            this.hueShift = source['hueShift'];
-            this.temperature = source['temperature'];
-            this.tint = source['tint'];
-            this.gamma = source['gamma'];
-            this.blackPoint = source['blackPoint'];
-            this.whitePoint = source['whitePoint'];
-        }
-    }
 }
 
 export namespace favorites {
-    export class Favorite {
-        path: string;
-        type?: string;
-        data?: Record<string, any>;
+	
+	export class Favorite {
+	    path: string;
+	    type?: string;
+	    data?: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new Favorite(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.type = source["type"];
+	        this.data = source["data"];
+	    }
+	}
 
-        static createFrom(source: any = {}) {
-            return new Favorite(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.path = source['path'];
-            this.type = source['type'];
-            this.data = source['data'];
-        }
-    }
 }
 
 export namespace ipc {
-    export class Request {
-        cmd: string;
-        path?: string;
-        mode?: string;
-        name?: string;
-        index?: number;
-        value?: string;
-        palette?: string[];
-        vibrance?: number;
-        saturation?: number;
-        contrast?: number;
-        brightness?: number;
-        shadows?: number;
-        highlights?: number;
-        hue_shift?: number;
-        temperature?: number;
-        tint?: number;
-        gamma?: number;
-        black_point?: number;
-        white_point?: number;
-        light_mode?: boolean;
+	
+	export class Request {
+	    cmd: string;
+	    path?: string;
+	    mode?: string;
+	    name?: string;
+	    index?: number;
+	    value?: string;
+	    palette?: string[];
+	    vibrance?: number;
+	    saturation?: number;
+	    contrast?: number;
+	    brightness?: number;
+	    shadows?: number;
+	    highlights?: number;
+	    hue_shift?: number;
+	    temperature?: number;
+	    tint?: number;
+	    gamma?: number;
+	    black_point?: number;
+	    white_point?: number;
+	    light_mode?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Request(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cmd = source["cmd"];
+	        this.path = source["path"];
+	        this.mode = source["mode"];
+	        this.name = source["name"];
+	        this.index = source["index"];
+	        this.value = source["value"];
+	        this.palette = source["palette"];
+	        this.vibrance = source["vibrance"];
+	        this.saturation = source["saturation"];
+	        this.contrast = source["contrast"];
+	        this.brightness = source["brightness"];
+	        this.shadows = source["shadows"];
+	        this.highlights = source["highlights"];
+	        this.hue_shift = source["hue_shift"];
+	        this.temperature = source["temperature"];
+	        this.tint = source["tint"];
+	        this.gamma = source["gamma"];
+	        this.black_point = source["black_point"];
+	        this.white_point = source["white_point"];
+	        this.light_mode = source["light_mode"];
+	    }
+	}
+	export class Response {
+	    ok: boolean;
+	    error?: string;
+	    palette?: string[];
+	    light_mode?: boolean;
+	    mode?: string;
+	    wallpaper?: string;
+	    data?: number[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Response(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ok = source["ok"];
+	        this.error = source["error"];
+	        this.palette = source["palette"];
+	        this.light_mode = source["light_mode"];
+	        this.mode = source["mode"];
+	        this.wallpaper = source["wallpaper"];
+	        this.data = source["data"];
+	    }
+	}
 
-        static createFrom(source: any = {}) {
-            return new Request(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.cmd = source['cmd'];
-            this.path = source['path'];
-            this.mode = source['mode'];
-            this.name = source['name'];
-            this.index = source['index'];
-            this.value = source['value'];
-            this.palette = source['palette'];
-            this.vibrance = source['vibrance'];
-            this.saturation = source['saturation'];
-            this.contrast = source['contrast'];
-            this.brightness = source['brightness'];
-            this.shadows = source['shadows'];
-            this.highlights = source['highlights'];
-            this.hue_shift = source['hue_shift'];
-            this.temperature = source['temperature'];
-            this.tint = source['tint'];
-            this.gamma = source['gamma'];
-            this.black_point = source['black_point'];
-            this.white_point = source['white_point'];
-            this.light_mode = source['light_mode'];
-        }
-    }
-    export class Response {
-        ok: boolean;
-        error?: string;
-        palette?: string[];
-        light_mode?: boolean;
-        mode?: string;
-        wallpaper?: string;
-        data?: number[];
-
-        static createFrom(source: any = {}) {
-            return new Response(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.ok = source['ok'];
-            this.error = source['error'];
-            this.palette = source['palette'];
-            this.light_mode = source['light_mode'];
-            this.mode = source['mode'];
-            this.wallpaper = source['wallpaper'];
-            this.data = source['data'];
-        }
-    }
 }
 
 export namespace main {
-    export class ApplyThemeRequest {
-        palette: string[];
-        wallpaperPath: string;
-        lightMode: boolean;
-        additionalImages: string[];
-        extendedColors: Record<string, string>;
-        settings: theme.Settings;
-        appOverrides: Record<string, any>;
+	
+	export class ApplyThemeRequest {
+	    palette: string[];
+	    wallpaperPath: string;
+	    originalWallpaperPath: string;
+	    lightMode: boolean;
+	    additionalImages: string[];
+	    extendedColors: Record<string, string>;
+	    settings: theme.Settings;
+	    appOverrides: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new ApplyThemeRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.palette = source["palette"];
+	        this.wallpaperPath = source["wallpaperPath"];
+	        this.originalWallpaperPath = source["originalWallpaperPath"];
+	        this.lightMode = source["lightMode"];
+	        this.additionalImages = source["additionalImages"];
+	        this.extendedColors = source["extendedColors"];
+	        this.settings = this.convertValues(source["settings"], theme.Settings);
+	        this.appOverrides = source["appOverrides"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ExportThemeRequest {
+	    name: string;
+	    includedApps: string[];
+	    palette: string[];
+	    wallpaperPath: string;
+	    originalWallpaperPath: string;
+	    lightMode: boolean;
+	    additionalImages: string[];
+	    extendedColors: Record<string, string>;
+	    installToOmarchy: boolean;
+	    appOverrides: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new ExportThemeRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.includedApps = source["includedApps"];
+	        this.palette = source["palette"];
+	        this.wallpaperPath = source["wallpaperPath"];
+	        this.originalWallpaperPath = source["originalWallpaperPath"];
+	        this.lightMode = source["lightMode"];
+	        this.additionalImages = source["additionalImages"];
+	        this.extendedColors = source["extendedColors"];
+	        this.installToOmarchy = source["installToOmarchy"];
+	        this.appOverrides = source["appOverrides"];
+	    }
+	}
+	export class ExternalImportPreview {
+	    has_external_theme: boolean;
+	    has_colors: boolean;
+	    has_wallpaper: boolean;
+	    source_url: string;
+	    palette?: string[];
+	    wallpaper?: string;
+	    theme_name?: string;
+	    mode?: string;
+	    edit: boolean;
+	    omarchy_theme_name?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ExternalImportPreview(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.has_external_theme = source["has_external_theme"];
+	        this.has_colors = source["has_colors"];
+	        this.has_wallpaper = source["has_wallpaper"];
+	        this.source_url = source["source_url"];
+	        this.palette = source["palette"];
+	        this.wallpaper = source["wallpaper"];
+	        this.theme_name = source["theme_name"];
+	        this.mode = source["mode"];
+	        this.edit = source["edit"];
+	        this.omarchy_theme_name = source["omarchy_theme_name"];
+	    }
+	}
+	export class ExtractFromImagesResult {
+	    palette: string[];
+	    skipped: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ExtractFromImagesResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.palette = source["palette"];
+	        this.skipped = source["skipped"];
+	    }
+	}
+	export class ImportResult {
+	    colors: string[];
+	    extendedColors: Record<string, string>;
+	    name: string;
+	    path: string;
+	    wallpaperPath: string;
+	    lightMode: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ImportResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.colors = source["colors"];
+	        this.extendedColors = source["extendedColors"];
+	        this.name = source["name"];
+	        this.path = source["path"];
+	        this.wallpaperPath = source["wallpaperPath"];
+	        this.lightMode = source["lightMode"];
+	    }
+	}
+	export class SaveAndApplyThemeRequest {
+	    name: string;
+	    updateExisting: boolean;
+	    palette: string[];
+	    wallpaperPath: string;
+	    originalWallpaperPath: string;
+	    lightMode: boolean;
+	    additionalImages: string[];
+	    extendedColors: Record<string, string>;
+	    settings: theme.Settings;
+	    appOverrides: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new SaveAndApplyThemeRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.updateExisting = source["updateExisting"];
+	        this.palette = source["palette"];
+	        this.wallpaperPath = source["wallpaperPath"];
+	        this.originalWallpaperPath = source["originalWallpaperPath"];
+	        this.lightMode = source["lightMode"];
+	        this.additionalImages = source["additionalImages"];
+	        this.extendedColors = source["extendedColors"];
+	        this.settings = this.convertValues(source["settings"], theme.Settings);
+	        this.appOverrides = source["appOverrides"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class SaveBlueprintRequest {
+	    name: string;
+	    palette: string[];
+	    wallpaperPath: string;
+	    lightMode: boolean;
+	    additionalImages: string[];
+	    lockedColors: number[];
+	    extendedColors: Record<string, string>;
+	    appOverrides: Record<string, any>;
+	    adjustments: Record<string, number>;
+	
+	    static createFrom(source: any = {}) {
+	        return new SaveBlueprintRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.palette = source["palette"];
+	        this.wallpaperPath = source["wallpaperPath"];
+	        this.lightMode = source["lightMode"];
+	        this.additionalImages = source["additionalImages"];
+	        this.lockedColors = source["lockedColors"];
+	        this.extendedColors = source["extendedColors"];
+	        this.appOverrides = source["appOverrides"];
+	        this.adjustments = source["adjustments"];
+	    }
+	}
+	export class SyncStateRequest {
+	    palette: string[];
+	    wallpaperPath: string;
+	    originalWallpaperPath: string;
+	    lightMode: boolean;
+	    extendedColors: Record<string, string>;
+	    appOverrides: Record<string, any>;
+	    additionalImages: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new SyncStateRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.palette = source["palette"];
+	        this.wallpaperPath = source["wallpaperPath"];
+	        this.originalWallpaperPath = source["originalWallpaperPath"];
+	        this.lightMode = source["lightMode"];
+	        this.extendedColors = source["extendedColors"];
+	        this.appOverrides = source["appOverrides"];
+	        this.additionalImages = source["additionalImages"];
+	    }
+	}
 
-        static createFrom(source: any = {}) {
-            return new ApplyThemeRequest(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.palette = source['palette'];
-            this.wallpaperPath = source['wallpaperPath'];
-            this.lightMode = source['lightMode'];
-            this.additionalImages = source['additionalImages'];
-            this.extendedColors = source['extendedColors'];
-            this.settings = this.convertValues(
-                source['settings'],
-                theme.Settings
-            );
-            this.appOverrides = source['appOverrides'];
-        }
-
-        convertValues(a: any, classs: any, asMap: boolean = false): any {
-            if (!a) {
-                return a;
-            }
-            if (a.slice && a.map) {
-                return (a as any[]).map(elem =>
-                    this.convertValues(elem, classs)
-                );
-            } else if ('object' === typeof a) {
-                if (asMap) {
-                    for (const key of Object.keys(a)) {
-                        a[key] = new classs(a[key]);
-                    }
-                    return a;
-                }
-                return new classs(a);
-            }
-            return a;
-        }
-    }
-    export class ExportThemeRequest {
-        name: string;
-        includedApps: string[];
-        palette: string[];
-        wallpaperPath: string;
-        lightMode: boolean;
-        additionalImages: string[];
-        extendedColors: Record<string, string>;
-        installToOmarchy: boolean;
-        appOverrides: Record<string, any>;
-
-        static createFrom(source: any = {}) {
-            return new ExportThemeRequest(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.name = source['name'];
-            this.includedApps = source['includedApps'];
-            this.palette = source['palette'];
-            this.wallpaperPath = source['wallpaperPath'];
-            this.lightMode = source['lightMode'];
-            this.additionalImages = source['additionalImages'];
-            this.extendedColors = source['extendedColors'];
-            this.installToOmarchy = source['installToOmarchy'];
-            this.appOverrides = source['appOverrides'];
-        }
-    }
-    export class ExternalImportPreview {
-        has_external_theme: boolean;
-        has_colors: boolean;
-        has_wallpaper: boolean;
-        source_url: string;
-        palette?: string[];
-        wallpaper?: string;
-        theme_name?: string;
-        mode?: string;
-        edit: boolean;
-        omarchy_theme_name?: string;
-
-        static createFrom(source: any = {}) {
-            return new ExternalImportPreview(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.has_external_theme = source['has_external_theme'];
-            this.has_colors = source['has_colors'];
-            this.has_wallpaper = source['has_wallpaper'];
-            this.source_url = source['source_url'];
-            this.palette = source['palette'];
-            this.wallpaper = source['wallpaper'];
-            this.theme_name = source['theme_name'];
-            this.mode = source['mode'];
-            this.edit = source['edit'];
-            this.omarchy_theme_name = source['omarchy_theme_name'];
-        }
-    }
-    export class ExtractFromImagesResult {
-        palette: string[];
-        skipped: number;
-
-        static createFrom(source: any = {}) {
-            return new ExtractFromImagesResult(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.palette = source['palette'];
-            this.skipped = source['skipped'];
-        }
-    }
-    export class ImportResult {
-        colors: string[];
-        extendedColors: Record<string, string>;
-        name: string;
-        path: string;
-        wallpaperPath: string;
-        lightMode: boolean;
-
-        static createFrom(source: any = {}) {
-            return new ImportResult(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.colors = source['colors'];
-            this.extendedColors = source['extendedColors'];
-            this.name = source['name'];
-            this.path = source['path'];
-            this.wallpaperPath = source['wallpaperPath'];
-            this.lightMode = source['lightMode'];
-        }
-    }
-    export class SaveAndApplyThemeRequest {
-        name: string;
-        updateExisting: boolean;
-        palette: string[];
-        wallpaperPath: string;
-        lightMode: boolean;
-        additionalImages: string[];
-        extendedColors: Record<string, string>;
-        settings: theme.Settings;
-        appOverrides: Record<string, any>;
-
-        static createFrom(source: any = {}) {
-            return new SaveAndApplyThemeRequest(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.name = source['name'];
-            this.updateExisting = source['updateExisting'];
-            this.palette = source['palette'];
-            this.wallpaperPath = source['wallpaperPath'];
-            this.lightMode = source['lightMode'];
-            this.additionalImages = source['additionalImages'];
-            this.extendedColors = source['extendedColors'];
-            this.settings = this.convertValues(
-                source['settings'],
-                theme.Settings
-            );
-            this.appOverrides = source['appOverrides'];
-        }
-
-        convertValues(a: any, classs: any, asMap: boolean = false): any {
-            if (!a) {
-                return a;
-            }
-            if (a.slice && a.map) {
-                return (a as any[]).map(elem =>
-                    this.convertValues(elem, classs)
-                );
-            } else if ('object' === typeof a) {
-                if (asMap) {
-                    for (const key of Object.keys(a)) {
-                        a[key] = new classs(a[key]);
-                    }
-                    return a;
-                }
-                return new classs(a);
-            }
-            return a;
-        }
-    }
-    export class SaveBlueprintRequest {
-        name: string;
-        palette: string[];
-        wallpaperPath: string;
-        lightMode: boolean;
-        additionalImages: string[];
-        lockedColors: number[];
-        extendedColors: Record<string, string>;
-        appOverrides: Record<string, any>;
-        adjustments: Record<string, number>;
-
-        static createFrom(source: any = {}) {
-            return new SaveBlueprintRequest(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.name = source['name'];
-            this.palette = source['palette'];
-            this.wallpaperPath = source['wallpaperPath'];
-            this.lightMode = source['lightMode'];
-            this.additionalImages = source['additionalImages'];
-            this.lockedColors = source['lockedColors'];
-            this.extendedColors = source['extendedColors'];
-            this.appOverrides = source['appOverrides'];
-            this.adjustments = source['adjustments'];
-        }
-    }
-    export class SyncStateRequest {
-        palette: string[];
-        wallpaperPath: string;
-        lightMode: boolean;
-        extendedColors: Record<string, string>;
-        appOverrides: Record<string, any>;
-        additionalImages: string[];
-
-        static createFrom(source: any = {}) {
-            return new SyncStateRequest(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.palette = source['palette'];
-            this.wallpaperPath = source['wallpaperPath'];
-            this.lightMode = source['lightMode'];
-            this.extendedColors = source['extendedColors'];
-            this.appOverrides = source['appOverrides'];
-            this.additionalImages = source['additionalImages'];
-        }
-    }
 }
 
 export namespace omarchy {
-    export class Theme {
-        name: string;
-        path: string;
-        colors: string[];
-        extendedColors: Record<string, string>;
-        background: string;
-        foreground: string;
-        wallpapers: string[];
-        isSymlink: boolean;
-        isCurrentTheme: boolean;
-        isAetherGenerated: boolean;
+	
+	export class Theme {
+	    name: string;
+	    path: string;
+	    colors: string[];
+	    extendedColors: Record<string, string>;
+	    background: string;
+	    foreground: string;
+	    wallpapers: string[];
+	    isSymlink: boolean;
+	    isCurrentTheme: boolean;
+	    isAetherGenerated: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Theme(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.path = source["path"];
+	        this.colors = source["colors"];
+	        this.extendedColors = source["extendedColors"];
+	        this.background = source["background"];
+	        this.foreground = source["foreground"];
+	        this.wallpapers = source["wallpapers"];
+	        this.isSymlink = source["isSymlink"];
+	        this.isCurrentTheme = source["isCurrentTheme"];
+	        this.isAetherGenerated = source["isAetherGenerated"];
+	    }
+	}
 
-        static createFrom(source: any = {}) {
-            return new Theme(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.name = source['name'];
-            this.path = source['path'];
-            this.colors = source['colors'];
-            this.extendedColors = source['extendedColors'];
-            this.background = source['background'];
-            this.foreground = source['foreground'];
-            this.wallpapers = source['wallpapers'];
-            this.isSymlink = source['isSymlink'];
-            this.isCurrentTheme = source['isCurrentTheme'];
-            this.isAetherGenerated = source['isAetherGenerated'];
-        }
-    }
 }
 
 export namespace template {
-    export class ColorRoles {
-        background: string;
-        foreground: string;
-        black: string;
-        red: string;
-        green: string;
-        yellow: string;
-        blue: string;
-        magenta: string;
-        cyan: string;
-        white: string;
-        bright_black: string;
-        bright_red: string;
-        bright_green: string;
-        bright_yellow: string;
-        bright_blue: string;
-        bright_magenta: string;
-        bright_cyan: string;
-        bright_white: string;
-        accent: string;
-        cursor: string;
-        selection_foreground: string;
-        selection_background: string;
+	
+	export class ColorRoles {
+	    background: string;
+	    foreground: string;
+	    black: string;
+	    red: string;
+	    green: string;
+	    yellow: string;
+	    blue: string;
+	    magenta: string;
+	    cyan: string;
+	    white: string;
+	    bright_black: string;
+	    bright_red: string;
+	    bright_green: string;
+	    bright_yellow: string;
+	    bright_blue: string;
+	    bright_magenta: string;
+	    bright_cyan: string;
+	    bright_white: string;
+	    accent: string;
+	    cursor: string;
+	    selection_foreground: string;
+	    selection_background: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ColorRoles(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.background = source["background"];
+	        this.foreground = source["foreground"];
+	        this.black = source["black"];
+	        this.red = source["red"];
+	        this.green = source["green"];
+	        this.yellow = source["yellow"];
+	        this.blue = source["blue"];
+	        this.magenta = source["magenta"];
+	        this.cyan = source["cyan"];
+	        this.white = source["white"];
+	        this.bright_black = source["bright_black"];
+	        this.bright_red = source["bright_red"];
+	        this.bright_green = source["bright_green"];
+	        this.bright_yellow = source["bright_yellow"];
+	        this.bright_blue = source["bright_blue"];
+	        this.bright_magenta = source["bright_magenta"];
+	        this.bright_cyan = source["bright_cyan"];
+	        this.bright_white = source["bright_white"];
+	        this.accent = source["accent"];
+	        this.cursor = source["cursor"];
+	        this.selection_foreground = source["selection_foreground"];
+	        this.selection_background = source["selection_background"];
+	    }
+	}
 
-        static createFrom(source: any = {}) {
-            return new ColorRoles(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.background = source['background'];
-            this.foreground = source['foreground'];
-            this.black = source['black'];
-            this.red = source['red'];
-            this.green = source['green'];
-            this.yellow = source['yellow'];
-            this.blue = source['blue'];
-            this.magenta = source['magenta'];
-            this.cyan = source['cyan'];
-            this.white = source['white'];
-            this.bright_black = source['bright_black'];
-            this.bright_red = source['bright_red'];
-            this.bright_green = source['bright_green'];
-            this.bright_yellow = source['bright_yellow'];
-            this.bright_blue = source['bright_blue'];
-            this.bright_magenta = source['bright_magenta'];
-            this.bright_cyan = source['bright_cyan'];
-            this.bright_white = source['bright_white'];
-            this.accent = source['accent'];
-            this.cursor = source['cursor'];
-            this.selection_foreground = source['selection_foreground'];
-            this.selection_background = source['selection_background'];
-        }
-    }
 }
 
 export namespace theme {
-    export class ApplyResult {
-        success: boolean;
-        isOmarchy: boolean;
-        themePath: string;
+	
+	export class ApplyResult {
+	    success: boolean;
+	    isOmarchy: boolean;
+	    themePath: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ApplyResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.isOmarchy = source["isOmarchy"];
+	        this.themePath = source["themePath"];
+	    }
+	}
+	export class Settings {
+	    includeZed: boolean;
+	    includeVscode: boolean;
+	    includeNeovim: boolean;
+	    selectedNeovimConfig: string;
+	    excludedApps?: Record<string, boolean>;
+	
+	    static createFrom(source: any = {}) {
+	        return new Settings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.includeZed = source["includeZed"];
+	        this.includeVscode = source["includeVscode"];
+	        this.includeNeovim = source["includeNeovim"];
+	        this.selectedNeovimConfig = source["selectedNeovimConfig"];
+	        this.excludedApps = source["excludedApps"];
+	    }
+	}
+	export class StateSnapshot {
+	    palette: string[];
+	    wallpaperPath: string;
+	    lightMode: boolean;
+	    lockedColors: Record<number, boolean>;
+	    colorRoles: template.ColorRoles;
+	    extendedColors: Record<string, string>;
+	    extractionMode: string;
+	    additionalImages: string[];
+	    appOverrides: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new StateSnapshot(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.palette = source["palette"];
+	        this.wallpaperPath = source["wallpaperPath"];
+	        this.lightMode = source["lightMode"];
+	        this.lockedColors = source["lockedColors"];
+	        this.colorRoles = this.convertValues(source["colorRoles"], template.ColorRoles);
+	        this.extendedColors = source["extendedColors"];
+	        this.extractionMode = source["extractionMode"];
+	        this.additionalImages = source["additionalImages"];
+	        this.appOverrides = source["appOverrides"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 
         static createFrom(source: any = {}) {
             return new ApplyResult(source);
@@ -559,129 +648,132 @@ export namespace theme {
 }
 
 export namespace wallhaven {
-    export class SearchMeta {
-        current_page: number;
-        last_page: number;
-        total: number;
-        seed?: string;
+	
+	export class SearchMeta {
+	    current_page: number;
+	    last_page: number;
+	    total: number;
+	    seed?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SearchMeta(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.current_page = source["current_page"];
+	        this.last_page = source["last_page"];
+	        this.total = source["total"];
+	        this.seed = source["seed"];
+	    }
+	}
+	export class SearchParams {
+	    q: string;
+	    categories: string;
+	    purity: string;
+	    sorting: string;
+	    order: string;
+	    page: number;
+	    atleast: string;
+	    colors: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SearchParams(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.q = source["q"];
+	        this.categories = source["categories"];
+	        this.purity = source["purity"];
+	        this.sorting = source["sorting"];
+	        this.order = source["order"];
+	        this.page = source["page"];
+	        this.atleast = source["atleast"];
+	        this.colors = source["colors"];
+	    }
+	}
+	export class WallpaperInfo {
+	    id: string;
+	    url: string;
+	    path: string;
+	    resolution: string;
+	    file_size: number;
+	    category: string;
+	    purity: string;
+	    thumbs: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new WallpaperInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.url = source["url"];
+	        this.path = source["path"];
+	        this.resolution = source["resolution"];
+	        this.file_size = source["file_size"];
+	        this.category = source["category"];
+	        this.purity = source["purity"];
+	        this.thumbs = source["thumbs"];
+	    }
+	}
+	export class SearchResult {
+	    data: WallpaperInfo[];
+	    meta: SearchMeta;
+	
+	    static createFrom(source: any = {}) {
+	        return new SearchResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.data = this.convertValues(source["data"], WallpaperInfo);
+	        this.meta = this.convertValues(source["meta"], SearchMeta);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 
-        static createFrom(source: any = {}) {
-            return new SearchMeta(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.current_page = source['current_page'];
-            this.last_page = source['last_page'];
-            this.total = source['total'];
-            this.seed = source['seed'];
-        }
-    }
-    export class SearchParams {
-        q: string;
-        categories: string;
-        purity: string;
-        sorting: string;
-        order: string;
-        page: number;
-        atleast: string;
-        colors: string;
-
-        static createFrom(source: any = {}) {
-            return new SearchParams(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.q = source['q'];
-            this.categories = source['categories'];
-            this.purity = source['purity'];
-            this.sorting = source['sorting'];
-            this.order = source['order'];
-            this.page = source['page'];
-            this.atleast = source['atleast'];
-            this.colors = source['colors'];
-        }
-    }
-    export class WallpaperInfo {
-        id: string;
-        url: string;
-        path: string;
-        resolution: string;
-        file_size: number;
-        category: string;
-        purity: string;
-        thumbs: Record<string, string>;
-
-        static createFrom(source: any = {}) {
-            return new WallpaperInfo(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.id = source['id'];
-            this.url = source['url'];
-            this.path = source['path'];
-            this.resolution = source['resolution'];
-            this.file_size = source['file_size'];
-            this.category = source['category'];
-            this.purity = source['purity'];
-            this.thumbs = source['thumbs'];
-        }
-    }
-    export class SearchResult {
-        data: WallpaperInfo[];
-        meta: SearchMeta;
-
-        static createFrom(source: any = {}) {
-            return new SearchResult(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.data = this.convertValues(source['data'], WallpaperInfo);
-            this.meta = this.convertValues(source['meta'], SearchMeta);
-        }
-
-        convertValues(a: any, classs: any, asMap: boolean = false): any {
-            if (!a) {
-                return a;
-            }
-            if (a.slice && a.map) {
-                return (a as any[]).map(elem =>
-                    this.convertValues(elem, classs)
-                );
-            } else if ('object' === typeof a) {
-                if (asMap) {
-                    for (const key of Object.keys(a)) {
-                        a[key] = new classs(a[key]);
-                    }
-                    return a;
-                }
-                return new classs(a);
-            }
-            return a;
-        }
-    }
 }
 
 export namespace wallpaper {
-    export class WallpaperInfo {
-        path: string;
-        name: string;
-        size: number;
-        modTime: number;
+	
+	export class WallpaperInfo {
+	    path: string;
+	    name: string;
+	    size: number;
+	    modTime: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new WallpaperInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.name = source["name"];
+	        this.size = source["size"];
+	        this.modTime = source["modTime"];
+	    }
+	}
 
-        static createFrom(source: any = {}) {
-            return new WallpaperInfo(source);
-        }
-
-        constructor(source: any = {}) {
-            if ('string' === typeof source) source = JSON.parse(source);
-            this.path = source['path'];
-            this.name = source['name'];
-            this.size = source['size'];
-            this.modTime = source['modTime'];
-        }
-    }
 }
+

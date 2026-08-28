@@ -100,6 +100,11 @@ func ColorCacheDir() string {
 	return filepath.Join(CacheDir(), "color-cache")
 }
 
+// BlurDir returns ~/.cache/aether/blur.
+func BlurDir() string {
+	return filepath.Join(CacheDir(), "blur")
+}
+
 // EnsureAllDirs creates all directories required by Aether. It does not create
 // WallpaperDir because that is user-managed.
 func EnsureAllDirs() error {
@@ -114,6 +119,7 @@ func EnsureAllDirs() error {
 		DownloadDir(),
 		ThumbnailDir(),
 		ColorCacheDir(),
+		BlurDir(),
 	}
 	// Omarchy directories are Linux-only
 	if runtime.GOOS == "linux" {
