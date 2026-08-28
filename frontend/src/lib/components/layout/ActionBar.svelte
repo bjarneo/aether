@@ -177,8 +177,9 @@
 
     async function handleClear() {
         try {
-            const {ClearTheme} =
-                await import('../../../../wailsjs/go/main/App');
+            const {ClearTheme} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
             await ClearTheme();
             showToast('Reverted to system theme');
         } catch {
@@ -188,8 +189,9 @@
 
     async function handleReset() {
         try {
-            const {ResetState} =
-                await import('../../../../wailsjs/go/main/App');
+            const {ResetState} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
             await ResetState();
             resetTheme();
             showToast('Editor reset');
@@ -202,8 +204,9 @@
     async function handleExport() {
         if (!exportName.trim()) return;
         try {
-            const {ExportTheme} =
-                await import('../../../../wailsjs/go/main/App');
+            const {ExportTheme} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
             const includedApps = Object.entries(exportApps)
                 .filter(([, enabled]) => enabled)
                 .map(([key]) => key);
@@ -239,8 +242,9 @@
     async function handleImport(fileType: string) {
         showImportMenu = false;
         try {
-            const {ImportFileDialog} =
-                await import('../../../../wailsjs/go/main/App');
+            const {ImportFileDialog} = await import(
+                '../../../../wailsjs/go/main/App'
+            );
             const result = await ImportFileDialog(fileType);
             console.log('Import result:', result);
             if (result?.colors?.length >= 16) {
@@ -307,8 +311,9 @@
                     onclick={async () => {
                         showExportDialog = true;
                         try {
-                            const {IsOmarchyInstalled} =
-                                await import('../../../../wailsjs/go/main/App');
+                            const {IsOmarchyInstalled} = await import(
+                                '../../../../wailsjs/go/main/App'
+                            );
                             isOmarchy = await IsOmarchyInstalled();
                         } catch {
                             isOmarchy = false;
@@ -432,7 +437,7 @@
                         {/if}
                         {#if dirty && !applying}
                             <span
-                                class="bg-warning absolute -top-1 -right-1 h-2 w-2 ring-2 ring-[var(--color-bg-secondary)]"
+                                class="bg-warning absolute -right-1 -top-1 h-2 w-2 ring-2 ring-[var(--color-bg-secondary)]"
                                 aria-label="Unsaved changes"
                             ></span>
                         {/if}
@@ -465,7 +470,7 @@
                             role="presentation"
                         ></div>
                         <div
-                            class="bg-bg-secondary border-border absolute right-0 bottom-full z-40 mb-1 min-w-[180px] border shadow-lg"
+                            class="bg-bg-secondary border-border absolute bottom-full right-0 z-40 mb-1 min-w-[180px] border shadow-lg"
                         >
                             <button
                                 class="text-fg-secondary hover:text-fg-primary hover:bg-bg-hover w-full px-3 py-1.5 text-left text-[11px] transition-colors"
@@ -510,8 +515,9 @@
                     class="text-fg-dimmed hover:text-fg-secondary hover:bg-bg-hover px-2 py-1 text-[11px] transition-colors duration-100"
                     onclick={async () => {
                         try {
-                            const {ScanLocalWallpapers} =
-                                await import('../../../../wailsjs/go/main/App');
+                            const {ScanLocalWallpapers} = await import(
+                                '../../../../wailsjs/go/main/App'
+                            );
                             await ScanLocalWallpapers();
                             showToast('Wallpapers rescanned');
                             // Force LocalBrowser to remount so it re-reads the file list
@@ -595,7 +601,7 @@
     <div class="mb-3 flex flex-col gap-2.5">
         {#each exportAppGroups as group}
             <div>
-                <span class="text-fg-dimmed text-[10px] tracking-wide uppercase"
+                <span class="text-fg-dimmed text-[10px] uppercase tracking-wide"
                     >{group.label}</span
                 >
                 <div class="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
