@@ -184,7 +184,6 @@ export namespace main {
         includedApps: string[];
         palette: string[];
         wallpaperPath: string;
-        originalWallpaperPath: string;
         lightMode: boolean;
         additionalImages: string[];
         extendedColors: Record<string, string>;
@@ -201,7 +200,6 @@ export namespace main {
             this.includedApps = source['includedApps'];
             this.palette = source['palette'];
             this.wallpaperPath = source['wallpaperPath'];
-            this.originalWallpaperPath = source['originalWallpaperPath'];
             this.lightMode = source['lightMode'];
             this.additionalImages = source['additionalImages'];
             this.extendedColors = source['extendedColors'];

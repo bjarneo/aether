@@ -24,8 +24,6 @@ export function ApplyTheme(
 
 export function BlueprintExists(arg1: string): Promise<boolean>;
 
-export function BlurWallpaper(arg1: string): Promise<string>;
-
 export function CancelBatchProcessing(): Promise<void>;
 
 export function CancelExternalImport(arg1: string): Promise<void>;
@@ -107,8 +105,6 @@ export function IsOmarchyInstalled(): Promise<boolean>;
 export function IsPreviewCached(arg1: string): Promise<boolean>;
 
 export function ListBlueprints(): Promise<Array<Record<string, any>>>;
-
-export function ThemeFolderExists(arg1: string): Promise<boolean>;
 
 export function LoadBlueprint(arg1: string): Promise<void>;
 

@@ -22,10 +22,6 @@ export function BlueprintExists(arg1) {
     return window['go']['main']['App']['BlueprintExists'](arg1);
 }
 
-export function BlurWallpaper(arg1) {
-    return window['go']['main']['App']['BlurWallpaper'](arg1);
-}
-
 export function CancelBatchProcessing() {
     return window['go']['main']['App']['CancelBatchProcessing']();
 }
@@ -168,10 +164,6 @@ export function IsPreviewCached(arg1) {
 
 export function ListBlueprints() {
     return window['go']['main']['App']['ListBlueprints']();
-}
-
-export function ThemeFolderExists(arg1) {
-    return window['go']['main']['App']['ThemeFolderExists'](arg1);
 }
 
 export function LoadBlueprint(arg1) {
