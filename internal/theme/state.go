@@ -10,6 +10,11 @@ type ThemeState struct {
 	Palette          [16]string                   `json:"palette"`
 	BasePalette      [16]string                   `json:"basePalette"`
 	WallpaperPath    string                       `json:"wallpaperPath"`
+	// OriginalWallpaperPath is the unblurred source image when
+	// WallpaperPath is a derived variant (e.g. the heavy-blur JPEG). Both
+	// are copied into the theme's backgrounds so the desktop cycler can
+	// switch between them. Empty when WallpaperPath is the source itself.
+	OriginalWallpaperPath string                  `json:"originalWallpaperPath"`
 	LightMode        bool                         `json:"lightMode"`
 	LockedColors     map[int]bool                 `json:"lockedColors"`
 	Adjustments      color.Adjustments            `json:"adjustments"`

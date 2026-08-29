@@ -10,6 +10,73 @@ import (
 //go:embed testdata/v4
 var omarchyV4TestTemplates embed.FS
 
+// TestPrepareThemeDirCopiesWallpaperVariants covers the blur pair: the
+// applied variant (WallpaperPath) and the unblurred source
+// (OriginalWallpaperPath) must both land in backgrounds/ when they differ,
+// and the returned destination must be the applied variant.
+func TestPrepareThemeDirCopiesWallpaperVariants(t *testing.T) {
+	srcDir := t.TempDir()
+	original := filepath.Join(srcDir, "photo.png")
+	blurred := filepath.Join(srcDir, "photo-blurred-a1b2c3d4.jpg")
+	if err := os.WriteFile(original, []byte("original-bytes"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(blurred, []byte("blurred-bytes"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	targetDir := t.TempDir()
+	dest, err := prepareThemeDir(targetDir, &ThemeState{
+		WallpaperPath:         blurred,
+		OriginalWallpaperPath: original,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bgDir := filepath.Join(targetDir, "backgrounds")
+	wantDest := filepath.Join(bgDir, "photo-blurred-a1b2c3d4.jpg")
+	if dest != wantDest {
+		t.Errorf("dest = %q, want %q", dest, wantDest)
+	}
+
+	got, err := os.ReadFile(wantDest)
+	if err != nil {
+		t.Fatalf("blurred variant missing: %v", err)
+	}
+	if string(got) != "blurred-bytes" {
+		t.Error("blurred variant content mismatch")
+	}
+
+	got, err = os.ReadFile(filepath.Join(bgDir, "photo.png"))
+	if err != nil {
+		t.Fatalf("original wallpaper missing: %v", err)
+	}
+	if string(got) != "original-bytes" {
+		t.Error("original wallpaper content mismatch")
+	}
+
+	// Identical paths (blur off) must not duplicate the file.
+	onlyDir := t.TempDir()
+	dest, err = prepareThemeDir(onlyDir, &ThemeState{
+		WallpaperPath:         original,
+		OriginalWallpaperPath: original,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(filepath.Join(onlyDir, "backgrounds"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("backgrounds has %d entries with identical paths, want 1", len(entries))
+	}
+	if dest != filepath.Join(onlyDir, "backgrounds", "photo.png") {
+		t.Errorf("dest = %q, want the original copy", dest)
+	}
+}
+
 func TestPrepareThemeDirRemovesLegacyGTKStylesheet(t *testing.T) {
 	targetDir := t.TempDir()
 	legacyFile := filepath.Join(targetDir, "gtk.css")
@@ -238,8 +305,7 @@ func TestGenerateOmarchyV4OnlyRemovesLegacyFiles(t *testing.T) {
 	state := NewThemeState()
 	state.ColorRoles.Background = "#1e1e2e"
 	state.ColorRoles.Magenta = "#ff0000"
-	settings := Settings{IncludedApps: map[string]bool{"icons": true}}
-	if err := writer.GenerateOmarchyV4Only(state, settings, themeDir); err != nil {
+	if _, err := writer.GenerateOmarchyV4Only(state, Settings{IncludedApps: map[string]bool{"icons": true}}, themeDir); err != nil {
 		t.Fatal(err)
 	}
 

@@ -10,6 +10,12 @@ import {pushState} from '$lib/stores/history.svelte';
 let palette = $state<string[]>([...DEFAULT_PALETTE]);
 let basePalette = $state<string[]>([...DEFAULT_PALETTE]);
 let wallpaperPath = $state<string>('');
+// Heavily-blurred variant of the wallpaper (backend-generated JPEG in the
+// cache dir). When active, the hero previews it and Apply sends it as the
+// wallpaper — while extraction keeps sampling wallpaperPath, the unblurred
+// original. Tracked with its source path so a wallpaper change can
+// invalidate a stale variant.
+let blur = $state<{source: string; blurred: string} | null>(null);
 let lightMode = $state<boolean>(false);
 let lockedColors = $state<Record<number, boolean>>({});
 let selectedColors = $state<Record<number, boolean>>({}); // empty = all selected
@@ -81,6 +87,20 @@ export function getBasePalette(): string[] {
 export function getWallpaperPath(): string {
     return wallpaperPath;
 }
+export function getBlurredWallpaperPath(): string {
+    return blur?.blurred ?? '';
+}
+export function setBlurredWallpaper(source: string, blurred: string): void {
+    blur = {source, blurred};
+}
+export function clearBlurredWallpaper(): void {
+    blur = null;
+}
+// Path sent to ApplyTheme/SaveAndApplyTheme: the blurred variant when one
+// is active for the current wallpaper, otherwise the original.
+export function getApplyWallpaperPath(): string {
+    return blur?.blurred || wallpaperPath;
+}
 export function getLightMode(): boolean {
     return lightMode;
 }
@@ -142,6 +162,7 @@ export function getAppOverrides(): Record<string, Record<string, string>> {
 export function getThemeSnapshot(): {
     palette: string[];
     wallpaperPath: string;
+    originalWallpaperPath: string;
     lightMode: boolean;
     extendedColors: Record<string, string>;
     appOverrides: Record<string, Record<string, string>>;
@@ -149,7 +170,12 @@ export function getThemeSnapshot(): {
 } {
     return {
         palette,
-        wallpaperPath,
+        // Mirrored for IPC readers (`aether status`) and CLI apply — report
+        // the blurred variant when one is active, since that is what an
+        // apply would set as the wallpaper. The unblurred original travels
+        // alongside so theme folders keep both for background cycling.
+        wallpaperPath: getApplyWallpaperPath(),
+        originalWallpaperPath: getWallpaperPath(),
         lightMode,
         extendedColors,
         appOverrides,
@@ -163,6 +189,7 @@ export function getThemeSignature(): string {
     return JSON.stringify([
         palette,
         wallpaperPath,
+        blur?.blurred ?? '',
         lightMode,
         extendedColors,
         appOverrides,
@@ -351,6 +378,9 @@ export function clearExtendedColor(key: string): void {
 
 export function setWallpaperPath(path: string): void {
     wallpaperPath = path;
+    if (blur && blur.source !== path) {
+        blur = null;
+    }
 }
 export function setLightMode(enabled: boolean): void {
     lightMode = enabled;
@@ -390,6 +420,9 @@ export function swapMainWithAdditional(path: string): void {
     if (idx === -1) return;
     const oldMain = wallpaperPath;
     wallpaperPath = path;
+    if (blur && blur.source !== path) {
+        blur = null;
+    }
     const next = [...additionalImages];
     if (oldMain) {
         next[idx] = oldMain;
@@ -432,6 +465,7 @@ export function reset(): void {
     palette = [...DEFAULT_PALETTE];
     basePalette = [...DEFAULT_PALETTE];
     wallpaperPath = '';
+    blur = null;
     lightMode = false;
     lockedColors = {};
     adjustments = {...DEFAULT_ADJUSTMENTS};

@@ -222,6 +222,7 @@ func (a *App) SetExtractionMode(mode string) {
 type SyncStateRequest struct {
 	Palette          []string                     `json:"palette"`
 	WallpaperPath    string                       `json:"wallpaperPath"`
+	OriginalWallpaperPath string                  `json:"originalWallpaperPath"`
 	LightMode        bool                         `json:"lightMode"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
@@ -240,6 +241,7 @@ func (a *App) SyncState(req SyncStateRequest) {
 		a.state.SetAdjustedPalette(p)
 	}
 	a.state.WallpaperPath = req.WallpaperPath
+	a.state.OriginalWallpaperPath = req.OriginalWallpaperPath
 	a.state.LightMode = req.LightMode
 	if req.ExtendedColors != nil {
 		a.state.ExtendedColors = req.ExtendedColors
@@ -321,6 +323,7 @@ func (a *App) ComputeVariables(paletteSlice []string, extendedColors map[string]
 type ApplyThemeRequest struct {
 	Palette          []string                     `json:"palette"`
 	WallpaperPath    string                       `json:"wallpaperPath"`
+	OriginalWallpaperPath string                  `json:"originalWallpaperPath"`
 	LightMode        bool                         `json:"lightMode"`
 	AdditionalImages []string                     `json:"additionalImages"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
@@ -340,6 +343,7 @@ func (a *App) ApplyTheme(req ApplyThemeRequest) (*theme.ApplyResult, error) {
 	state := &theme.ThemeState{
 		Palette:          palette,
 		WallpaperPath:    req.WallpaperPath,
+		OriginalWallpaperPath: req.OriginalWallpaperPath,
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
 		ExtendedColors:   req.ExtendedColors,
@@ -357,6 +361,7 @@ type SaveAndApplyThemeRequest struct {
 	UpdateExisting   bool                         `json:"updateExisting"`
 	Palette          []string                     `json:"palette"`
 	WallpaperPath    string                       `json:"wallpaperPath"`
+	OriginalWallpaperPath string                  `json:"originalWallpaperPath"`
 	LightMode        bool                         `json:"lightMode"`
 	AdditionalImages []string                     `json:"additionalImages"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
@@ -380,6 +385,7 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 	state := &theme.ThemeState{
 		Palette:          palette,
 		WallpaperPath:    req.WallpaperPath,
+		OriginalWallpaperPath: req.OriginalWallpaperPath,
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
 		ExtendedColors:   req.ExtendedColors,
@@ -401,7 +407,8 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("check theme folder: %w", err)
 	}
-	if err := a.writer.GenerateOmarchyV4Only(state, req.Settings, targetDir); err != nil {
+	wallpaperDest, err := a.writer.GenerateOmarchyV4Only(state, req.Settings, targetDir)
+	if err != nil {
 		return nil, fmt.Errorf("save theme: %w", err)
 	}
 	if !theme.IsOmarchyInstalled() {
@@ -415,11 +422,44 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 	if _, err := platform.RunSync("omarchy-theme-set", name); err != nil {
 		return nil, fmt.Errorf("activate theme: %w", err)
 	}
+	// omarchy-theme-set cycles through a theme's bundled backgrounds (its own
+	// plus ours), so it can land on a stock image instead of the selected
+	// wallpaper. Apply our copy explicitly — the blurred variant when blur is
+	// enabled, since the request carries it as WallpaperPath.
+	if wallpaperDest != "" {
+		if err := theme.ApplyWallpaper(wallpaperDest); err != nil {
+			log.Printf("Warning: wallpaper application failed: %v", err)
+		}
+	}
 	return &theme.ApplyResult{
 		Success:   true,
 		IsOmarchy: true,
 		ThemePath: targetDir,
 	}, nil
+}
+
+// ThemeFolderExists reports whether a saved theme folder with the given name
+// already exists. The frontend uses this to offer updating the folder in
+// place instead of refusing to save.
+func (a *App) ThemeFolderExists(name string) bool {
+	name = strings.ToLower(strings.TrimSpace(name))
+	// Same charset SaveAndApplyTheme accepts.
+	if name == "" || name[0] == '-' {
+		return false
+	}
+	for _, r := range name {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+			return false
+		}
+	}
+	for _, dir := range []string{platform.OmarchyThemesDir(), platform.SavedThemesDir()} {
+		// Theme folders are directories; match SaveAndApplyTheme's stat
+		// check rather than platform.FileExists (files only).
+		if _, err := os.Stat(filepath.Join(dir, name)); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // ClearTheme removes the Aether theme and reverts to the default.
@@ -832,6 +872,17 @@ func (a *App) CancelBatchProcessing() {
 // File / Image Utilities
 // ---------------------------------------------------------------------------
 
+// BlurWallpaper generates a heavily Gaussian-blurred JPEG variant of an image
+// for use as the applied wallpaper. The original file is never modified, so
+// color extraction keeps sampling the unblurred source. Returns the variant
+// path (cached by source identity, so repeat calls are cheap).
+func (a *App) BlurWallpaper(path string) (string, error) {
+	if !theme.IsImageFile(path) {
+		return "", fmt.Errorf("unsupported image file: %s", path)
+	}
+	return wallpaper.CreateBlurredVariant(path, platform.BlurDir())
+}
+
 // ReadImageAsDataURL reads a local image file and returns it as a base64 data URL.
 // This is needed because webkit2gtk cannot load file:// paths directly.
 func (a *App) ReadImageAsDataURL(path string) (string, error) {
@@ -937,6 +988,7 @@ type ExportThemeRequest struct {
 	IncludedApps     []string                     `json:"includedApps"`
 	Palette          []string                     `json:"palette"`
 	WallpaperPath    string                       `json:"wallpaperPath"`
+	OriginalWallpaperPath string                  `json:"originalWallpaperPath"`
 	LightMode        bool                         `json:"lightMode"`
 	AdditionalImages []string                     `json:"additionalImages"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
@@ -982,6 +1034,7 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	state := &theme.ThemeState{
 		Palette:          palette,
 		WallpaperPath:    req.WallpaperPath,
+		OriginalWallpaperPath: req.OriginalWallpaperPath,
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
 		ExtendedColors:   req.ExtendedColors,
@@ -1273,6 +1326,7 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 		result, err := a.ApplyTheme(ApplyThemeRequest{
 			Palette:        a.state.Palette[:],
 			WallpaperPath:  a.state.WallpaperPath,
+			OriginalWallpaperPath: a.state.OriginalWallpaperPath,
 			LightMode:      a.state.LightMode,
 			ExtendedColors: a.state.ExtendedColors,
 			AppOverrides:   a.state.AppOverrides,

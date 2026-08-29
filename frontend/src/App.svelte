@@ -488,9 +488,9 @@
     <ApplySaveDialog
         open={getApplySaveDialogOpen()}
         onclose={() => setApplySaveDialogOpen(false)}
-        onsave={name => {
+        onsave={(name, updateExisting) => {
             setApplySaveDialogOpen(false);
-            saveAndApplyTheme(name);
+            saveAndApplyTheme(name, updateExisting);
         }}
     />
 </div>

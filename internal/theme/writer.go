@@ -152,6 +152,16 @@ func prepareThemeDir(targetDir string, state *ThemeState) (string, error) {
 		}
 	}
 
+	// When the applied wallpaper is a derived variant (e.g. the heavy-blur
+	// JPEG), also keep the unblurred original in backgrounds so the desktop
+	// background cycler can switch between the two.
+	if original := state.OriginalWallpaperPath; original != "" && original != state.WallpaperPath {
+		destPath := filepath.Join(bgDir, filepath.Base(original))
+		if err := platform.CopyFile(original, destPath); err != nil {
+			log.Printf("Warning: could not copy original wallpaper: %v", err)
+		}
+	}
+
 	for i, src := range state.AdditionalImages {
 		destPath := filepath.Join(bgDir, filepath.Base(src))
 		if err := platform.CopyFile(src, destPath); err != nil {
@@ -249,18 +259,20 @@ func (w *Writer) processOmarchyV4Templates(
 	}
 }
 
-// GenerateOmarchyV4Only writes a reusable Omarchy v4 theme folder. App-specific
-// templates are included only when targeted or needed by a color override.
-func (w *Writer) GenerateOmarchyV4Only(state *ThemeState, settings Settings, outputPath string) error {
+// GenerateOmarchyV4Only writes the files Omarchy v4 reads directly from a
+// reusable theme folder. Omarchy generates all other app-specific files.
+// Returns the wallpaper destination path ("" when no wallpaper was set).
+func (w *Writer) GenerateOmarchyV4Only(state *ThemeState, settings Settings, outputPath string) (string, error) {
 	variables := template.BuildVariables(state.ColorRoles, state.LightMode, state.ExtendedColors)
 	if err := validateTemplateInputs(variables, state.AppOverrides); err != nil {
-		return err
+		return "", err
 	}
-	if _, err := prepareOmarchyV4ThemeDir(outputPath, state); err != nil {
-		return err
+	wallpaperDest, err := prepareOmarchyV4ThemeDir(outputPath, state)
+	if err != nil {
+		return "", err
 	}
 	w.processOmarchyV4Templates(outputPath, variables, settings, state.AppOverrides, state.ExtendedColors)
-	return nil
+	return wallpaperDest, nil
 }
 
 // ApplyTheme generates all theme files and applies the theme to the system.

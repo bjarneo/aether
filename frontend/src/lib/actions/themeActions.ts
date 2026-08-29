@@ -10,6 +10,7 @@ import {
     getIsExtracting,
     setIsExtracting,
     getWallpaperPath,
+    getApplyWallpaperPath,
     setWallpaperPath,
     getPalette,
     setPalette,
@@ -54,7 +55,8 @@ async function runApply(): Promise<{success: boolean}> {
     const {ApplyTheme} = await import('../../../wailsjs/go/main/App');
     const result = await ApplyTheme({
         palette: getPalette(),
-        wallpaperPath: getWallpaperPath(),
+        wallpaperPath: getApplyWallpaperPath(),
+        originalWallpaperPath: getWallpaperPath(),
         lightMode: getLightMode(),
         additionalImages: getAdditionalImages(),
         extendedColors: getExtendedColors(),
@@ -150,7 +152,8 @@ export async function saveAndApplyTheme(
             name,
             updateExisting,
             palette: getPalette(),
-            wallpaperPath: getWallpaperPath(),
+            wallpaperPath: getApplyWallpaperPath(),
+            originalWallpaperPath: getWallpaperPath(),
             lightMode: getLightMode(),
             additionalImages: getAdditionalImages(),
             extendedColors: getExtendedColors(),
