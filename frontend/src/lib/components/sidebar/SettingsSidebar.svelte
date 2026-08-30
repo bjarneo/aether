@@ -9,8 +9,15 @@
     import TemplateToggles from './TemplateToggles.svelte';
     import SectionLabel from '$lib/components/shared/SectionLabel.svelte';
     import {getLightMode, setLightMode} from '$lib/stores/theme.svelte';
+    import {
+        getOmarchyAvailable,
+        initOmarchyCapabilities,
+    } from '$lib/stores/omarchy.svelte';
 
     let lightMode = $derived(getLightMode());
+    let isOmarchy = $derived(getOmarchyAvailable());
+
+    void initOmarchyCapabilities();
 </script>
 
 <div class="flex h-full flex-col overflow-y-auto">
@@ -61,7 +68,9 @@
     <section class="border-border border-b p-3">
         <NeovimThemes />
     </section>
-    <section class="p-3">
-        <TemplateToggles />
-    </section>
+    {#if !isOmarchy}
+        <section class="p-3">
+            <TemplateToggles />
+        </section>
+    {/if}
 </div>

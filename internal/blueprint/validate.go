@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"aether/internal/color"
+	"aether/internal/omarchy"
 )
 
 func validateBlueprint(bp *Blueprint) error {
@@ -22,6 +23,9 @@ func validateBlueprint(bp *Blueprint) error {
 		if value != "" && !color.IsHexColor(value) {
 			return fmt.Errorf("extended color %q is not a hex color", key)
 		}
+	}
+	if err := omarchy.ValidateNativeColors(bp.Palette.NativeColors); err != nil {
+		return err
 	}
 	for app, overrides := range bp.AppOverrides {
 		for key, value := range overrides {

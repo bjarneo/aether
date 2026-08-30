@@ -6,7 +6,9 @@
     import {
         setPalette,
         setExtendedColors,
+        setNativeColors,
         setWallpaperPath,
+        setLightMode,
         setAdjustments,
         setAppOverrides,
         setAdditionalImages,
@@ -62,9 +64,9 @@
             if (bp.palette?.colors?.length >= 16) {
                 setPalette(bp.palette.colors);
                 setExtendedColors(bp.palette.extendedColors ?? {});
-                if (bp.palette?.wallpaper) {
-                    setWallpaperPath(bp.palette.wallpaper);
-                }
+                setNativeColors(bp.palette.nativeColors ?? {});
+                setLightMode(!!bp.palette.lightMode);
+                setWallpaperPath(bp.palette?.wallpaper ?? '');
             } else {
                 const {LoadBlueprint} = await import(
                     '../../../../wailsjs/go/main/App'

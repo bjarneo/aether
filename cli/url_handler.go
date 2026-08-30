@@ -6,13 +6,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"aether/internal/blueprint"
 	"aether/internal/pending"
-	"aether/internal/platform"
 	"aether/internal/theme"
 	"aether/internal/wallpaper"
 	"aether/ipc"
@@ -207,7 +205,7 @@ func buildURLImportState(imp *pending.Import) (*theme.ThemeState, error) {
 	case imp.ColorsToml != "":
 		bp, err = blueprint.ImportColorsToml(imp.ColorsToml)
 	default:
-		bp, err = blueprint.ImportColorsToml(filepath.Join(platform.ThemeDir(), "colors.toml"))
+		bp, err = blueprint.ImportCurrentColorsToml()
 	}
 	if err != nil {
 		return nil, err
@@ -217,6 +215,9 @@ func buildURLImportState(imp *pending.Import) (*theme.ThemeState, error) {
 	state.WallpaperPath = imp.Wallpaper
 	for key, value := range bp.Palette.ExtendedColors {
 		state.ExtendedColors[key] = value
+	}
+	for key, value := range bp.Palette.NativeColors {
+		state.NativeColors[key] = value
 	}
 	var palette [16]string
 	copy(palette[:], bp.Palette.Colors)

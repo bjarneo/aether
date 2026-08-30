@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"aether/internal/blueprint"
 	"aether/internal/pending"
-	"aether/internal/platform"
 	"aether/internal/theme"
 
 	wailsrt "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -144,8 +142,7 @@ func (a *App) stageImportIntoState(expectedSourceURL string) (*pending.Import, e
 		return nil, fmt.Errorf("parse import: %w", err)
 	}
 	if bp == nil && imp.OmarchyThemeName != "" {
-		currentColors := filepath.Join(platform.ThemeDir(), "colors.toml")
-		if current, loadErr := blueprint.ImportColorsToml(currentColors); loadErr == nil {
+		if current, loadErr := blueprint.ImportCurrentColorsToml(); loadErr == nil {
 			bp = current
 		} else {
 			return nil, fmt.Errorf("load current palette for wallpaper-only install: %w", loadErr)
@@ -155,13 +152,13 @@ func (a *App) stageImportIntoState(expectedSourceURL string) (*pending.Import, e
 	if bp != nil {
 		// Merge extended colors before SetPalette so buildColorRoles uses the
 		// imported accent/cursor/selection instead of re-deriving them.
-		if len(bp.Palette.ExtendedColors) > 0 {
-			if a.state.ExtendedColors == nil {
-				a.state.ExtendedColors = map[string]string{}
-			}
-			for k, v := range bp.Palette.ExtendedColors {
-				a.state.ExtendedColors[k] = v
-			}
+		a.state.ExtendedColors = make(map[string]string, len(bp.Palette.ExtendedColors))
+		for k, v := range bp.Palette.ExtendedColors {
+			a.state.ExtendedColors[k] = v
+		}
+		a.state.NativeColors = make(map[string]string, len(bp.Palette.NativeColors))
+		for k, v := range bp.Palette.NativeColors {
+			a.state.NativeColors[k] = v
 		}
 
 		var palette [16]string

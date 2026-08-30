@@ -1,142 +1,105 @@
-# Quickshell widgets
+# Omarchy shell plugins
 
-QML widgets that drive Aether from a Hyprland-style bar / launcher. They run as Wayland layer-shell overlays and shell out to the `aether` CLI for everything, so no Aether GUI is required.
+Open Aether's wallpaper and blueprint selectors inside the native Omarchy shell. The plugins use Omarchy colors, lifecycle, keyboard focus, and plugin registry while the `aether` CLI supplies palettes and themes.
 
-Two widgets ship in `contrib/quickshell/`:
+## Install
 
-- **Wallpapers**: horizontal carousel of -5deg sheared parallelogram cards. Browse `~/Wallpapers`, live-preview a Material-mode palette, hit Enter to apply.
-- **Blueprints**: vertical list of saved blueprints (name + 8-color swatch). Type to filter, Enter to apply.
+Package installs include a helper:
 
-These replace the previous Wails-based `--widget-blueprint`, `--widget-wallpaper-slider`, and `--widget-themes-slider` modes, which have been removed.
-
-## Requirements
-
-- `quickshell` (`qs`) on PATH
-- `aether` on PATH (`make install` puts it in `/usr/bin/`)
-- A Wayland compositor with layer-shell support (Hyprland, Sway, KWin, river, ...)
-
-## Run
-
-```sh
-qs -p contrib/quickshell/wallpapers/shell.qml
-qs -p contrib/quickshell/blueprints/shell.qml
+```bash
+aether-install-omarchy-plugins
 ```
 
-Or install each as a named config so `qs -c <name>` works:
+For a source checkout:
 
-```sh
-ln -s "$PWD/contrib/quickshell/wallpapers" ~/.config/quickshell/aether-wallpapers
-ln -s "$PWD/contrib/quickshell/blueprints" ~/.config/quickshell/aether-blueprints
-
-qs -c aether-wallpapers
-qs -c aether-blueprints
+```bash
+make install-omarchy-plugins
 ```
 
-## Hyprland keybinds
+The installer validates both manifests, writes them to `~/.config/omarchy/plugins/`, and enables them when `omarchy-shell` is running. It refuses to replace a plugin directory that is not marked as Aether-managed.
 
-```
-bind = SUPER, W, exec, qs -c aether-wallpapers
-bind = SUPER, B, exec, qs -c aether-blueprints
-```
+## Open
 
-## Hyprland blur
-
-Both widgets set a Wayland layer namespace so Hyprland can target them with a layerrule. Without the layerrule, the dark scrim is a flat tint; with it, the wallpaper underneath is compositor-blurred and you see a real frosted-glass effect.
-
-Add to `~/.config/hypr/hyprland.conf`:
-
-```
-layerrule = blur, aether-slider
-layerrule = ignorezero, aether-slider
-layerrule = blur, aether-blueprints
-layerrule = ignorezero, aether-blueprints
+```bash
+omarchy-shell shell toggle aether.wallpapers '{}'
+omarchy-shell shell toggle aether.blueprints '{}'
 ```
 
-Then `hyprctl reload` and re-launch.
+Example Hyprland keybinds:
 
-For non-Hyprland compositors (KWin, etc.) you'd need to wire up their equivalent blur mechanism, or edit `shell.qml` to add a `BackgroundEffect.blurRegion: Region { ... }` block, which uses the `ext-background-effect-v1` Wayland protocol where supported.
+```conf
+bind = SUPER, W, exec, omarchy-shell shell toggle aether.wallpapers '{}'
+bind = SUPER, B, exec, omarchy-shell shell toggle aether.blueprints '{}'
+```
 
-## Wallpapers widget
+## Wallpaper Selector
 
-Fullscreen overlay, horizontal carousel. Cards farther from the active one shrink in width, height, and opacity to put the focus on the hero.
+Browse local wallpapers, preview a Material palette, and generate an Aether theme from the selected image.
 
 | Key | Action |
 | --- | --- |
-| left / right | navigate |
-| tab / shift+tab | navigate |
-| enter | apply current wallpaper as theme |
-| ctrl+l | toggle light mode (re-extracts current wallpaper) |
-| a..z, 0..9, ... | type-to-search by filename |
-| backspace | edit search |
-| esc, q | dismiss |
+| left / right | Navigate |
+| tab / shift+tab | Navigate |
+| enter | Apply the selected wallpaper and theme |
+| ctrl+l | Toggle light extraction mode |
+| type | Filter by filename |
+| backspace | Edit the filter |
+| esc, q | Close |
 
-### CLI calls
+The plugin calls:
 
-- `aether --list-wallpapers --json --with-previews` on startup. Generates 800px PNG thumbnails at `~/.cache/aether/thumbnails/` so cards render in one sharp pass instead of a blurry-then-sharp swap. First run for a new wallpaper folder takes a moment (parallel generation, 8 workers); subsequent runs are instant `stat()`s.
-- `aether --extract-palette <path> --extract-mode material [--light-mode] --json` on navigation (debounced 200ms). Cached in-process by path so revisiting a wallpaper is free.
-- `aether --generate <path> --extract-mode material [--light-mode]` on Enter.
+```text
+aether --list-wallpapers --json --with-previews
+aether --extract-palette <path> --extract-mode material [--light-mode] --json
+aether --generate <path> --extract-mode material [--light-mode]
+```
 
-### Light mode
+## Blueprint Selector
 
-Ctrl+L toggles `lightMode`. The widget keeps its own chrome dark either way (so the blurred scrim stays readable), but the inline palette strip on the active card and the accent border use the real light-mode colors from `aether --extract-palette --light-mode`, so you see what you're about to apply.
-
-## Blueprints widget
-
-Centered card, vertical list. Each row shows the blueprint name plus the first 8 colors of its palette.
+Browse saved Aether blueprints and apply one without opening the editor.
 
 | Key | Action |
 | --- | --- |
-| up / down | navigate |
-| page up / down | jump 8 rows |
-| home / end | first / last |
-| enter | apply selected blueprint |
-| a..z, 0..9, ... | type-to-search by name |
-| backspace | edit search |
-| esc, q | dismiss |
+| up / down | Navigate |
+| page up / page down | Jump eight rows |
+| home / end | First / last |
+| enter | Apply the selected blueprint |
+| type | Filter by name |
+| backspace | Edit the filter |
+| esc, q | Close |
 
-### CLI calls
+The plugin calls `aether --list-blueprints --json` and `aether --apply-blueprint <name>`.
 
-- `aether --list-blueprints --json` on startup.
-- `aether --apply-blueprint <name>` on Enter, then the widget self-dismisses.
+## Plugin Files
 
-## Folder layout
-
-```
-contrib/quickshell/
-|-- README.md
-|-- wallpapers/
+```text
+~/.config/omarchy/plugins/
+|-- aether.wallpapers/
+|   |-- manifest.json
 |   |-- shell.qml
 |   `-- WallpaperSlider.qml
-`-- blueprints/
+`-- aether.blueprints/
+    |-- manifest.json
     |-- shell.qml
     `-- Blueprints.qml
 ```
 
-Each `shell.qml` is the entry point that sets up the layer-shell overlay; the sibling `.qml` file holds the actual carousel / list logic, processes, and key handling.
+Omarchy watches this directory. To force a refresh:
 
-## Customizing
-
-Both widgets are plain QML. Common tweaks:
-
-- **Card sizes** -- top of `WallpaperSlider.qml`, properties `cardW`, `cardActiveW`, `cardH`, `cardActiveH`, `cardMinW`, `cardMinH`.
-- **Skew angle** -- `skew` property on the root of `WallpaperSlider.qml`. Default `5` deg. Set to `0` to disable.
-- **Scrim opacity** -- the `Rectangle { anchors.fill: parent; color: Qt.rgba(... , 0.40) }` block near the top of each widget's visual tree. Higher alpha = more opaque chrome, less wallpaper blur showing through.
-- **Blueprint card opacity** -- `card` Rectangle in `Blueprints.qml`, `color: Qt.rgba(0.06, 0.06, 0.07, 0.92)`.
+```bash
+omarchy-shell shell rescanPlugins
+omarchy plugin enable aether.wallpapers
+omarchy plugin enable aether.blueprints
+```
 
 ## Troubleshooting
 
-**"list parse: SyntaxError: JSON.parse: Parse error"**
+Check discovery and state:
 
-The system `aether` binary is older than the source tree. `--with-previews` (wallpapers) and `--json` on `--list-blueprints` were added recently. Reinstall:
-
-```sh
-sudo cp build/bin/aether /usr/bin/aether
+```bash
+omarchy plugin list
+omarchy plugin validate ~/.config/omarchy/plugins/aether.wallpapers
+omarchy plugin validate ~/.config/omarchy/plugins/aether.blueprints
 ```
 
-**Wallpaper images show as "broken"**
-
-The file on disk is 0 bytes or in a format `qt6-base` doesn't decode (rare). The widget filters out 0-byte files automatically; if you see "broken" placeholders, those are non-empty files that failed decoding.
-
-**Scrim is fully opaque, no blur visible**
-
-Hyprland layerrule isn't loaded. Re-check `~/.config/hypr/hyprland.conf` has the `layerrule = blur, aether-slider` / `aether-blueprints` lines and run `hyprctl reload`. The warning about `ext-background-effect-v1` in the log is unrelated and harmless.
+If a selector opens but reports that an Aether command failed, verify that `aether` on `PATH` is the current build with `aether --version`.

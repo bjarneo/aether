@@ -66,13 +66,9 @@ func CustomDir() string {
 	return filepath.Join(ConfigDir(), "custom")
 }
 
-// OmarchyThemesDir returns ~/.config/omarchy/themes.
+// OmarchyThemesDir returns Omarchy's native ~/.config/omarchy/themes path.
 func OmarchyThemesDir() string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		dir = filepath.Join(homeDir(), ".config")
-	}
-	return filepath.Join(dir, "omarchy", "themes")
+	return filepath.Join(homeDir(), ".config", "omarchy", "themes")
 }
 
 // OmarchyThemeDir returns ~/.config/omarchy/themes/aether.
@@ -114,10 +110,6 @@ func EnsureAllDirs() error {
 		DownloadDir(),
 		ThumbnailDir(),
 		ColorCacheDir(),
-	}
-	// Omarchy directories are Linux-only
-	if runtime.GOOS == "linux" {
-		dirs = append(dirs, OmarchyThemeDir())
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {

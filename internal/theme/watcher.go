@@ -54,8 +54,8 @@ func NewThemeWatcher() *ThemeWatcher {
 func candidatePaths() []string {
 	paths := []string{}
 	if home, err := os.UserHomeDir(); err == nil {
-		paths = append(paths, filepath.Join(home, ".config", "omarchy", "current", "theme", "colors.toml"))
 		paths = append(paths, filepath.Join(home, ".local", "state", "omarchy", "current", "theme", "colors.toml"))
+		paths = append(paths, filepath.Join(home, ".config", "omarchy", "current", "theme", "colors.toml"))
 	}
 	return append(paths, filepath.Join(platform.ThemeDir(), "colors.toml"))
 }

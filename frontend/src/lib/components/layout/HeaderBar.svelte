@@ -12,10 +12,17 @@
     import SearchIcon from '$lib/components/shared/SearchIcon.svelte';
     import ReleaseIndicator from '$lib/components/layout/ReleaseIndicator.svelte';
     import aetherLogo from '../../../assets/aether-logo.png';
+    import {
+        getOmarchyAvailable,
+        initOmarchyCapabilities,
+    } from '$lib/stores/omarchy.svelte';
 
     let sidebarVisible = $derived(getSidebarVisible());
     let activeTab = $derived(getActiveTab());
     let isMac = $state(false);
+    let omarchyAvailable = $derived(getOmarchyAvailable());
+
+    initOmarchyCapabilities();
 
     onMount(async () => {
         try {
@@ -57,11 +64,14 @@
         },
         {
             id: 'system',
-            label: 'System',
+            label: 'Omarchy',
             // Paintbrush / Brush
             icon: '<path d="M18.37 2.63a2.12 2.12 0 0 1 3 3L14 13l-4 1 1-4z"/><path d="M9 14.5A3.5 3.5 0 0 0 5.5 18c-1.2 0-2.5.7-2.5 2 2 0 4.5-1 5.5-3.5"/>',
         },
     ];
+    let visibleTabs = $derived(
+        tabs.filter(tab => tab.id !== 'system' || omarchyAvailable)
+    );
 </script>
 
 <header
@@ -115,7 +125,7 @@
         </button>
     {/if}
     <nav class="flex flex-1 justify-end gap-0.5">
-        {#each tabs as tab}
+        {#each visibleTabs as tab}
             <button
                 class="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-all duration-100
           {getActiveTab() === tab.id

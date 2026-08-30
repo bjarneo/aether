@@ -17,6 +17,7 @@ import {
     getLightMode,
     getAdditionalImages,
     getExtendedColors,
+    getNativeColors,
     getAppOverrides,
     getAdjustments,
     setAdjustments,
@@ -34,11 +35,36 @@ import {
 } from '$lib/stores/history.svelte';
 import {DEFAULT_ADJUSTMENTS} from '$lib/types/theme';
 import {STORAGE_KEYS} from '$lib/constants/storage';
+import {
+    getOmarchyCapabilities,
+    getOmarchyAvailable,
+    initOmarchyCapabilities,
+} from '$lib/stores/omarchy.svelte';
+
+export function getNativeAppOverrides(): Record<
+    string,
+    Record<string, string>
+> {
+    const overrides = getAppOverrides();
+    const supported = new Set(getOmarchyCapabilities().overrideApps);
+    return Object.fromEntries(
+        Object.entries(overrides).filter(([app]) => supported.has(app))
+    );
+}
+
+function getApplicableOverrides(): Record<string, Record<string, string>> {
+    return getOmarchyAvailable() ? getNativeAppOverrides() : getAppOverrides();
+}
 
 function countTargetedApps(
     settings: Settings,
     appOverrides: Record<string, Record<string, string>>
 ): number {
+    if (getOmarchyAvailable()) {
+        return Object.values(appOverrides).filter(
+            overrides => Object.keys(overrides).length > 0
+        ).length;
+    }
     const targeted = new Set(
         Object.entries(settings.includedApps ?? {})
             .filter(([, included]) => included)
@@ -51,15 +77,18 @@ function countTargetedApps(
 }
 
 async function runApply(): Promise<{success: boolean}> {
+    await initOmarchyCapabilities();
     const {ApplyTheme} = await import('../../../wailsjs/go/main/App');
+    const appOverrides = getApplicableOverrides();
     const result = await ApplyTheme({
         palette: getPalette(),
         wallpaperPath: getWallpaperPath(),
         lightMode: getLightMode(),
         additionalImages: getAdditionalImages(),
         extendedColors: getExtendedColors(),
+        nativeColors: getNativeColors(),
         settings: getSettings(),
-        appOverrides: getAppOverrides(),
+        appOverrides,
     } as unknown as main.ApplyThemeRequest);
     if (result.success) {
         if (getLightMode()) {
@@ -76,12 +105,15 @@ export async function applyTheme(): Promise<void> {
     setIsApplying(true);
     try {
         const result = await runApply();
-        const count = countTargetedApps(getSettings(), getAppOverrides());
-        markApplied();
+        const count = countTargetedApps(
+            getSettings(),
+            getApplicableOverrides()
+        );
         const suffix = count
             ? ` with ${count} app override${count === 1 ? '' : 's'}`
             : '';
         if (result.success) {
+            markApplied();
             showToast(`Theme applied${suffix}`);
         } else {
             showToast(`Theme files generated${suffix}`);
@@ -143,6 +175,7 @@ export async function saveAndApplyTheme(
     if (getIsApplying()) return;
     setIsApplying(true);
     try {
+        await initOmarchyCapabilities();
         const {SaveAndApplyTheme} = await import(
             '../../../wailsjs/go/main/App'
         );
@@ -154,8 +187,9 @@ export async function saveAndApplyTheme(
             lightMode: getLightMode(),
             additionalImages: getAdditionalImages(),
             extendedColors: getExtendedColors(),
+            nativeColors: getNativeColors(),
             settings: getSettings(),
-            appOverrides: getAppOverrides(),
+            appOverrides: getApplicableOverrides(),
         } as unknown as main.SaveAndApplyThemeRequest);
         saveThemeFolder(name);
         if (result.success) {
@@ -165,7 +199,7 @@ export async function saveAndApplyTheme(
                 document.documentElement.classList.remove('light-mode');
             }
         }
-        markApplied();
+        if (result.success) markApplied();
         showToast(
             updateExisting ? `Applied: ${name}` : `Saved and applied: ${name}`
         );
@@ -202,7 +236,7 @@ export async function applyWallpaperOnly(originalPath: string): Promise<void> {
     setIsApplying(true);
     try {
         const result = await runApply();
-        markApplied();
+        if (result.success) markApplied();
         showToast(
             result.success ? 'Wallpaper applied' : 'Wallpaper files generated'
         );
@@ -229,7 +263,10 @@ export async function applyThemeLive(): Promise<void> {
         const result = await runApply();
         if (result.success) {
             markApplied();
-            const count = countTargetedApps(getSettings(), getAppOverrides());
+            const count = countTargetedApps(
+                getSettings(),
+                getApplicableOverrides()
+            );
             const suffix = count
                 ? ` with ${count} app override${count === 1 ? '' : 's'}`
                 : '';

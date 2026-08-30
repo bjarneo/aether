@@ -156,6 +156,7 @@ func (a *App) ExtractColors(path string, lightMode bool, mode string) ([16]strin
 		return palette, err
 	}
 	a.state.SetPalette(palette)
+	a.state.NativeColors = map[string]string{}
 	a.state.WallpaperPath = path
 	a.state.LightMode = lightMode
 	a.state.ExtractionMode = mode
@@ -188,6 +189,7 @@ func (a *App) ExtractColorsFromImages(paths []string, lightMode bool, mode strin
 		return ExtractFromImagesResult{}, err
 	}
 	a.state.SetPalette(palette)
+	a.state.NativeColors = map[string]string{}
 	a.state.LightMode = lightMode
 	a.state.ExtractionMode = mode
 	return ExtractFromImagesResult{
@@ -224,6 +226,7 @@ type SyncStateRequest struct {
 	WallpaperPath    string                       `json:"wallpaperPath"`
 	LightMode        bool                         `json:"lightMode"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
+	NativeColors     map[string]string            `json:"nativeColors"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 	AdditionalImages []string                     `json:"additionalImages"`
 }
@@ -243,6 +246,9 @@ func (a *App) SyncState(req SyncStateRequest) {
 	a.state.LightMode = req.LightMode
 	if req.ExtendedColors != nil {
 		a.state.ExtendedColors = req.ExtendedColors
+	}
+	if req.NativeColors != nil {
+		a.state.NativeColors = req.NativeColors
 	}
 	if req.AppOverrides != nil {
 		a.state.AppOverrides = req.AppOverrides
@@ -324,6 +330,7 @@ type ApplyThemeRequest struct {
 	LightMode        bool                         `json:"lightMode"`
 	AdditionalImages []string                     `json:"additionalImages"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
+	NativeColors     map[string]string            `json:"nativeColors"`
 	Settings         theme.Settings               `json:"settings"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 }
@@ -343,6 +350,7 @@ func (a *App) ApplyTheme(req ApplyThemeRequest) (*theme.ApplyResult, error) {
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
 		ExtendedColors:   req.ExtendedColors,
+		NativeColors:     req.NativeColors,
 		AdditionalImages: req.AdditionalImages,
 		AppOverrides:     appOverrides,
 	}
@@ -360,6 +368,7 @@ type SaveAndApplyThemeRequest struct {
 	LightMode        bool                         `json:"lightMode"`
 	AdditionalImages []string                     `json:"additionalImages"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
+	NativeColors     map[string]string            `json:"nativeColors"`
 	Settings         theme.Settings               `json:"settings"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 }
@@ -383,6 +392,7 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
 		ExtendedColors:   req.ExtendedColors,
+		NativeColors:     req.NativeColors,
 		AdditionalImages: req.AdditionalImages,
 		AppOverrides:     req.AppOverrides,
 	}
@@ -390,9 +400,13 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 		state.AppOverrides = make(map[string]map[string]string)
 	}
 
+	isOmarchy := theme.IsOmarchyInstalled()
 	targetDir := filepath.Join(platform.SavedThemesDir(), name)
-	if theme.IsOmarchyInstalled() {
+	if isOmarchy {
 		targetDir = filepath.Join(platform.OmarchyThemesDir(), name)
+		if !req.UpdateExisting && omarchy.ThemeExists(name) {
+			return nil, fmt.Errorf("Omarchy theme %q already exists", name)
+		}
 	}
 	if _, err := os.Stat(targetDir); err == nil {
 		if !req.UpdateExisting {
@@ -401,18 +415,23 @@ func (a *App) SaveAndApplyTheme(req SaveAndApplyThemeRequest) (*theme.ApplyResul
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("check theme folder: %w", err)
 	}
-	if err := a.writer.GenerateOmarchyV4Only(state, req.Settings, targetDir); err != nil {
-		return nil, fmt.Errorf("save theme: %w", err)
+	var generateErr error
+	if isOmarchy {
+		generateErr = a.writer.GenerateOmarchyV4Only(state, req.Settings, targetDir)
+	} else {
+		generateErr = a.writer.GenerateOnly(state, req.Settings, targetDir)
 	}
-	if !theme.IsOmarchyInstalled() {
+	if generateErr != nil {
+		return nil, fmt.Errorf("save theme: %w", generateErr)
+	}
+	if !isOmarchy {
 		return a.writer.ApplyTheme(state, req.Settings)
 	}
-	if req.Settings.IncludedApps["zed"] || len(state.AppOverrides["zed"]) > 0 {
-		if err := theme.ApplyZedTheme(targetDir); err != nil {
-			log.Printf("Warning: Zed theme application failed: %v", err)
-		}
+	wallpaper := ""
+	if state.WallpaperPath != "" {
+		wallpaper = filepath.Join(targetDir, "backgrounds", filepath.Base(state.WallpaperPath))
 	}
-	if _, err := platform.RunSync("omarchy-theme-set", name); err != nil {
+	if err := omarchy.ActivateTheme(name, wallpaper); err != nil {
 		return nil, fmt.Errorf("activate theme: %w", err)
 	}
 	return &theme.ApplyResult{
@@ -448,6 +467,7 @@ func (a *App) ListBlueprints() ([]map[string]interface{}, error) {
 				"wallpaper":        bp.Palette.Wallpaper,
 				"lightMode":        bp.Palette.LightMode,
 				"extendedColors":   bp.Palette.ExtendedColors,
+				"nativeColors":     bp.Palette.NativeColors,
 				"additionalImages": bp.Palette.AdditionalImages,
 			},
 			"adjustments":  bp.Adjustments,
@@ -467,6 +487,7 @@ type SaveBlueprintRequest struct {
 	AdditionalImages []string                     `json:"additionalImages"`
 	LockedColors     []int                        `json:"lockedColors"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
+	NativeColors     map[string]string            `json:"nativeColors"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 	Adjustments      map[string]float64           `json:"adjustments"`
 }
@@ -480,6 +501,7 @@ func (a *App) SaveBlueprint(req SaveBlueprintRequest) error {
 			AdditionalImages: req.AdditionalImages,
 			LockedColors:     req.LockedColors,
 			ExtendedColors:   req.ExtendedColors,
+			NativeColors:     req.NativeColors,
 		},
 		Adjustments:  req.Adjustments,
 		AppOverrides: req.AppOverrides,
@@ -532,6 +554,11 @@ func (a *App) LoadBlueprint(name string) error {
 	} else {
 		a.state.ExtendedColors = map[string]string{}
 	}
+	if bp.Palette.NativeColors != nil {
+		a.state.NativeColors = bp.Palette.NativeColors
+	} else {
+		a.state.NativeColors = map[string]string{}
+	}
 
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
@@ -565,6 +592,11 @@ func (a *App) ApplyBlueprint(name string) (*theme.ApplyResult, error) {
 		a.state.ExtendedColors = bp.Palette.ExtendedColors
 	} else {
 		a.state.ExtendedColors = map[string]string{}
+	}
+	if bp.Palette.NativeColors != nil {
+		a.state.NativeColors = bp.Palette.NativeColors
+	} else {
+		a.state.NativeColors = map[string]string{}
 	}
 
 	a.state.SetPalette(palette)
@@ -802,16 +834,23 @@ func (a *App) LoadOmarchyThemes() ([]omarchy.Theme, error) {
 	return omarchy.LoadAllThemes()
 }
 
-// ApplyOmarchyThemeByName activates an existing Omarchy theme directly
-// by running "omarchy-theme-set <name>" without processing through Aether templates.
+// ApplyOmarchyThemeByName activates an existing theme through Omarchy without
+// processing it through Aether templates.
 func (a *App) ApplyOmarchyThemeByName(name string) error {
-	_, err := platform.RunSync("omarchy-theme-set", name)
-	return err
+	if !omarchy.ThemeExists(name) {
+		return fmt.Errorf("Omarchy theme %q is available for editing only", name)
+	}
+	return omarchy.ActivateTheme(name, "")
 }
 
 // IsOmarchyInstalled returns true if the current system has Omarchy.
 func (a *App) IsOmarchyInstalled() bool {
-	return theme.IsOmarchyInstalled()
+	return omarchy.IsInstalled()
+}
+
+// GetOmarchyCapabilities returns native Omarchy availability and state.
+func (a *App) GetOmarchyCapabilities() omarchy.Capabilities {
+	return omarchy.DetectCapabilities()
 }
 
 // ---------------------------------------------------------------------------
@@ -940,6 +979,7 @@ type ExportThemeRequest struct {
 	LightMode        bool                         `json:"lightMode"`
 	AdditionalImages []string                     `json:"additionalImages"`
 	ExtendedColors   map[string]string            `json:"extendedColors"`
+	NativeColors     map[string]string            `json:"nativeColors"`
 	InstallToOmarchy bool                         `json:"installToOmarchy"`
 	AppOverrides     map[string]map[string]string `json:"appOverrides"`
 }
@@ -970,6 +1010,19 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	if err != nil || dir == "" {
 		return "", fmt.Errorf("export cancelled")
 	}
+	isOmarchy := theme.IsOmarchyInstalled()
+	linkPath := ""
+	if req.InstallToOmarchy && isOmarchy {
+		if omarchy.ThemeExists(slug) {
+			return "", fmt.Errorf("Omarchy theme %q already exists", slug)
+		}
+		linkPath = filepath.Join(platform.OmarchyThemesDir(), slug)
+		if _, err := os.Lstat(linkPath); err == nil {
+			return "", fmt.Errorf("Omarchy theme %q already exists", slug)
+		} else if !os.IsNotExist(err) {
+			return "", fmt.Errorf("inspect Omarchy theme %q: %w", slug, err)
+		}
+	}
 
 	// Build theme state from the frontend's current palette
 	palette, roles := buildColorRoles(req.Palette, req.ExtendedColors)
@@ -985,6 +1038,7 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 		LightMode:        req.LightMode,
 		ColorRoles:       roles,
 		ExtendedColors:   req.ExtendedColors,
+		NativeColors:     req.NativeColors,
 		AdditionalImages: req.AdditionalImages,
 		AppOverrides:     exportOverrides,
 	}
@@ -1011,17 +1065,24 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 	}
 
 	exportDir := filepath.Join(dir, "omarchy-"+slug+"-theme")
-	if err := a.writer.GenerateOnly(state, settings, exportDir); err != nil {
-		return "", fmt.Errorf("export failed: %w", err)
+	var exportErr error
+	if isOmarchy {
+		exportErr = a.writer.GenerateOmarchyV4Only(state, settings, exportDir)
+	} else {
+		exportErr = a.writer.GenerateOnly(state, settings, exportDir)
+	}
+	if exportErr != nil {
+		return "", fmt.Errorf("export failed: %w", exportErr)
 	}
 
-	if req.InstallToOmarchy && theme.IsOmarchyInstalled() {
-		linkPath := filepath.Join(platform.OmarchyThemesDir(), slug)
-		if err := platform.CreateSymlink(exportDir, linkPath); err != nil {
-			log.Printf("Warning: could not symlink to omarchy themes: %v", err)
-		} else {
-			log.Printf("Installed as omarchy theme: %s -> %s", linkPath, exportDir)
+	if req.InstallToOmarchy && isOmarchy {
+		if err := platform.EnsureDir(filepath.Dir(linkPath)); err != nil {
+			return "", fmt.Errorf("create Omarchy themes directory: %w", err)
 		}
+		if err := os.Symlink(exportDir, linkPath); err != nil {
+			return "", fmt.Errorf("install Omarchy theme: %w", err)
+		}
+		log.Printf("Installed as Omarchy theme: %s -> %s", linkPath, exportDir)
 	}
 
 	return exportDir, nil
@@ -1031,6 +1092,7 @@ func (a *App) ExportTheme(req ExportThemeRequest) (string, error) {
 type ImportResult struct {
 	Colors         []string          `json:"colors"`
 	ExtendedColors map[string]string `json:"extendedColors"`
+	NativeColors   map[string]string `json:"nativeColors"`
 	Name           string            `json:"name"`
 	Path           string            `json:"path"`
 	WallpaperPath  string            `json:"wallpaperPath"`
@@ -1116,6 +1178,7 @@ func (a *App) importFile(path, fileType string) (*ImportResult, error) {
 	}
 	a.history.Push(*a.state)
 	a.state.ExtendedColors = bp.Palette.ExtendedColors
+	a.state.NativeColors = bp.Palette.NativeColors
 	a.state.SetPalette(palette)
 	a.state.WallpaperPath = a.resolveWallpaper(bp.Palette)
 	a.state.LightMode = bp.Palette.LightMode
@@ -1124,6 +1187,7 @@ func (a *App) importFile(path, fileType string) (*ImportResult, error) {
 	return &ImportResult{
 		Colors:         palette[:],
 		ExtendedColors: bp.Palette.ExtendedColors,
+		NativeColors:   bp.Palette.NativeColors,
 		Name:           bp.Name,
 		Path:           savedPath,
 		WallpaperPath:  a.state.WallpaperPath,
@@ -1158,11 +1222,14 @@ func (a *App) GetTemplateColors() map[string][]string {
 	}
 
 	for _, f := range files {
+		appName := theme.GetAppNameFromFileName(f)
+		if omarchy.IsInstalled() && !theme.SupportsOmarchyOverride(appName) {
+			continue
+		}
 		content, err := template.ReadTemplate(EmbeddedTemplates, "templates", f)
 		if err != nil {
 			continue
 		}
-		appName := theme.GetAppNameFromFileName(f)
 		vars := template.ExtractVariableNames(content)
 		if appColorSets[appName] == nil {
 			appColorSets[appName] = make(map[string]bool)
@@ -1271,11 +1338,14 @@ func (a *App) HandleIPC(req ipc.Request) ipc.Response {
 
 	case "apply":
 		result, err := a.ApplyTheme(ApplyThemeRequest{
-			Palette:        a.state.Palette[:],
-			WallpaperPath:  a.state.WallpaperPath,
-			LightMode:      a.state.LightMode,
-			ExtendedColors: a.state.ExtendedColors,
-			AppOverrides:   a.state.AppOverrides,
+			Palette:          a.state.Palette[:],
+			WallpaperPath:    a.state.WallpaperPath,
+			LightMode:        a.state.LightMode,
+			AdditionalImages: a.state.AdditionalImages,
+			ExtendedColors:   a.state.ExtendedColors,
+			NativeColors:     a.state.NativeColors,
+			Settings:         theme.DefaultApplySettings(),
+			AppOverrides:     a.state.AppOverrides,
 		})
 		if err != nil {
 			return ipc.Response{OK: false, Error: err.Error()}
@@ -1361,12 +1431,15 @@ func (a *App) emitIPCStateChanged() {
 		return
 	}
 	wailsrt.EventsEmit(a.ctx, "ipc-state-changed", map[string]interface{}{
-		"palette":        a.state.Palette[:],
-		"extendedColors": a.state.ExtendedColors,
-		"lightMode":      a.state.LightMode,
-		"mode":           a.state.ExtractionMode,
-		"wallpaper":      a.state.WallpaperPath,
-		"adjustments":    a.state.Adjustments,
+		"palette":          a.state.Palette[:],
+		"extendedColors":   a.state.ExtendedColors,
+		"nativeColors":     a.state.NativeColors,
+		"lightMode":        a.state.LightMode,
+		"mode":             a.state.ExtractionMode,
+		"wallpaper":        a.state.WallpaperPath,
+		"appOverrides":     a.state.AppOverrides,
+		"additionalImages": a.state.AdditionalImages,
+		"adjustments":      a.state.Adjustments,
 	})
 }
 

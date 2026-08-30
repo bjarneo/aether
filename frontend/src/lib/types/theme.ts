@@ -47,6 +47,7 @@ export interface BlueprintPaletteData {
     lightMode?: boolean;
     lockedColors?: number[];
     extendedColors?: Record<string, string>;
+    nativeColors?: Record<string, string>;
     additionalImages?: string[];
     wallpaperSource?: string;
 }

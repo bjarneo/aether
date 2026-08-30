@@ -4,8 +4,8 @@ import {color} from '../models';
 import {theme} from '../models';
 import {main} from '../models';
 import {favorites} from '../models';
-import {ipc} from '../models';
 import {omarchy} from '../models';
+import {ipc} from '../models';
 import {wallpaper} from '../models';
 import {wallhaven} from '../models';
 
@@ -72,11 +72,13 @@ export function GetFocusTab(): Promise<string>;
 
 export function GetInitialState(): Promise<theme.StateSnapshot>;
 
-export function GetReleaseStatus(arg1: string): Promise<Record<string, any>>;
+export function GetOmarchyCapabilities(): Promise<omarchy.Capabilities>;
 
 export function GetPendingExternalImport(): Promise<main.ExternalImportPreview>;
 
 export function GetPreview(arg1: string): Promise<string>;
+
+export function GetReleaseStatus(arg1: string): Promise<Record<string, any>>;
 
 export function GetSettings(): Promise<Record<string, any>>;
 
@@ -124,7 +126,9 @@ export function ReadImageAsDataURL(arg1: string): Promise<string>;
 
 export function ResetState(): Promise<void>;
 
-export function SaveAndApplyTheme(arg1: main.SaveAndApplyThemeRequest): Promise<theme.ApplyResult>;
+export function SaveAndApplyTheme(
+    arg1: main.SaveAndApplyThemeRequest
+): Promise<theme.ApplyResult>;
 
 export function SaveBlueprint(arg1: main.SaveBlueprintRequest): Promise<void>;
 

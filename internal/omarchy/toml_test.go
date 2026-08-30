@@ -56,8 +56,8 @@ color15 = "#c0caf5"
 		}
 	}
 
-	if colors[0] != "#15161e" {
-		t.Errorf("color0 = %q, want #15161e", colors[0])
+	if colors[0] != "#1a1b26" {
+		t.Errorf("color0 = %q, want #1a1b26", colors[0])
 	}
 	if colors[15] != "#c0caf5" {
 		t.Errorf("color15 = %q, want #c0caf5", colors[15])
@@ -187,5 +187,40 @@ func TestParseColorsTomlMode(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("%s: mode = %q, want %q", name, got, tc.want)
 		}
+	}
+}
+
+func TestValidateNativeColorsRejectsReservedKeys(t *testing.T) {
+	for _, key := range []string{"mode", "background", "color4", "purple", "bright_purple", "selection_foreground"} {
+		t.Run(key, func(t *testing.T) {
+			if err := ValidateNativeColors(map[string]string{key: "#112233"}); err == nil {
+				t.Fatalf("ValidateNativeColors() accepted reserved key %q", key)
+			}
+		})
+	}
+	if err := ValidateNativeColors(map[string]string{
+		"hyprland_active_border": "45deg #112233 #445566",
+		"custom_ratio":           "rgb(17,34,51)/50%",
+	}); err != nil {
+		t.Fatalf("ValidateNativeColors() rejected extension key: %v", err)
+	}
+}
+
+func TestParseColorsTomlSupportsPurpleAliases(t *testing.T) {
+	colors, _, _, _ := ParseColorsToml(`
+background = "#000000"
+foreground = "#ffffff"
+purple = "#aa00aa"
+bright_purple = "#ff00ff"
+`)
+	if colors[5] != "#aa00aa" {
+		t.Errorf("color5 = %q, want purple alias", colors[5])
+	}
+	if colors[13] != "#ff00ff" {
+		t.Errorf("color13 = %q, want bright_purple alias", colors[13])
+	}
+	native := ParseNativeColors(`purple = "#aa00aa"\nbright_purple = "#ff00ff"`)
+	if len(native) != 0 {
+		t.Errorf("palette aliases leaked into native colors: %v", native)
 	}
 }

@@ -25,6 +25,16 @@ sudo apt-get install -f
 
 The `.deb` package includes the `aether` binary and pulls in required runtime dependencies automatically.
 
+## Omarchy Shell Selectors
+
+On Omarchy, install the native wallpaper and blueprint selectors after installing Aether:
+
+```bash
+aether-install-omarchy-plugins
+```
+
+Source builds install them automatically with `make install`, or separately with `make install-omarchy-plugins`. See [Omarchy shell plugins](quickshell.md) for keybinds and controls.
+
 ## macOS
 
 ### Requirements

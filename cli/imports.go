@@ -50,6 +50,9 @@ func applyImportedTheme(templatesFS embed.FS, bp *blueprint.Blueprint, palette [
 	for k, v := range bp.Palette.ExtendedColors {
 		state.ExtendedColors[k] = v
 	}
+	for k, v := range bp.Palette.NativeColors {
+		state.NativeColors[k] = v
+	}
 	state.SetPalette(palette)
 	return writer.ApplyTheme(state, theme.DefaultApplySettings())
 }

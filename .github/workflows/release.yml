@@ -75,6 +75,13 @@ jobs:
           cp li.oever.aether.url-handler.desktop "${PKG_DIR}/usr/share/applications/"
           cp icon.png "${PKG_DIR}/usr/share/pixmaps/aether.png"
           cp assets/aether-icon-512.png "${PKG_DIR}/usr/share/icons/hicolor/512x512/apps/aether.png"
+          install -Dm755 contrib/quickshell/install.sh "${PKG_DIR}/usr/bin/aether-install-omarchy-plugins"
+          install -Dm644 contrib/quickshell/wallpapers/manifest.json "${PKG_DIR}/usr/share/aether/omarchy-plugins/wallpapers/manifest.json"
+          install -Dm644 contrib/quickshell/wallpapers/shell.qml "${PKG_DIR}/usr/share/aether/omarchy-plugins/wallpapers/shell.qml"
+          install -Dm644 contrib/quickshell/wallpapers/WallpaperSlider.qml "${PKG_DIR}/usr/share/aether/omarchy-plugins/wallpapers/WallpaperSlider.qml"
+          install -Dm644 contrib/quickshell/blueprints/manifest.json "${PKG_DIR}/usr/share/aether/omarchy-plugins/blueprints/manifest.json"
+          install -Dm644 contrib/quickshell/blueprints/shell.qml "${PKG_DIR}/usr/share/aether/omarchy-plugins/blueprints/shell.qml"
+          install -Dm644 contrib/quickshell/blueprints/Blueprints.qml "${PKG_DIR}/usr/share/aether/omarchy-plugins/blueprints/Blueprints.qml"
 
           cat > "${PKG_DIR}/DEBIAN/control" <<'CTRL'
           Package: aether

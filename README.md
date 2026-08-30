@@ -124,7 +124,7 @@ wails build
 | [File System](docs/filesystem.md) | Where Aether stores files |
 | [Remote Control](docs/remote-control.md) | IPC commands and AI integration |
 | [Protocol Handler](docs/protocol-handler.md) | Register `aether://` links |
-| [Quickshell Widgets](docs/quickshell.md) | QML widgets for Hyprland-style bars |
+| [Omarchy Shell Plugins](docs/quickshell.md) | Native wallpaper and blueprint selectors |
 | [Standalone](docs/standalone.md) | Using Aether without Omarchy |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues |
 

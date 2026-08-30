@@ -1,4 +1,4 @@
-// Aether wallpaper slider, modelled after the Wails `--widget-wallpaper-slider`.
+// Aether wallpaper selector for the Omarchy shell overlay.
 // Horizontal ListView, cards sheared -5deg on the X-axis; each card un-shears
 // its image by +5deg (with a 1.15x scale to fill the parallelogram) so
 // wallpaper content stays upright while the silhouette leans. Cards farther
@@ -17,9 +17,12 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import qs.Commons
 
 Item {
     id: root
+
+    signal dismissRequested()
 
     // Skew angle in degrees. Outer card shears by -SKEW; inner image by
     // +SKEW so its content lands back upright.
@@ -36,10 +39,10 @@ Item {
     readonly property int cardMinW:     48
     readonly property int cardMinH:     150
 
-    property color bg:     "#0d0c0c"
-    property color fg:     "#c5c9c5"
-    property color dim:    "#7a7a72"
-    property color accent: "#658594"
+    readonly property color bg: Color.background
+    readonly property color fg: Color.imagePicker.text
+    readonly property color dim: Color.muted
+    readonly property color accent: Color.imagePicker.selectedBorder
 
     property var wallpapers: []
     property var filteredIndexes: []
@@ -53,6 +56,9 @@ Item {
     property string statusMsg: ""
 
     property string pendingExtractPath: ""
+    property bool pendingExtractLightMode: false
+	property int pendingExtractSession: 0
+	property int sessionId: 0
 
     // path -> [16 hex strings]. Subsequent visits to a wallpaper skip
     // the aether subprocess. Cleared on light-mode toggle.
@@ -74,6 +80,23 @@ Item {
     function currentItem() {
         return effectiveItem(currentIndex);
     }
+
+    function refresh() {
+        if (!listProc.running) listProc.running = true;
+    }
+
+	function beginSession() {
+		sessionId++;
+		searchQuery = "";
+		filteredIndexes = [];
+		currentIndex = 0;
+		pendingExtractPath = "";
+		palette = [];
+		applying = applyProc.running;
+		extracting = extractProc.running;
+		statusMsg = applying ? "Finishing previous apply ..." : "";
+		refresh();
+	}
 
     function pickInitialIndex() {
         const prefixes = ["0-", "1-", "2-"];
@@ -98,6 +121,7 @@ Item {
         applying = true;
         statusMsg = "Applying " + item.name;
         applyProc.forPath = item.path;
+		applyProc.forSession = sessionId;
         applyProc.running = true;
     }
 
@@ -120,20 +144,18 @@ Item {
 
     function _applyPalette(colors) {
         root.palette = colors.slice(0, 16);
-        root.accent  = colors[4];
-        // In light mode the extracted palette's bg/fg/dim are bright, which
-        // would wash out the scrim and kill the compositor blur effect. Keep
-        // the chrome dark always; the palette strip still shows the real
-        // light colors so you can see what you're about to apply.
-        if (!root.lightMode) {
-            root.bg  = colors[0];
-            root.fg  = colors[7];
-            root.dim = colors[8];
-        }
     }
 
-    function _drainPending(justFinishedPath) {
-        if (root.pendingExtractPath && root.pendingExtractPath !== justFinishedPath) {
+    function paletteCacheKey(path, forLightMode) {
+        return (forLightMode ? "light:" : "dark:") + path;
+    }
+
+    function _drainPending(justFinishedPath, justFinishedLightMode, justFinishedSession) {
+        if (root.pendingExtractPath &&
+			root.pendingExtractSession === root.sessionId &&
+			(justFinishedSession !== root.sessionId ||
+			 root.pendingExtractPath !== justFinishedPath ||
+             root.pendingExtractLightMode !== justFinishedLightMode)) {
             const next = root.pendingExtractPath;
             root.pendingExtractPath = "";
             Qt.callLater(() => root._startExtract(next));
@@ -143,35 +165,31 @@ Item {
     }
 
     function _startExtract(path) {
-        const cached = root.paletteCache[path];
+        const forLightMode = root.lightMode;
+        const cached = root.paletteCache[root.paletteCacheKey(path, forLightMode)];
         if (cached) {
             root._applyPalette(cached);
             root.extracting = false;
             root.statusMsg = "";
-            root._drainPending(path);
+			root._drainPending(path, forLightMode, root.sessionId);
             return;
         }
         root.extracting = true;
         root.statusMsg = "";
         extractProc.forPath = path;
+        extractProc.forLightMode = forLightMode;
+		extractProc.forSession = root.sessionId;
+		extractProc.outputFinished = false;
+		extractProc.processExited = false;
         extractProc.running = true;
     }
 
     function _toggleLight() {
         root.lightMode = !root.lightMode;
         root.paletteCache = ({});
-        if (root.lightMode) {
-            // Force chrome back to dark defaults; subsequent extracts will
-            // skip overwriting them while lightMode is true.
-            root.bg  = "#0d0c0c";
-            root.fg  = "#c5c9c5";
-            root.dim = "#7a7a72";
-        }
         root.statusMsg = root.lightMode ? "light mode" : "dark mode";
         extractTimer.restart();
     }
-
-    Component.onCompleted: listProc.running = true
 
     // --- Subprocesses --------------------------------------------------------
 
@@ -188,8 +206,15 @@ Item {
                     const data = JSON.parse(text);
                     if (Array.isArray(data.wallpapers)) {
                         root.wallpapers = data.wallpapers.filter(w => w && w.size > 0);
-                        root.currentIndex = root.pickInitialIndex();
-                        extractTimer.restart();
+						root.paletteCache = ({});
+						if (root.searchQuery) {
+							root.applySearchFilter();
+						} else {
+							root.currentIndex = root.pickInitialIndex();
+							extractTimer.restart();
+						}
+						if (!root.applying && !root.extracting)
+							root.statusMsg = "";
                     } else {
                         root.statusMsg = "No wallpapers found";
                     }
@@ -204,25 +229,41 @@ Item {
     Process {
         id: extractProc
         property string forPath: ""
+        property bool forLightMode: false
+		property int forSession: 0
+		property bool outputFinished: false
+		property bool processExited: false
         running: false
+		function finishRequest() {
+			if (!outputFinished || !processExited) return;
+			root.extracting = false;
+			root._drainPending(forPath, forLightMode, forSession);
+		}
         command: {
             const cmd = ["aether", "--extract-palette", forPath,
-                         "--extract-mode", "material"];
-            if (root.lightMode) cmd.push("--light-mode");
+                          "--extract-mode", "material"];
+            if (forLightMode) cmd.push("--light-mode");
             cmd.push("--json");
             return cmd;
         }
         stdout: StdioCollector {
             onStreamFinished: {
-                root.extracting = false;
-                const t = text;
-                if (t && t.trim().length > 0) {
+				if (extractProc.forSession === root.sessionId &&
+					text && text.trim().length > 0) {
                     try {
-                        const data = JSON.parse(t);
+						const data = JSON.parse(text);
                         if (Array.isArray(data.colors) && data.colors.length >= 16) {
                             const sliced = data.colors.slice(0, 16);
-                            root.paletteCache[extractProc.forPath] = sliced;
-                            root._applyPalette(sliced);
+                            const cacheKey = root.paletteCacheKey(
+                                extractProc.forPath,
+                                extractProc.forLightMode
+                            );
+                            root.paletteCache[cacheKey] = sliced;
+                            const item = root.currentItem();
+                            if (item && item.path === extractProc.forPath &&
+                                extractProc.forLightMode === root.lightMode) {
+                                root._applyPalette(sliced);
+                            }
                             root.statusMsg = "";
                         } else if (data.error) {
                             root.statusMsg = String(data.error);
@@ -231,14 +272,20 @@ Item {
                         console.warn("extract parse:", e);
                     }
                 }
-                root._drainPending(extractProc.forPath);
+				extractProc.outputFinished = true;
+				extractProc.finishRequest();
             }
         }
+		onExited: (code) => {
+			extractProc.processExited = true;
+			extractProc.finishRequest();
+		}
     }
 
     Process {
         id: applyProc
         property string forPath: ""
+		property int forSession: 0
         running: false
         command: {
             const cmd = ["aether", "--generate", forPath,
@@ -248,7 +295,8 @@ Item {
         }
         onExited: (code) => {
             root.applying = false;
-            root.statusMsg = code === 0 ? "Applied" : "Apply failed";
+			if (applyProc.forSession === root.sessionId)
+				root.statusMsg = code === 0 ? "Applied" : "Apply failed";
         }
     }
 
@@ -261,6 +309,8 @@ Item {
             if (!item) return;
             if (extractProc.running) {
                 root.pendingExtractPath = item.path;
+                root.pendingExtractLightMode = root.lightMode;
+				root.pendingExtractSession = root.sessionId;
                 return;
             }
             root._startExtract(item.path);
@@ -270,13 +320,15 @@ Item {
     // --- Keyboard ------------------------------------------------------------
 
     Keys.onPressed: (e) => {
-        if (e.key === Qt.Key_Right) {
+        if (e.key === Qt.Key_Escape || e.key === Qt.Key_Q) {
+            e.accepted = true; root.dismissRequested();
+        } else if (e.key === Qt.Key_Right) {
             e.accepted = true; root.move(1);
         } else if (e.key === Qt.Key_Left) {
             e.accepted = true; root.move(-1);
-        } else if (e.key === Qt.Key_Tab) {
+        } else if (e.key === Qt.Key_Tab || e.key === Qt.Key_Backtab) {
             e.accepted = true;
-            root.move((e.modifiers & Qt.ShiftModifier) ? -1 : 1);
+            root.move(e.key === Qt.Key_Backtab || (e.modifiers & Qt.ShiftModifier) ? -1 : 1);
         } else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
             e.accepted = true; root.applyCurrent();
         } else if (e.key === Qt.Key_L && (e.modifiers & Qt.ControlModifier)) {
@@ -300,13 +352,9 @@ Item {
 
     // --- Visual tree ---------------------------------------------------------
 
-    // Translucent scrim so the compositor blur (layerrule = blur,
-    // aether-slider in Hyprland) reads through. 0.40 alpha keeps the
-    // chrome dark enough to be legible but lets the blurred wallpaper
-    // show through. Without the layerrule it's just a flat dark tint.
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(root.bg.r, root.bg.g, root.bg.b, 0.40)
+        color: Color.imagePicker.scrim
         Behavior on color { ColorAnimation { duration: 300 } }
     }
 
@@ -509,7 +557,7 @@ Item {
         Rectangle {
             visible: root.searchQuery.length > 0
             anchors.horizontalCenter: parent.horizontalCenter
-            color: Qt.rgba(0, 0, 0, 0.5)
+            color: Color.menu.background
             implicitWidth: searchT.implicitWidth + 24
             implicitHeight: searchT.implicitHeight + 8
             Text {

@@ -184,6 +184,28 @@ func ImportColorsTomlFromURL(url string) (*Blueprint, error) {
 	return bp, nil
 }
 
+// ImportCurrentColorsToml loads the active Omarchy palette when available,
+// falling back to Aether's standalone output.
+func ImportCurrentColorsToml() (*Blueprint, error) {
+	var nativeErr error
+	if omarchy.IsInstalled() {
+		bp, err := ImportColorsToml(omarchy.CurrentThemeColorsPath())
+		if err == nil {
+			return bp, nil
+		}
+		nativeErr = err
+	}
+
+	bp, err := ImportColorsToml(filepath.Join(platform.ThemeDir(), "colors.toml"))
+	if err == nil {
+		return bp, nil
+	}
+	if nativeErr != nil {
+		return nil, fmt.Errorf("load active Omarchy palette: %v; load standalone palette: %w", nativeErr, err)
+	}
+	return nil, err
+}
+
 // ImportColorsToml parses a colors.toml file into a blueprint.
 func ImportColorsToml(filePath string) (*Blueprint, error) {
 	data, err := os.ReadFile(filePath)
@@ -229,18 +251,12 @@ func ImportColorsToml(filePath string) (*Blueprint, error) {
 	for k, v := range extended {
 		ext[k] = v
 	}
-	if bg != "" {
-		ext["background"] = bg
-	}
-	if fg != "" {
-		ext["foreground"] = fg
-	}
-
 	bp := &Blueprint{
 		Name: name,
 		Palette: PaletteData{
 			Colors:         colors[:],
 			ExtendedColors: ext,
+			NativeColors:   omarchy.ParseNativeColors(string(data)),
 			LightMode:      parsedMode == "light",
 			Mode:           parsedMode,
 		},

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestIsOmarchyV4RequiresShellIntegration(t *testing.T) {
+func TestIsOmarchyInstalledRequiresPublicCLI(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("Omarchy is only supported on Linux")
 	}
@@ -16,13 +16,13 @@ func TestIsOmarchyV4RequiresShellIntegration(t *testing.T) {
 	t.Setenv("PATH", binDir)
 	writeExecutable(t, filepath.Join(binDir, "omarchy-theme-set"))
 
-	if IsOmarchyV4() {
-		t.Fatal("IsOmarchyV4() = true without omarchy-shell")
+	if IsOmarchyInstalled() {
+		t.Fatal("IsOmarchyInstalled() = true with only an internal command")
 	}
 
-	writeExecutable(t, filepath.Join(binDir, "omarchy-shell"))
-	if !IsOmarchyV4() {
-		t.Fatal("IsOmarchyV4() = false with v4 shell integration")
+	writeExecutable(t, filepath.Join(binDir, "omarchy"))
+	if !IsOmarchyInstalled() {
+		t.Fatal("IsOmarchyInstalled() = false with public CLI")
 	}
 }
 

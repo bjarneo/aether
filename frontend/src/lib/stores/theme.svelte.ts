@@ -20,6 +20,7 @@ let isExtracting = $state<boolean>(false);
 let isApplying = $state<boolean>(false);
 let additionalImages = $state<string[]>([]);
 let appOverrides = $state<Record<string, Record<string, string>>>({});
+let nativeColors = $state<Record<string, string>>({});
 let paletteCurvePoints = $state<[number, number][]>([]);
 // Source path of the most recently extracted palette. Used to decide
 // whether per-app template overrides should be cleared on the next
@@ -130,6 +131,9 @@ export function getAdditionalImages(): string[] {
 export function getExtendedColors(): Record<string, string> {
     return extendedColors;
 }
+export function getNativeColors(): Record<string, string> {
+    return nativeColors;
+}
 export function getBaseExtendedColors(): Record<string, string> {
     return baseExtendedColors;
 }
@@ -144,6 +148,7 @@ export function getThemeSnapshot(): {
     wallpaperPath: string;
     lightMode: boolean;
     extendedColors: Record<string, string>;
+    nativeColors: Record<string, string>;
     appOverrides: Record<string, Record<string, string>>;
     additionalImages: string[];
 } {
@@ -152,6 +157,7 @@ export function getThemeSnapshot(): {
         wallpaperPath,
         lightMode,
         extendedColors,
+        nativeColors,
         appOverrides,
         additionalImages,
     };
@@ -165,6 +171,7 @@ export function getThemeSignature(): string {
         wallpaperPath,
         lightMode,
         extendedColors,
+        nativeColors,
         appOverrides,
         additionalImages,
     ]);
@@ -253,6 +260,7 @@ export function setPaletteFromExtraction(path: string, colors: string[]): void {
         appOverrides = {};
     }
     lastExtractedPath = path;
+    nativeColors = {};
     setPalette(colors);
 }
 
@@ -280,6 +288,10 @@ export function setExtendedColors(colors: Record<string, string>): void {
     };
     extendedColors = next;
     baseExtendedColors = {...next};
+}
+
+export function setNativeColors(colors: Record<string, string>): void {
+    nativeColors = colors ? {...colors} : {};
 }
 
 // Window after the last edit during which subsequent edits are folded
@@ -446,5 +458,6 @@ export function reset(): void {
     extendedColors = {...ext};
     baseExtendedColors = {...ext};
     appOverrides = {};
+    nativeColors = {};
     paletteCurvePoints = [];
 }

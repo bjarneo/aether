@@ -8,12 +8,12 @@ import (
 )
 
 func TestInstallOmarchyThemeCreatesAndActivatesNewTheme(t *testing.T) {
-	configDir := t.TempDir()
+	home := t.TempDir()
 	binDir := t.TempDir()
 	omarchyDir := t.TempDir()
 	activatedPath := filepath.Join(t.TempDir(), "activated")
 
-	t.Setenv("XDG_CONFIG_HOME", configDir)
+	t.Setenv("HOME", home)
 	t.Setenv("OMARCHY_PATH", omarchyDir)
 	t.Setenv("AETHER_TEST_ACTIVATED", activatedPath)
 	t.Setenv("PATH", binDir)
@@ -23,8 +23,8 @@ func TestInstallOmarchyThemeCreatesAndActivatesNewTheme(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(omarchyDir, "shell", "shell.qml"), nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	script := "#!/bin/sh\nprintf '%s' \"$1\" > \"$AETHER_TEST_ACTIVATED\"\n"
-	if err := os.WriteFile(filepath.Join(binDir, "omarchy-theme-set"), []byte(script), 0o755); err != nil {
+	script := "#!/bin/sh\nprintf '%s' \"$3\" > \"$AETHER_TEST_ACTIVATED\"\n"
+	if err := os.WriteFile(filepath.Join(binDir, "omarchy"), []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -39,7 +39,7 @@ func TestInstallOmarchyThemeCreatesAndActivatesNewTheme(t *testing.T) {
 	if got := string(data); got != "web-theme" {
 		t.Errorf("activated theme = %q; want web-theme", got)
 	}
-	if _, err := os.Stat(filepath.Join(configDir, "omarchy", "themes", "web-theme")); err != nil {
+	if _, err := os.Stat(filepath.Join(home, ".config", "omarchy", "themes", "web-theme")); err != nil {
 		t.Fatalf("installed theme missing: %v", err)
 	}
 

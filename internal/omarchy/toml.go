@@ -1,47 +1,88 @@
 package omarchy
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 )
 
-// slotChains lists, for each ANSI slot 0-15, the colors.toml keys to try in
-// priority order. The chains let a single parser reconstruct a full palette
-// from any flavour of colors.toml and fall back across them:
-//
-//   - legacy ANSI: color0 … color15 (what Aether itself writes) win first
-//   - standard semantic: black, red, …, bright_white
-//   - omarchy semantic: bg, fg, muted, light_fg, bright_fg, dark_fg …
-//
-// omarchy renames slot 8 to "muted" (ANSI bright black), and its foreground
-// anchor is "foreground" (the "fg" key is a dimmed variant, so it only feeds
-// slot 7 as a last resort).
+// slotChains lists the native semantic key before legacy ANSI aliases. This
+// matches Omarchy's own resolver when a theme contains both forms.
 var slotChains = [16][]string{
-	0:  {"color0", "bg", "background", "black"},
-	1:  {"color1", "red"},
-	2:  {"color2", "green"},
-	3:  {"color3", "yellow"},
-	4:  {"color4", "blue"},
-	5:  {"color5", "magenta"},
-	6:  {"color6", "cyan"},
-	7:  {"color7", "foreground", "light_fg", "white", "fg"},
-	8:  {"color8", "bright_black", "muted", "dark_fg"},
-	9:  {"color9", "bright_red", "red"},
-	10: {"color10", "bright_green", "green"},
-	11: {"color11", "bright_yellow", "yellow"},
-	12: {"color12", "bright_blue", "blue"},
-	13: {"color13", "bright_magenta", "magenta"},
-	14: {"color14", "bright_cyan", "cyan"},
-	15: {"color15", "bright_fg", "bright_white", "foreground", "light_fg"},
+	0:  {"background", "bg", "color0", "black"},
+	1:  {"red", "color1"},
+	2:  {"green", "color2"},
+	3:  {"yellow", "color3"},
+	4:  {"blue", "color4"},
+	5:  {"magenta", "purple", "color5"},
+	6:  {"cyan", "color6"},
+	7:  {"foreground", "fg", "color7", "white", "light_foreground", "light_fg"},
+	8:  {"muted", "color8", "bright_black", "dark_foreground", "dark_fg"},
+	9:  {"bright_red", "color9", "red"},
+	10: {"bright_green", "color10", "green"},
+	11: {"bright_yellow", "color11", "yellow"},
+	12: {"bright_blue", "color12", "blue"},
+	13: {"bright_magenta", "bright_purple", "color13", "magenta", "purple"},
+	14: {"bright_cyan", "color14", "cyan"},
+	15: {"bright_foreground", "bright_fg", "color15", "bright_white", "foreground", "light_foreground", "light_fg"},
 }
 
-// extendedColorKeys are the non-ANSI roles an omarchy theme defines explicitly
-// (separate from the 16 palette slots). Preserving them on import keeps an
-// imported theme faithful instead of re-deriving accent/cursor/selection.
-var extendedColorKeys = []string{
-	"accent",
-	"cursor",
-	"selection_foreground",
-	"selection_background",
+// editableColorKeys maps native palette names to Aether's internal template
+// names. These values stay editable and are preserved when a theme is saved.
+var editableColorKeys = map[string]string{
+	"accent":               "accent",
+	"cursor":               "cursor",
+	"selection":            "selection",
+	"selection_foreground": "selection_foreground",
+	"selection_background": "selection_background",
+	"muted":                "muted",
+	"dark_background":      "dark_bg",
+	"dark_bg":              "dark_bg",
+	"darker_background":    "darker_bg",
+	"darker_bg":            "darker_bg",
+	"lighter_background":   "lighter_bg",
+	"lighter_bg":           "lighter_bg",
+	"dark_foreground":      "dark_fg",
+	"dark_fg":              "dark_fg",
+	"light_foreground":     "light_fg",
+	"light_fg":             "light_fg",
+	"bright_foreground":    "bright_fg",
+	"bright_fg":            "bright_fg",
+	"orange":               "orange",
+	"brown":                "brown",
+}
+
+var nativePaletteKeys = map[string]bool{
+	"mode": true, "theme_type": true, "light_mode": true,
+	"background": true, "bg": true, "foreground": true, "fg": true,
+	"black": true, "red": true, "green": true, "yellow": true,
+	"blue": true, "magenta": true, "purple": true, "cyan": true, "white": true,
+	"bright_black": true, "bright_red": true, "bright_green": true,
+	"bright_yellow": true, "bright_blue": true, "bright_magenta": true, "bright_purple": true,
+	"bright_cyan": true, "bright_white": true,
+}
+
+var ansiColorKeyPattern = regexp.MustCompile(`^color(?:[0-9]|1[0-5])$`)
+var nativeColorKeyPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+var nativeColorValuePattern = regexp.MustCompile(`^[A-Za-z0-9#(),.%+/_ -]+$`)
+
+// ValidateNativeColors rejects malformed or Aether-owned native color keys.
+func ValidateNativeColors(colors map[string]string) error {
+	for key, value := range colors {
+		if !nativeColorKeyPattern.MatchString(key) {
+			return fmt.Errorf("native Omarchy color key %q is invalid", key)
+		}
+		if nativePaletteKeys[key] || ansiColorKeyPattern.MatchString(key) {
+			return fmt.Errorf("native Omarchy color key %q is reserved", key)
+		}
+		if _, editable := editableColorKeys[key]; editable {
+			return fmt.Errorf("native Omarchy color key %q is reserved", key)
+		}
+		if value == "" || !nativeColorValuePattern.MatchString(value) {
+			return fmt.Errorf("native Omarchy color %q has an invalid value", key)
+		}
+	}
+	return nil
 }
 
 // ParseColorsKV extracts key="value" pairs from a colors.toml, stripping
@@ -62,10 +103,8 @@ func ParseColorsKV(content string) map[string]string {
 		key = strings.TrimSpace(key)
 		val = strings.TrimSpace(val)
 
-		// Strip inline comments, then surrounding quotes.
-		if idx := strings.Index(val, " #"); idx >= 0 {
-			val = strings.TrimSpace(val[:idx])
-		}
+		// Strip comments outside quoted values, then surrounding quotes.
+		val = stripInlineComment(val)
 		val = strings.Trim(val, `"'`)
 		if val == "" {
 			continue
@@ -75,11 +114,34 @@ func ParseColorsKV(content string) map[string]string {
 	return kv
 }
 
+func stripInlineComment(value string) string {
+	var quote byte
+	for i := 0; i < len(value); i++ {
+		switch value[i] {
+		case '\'', '"':
+			if quote == 0 {
+				quote = value[i]
+			} else if quote == value[i] && (i == 0 || value[i-1] != '\\') {
+				quote = 0
+			}
+		case '#':
+			if quote == 0 && i > 0 && (value[i-1] == ' ' || value[i-1] == '\t') {
+				return strings.TrimSpace(value[:i])
+			}
+		}
+	}
+	return value
+}
+
 // resolveMode reads the light/dark mode from a parsed colors.toml map. It
 // returns "light"/"dark" only when the file declares it (via `mode` or the
 // legacy `light_mode` boolean); "" means the file was silent.
 func resolveMode(kv map[string]string) string {
-	switch strings.ToLower(kv["mode"]) {
+	mode := kv["mode"]
+	if mode == "" {
+		mode = kv["theme_type"]
+	}
+	switch strings.ToLower(mode) {
 	case "light":
 		return "light"
 	case "dark":
@@ -132,7 +194,7 @@ func ParseColorsTomlFull(content string) (colors [16]string, bg, fg, mode string
 	mode = resolveMode(kv)
 
 	bg = first("background", "bg", "color0", "black")
-	fg = first("foreground", "light_fg", "white", "color7", "fg")
+	fg = first("foreground", "fg", "color7", "white", "light_foreground", "light_fg")
 
 	for i, chain := range slotChains {
 		colors[i] = first(chain...)
@@ -146,14 +208,51 @@ func ParseColorsTomlFull(content string) (colors [16]string, bg, fg, mode string
 		colors[7] = fg
 	}
 
-	extended = make(map[string]string)
-	for _, k := range extendedColorKeys {
-		if v := kv[k]; v != "" {
-			extended[k] = v
+	extended = make(map[string]string, len(editableColorKeys))
+	for native, internal := range editableColorKeys {
+		if v := kv[native]; v != "" && extended[internal] == "" {
+			extended[internal] = v
 		}
+	}
+	// Canonical names win over compatibility aliases when both are present.
+	for native, internal := range map[string]string{
+		"dark_background":    "dark_bg",
+		"darker_background":  "darker_bg",
+		"lighter_background": "lighter_bg",
+		"dark_foreground":    "dark_fg",
+		"light_foreground":   "light_fg",
+		"bright_foreground":  "bright_fg",
+	} {
+		if v := kv[native]; v != "" {
+			extended[internal] = v
+		}
+	}
+	if extended["selection_background"] == "" {
+		extended["selection_background"] = extended["selection"]
+	}
+	if extended["cursor"] == "" {
+		extended["cursor"] = first("bright_foreground", "bright_fg")
 	}
 
 	return
+}
+
+// ParseNativeColors returns valid theme-specific keys that Aether does not
+// edit directly. Keeping them separate avoids feeding gradients and other
+// non-hex values through the color-adjustment pipeline.
+func ParseNativeColors(content string) map[string]string {
+	kv := ParseColorsKV(content)
+	native := make(map[string]string)
+	for key, value := range kv {
+		if nativePaletteKeys[key] || ansiColorKeyPattern.MatchString(key) {
+			continue
+		}
+		if _, editable := editableColorKeys[key]; editable {
+			continue
+		}
+		native[key] = value
+	}
+	return native
 }
 
 // ParseKittyConf parses a kitty.conf for color definitions.

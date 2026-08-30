@@ -147,7 +147,7 @@ print_post_install() {
     echo -e "${BOLD}Quick Start:${NC}"
     echo -e "  ${CYAN}aether${NC}                                  # Launch GUI"
     echo -e "  ${CYAN}aether --generate wallpaper.jpg${NC}         # CLI theme generation"
-    echo -e "  ${CYAN}aether --widget-blueprint${NC}               # Floating widget mode"
+    echo -e "  ${CYAN}aether-install-omarchy-plugins${NC}       # Install Omarchy shell selectors"
     echo -e "  ${CYAN}aether --list-blueprints${NC}                # List saved themes"
     echo -e "  ${CYAN}aether --help${NC}                           # Show all commands"
     echo ""

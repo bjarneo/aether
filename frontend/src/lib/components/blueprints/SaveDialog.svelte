@@ -6,6 +6,7 @@
         getLightMode,
         getAdditionalImages,
         getExtendedColors,
+        getNativeColors,
         getAppOverrides,
         getAdjustments,
     } from '$lib/stores/theme.svelte';
@@ -81,6 +82,7 @@
                 additionalImages: getAdditionalImages(),
                 lockedColors: [],
                 extendedColors: getExtendedColors(),
+                nativeColors: getNativeColors(),
                 appOverrides: getAppOverrides(),
                 adjustments: {...getAdjustments()},
             });

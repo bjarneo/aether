@@ -3,6 +3,7 @@ mode = "{mode}"
 
 accent = "{accent}"
 selection = "{selection}"
+selection_foreground = "{selection_foreground}"
 muted = "{muted}"
 
 background = "{background}"

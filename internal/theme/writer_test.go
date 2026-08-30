@@ -4,7 +4,10 @@ import (
 	"embed"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"aether/internal/omarchy"
 )
 
 //go:embed testdata/v4
@@ -37,40 +40,6 @@ func TestPrepareThemeDirPreservesUnownedGTKStylesheet(t *testing.T) {
 	}
 	if _, err := os.Stat(userFile); err != nil {
 		t.Errorf("unowned GTK stylesheet was removed: %v", err)
-	}
-}
-
-func TestPrepareOmarchyV4ThemeDirClearsExistingTheme(t *testing.T) {
-	targetDir := t.TempDir()
-	background := filepath.Join(targetDir, "backgrounds", "current.jpg")
-	legacyFile := filepath.Join(targetDir, "waybar.css")
-	legacyDir := filepath.Join(targetDir, "vscode-extension")
-
-	if err := os.MkdirAll(filepath.Dir(background), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(background, []byte("background"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(legacyFile, []byte("legacy"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(legacyDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := prepareOmarchyV4ThemeDir(targetDir, &ThemeState{}); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := os.Stat(background); !os.IsNotExist(err) {
-		t.Errorf("existing background was not removed: %v", err)
-	}
-	if _, err := os.Stat(legacyFile); !os.IsNotExist(err) {
-		t.Errorf("legacy file still exists: %v", err)
-	}
-	if _, err := os.Stat(legacyDir); !os.IsNotExist(err) {
-		t.Errorf("legacy directory still exists: %v", err)
 	}
 }
 
@@ -122,7 +91,10 @@ func TestProcessOmarchyV4TemplatesDefaultsToColorsOnly(t *testing.T) {
 			if _, err := os.Stat(filepath.Join(themeDir, "colors.toml")); err != nil {
 				t.Errorf("colors.toml was not generated: %v", err)
 			}
-			for _, name := range []string{"icons.theme", "kitty.conf", "vscode-theme.json"} {
+			if _, err := os.Stat(filepath.Join(themeDir, "icons.theme")); err != nil {
+				t.Errorf("icons.theme was not generated: %v", err)
+			}
+			for _, name := range []string{"kitty.conf", "vscode-theme.json"} {
 				if _, err := os.Stat(filepath.Join(themeDir, name)); !os.IsNotExist(err) {
 					t.Errorf("%s was generated without a target or color override: %v", name, err)
 				}
@@ -190,7 +162,9 @@ func TestProcessOmarchyV4TemplatesWritesVSCodeThemeOverride(t *testing.T) {
 		"foreground": "#cdd6f4",
 		"magenta":    "#cba6f7",
 		"mode":       "dark",
-	}, Settings{IncludedApps: map[string]bool{"vscode": true}}, nil, nil)
+	}, Settings{}, map[string]map[string]string{
+		"vscode": {"background": "#1e1e2e"},
+	}, nil)
 
 	if _, err := os.Stat(filepath.Join(themeDir, "vscode.json")); !os.IsNotExist(err) {
 		t.Errorf("vscode.json descriptor was generated: %v", err)
@@ -233,6 +207,9 @@ func TestGenerateOmarchyV4OnlyRemovesLegacyFiles(t *testing.T) {
 	if err := os.WriteFile(legacyFile, []byte("legacy"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := omarchy.MarkManagedTheme(themeDir); err != nil {
+		t.Fatal(err)
+	}
 
 	writer := NewWriter(omarchyV4TestTemplates, "testdata/v4")
 	state := NewThemeState()
@@ -250,6 +227,101 @@ func TestGenerateOmarchyV4OnlyRemovesLegacyFiles(t *testing.T) {
 	}
 	if _, err := os.Stat(legacyFile); !os.IsNotExist(err) {
 		t.Errorf("legacy file still exists: %v", err)
+	}
+}
+
+func TestGenerateOmarchyV4OnlyRefusesUnmanagedTheme(t *testing.T) {
+	themeDir := t.TempDir()
+	userFile := filepath.Join(themeDir, "notes.txt")
+	if err := os.WriteFile(userFile, []byte("keep me"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	writer := NewWriter(omarchyV4TestTemplates, "testdata/v4")
+	err := writer.GenerateOmarchyV4Only(NewThemeState(), Settings{}, themeDir)
+	if err == nil || !strings.Contains(err.Error(), "unmanaged") {
+		t.Fatalf("GenerateOmarchyV4Only() error = %v, want unmanaged-theme refusal", err)
+	}
+	if data, err := os.ReadFile(userFile); err != nil || string(data) != "keep me" {
+		t.Fatalf("foreign theme content changed: data=%q err=%v", data, err)
+	}
+}
+
+func TestReplaceThemeDirRestoresTargetChangedDuringGeneration(t *testing.T) {
+	parent := t.TempDir()
+	target := filepath.Join(parent, "aether")
+	staging := filepath.Join(parent, ".aether-staging")
+	if err := os.Mkdir(staging, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staging, "colors.toml"), []byte("generated"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	foreign := filepath.Join(target, "notes.txt")
+	if err := os.WriteFile(foreign, []byte("keep me"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := replaceThemeDir(staging, target)
+	if err == nil || !strings.Contains(err.Error(), "changed during generation") {
+		t.Fatalf("replaceThemeDir() error = %v, want ownership race refusal", err)
+	}
+	data, readErr := os.ReadFile(foreign)
+	if readErr != nil || string(data) != "keep me" {
+		t.Fatalf("foreign target was not restored: data=%q err=%v", data, readErr)
+	}
+	if _, err := os.Stat(filepath.Join(staging, "colors.toml")); err != nil {
+		t.Fatalf("staging content was lost after refusal: %v", err)
+	}
+}
+
+func TestGenerateOmarchyV4OnlyPreservesThemeWhenWallpaperCopyFails(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	themeDir := t.TempDir()
+	background := filepath.Join(themeDir, "backgrounds", "current.jpg")
+	if err := os.MkdirAll(filepath.Dir(background), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(background, []byte("original"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := omarchy.MarkManagedTheme(themeDir); err != nil {
+		t.Fatal(err)
+	}
+
+	state := NewThemeState()
+	state.WallpaperPath = filepath.Join(t.TempDir(), "missing.jpg")
+	writer := NewWriter(omarchyV4TestTemplates, "testdata/v4")
+	if err := writer.GenerateOmarchyV4Only(state, Settings{}, themeDir); err == nil {
+		t.Fatal("GenerateOmarchyV4Only() succeeded with a missing wallpaper")
+	}
+	data, err := os.ReadFile(background)
+	if err != nil || string(data) != "original" {
+		t.Fatalf("existing background changed: data=%q err=%v", data, err)
+	}
+}
+
+func TestGenerateOmarchyV4OnlyPreservesThemeWhenTemplatesFail(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	themeDir := t.TempDir()
+	colorsPath := filepath.Join(themeDir, "colors.toml")
+	if err := os.WriteFile(colorsPath, []byte("original"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := omarchy.MarkManagedTheme(themeDir); err != nil {
+		t.Fatal(err)
+	}
+
+	writer := NewWriter(omarchyV4TestTemplates, "missing")
+	if err := writer.GenerateOmarchyV4Only(NewThemeState(), Settings{}, themeDir); err == nil {
+		t.Fatal("GenerateOmarchyV4Only() succeeded without templates")
+	}
+	data, err := os.ReadFile(colorsPath)
+	if err != nil || string(data) != "original" {
+		t.Fatalf("existing theme changed: data=%q err=%v", data, err)
 	}
 }
 

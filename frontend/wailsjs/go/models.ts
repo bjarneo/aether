@@ -138,6 +138,7 @@ export namespace main {
         lightMode: boolean;
         additionalImages: string[];
         extendedColors: Record<string, string>;
+        nativeColors: Record<string, string>;
         settings: theme.Settings;
         appOverrides: Record<string, any>;
 
@@ -152,6 +153,7 @@ export namespace main {
             this.lightMode = source['lightMode'];
             this.additionalImages = source['additionalImages'];
             this.extendedColors = source['extendedColors'];
+            this.nativeColors = source['nativeColors'];
             this.settings = this.convertValues(
                 source['settings'],
                 theme.Settings
@@ -187,6 +189,7 @@ export namespace main {
         lightMode: boolean;
         additionalImages: string[];
         extendedColors: Record<string, string>;
+        nativeColors: Record<string, string>;
         installToOmarchy: boolean;
         appOverrides: Record<string, any>;
 
@@ -203,6 +206,7 @@ export namespace main {
             this.lightMode = source['lightMode'];
             this.additionalImages = source['additionalImages'];
             this.extendedColors = source['extendedColors'];
+            this.nativeColors = source['nativeColors'];
             this.installToOmarchy = source['installToOmarchy'];
             this.appOverrides = source['appOverrides'];
         }
@@ -254,6 +258,7 @@ export namespace main {
     export class ImportResult {
         colors: string[];
         extendedColors: Record<string, string>;
+        nativeColors: Record<string, string>;
         name: string;
         path: string;
         wallpaperPath: string;
@@ -267,6 +272,7 @@ export namespace main {
             if ('string' === typeof source) source = JSON.parse(source);
             this.colors = source['colors'];
             this.extendedColors = source['extendedColors'];
+            this.nativeColors = source['nativeColors'];
             this.name = source['name'];
             this.path = source['path'];
             this.wallpaperPath = source['wallpaperPath'];
@@ -281,6 +287,7 @@ export namespace main {
         lightMode: boolean;
         additionalImages: string[];
         extendedColors: Record<string, string>;
+        nativeColors: Record<string, string>;
         settings: theme.Settings;
         appOverrides: Record<string, any>;
 
@@ -297,6 +304,7 @@ export namespace main {
             this.lightMode = source['lightMode'];
             this.additionalImages = source['additionalImages'];
             this.extendedColors = source['extendedColors'];
+            this.nativeColors = source['nativeColors'];
             this.settings = this.convertValues(
                 source['settings'],
                 theme.Settings
@@ -332,6 +340,7 @@ export namespace main {
         additionalImages: string[];
         lockedColors: number[];
         extendedColors: Record<string, string>;
+        nativeColors: Record<string, string>;
         appOverrides: Record<string, any>;
         adjustments: Record<string, number>;
 
@@ -348,6 +357,7 @@ export namespace main {
             this.additionalImages = source['additionalImages'];
             this.lockedColors = source['lockedColors'];
             this.extendedColors = source['extendedColors'];
+            this.nativeColors = source['nativeColors'];
             this.appOverrides = source['appOverrides'];
             this.adjustments = source['adjustments'];
         }
@@ -357,6 +367,7 @@ export namespace main {
         wallpaperPath: string;
         lightMode: boolean;
         extendedColors: Record<string, string>;
+        nativeColors: Record<string, string>;
         appOverrides: Record<string, any>;
         additionalImages: string[];
 
@@ -370,6 +381,7 @@ export namespace main {
             this.wallpaperPath = source['wallpaperPath'];
             this.lightMode = source['lightMode'];
             this.extendedColors = source['extendedColors'];
+            this.nativeColors = source['nativeColors'];
             this.appOverrides = source['appOverrides'];
             this.additionalImages = source['additionalImages'];
         }
@@ -377,15 +389,44 @@ export namespace main {
 }
 
 export namespace omarchy {
+    export class Capabilities {
+        available: boolean;
+        version: string;
+        themesDir: string;
+        stateDir: string;
+        currentTheme: string;
+        overrideApps: string[];
+
+        static createFrom(source: any = {}) {
+            return new Capabilities(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.available = source['available'];
+            this.version = source['version'];
+            this.themesDir = source['themesDir'];
+            this.stateDir = source['stateDir'];
+            this.currentTheme = source['currentTheme'];
+            this.overrideApps = source['overrideApps'];
+        }
+    }
     export class Theme {
         name: string;
         path: string;
+        sources: string[];
         colors: string[];
         extendedColors: Record<string, string>;
+        nativeColors: Record<string, string>;
         background: string;
         foreground: string;
+        mode: string;
+        preview: string;
         wallpapers: string[];
         isSymlink: boolean;
+        isOverlay: boolean;
+        isUserTheme: boolean;
+        canApply: boolean;
         isCurrentTheme: boolean;
         isAetherGenerated: boolean;
 
@@ -397,12 +438,19 @@ export namespace omarchy {
             if ('string' === typeof source) source = JSON.parse(source);
             this.name = source['name'];
             this.path = source['path'];
+            this.sources = source['sources'];
             this.colors = source['colors'];
             this.extendedColors = source['extendedColors'];
+            this.nativeColors = source['nativeColors'];
             this.background = source['background'];
             this.foreground = source['foreground'];
+            this.mode = source['mode'];
+            this.preview = source['preview'];
             this.wallpapers = source['wallpapers'];
             this.isSymlink = source['isSymlink'];
+            this.isOverlay = source['isOverlay'];
+            this.isUserTheme = source['isUserTheme'];
+            this.canApply = source['canApply'];
             this.isCurrentTheme = source['isCurrentTheme'];
             this.isAetherGenerated = source['isAetherGenerated'];
         }
@@ -512,6 +560,7 @@ export namespace theme {
         lockedColors: Record<number, boolean>;
         colorRoles: template.ColorRoles;
         extendedColors: Record<string, string>;
+        nativeColors: Record<string, string>;
         extractionMode: string;
         additionalImages: string[];
         appOverrides: Record<string, any>;
@@ -531,6 +580,7 @@ export namespace theme {
                 template.ColorRoles
             );
             this.extendedColors = source['extendedColors'];
+            this.nativeColors = source['nativeColors'];
             this.extractionMode = source['extractionMode'];
             this.additionalImages = source['additionalImages'];
             this.appOverrides = source['appOverrides'];

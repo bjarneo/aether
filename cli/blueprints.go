@@ -132,6 +132,7 @@ func runApplyBlueprint(args []string, templatesFS embed.FS) int {
 		LightMode:        lightMode,
 		ColorRoles:       colorRoles,
 		ExtendedColors:   bp.Palette.ExtendedColors,
+		NativeColors:     bp.Palette.NativeColors,
 		AppOverrides:     bp.AppOverrides,
 		AdditionalImages: bp.Palette.AdditionalImages,
 	}

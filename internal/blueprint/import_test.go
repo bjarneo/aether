@@ -3,8 +3,10 @@ package blueprint
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -37,6 +39,60 @@ func TestImportJSONRemovesLegacyGTKState(t *testing.T) {
 	}
 	if bytes.Contains(data, []byte("includeGtk")) {
 		t.Fatal("legacy GTK setting was re-exported")
+	}
+}
+
+func TestValidateBlueprintRejectsReservedNativeColor(t *testing.T) {
+	colors := make([]string, 16)
+	for i := range colors {
+		colors[i] = "#112233"
+	}
+	bp := &Blueprint{Palette: PaletteData{
+		Colors:       colors,
+		NativeColors: map[string]string{"background": "#445566"},
+	}}
+	if err := validateBlueprint(bp); err == nil {
+		t.Fatal("validateBlueprint() accepted a reserved native color")
+	}
+}
+
+func TestImportCurrentColorsTomlPrefersActiveOmarchyTheme(t *testing.T) {
+	home := t.TempDir()
+	binDir := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("PATH", binDir)
+	if err := os.WriteFile(filepath.Join(binDir, "omarchy"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	writeTestColorsToml(t, filepath.Join(home, ".local", "state", "omarchy", "current", "theme", "colors.toml"), "#111111")
+	writeTestColorsToml(t, filepath.Join(home, ".config", "aether", "theme", "colors.toml"), "#eeeeee")
+
+	bp, err := ImportCurrentColorsToml()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := bp.Palette.Colors[1]; got != "#111111" {
+		t.Fatalf("active red = %q, want native #111111", got)
+	}
+}
+
+func writeTestColorsToml(t *testing.T, path, red string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var content strings.Builder
+	for i := 0; i < 16; i++ {
+		value := "#222222"
+		if i == 1 {
+			value = red
+		}
+		fmt.Fprintf(&content, "color%d = %q\n", i, value)
+	}
+	if err := os.WriteFile(path, []byte(content.String()), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -91,8 +147,8 @@ color15 = "#c0caf5"
 		t.Errorf("expected 16 colors, got %d", len(bp.Palette.Colors))
 	}
 
-	if bp.Palette.Colors[0] != "#15161e" {
-		t.Errorf("color0 = %q, want #15161e", bp.Palette.Colors[0])
+	if bp.Palette.Colors[0] != "#1a1b26" {
+		t.Errorf("color0 = %q, want #1a1b26", bp.Palette.Colors[0])
 	}
 }
 

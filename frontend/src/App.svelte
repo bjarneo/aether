@@ -55,10 +55,13 @@
         setWallpaperPath,
         setPalette,
         setExtendedColors,
+        setNativeColors,
         setAdjustments,
         setColor,
         setExtendedColor,
         setAppOverride,
+        setAppOverrides,
+        setAdditionalImages,
         setLightMode,
         setExtractionMode,
         getThemeSnapshot,
@@ -99,9 +102,16 @@
     import {prefersReducedMotion} from '$lib/utils/browser';
     import {buildCommands} from '$lib/commands/commands.svelte';
     import type {main} from '../wailsjs/go/models';
+    import {
+        getOmarchyAvailable,
+        initOmarchyCapabilities,
+    } from '$lib/stores/omarchy.svelte';
 
     let activeTab = $derived(getActiveTab());
     let commands = $derived(buildCommands());
+    let omarchyAvailable = $derived(getOmarchyAvailable());
+
+    void initOmarchyCapabilities();
 
     const TAB_FADE_DURATION = prefersReducedMotion() ? 0 : 100;
 
@@ -175,11 +185,17 @@
             WindowShow();
         } catch {}
 
+        await initOmarchyCapabilities();
+
         // Focus a specific tab if requested via --tab flag
         try {
             const {GetFocusTab} = await import('../wailsjs/go/main/App');
             const tab = await GetFocusTab();
-            if (tab && isValidTab(tab)) setActiveTab(tab);
+            if (tab && isValidTab(tab)) {
+                setActiveTab(
+                    tab === 'system' && !getOmarchyAvailable() ? 'editor' : tab
+                );
+            }
         } catch {}
 
         // Overwrite module-load DEFAULT_PALETTE with backend defaults
@@ -192,6 +208,9 @@
             }
             if (s?.extendedColors) {
                 setExtendedColors(s.extendedColors);
+            }
+            if (s?.nativeColors) {
+                setNativeColors(s.nativeColors);
             }
             if (s?.wallpaperPath) {
                 setWallpaperPath(s.wallpaperPath);
@@ -418,10 +437,13 @@
                     (state: {
                         palette?: string[];
                         extendedColors?: Record<string, string>;
+                        nativeColors?: Record<string, string>;
                         lightMode?: boolean;
                         mode?: string;
                         wallpaper?: string;
                         adjustments?: import('$lib/types/theme').Adjustments;
+                        appOverrides?: Record<string, Record<string, string>>;
+                        additionalImages?: string[];
                     }) => {
                         if (state.palette && state.palette.length >= 16) {
                             setPalette(state.palette);
@@ -429,17 +451,26 @@
                         if (state.extendedColors) {
                             setExtendedColors(state.extendedColors);
                         }
+                        if (state.nativeColors) {
+                            setNativeColors(state.nativeColors);
+                        }
                         if (state.lightMode !== undefined) {
                             setLightMode(state.lightMode);
                         }
                         if (state.mode) {
                             setExtractionMode(state.mode);
                         }
-                        if (state.wallpaper) {
+                        if (state.wallpaper !== undefined) {
                             setWallpaperPath(state.wallpaper);
                         }
                         if (state.adjustments) {
                             setAdjustments(state.adjustments);
+                        }
+                        if (state.appOverrides) {
+                            setAppOverrides(state.appOverrides);
+                        }
+                        if (state.additionalImages) {
+                            setAdditionalImages(state.additionalImages);
                         }
                     }
                 );
@@ -473,7 +504,7 @@
             </div>
         {/key}
     </main>
-    {#if activeTab === 'editor' && getTargetsVisible()}
+    {#if activeTab === 'editor' && getTargetsVisible() && !omarchyAvailable}
         <TargetAppsStrip />
     {/if}
     <ActionBar />

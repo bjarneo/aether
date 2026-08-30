@@ -13,17 +13,27 @@ import (
 // RunSync executes a command synchronously and returns its combined stdout.
 // LD_PRELOAD is stripped from the environment to prevent layer-shell conflicts.
 func RunSync(name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
-	cmd.Env = filteredEnv()
+	return RunSyncEnv(nil, name, args...)
+}
 
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = nil
+// RunSyncEnv executes a command with additional environment values and returns
+// its combined output. Values in extraEnv replace inherited values.
+func RunSyncEnv(extraEnv map[string]string, name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
+	cmd.Env = mergeEnv(filteredEnv(), extraEnv)
+
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = &output
 
 	if err := cmd.Run(); err != nil {
-		return stdout.String(), err
+		message := strings.TrimSpace(output.String())
+		if message != "" {
+			return output.String(), fmt.Errorf("%s: %w", message, err)
+		}
+		return output.String(), err
 	}
-	return stdout.String(), nil
+	return output.String(), nil
 }
 
 // RunAsync starts a command detached in the background and returns immediately.
@@ -133,4 +143,22 @@ func filteredEnv() []string {
 		filtered = append(filtered, v)
 	}
 	return filtered
+}
+
+func mergeEnv(env []string, extra map[string]string) []string {
+	if len(extra) == 0 {
+		return env
+	}
+
+	merged := make([]string, 0, len(env)+len(extra))
+	for _, value := range env {
+		key, _, _ := strings.Cut(value, "=")
+		if _, replaced := extra[key]; !replaced {
+			merged = append(merged, value)
+		}
+	}
+	for key, value := range extra {
+		merged = append(merged, key+"="+value)
+	}
+	return merged
 }

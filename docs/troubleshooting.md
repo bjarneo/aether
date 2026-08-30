@@ -17,17 +17,26 @@ sudo pacman -S webkit2gtk
 - Add API key in Settings for higher limits
 - Clear cache: `rm -rf ~/.cache/aether/wallhaven-*`
 
-## Waybar Disappears (Widget Mode)
-
-When using `--widget-blueprint`, Aether runs with layer-shell which can conflict with Waybar.
-
-**Solution:** Already fixed in Aether. It clears `LD_PRELOAD` when applying themes.
-
 ## Theme Not Applying
 
-1. Check `~/.config/aether/theme/` for generated files
-2. Verify symlink: `ls -la ~/.config/omarchy/themes/aether/`
-3. Run manually: `omarchy-theme-set aether`
+On Omarchy:
+
+1. Check `~/.config/omarchy/themes/aether/` for `.aether-managed` and `colors.toml`.
+2. Check the active theme with `cat ~/.local/state/omarchy/current/theme.name`.
+3. Run `omarchy theme set aether` and inspect the reported error.
+
+Without Omarchy, check `~/.config/aether/theme/` and the integration steps in the [standalone guide](standalone.md).
+
+## Shell Selector Not Opening
+
+```bash
+omarchy plugin list
+omarchy-shell shell rescanPlugins
+omarchy plugin enable aether.wallpapers
+omarchy plugin enable aether.blueprints
+```
+
+Reinstall missing plugins with `aether-install-omarchy-plugins`.
 
 ## Colors Look Wrong
 

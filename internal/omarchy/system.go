@@ -10,9 +10,9 @@ import (
 func GetCurrentThemeName() string {
 	home, _ := os.UserHomeDir()
 	paths := []string{
-		filepath.Join(home, ".config", "omarchy", "current", "theme.name"),
 		filepath.Join(home, ".local", "state", "omarchy", "current", "theme.name"),
 		filepath.Join(home, ".local", "state", "omarchy", "current", "theme"),
+		filepath.Join(home, ".config", "omarchy", "current", "theme.name"),
 	}
 	for _, path := range paths {
 		if name := readThemeName(path); name != "" {

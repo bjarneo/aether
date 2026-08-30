@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "aether.blueprints",
+  "name": "Aether blueprints",
+  "version": "1.0.0",
+  "author": "bjarneo",
+  "description": "Aether blueprint selector",
+  "kinds": ["overlay"],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "shell.qml"
+  }
+}

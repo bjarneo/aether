@@ -24,7 +24,7 @@ func TestThemeSearchDirsExtraDirsFirst(t *testing.T) {
 	home, _ := os.UserHomeDir()
 	expectedDefaults := []string{
 		filepath.Join(home, ".config", "omarchy", "themes"),
-		filepath.Join(home, ".local", "share", "omarchy", "themes"),
+		filepath.Join("/usr/share/omarchy", "themes"),
 		filepath.Join(home, ".config", "themes"),
 	}
 	for i, want := range expectedDefaults {
@@ -102,7 +102,120 @@ bright_cyan = "#add8e6"
 		if got := theme.Colors[4]; got != "#000080" {
 			t.Errorf("blue = %q, want #000080", got)
 		}
+		if theme.CanApply {
+			t.Error("extra-root-only theme should be edit-only")
+		}
 		return
 	}
 	t.Fatal("distinct-accent theme not found")
+}
+
+func TestLoadAllThemesComposesNativeOverlay(t *testing.T) {
+	home := t.TempDir()
+	omarchyRoot := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OMARCHY_PATH", omarchyRoot)
+	t.Setenv(extraThemeDirsEnv, "")
+
+	stock := filepath.Join(omarchyRoot, "themes", "native")
+	user := filepath.Join(home, ".config", "omarchy", "themes", "native")
+	for _, dir := range []string{filepath.Join(stock, "backgrounds"), filepath.Join(user, "backgrounds")} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	colors := `mode = "light"
+background = "#eeeeee"
+foreground = "#111111"
+red = "#aa0000"
+green = "#00aa00"
+yellow = "#aaaa00"
+blue = "#0000aa"
+magenta = "#aa00aa"
+cyan = "#00aaaa"
+muted = "#777777"
+bright_red = "#ff0000"
+bright_green = "#00ff00"
+bright_yellow = "#ffff00"
+bright_blue = "#0000ff"
+bright_magenta = "#ff00ff"
+bright_cyan = "#00ffff"
+bright_foreground = "#ffffff"
+hyprland_active_border = "45deg #ff0000 #0000ff"
+`
+	if err := os.WriteFile(filepath.Join(stock, "colors.toml"), []byte(colors), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(stock, "backgrounds", "same.png"), []byte("stock"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(user, "backgrounds", "same.png"), []byte("user"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(user, "backgrounds", "extra.webp"), []byte("user"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	themes, err := LoadAllThemes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, theme := range themes {
+		if theme.Name != "native" {
+			continue
+		}
+		if !theme.IsOverlay || !theme.IsUserTheme {
+			t.Errorf("overlay flags = overlay:%v user:%v", theme.IsOverlay, theme.IsUserTheme)
+		}
+		if !theme.CanApply {
+			t.Error("native overlay theme should be applicable")
+		}
+		if theme.Mode != "light" {
+			t.Errorf("mode = %q, want light", theme.Mode)
+		}
+		if got := theme.NativeColors["hyprland_active_border"]; got != "45deg #ff0000 #0000ff" {
+			t.Errorf("native color = %q", got)
+		}
+		if len(theme.Wallpapers) != 2 {
+			t.Fatalf("wallpapers = %v, want two merged images", theme.Wallpapers)
+		}
+		for _, path := range theme.Wallpapers {
+			if filepath.Base(path) == "same.png" && path != filepath.Join(user, "backgrounds", "same.png") {
+				t.Errorf("overlay wallpaper = %q, want user source", path)
+			}
+		}
+		return
+	}
+	t.Fatal("native overlay theme not found")
+}
+
+func TestLoadAllThemesSkipsInvalidSymlinkTargets(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("OMARCHY_PATH", t.TempDir())
+	t.Setenv(extraThemeDirsEnv, "")
+	userRoot := filepath.Join(home, ".config", "omarchy", "themes")
+	if err := os.MkdirAll(userRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(home, "missing"), filepath.Join(userRoot, "broken")); err != nil {
+		t.Fatal(err)
+	}
+	fileTarget := filepath.Join(home, "theme-file")
+	if err := os.WriteFile(fileTarget, []byte("not a directory"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(fileTarget, filepath.Join(userRoot, "file-link")); err != nil {
+		t.Fatal(err)
+	}
+
+	themes, err := LoadAllThemes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, theme := range themes {
+		if theme.Name == "broken" || theme.Name == "file-link" {
+			t.Errorf("invalid symlink target was discovered: %s", theme.Name)
+		}
+	}
 }

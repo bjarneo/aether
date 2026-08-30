@@ -3,7 +3,11 @@
     import {
         setPalette,
         setExtendedColors,
+        setNativeColors,
         setWallpaperPath,
+        setAdditionalImages,
+        setAppOverrides,
+        setLightMode,
     } from '$lib/stores/theme.svelte';
     import {setActiveTab, showToast} from '$lib/stores/ui.svelte';
     import {
@@ -16,11 +20,17 @@
     import ViewHeader from '$lib/components/shared/ViewHeader.svelte';
     import CardSizeToggle from '$lib/components/shared/CardSizeToggle.svelte';
     import {getCardSize, CARD_MIN_WIDTH} from '$lib/stores/cardsize.svelte';
+    import {
+        getOmarchyCapabilities,
+        refreshOmarchyCapabilities,
+    } from '$lib/stores/omarchy.svelte';
 
     type Theme = omarchy.Theme;
 
     let themes = $state<Theme[]>([]);
     let isLoading = $state(true);
+    let applyingName = $state('');
+    let capabilities = $derived(getOmarchyCapabilities());
 
     onMount(() => {
         loadThemes();
@@ -36,8 +46,9 @@
             themes = Array.isArray(result) ? result : [];
             // Load wallpaper previews into global cache
             for (const theme of themes) {
-                if (theme.wallpapers?.length > 0) {
-                    loadThumbnail(theme.wallpapers[0]);
+                const preview = theme.preview || theme.wallpapers?.[0];
+                if (preview) {
+                    loadThumbnail(preview);
                 }
             }
         } catch {
@@ -51,9 +62,11 @@
         if (theme.colors?.length < 16) return false;
         setPalette(theme.colors);
         setExtendedColors(theme.extendedColors ?? {});
-        if (theme.wallpapers?.length > 0) {
-            setWallpaperPath(theme.wallpapers[0]);
-        }
+        setNativeColors(theme.nativeColors ?? {});
+        if (theme.mode) setLightMode(theme.mode === 'light');
+        setWallpaperPath(theme.wallpapers?.[0] ?? '');
+        setAdditionalImages(theme.wallpapers?.slice(1) ?? []);
+        setAppOverrides({});
         return true;
     }
 
@@ -65,17 +78,26 @@
     }
 
     async function handleApply(theme: Theme) {
-        if (theme.colors?.length >= 16) {
-            loadThemeIntoState(theme);
-        }
+        if (applyingName || !theme.canApply) return;
+        applyingName = theme.name;
         try {
             const {ApplyOmarchyThemeByName} = await import(
                 '../../../../wailsjs/go/main/App'
             );
             await ApplyOmarchyThemeByName(theme.name);
+            await refreshOmarchyCapabilities();
+            await loadThemes();
             showToast(`Applied theme: ${theme.name}`);
-        } catch {
-            showToast('Failed to apply theme');
+        } catch (error: unknown) {
+            const message =
+                typeof error === 'string'
+                    ? error
+                    : error instanceof Error
+                      ? error.message
+                      : 'Failed to apply theme';
+            showToast(message);
+        } finally {
+            applyingName = '';
         }
     }
 </script>
@@ -84,8 +106,13 @@
     <ViewHeader>
         <span
             class="text-fg-dimmed text-[10px] font-medium uppercase tracking-wider"
-            >System Themes</span
+            >Omarchy Themes</span
         >
+        {#if capabilities.version}
+            <span class="text-fg-dimmed text-[10px]">
+                {capabilities.version}
+            </span>
+        {/if}
         <div class="ml-auto flex items-center gap-2">
             <CardSizeToggle />
             {#if !isLoading && themes.length > 0}
@@ -99,8 +126,8 @@
             <LoadingState message="Loading system themes…" />
         {:else if themes.length === 0}
             <EmptyState
-                title="No system themes found"
-                body="Install Omarchy to use bundled system themes, or save your own theme as a Blueprint."
+                title="No Omarchy themes found"
+                body="Create a theme in the editor or install one with Omarchy."
             >
                 {#snippet icon()}
                     <svg
@@ -129,6 +156,7 @@
                 ]}px, 1fr))"
             >
                 {#each themes as theme, i (theme.name + '_' + i)}
+                    {@const preview = theme.preview || theme.wallpapers?.[0]}
                     <div
                         class="bg-bg-surface border-border group overflow-hidden border"
                     >
@@ -136,11 +164,9 @@
                         <div
                             class="bg-bg-primary flex aspect-video items-center justify-center overflow-hidden"
                         >
-                            {#if theme.wallpapers?.length > 0 && getCachedThumbnail(theme.wallpapers[0])}
+                            {#if preview && getCachedThumbnail(preview)}
                                 <img
-                                    src={getCachedThumbnail(
-                                        theme.wallpapers[0]
-                                    )}
+                                    src={getCachedThumbnail(preview)}
                                     alt={theme.name}
                                     class="h-full w-full object-cover"
                                 />
@@ -183,6 +209,18 @@
                                         >current</span
                                     >
                                 {/if}
+                                {#if theme.isOverlay}
+                                    <span
+                                        class="text-fg-dimmed ml-1 text-[10px]"
+                                        >overlay</span
+                                    >
+                                {/if}
+                                {#if theme.isAetherGenerated}
+                                    <span
+                                        class="text-fg-dimmed ml-1 text-[10px]"
+                                        >aether</span
+                                    >
+                                {/if}
                             </div>
                             <div
                                 class="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
@@ -193,9 +231,15 @@
                                     >Edit</button
                                 >
                                 <button
-                                    class="bg-accent hover:bg-accent-hover text-accent-fg px-2 py-1 text-[10px] font-medium transition-colors"
+                                    class="bg-accent hover:bg-accent-hover text-accent-fg disabled:bg-bg-elevated disabled:text-fg-dimmed px-2 py-1 text-[10px] font-medium transition-colors"
                                     onclick={() => handleApply(theme)}
-                                    >Apply</button
+                                    disabled={!!applyingName || !theme.canApply}
+                                    title={theme.canApply
+                                        ? 'Apply with Omarchy'
+                                        : 'This theme is available for editing only'}
+                                    >{applyingName === theme.name
+                                        ? 'Applying...'
+                                        : 'Apply'}</button
                                 >
                             </div>
                         </div>

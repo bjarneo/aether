@@ -1,4 +1,4 @@
-// Aether blueprints picker. Replacement for `aether --widget-blueprint`.
+// Aether blueprint selector for the Omarchy shell overlay.
 //
 // Reads `aether --list-blueprints --json`, shows a vertical list of
 // (name + 8-color palette swatch row) entries in a centered card, lets the
@@ -15,70 +15,23 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import qs.Commons
 
 Item {
     id: root
 
-    // Chrome colors. Defaults are a sensible dark theme; the FileView below
-    // overrides them from `~/.config/omarchy/current/theme/colors.toml` so
-    // the widget always matches the currently-applied Omarchy theme.
-    property color bg:     "#0d0c0c"
-    property color fg:     "#c5c9c5"
-    property color dim:    "#7a7a72"
-    property color accent: "#89b4fa"
-    readonly property color rowHover:  Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.06)
-    readonly property color rowActive: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
+    signal dismissRequested()
 
-    // Slightly off-bg for the card body so it pops on top of the scrim.
-    // Direction depends on whether the Omarchy theme is light or dark.
-    readonly property color cardBg: {
-        const sum = root.bg.r + root.bg.g + root.bg.b;
-        return sum > 1.5
-            ? Qt.darker(root.bg, 1.08)   // light theme -> card a bit darker
-            : Qt.lighter(root.bg, 1.6);  // dark theme  -> card a bit lighter
-    }
-    readonly property color panelBg:    Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.05)
-    readonly property color cardBorder: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
-
-    // Omarchy theme colors are at a known path. The file is rewritten on
-    // every theme swap (`rm -rf current/theme && mv next-theme current/theme`)
-    // so there's a brief window where it doesn't exist; reloadTimer covers
-    // that race without spamming warnings.
-    FileView {
-        id: themeFile
-        path: (Quickshell.env("HOME") || "") + "/.config/omarchy/current/theme/colors.toml"
-        watchChanges: true
-        printErrors: false
-        onFileChanged: reload()
-        onLoaded:      root._applyOmarchyTheme(text())
-        onLoadFailed:  reloadTimer.restart()
-    }
-    Timer {
-        id: reloadTimer
-        interval: 400
-        repeat: false
-        onTriggered: themeFile.reload()
-    }
-
-    function _applyOmarchyTheme(src) {
-        if (!src) return;
-        const lines = String(src).split("\n");
-        const re = /^\s*([A-Za-z0-9_]+)\s*=\s*"?(#?[0-9A-Fa-f]+)"?\s*$/;
-        const t = {};
-        for (let i = 0; i < lines.length; ++i) {
-            const m = lines[i].match(re);
-            if (m) t[m[1]] = m[2];
-        }
-        // Guard each assignment: an unchanged write would still re-trigger
-        // every dependent binding (cardBg, panelBg, row colors, ...).
-        function setIfChanged(prop, value) {
-            if (value && String(root[prop]) !== String(value)) root[prop] = value;
-        }
-        setIfChanged("bg",     t.background);
-        setIfChanged("fg",     t.foreground);
-        setIfChanged("accent", t.accent);
-        setIfChanged("dim",    t.color8 || Qt.darker(root.fg, 1.7));
-    }
+    readonly property color bg: Color.menu.background
+    readonly property color fg: Color.menu.text
+    readonly property color dim: Color.muted
+    readonly property color accent: Color.accent
+    readonly property color selectedFg: Color.menu.selectedText
+    readonly property color rowHover: Color.menu.selectedBackground
+    readonly property color rowActive: Color.menu.selectedBackground
+    readonly property color cardBg: Color.menu.background
+    readonly property color panelBg: Color.menu.selectedBackground
+    readonly property color cardBorder: Color.menu.border
 
     property var blueprints: []
     property var filtered: []
@@ -86,6 +39,7 @@ Item {
     property string searchQuery: ""
     property bool applying: false
     property string statusMsg: ""
+	property int sessionId: 0
 
     function recomputeFiltered() {
         if (!searchQuery) {
@@ -109,10 +63,23 @@ Item {
         applying = true;
         statusMsg = "Applying " + bp.name + " ...";
         applyProc.bpName = bp.name;
+		applyProc.forSession = sessionId;
         applyProc.running = true;
     }
 
-    Component.onCompleted: listProc.running = true
+    function refresh() {
+        if (!listProc.running) listProc.running = true;
+    }
+
+	function beginSession() {
+		sessionId++;
+		searchQuery = "";
+		currentIndex = 0;
+		applying = applyProc.running;
+		statusMsg = applying ? "Finishing previous apply ..." : "";
+		recomputeFiltered();
+		refresh();
+	}
 
     Process {
         id: listProc
@@ -124,6 +91,7 @@ Item {
                     if (Array.isArray(data.blueprints)) {
                         root.blueprints = data.blueprints;
                         root.recomputeFiltered();
+						if (!root.applying) root.statusMsg = "";
                     } else if (data.error) {
                         root.statusMsg = String(data.error);
                     }
@@ -138,20 +106,27 @@ Item {
     Process {
         id: applyProc
         property string bpName: ""
+		property int forSession: 0
         running: false
         command: ["aether", "--apply-blueprint", bpName]
         onExited: (code) => {
+            root.applying = false;
+			if (applyProc.forSession !== root.sessionId) {
+				return;
+			}
             if (code === 0) {
-                Qt.quit();
+				root.statusMsg = "";
+                root.dismissRequested();
             } else {
-                root.applying = false;
                 root.statusMsg = "Apply failed";
             }
         }
     }
 
     Keys.onPressed: (e) => {
-        if (e.key === Qt.Key_Down) {
+        if (e.key === Qt.Key_Escape || e.key === Qt.Key_Q) {
+            e.accepted = true; root.dismissRequested();
+        } else if (e.key === Qt.Key_Down) {
             e.accepted = true; root.move(1);
         } else if (e.key === Qt.Key_Up) {
             e.accepted = true; root.move(-1);
@@ -186,7 +161,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(root.bg.r, root.bg.g, root.bg.b, 0.62)
+        color: Color.menu.scrim
     }
 
     // Centered card containing the list. Fairly opaque so the list reads
@@ -196,7 +171,7 @@ Item {
         anchors.centerIn: parent
         width: 460
         height: Math.min(parent.height - 80, 540)
-        color: Qt.rgba(root.cardBg.r, root.cardBg.g, root.cardBg.b, 0.94)
+        color: root.cardBg
         border.color: root.cardBorder
         border.width: 1
 
@@ -238,7 +213,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 34
-                color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.025)
+                color: root.panelBg
 
                 Text {
                     anchors.fill: parent
@@ -295,7 +270,7 @@ Item {
                             width: parent.width - 124 - parent.spacing
                             elide: Text.ElideRight
                             text: bpRow.modelData ? bpRow.modelData.name : ""
-                            color: bpRow.index === root.currentIndex ? root.fg : root.dim
+                            color: bpRow.index === root.currentIndex ? root.selectedFg : root.dim
                             font.family: "monospace"
                             font.pixelSize: 11
                         }

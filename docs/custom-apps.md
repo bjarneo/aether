@@ -150,8 +150,10 @@ Optional script that runs after the symlink is created. Must be executable (`chm
 
 ### How It Works
 
+Custom app templates are part of standalone mode. On Omarchy, Aether emits only files the native theme loader consumes and leaves additional application support to Omarchy hooks.
+
 1. Aether processes the template with color variables
-2. Writes the result to `~/.config/omarchy/themes/aether/{appname}-{template}`
+2. Writes the result to `~/.config/aether/theme/{appname}-{template}`
 3. Creates a symlink from that file to your destination
 4. Runs `post-apply.sh` if it exists
 

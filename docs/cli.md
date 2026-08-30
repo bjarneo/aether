@@ -160,7 +160,7 @@ aether --import-colors-toml /path/to/colors.toml
 
 ```bash
 # Import colors.toml
-aether --import-colors-toml ~/.local/share/omarchy/themes/ethereal/colors.toml
+aether --import-colors-toml /usr/share/omarchy/themes/ethereal/colors.toml
 
 # Import with wallpaper
 aether --import-colors-toml ~/themes/colors.toml --wallpaper ~/wallpaper.jpg
@@ -181,57 +181,16 @@ color1 = "#ff6188"
 color15 = "#ffcead"
 ```
 
-### Blueprint Widget
+### Omarchy Shell Selectors
 
-Show floating theme selector widget:
-
-```bash
-aether --widget-blueprint
-```
-
-Useful for quick theme switching from a keybind.
-
-### Wallpaper Slider Widget
-
-Full-screen overlay slider for browsing and applying wallpapers with material color extraction:
+Wallpaper and blueprint selectors run as native `omarchy-shell` plugins rather than CLI widget modes:
 
 ```bash
-aether --widget-wallpaper-slider
+omarchy-shell shell toggle aether.wallpapers '{}'
+omarchy-shell shell toggle aether.blueprints '{}'
 ```
 
-### Themes Slider Widget
-
-Full-screen overlay slider for browsing and applying system themes:
-
-```bash
-aether --widget-themes-slider
-```
-
-**Controls:**
-
-| Key | Action |
-|-----|--------|
-| Tab / Arrow Right | Next slide |
-| Shift+Tab / Arrow Left | Previous slide |
-| Hold Tab | Fast scroll (accelerates the longer you hold) |
-| Enter | Apply current theme |
-| Escape | Close |
-| Type characters | Search by filename/theme name |
-
-**Hyprland configuration:**
-
-For the slider widgets to display as transparent overlays, add to your Hyprland config:
-
-```conf
-# No window rules needed — the slider handles fullscreen automatically.
-```
-
-**Keybind examples:**
-
-```conf
-bind = SUPER ALT, W, exec, aether --widget-wallpaper-slider
-bind = SUPER ALT, T, exec, aether --widget-themes-slider
-```
+See [Omarchy shell plugins](quickshell.md) for installation and controls.
 
 ### Open with Tab
 
@@ -540,12 +499,9 @@ aether --generate "$wallpaper"
 Add to `~/.config/hypr/hyprland.conf`:
 
 ```conf
-# Slider widgets
-bind = SUPER ALT, W, exec, aether --widget-wallpaper-slider
-bind = SUPER ALT, T, exec, aether --widget-themes-slider
-
-# Quick theme selector widget
-bind = SUPER ALT, B, exec, aether --widget-blueprint
+# Native Omarchy shell selectors
+bind = SUPER ALT, W, exec, omarchy-shell shell toggle aether.wallpapers '{}'
+bind = SUPER ALT, B, exec, omarchy-shell shell toggle aether.blueprints '{}'
 
 # Generate theme from current wallpaper
 bind = $mainMod ALT, T, exec, aether --generate $(hyprctl hyprpaper listactive | head -1 | cut -d' ' -f2)
@@ -570,7 +526,8 @@ Aether respects standard XDG directories:
 
 Colon-separated list of additional directories to scan for themes shown
 in the **System Themes** tab. These are searched **before** the omarchy
-defaults (`~/.config/omarchy/themes`, `~/.local/share/omarchy/themes`,
+defaults (`~/.config/omarchy/themes`, `$OMARCHY_PATH/themes` or
+`/usr/share/omarchy/themes`,
 `~/.config/themes`), so a theme with the same name in a custom directory
 wins.
 

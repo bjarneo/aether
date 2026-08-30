@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "aether.wallpapers",
+  "name": "Aether wallpapers",
+  "version": "1.0.0",
+  "author": "bjarneo",
+  "description": "Aether wallpaper and palette selector",
+  "kinds": ["overlay"],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "shell.qml"
+  }
+}

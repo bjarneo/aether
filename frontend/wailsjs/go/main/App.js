@@ -98,8 +98,8 @@ export function GetInitialState() {
     return window['go']['main']['App']['GetInitialState']();
 }
 
-export function GetReleaseStatus(arg1) {
-    return window['go']['main']['App']['GetReleaseStatus'](arg1);
+export function GetOmarchyCapabilities() {
+    return window['go']['main']['App']['GetOmarchyCapabilities']();
 }
 
 export function GetPendingExternalImport() {
@@ -108,6 +108,10 @@ export function GetPendingExternalImport() {
 
 export function GetPreview(arg1) {
     return window['go']['main']['App']['GetPreview'](arg1);
+}
+
+export function GetReleaseStatus(arg1) {
+    return window['go']['main']['App']['GetReleaseStatus'](arg1);
 }
 
 export function GetSettings() {

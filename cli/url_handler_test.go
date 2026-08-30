@@ -28,6 +28,7 @@ func TestRunHandleURLRejectsConflictingPaletteSources(t *testing.T) {
 func TestBuildURLImportState(t *testing.T) {
 	var content strings.Builder
 	content.WriteString("mode = \"light\"\n")
+	content.WriteString("hyprland_active_border = \"45deg #112233 #445566\"\n")
 	for i := 0; i < 16; i++ {
 		fmt.Fprintf(&content, "color%d = \"#%06x\"\n", i, i)
 	}
@@ -48,5 +49,8 @@ func TestBuildURLImportState(t *testing.T) {
 	}
 	if state.WallpaperPath != "/tmp/wallpaper.jpg" {
 		t.Errorf("wallpaper = %q; want /tmp/wallpaper.jpg", state.WallpaperPath)
+	}
+	if got := state.NativeColors["hyprland_active_border"]; got != "45deg #112233 #445566" {
+		t.Errorf("native color = %q; want preserved border", got)
 	}
 }

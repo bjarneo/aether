@@ -12,6 +12,8 @@
     import ContextMenu from '$lib/components/shared/ContextMenu.svelte';
     import ExpandableSection from '$lib/components/shared/ExpandableSection.svelte';
     import {appLabel} from '$lib/constants/apps';
+    import {getNativeAppOverrides} from '$lib/actions/themeActions';
+    import {getOmarchyAvailable} from '$lib/stores/omarchy.svelte';
 
     let expanded = $state(false);
     let selectedApp = $state('');
@@ -37,7 +39,9 @@
     let palette = $derived(getPalette());
     let extColors = $derived(getExtendedColors());
     let lightMode = $derived(getLightMode());
-    let overrides = $derived(getAppOverrides());
+    let overrides = $derived(
+        getOmarchyAvailable() ? getNativeAppOverrides() : getAppOverrides()
+    );
     let appOverrides = $derived(
         selectedApp ? overrides[selectedApp] || {} : {}
     );

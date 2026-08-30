@@ -5,7 +5,7 @@
         getWallpaperPath,
         getLightMode,
         setIsExtracting,
-        setPalette,
+        setPaletteFromExtraction,
         setAdjustments,
     } from '$lib/stores/theme.svelte';
     import {showToast} from '$lib/stores/ui.svelte';
@@ -104,7 +104,7 @@
                 );
                 const colors = await ExtractColors(path, getLightMode(), mode);
                 setAdjustments({...DEFAULT_ADJUSTMENTS});
-                setPalette(colors);
+                setPaletteFromExtraction(path, colors);
                 showToast(`Re-extracted with ${mode} mode`);
             } catch {
                 showToast('Couldn’t re-extract — try a different mode');

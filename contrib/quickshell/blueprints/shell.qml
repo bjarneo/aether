@@ -1,39 +1,55 @@
-// Entry point: run with `qs -p contrib/quickshell/blueprints/shell.qml`
-// or symlink this directory into ~/.config/quickshell/aether-blueprints/
-// and run `qs -c aether-blueprints`.
-//
-// Aether blueprints picker. Fullscreen overlay; centered card lists saved
-// blueprints (name + 8-color palette swatch row each). Type to search,
-// arrow keys to navigate, Enter to apply via `aether --apply-blueprint`.
-
+import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import QtQuick
 
-Scope {
+Item {
+    id: root
+
+    property var shell: null
+    property var manifest: null
+    property bool opened: false
+
+    readonly property string pluginId: manifest && manifest.id
+        ? String(manifest.id)
+        : "aether.blueprints"
+
+    function open(payloadJson) {
+        root.opened = true
+		picker.beginSession()
+        Qt.callLater(function () { picker.forceActiveFocus() })
+    }
+
+    function close() {
+        root.opened = false
+    }
+
+    function dismiss() {
+        root.close()
+        if (root.shell && typeof root.shell.hide === "function")
+            root.shell.hide(root.pluginId)
+    }
+
     PanelWindow {
-        id: panel
-
         anchors {
             top: true
             bottom: true
             left: true
             right: true
         }
-
+        visible: root.opened
+        color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+        WlrLayershell.keyboardFocus: root.opened
+            ? WlrKeyboardFocus.Exclusive
+            : WlrKeyboardFocus.None
         WlrLayershell.namespace: "aether-blueprints"
 
-        color: "transparent"
-
         Blueprints {
+            id: picker
             anchors.fill: parent
-            focus: true
-            Keys.onPressed: (e) => {
-                if (e.key === Qt.Key_Escape || e.key === Qt.Key_Q) Qt.quit();
-            }
+            focus: root.opened
+            onDismissRequested: root.dismiss()
         }
     }
 }
