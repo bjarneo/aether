@@ -181,6 +181,18 @@ export namespace main {
             return a;
         }
     }
+    export class ExportFavoritesRequest {
+        paths: string[];
+
+        static createFrom(source: any = {}) {
+            return new ExportFavoritesRequest(source);
+        }
+
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.paths = source['paths'];
+        }
+    }
     export class ExportThemeRequest {
         name: string;
         includedApps: string[];

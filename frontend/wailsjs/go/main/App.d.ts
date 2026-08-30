@@ -28,6 +28,8 @@ export function CancelBatchProcessing(): Promise<void>;
 
 export function CancelExternalImport(arg1: string): Promise<void>;
 
+export function CancelFavoritesExport(): Promise<void>;
+
 export function ChooseWallpaperFolder(): Promise<string>;
 
 export function ClearTheme(): Promise<void>;
@@ -47,6 +49,10 @@ export function ContrastRatio(arg1: string, arg2: string): Promise<number>;
 export function DeleteBlueprint(arg1: string): Promise<void>;
 
 export function DownloadWallpaper(arg1: string): Promise<string>;
+
+export function ExportFavorites(
+    arg1: main.ExportFavoritesRequest
+): Promise<string>;
 
 export function ExportTheme(arg1: main.ExportThemeRequest): Promise<string>;
 
@@ -99,6 +105,8 @@ export function HandleIPC(arg1: ipc.Request): Promise<ipc.Response>;
 export function ImportFileDialog(arg1: string): Promise<main.ImportResult>;
 
 export function IsFavorite(arg1: string): Promise<boolean>;
+
+export function IsFavoritesExportRunning(): Promise<boolean>;
 
 export function IsMacOS(): Promise<boolean>;
 

@@ -12,6 +12,8 @@
     import OmarchyThemes from '$lib/components/blueprints/OmarchyThemes.svelte';
     import SettingsView from '$lib/components/settings/SettingsView.svelte';
     import AboutView from '$lib/components/layout/AboutView.svelte';
+    import ExportProgress from '$lib/components/favorites/ExportProgress.svelte';
+    import {initExportEvents} from '$lib/stores/favoritesExport.svelte';
     import {
         getActiveTab,
         setActiveTab,
@@ -298,6 +300,10 @@
             else if (getKeymapOpen()) setKeymapOpen(false);
         });
 
+        // Favorites export progress. Wired here rather than in FavoritesView
+        // so an export keeps reporting after the user switches tabs.
+        initExportEvents();
+
         // Listen for events from Go
         (async () => {
             try {
@@ -508,6 +514,7 @@
         <TargetAppsStrip />
     {/if}
     <ActionBar />
+    <ExportProgress />
     <Toast />
     <KeymapDialog open={getKeymapOpen()} onclose={() => setKeymapOpen(false)} />
     <CommandPalette

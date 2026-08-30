@@ -15,6 +15,10 @@
         getCachedFullImage,
     } from '$lib/stores/imagecache.svelte';
     import {getLabels, getAssignments} from '$lib/stores/tags.svelte';
+    import {
+        getExportState,
+        startExport,
+    } from '$lib/stores/favoritesExport.svelte';
     import WallpaperTile from '$lib/components/shared/WallpaperTile.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
     import EmptyState from '$lib/components/shared/EmptyState.svelte';
@@ -193,7 +197,15 @@
             {/each}
         {/if}
 
-        <span class="text-fg-dimmed ml-auto text-[10px]"
+        <button
+            class="bg-accent text-accent-fg hover:bg-accent-hover ml-auto px-2 py-0.5 text-[10px] font-medium transition-colors duration-100 disabled:opacity-50"
+            disabled={filtered.length === 0 || getExportState().active}
+            onclick={() => startExport(filtered.map(f => f.path))}
+            title="Export the listed favorites as a .zip archive"
+            >Export .zip ({filtered.length})</button
+        >
+
+        <span class="text-fg-dimmed text-[10px]"
             >{filtered.length}{filterTag ? `/${favorites.length}` : ''}</span
         >
     </ViewHeader>

@@ -30,6 +30,10 @@ export function CancelExternalImport(arg1) {
     return window['go']['main']['App']['CancelExternalImport'](arg1);
 }
 
+export function CancelFavoritesExport() {
+    return window['go']['main']['App']['CancelFavoritesExport']();
+}
+
 export function ChooseWallpaperFolder() {
     return window['go']['main']['App']['ChooseWallpaperFolder']();
 }
@@ -60,6 +64,10 @@ export function DeleteBlueprint(arg1) {
 
 export function DownloadWallpaper(arg1) {
     return window['go']['main']['App']['DownloadWallpaper'](arg1);
+}
+
+export function ExportFavorites(arg1) {
+    return window['go']['main']['App']['ExportFavorites'](arg1);
 }
 
 export function ExportTheme(arg1) {
@@ -152,6 +160,10 @@ export function ImportFileDialog(arg1) {
 
 export function IsFavorite(arg1) {
     return window['go']['main']['App']['IsFavorite'](arg1);
+}
+
+export function IsFavoritesExportRunning() {
+    return window['go']['main']['App']['IsFavoritesExportRunning']();
 }
 
 export function IsMacOS() {
