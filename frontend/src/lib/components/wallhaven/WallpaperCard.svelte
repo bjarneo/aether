@@ -9,40 +9,28 @@
     import {getIsApplying} from '$lib/stores/theme.svelte';
     import {openURL} from '$lib/utils/browser';
     import {observeIntersection} from '$lib/utils/intersection';
+    import {isFavorite, toggleFavorite} from '$lib/stores/favorites.svelte';
 
     let {wallpaper, onpreview}: {wallpaper: any; onpreview: () => void} =
         $props();
     let isDownloading = $state(false);
-    let isFavorited = $state(false);
+    let favoriteKey = $derived(wallpaper.path || wallpaper.id);
+    let isFavorited = $derived(isFavorite(favoriteKey));
     let cardEl = $state<HTMLDivElement | null>(null);
     let inView = $state(false);
-    let favoriteChecked = false;
 
-    // Gate <img> and the IsFavorite IPC call on viewport so scrolled-past
-    // cards release decoded-image memory and never-visible cards skip IPC.
+    // Gate <img> on viewport so scrolled-past cards release decoded-image
+    // memory.
     $effect(() => {
         if (!cardEl) return;
         return observeIntersection(
             cardEl,
             entry => {
                 inView = entry.isIntersecting;
-                if (inView && !favoriteChecked) {
-                    favoriteChecked = true;
-                    checkFavorite();
-                }
             },
             {rootMargin: '600px 0px'}
         );
     });
-
-    async function checkFavorite() {
-        try {
-            const {IsFavorite} = await import(
-                '../../../../wailsjs/go/main/App'
-            );
-            isFavorited = await IsFavorite(wallpaper.path || wallpaper.id);
-        } catch {}
-    }
 
     async function handleUse() {
         isDownloading = true;
@@ -64,20 +52,15 @@
     async function handleFavorite(event: MouseEvent) {
         event.stopPropagation();
         try {
-            const {ToggleFavorite} = await import(
-                '../../../../wailsjs/go/main/App'
-            );
-            const result = await ToggleFavorite(
-                wallpaper.path || wallpaper.id,
-                'wallhaven',
-                {
-                    id: wallpaper.id,
-                    thumbUrl: wallpaper.thumbs?.small,
-                    resolution: wallpaper.resolution,
-                }
-            );
-            isFavorited = result;
-        } catch {}
+            await toggleFavorite(favoriteKey, 'wallhaven', {
+                id: wallpaper.id,
+                thumbUrl: wallpaper.thumbs?.small,
+                resolution: wallpaper.resolution,
+            });
+        } catch (err) {
+            console.error('ToggleFavorite failed', err);
+            showToast('Could not update favorites');
+        }
     }
 
     async function handleAddExtra(event: MouseEvent) {

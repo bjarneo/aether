@@ -4,31 +4,33 @@
 
     // Shared card for the Local and Favorites wallpaper grids. The thumbnail
     // source differs per view (lazy-loaded vs preloaded cache), so it arrives
-    // as a `thumb` snippet; `topRight` is an optional slot for view-specific
-    // actions (e.g. the favourites remove button). Clicking the thumbnail or
-    // the Use button selects the wallpaper.
+    // as a `thumb` snippet. The favourite heart renders only when `onfavorite`
+    // is supplied. Clicking the thumbnail or the Use button selects the
+    // wallpaper.
     let {
         path,
         name,
         isAdded = false,
+        isFavorited = false,
         applying = false,
         onuse,
         onwallpaperonly,
         onpreview,
         onaddextra,
+        onfavorite,
         thumb,
-        topRight,
     }: {
         path: string;
         name: string;
         isAdded?: boolean;
+        isFavorited?: boolean;
         applying?: boolean;
         onuse: () => void;
         onwallpaperonly: () => void;
         onpreview: () => void;
         onaddextra: () => void;
+        onfavorite?: () => void;
         thumb: Snippet;
-        topRight?: Snippet;
     } = $props();
 </script>
 
@@ -73,8 +75,36 @@
         </svg>
     </button>
 
-    {#if topRight}
-        {@render topRight()}
+    {#if onfavorite}
+        <button
+            class="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center transition-all duration-150
+            {isFavorited
+                ? 'opacity-100'
+                : 'opacity-0 hover:!opacity-100 group-hover:opacity-60'}"
+            onclick={e => {
+                e.stopPropagation();
+                onfavorite();
+            }}
+            aria-label={isFavorited
+                ? 'Remove from favorites'
+                : 'Add to favorites'}
+        >
+            <svg
+                class="h-4 w-4 {isFavorited
+                    ? 'text-destructive'
+                    : 'text-white'}"
+                viewBox="0 0 24 24"
+                fill={isFavorited ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path
+                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                ></path>
+            </svg>
+        </button>
     {/if}
 
     <div
