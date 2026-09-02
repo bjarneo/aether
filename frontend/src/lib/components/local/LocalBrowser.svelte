@@ -17,6 +17,7 @@
         loadFullImage,
         getCachedFullImage,
     } from '$lib/stores/imagecache.svelte';
+    import {isFavorite, toggleFavorite} from '$lib/stores/favorites.svelte';
     import LazyImage from '$lib/components/shared/LazyImage.svelte';
     import WallpaperTile from '$lib/components/shared/WallpaperTile.svelte';
     import ImagePreview from '$lib/components/shared/ImagePreview.svelte';
@@ -89,7 +90,9 @@
         } catch (err) {
             wallpapers = [];
             loadError =
-                err instanceof Error ? err.message : 'Wallpaper folder unavailable';
+                err instanceof Error
+                    ? err.message
+                    : 'Wallpaper folder unavailable';
         } finally {
             isLoading = false;
         }
@@ -184,6 +187,20 @@
         }
         addAdditionalImage(path);
         showToast('Added to additional images');
+    }
+
+    async function handleFavorite(wp: Wallpaper) {
+        try {
+            const nowFavorited = await toggleFavorite(wp.path, 'local', {
+                name: wp.name,
+            });
+            showToast(
+                nowFavorited ? 'Added to favorites' : 'Removed from favorites'
+            );
+        } catch (err) {
+            console.error('ToggleFavorite failed', err);
+            showToast('Could not update favorites');
+        }
     }
 
     async function handlePreview(index: number) {
@@ -371,11 +388,13 @@
                         path={wp.path}
                         name={wp.name}
                         isAdded={getAdditionalImages().includes(wp.path)}
+                        isFavorited={isFavorite(wp.path)}
                         applying={getIsApplying()}
                         onuse={() => selectWallpaper(wp.path)}
                         onwallpaperonly={() => applyWallpaperOnly(wp.path)}
                         onpreview={() => handlePreview(i)}
                         onaddextra={() => handleAddExtra(wp.path)}
+                        onfavorite={() => handleFavorite(wp)}
                     >
                         {#snippet thumb()}
                             <LazyImage path={wp.path} alt={wp.name} />
