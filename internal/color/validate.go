@@ -1,8 +1,11 @@
 package color
 
-// IsHexColor reports whether value is a safe three- or six-digit hex color.
+// IsHexColor reports whether value is a safe 3-, 4-, 6-, or 8-digit hex color.
+// Eight-digit form is #RRGGBBAA (used by templates such as aether.zed.json).
 func IsHexColor(value string) bool {
-	if len(value) != 4 && len(value) != 7 {
+	switch len(value) {
+	case 4, 5, 7, 9:
+	default:
 		return false
 	}
 	if value[0] != '#' {
